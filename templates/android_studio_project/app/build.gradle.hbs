@@ -1,0 +1,43 @@
+apply plugin: "com.android.application"
+
+android {
+    compileSdkVersion 28
+    defaultConfig {
+        applicationId "{{reverse_domain}}.{{app_name}}"
+        minSdkVersion 24
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0"
+        ndk {
+            // Tells Gradle to build outputs for the following ABIs and package
+            // them into your APK.
+            abiFilters {{abi_list}}
+        }
+    }
+    sourceSets {
+        main {
+            jniLibs {
+                srcDir "${System.env.NDK_HOME}/sources/third_party/vulkan/src/build-android/jniLibs"
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            debuggable true
+            jniDebuggable true
+            minifyEnabled false
+            useProguard false
+            packagingOptions {
+                {{~#each config.android.targets}}
+                doNotStrip "*/{{abi}}/*.so"{{/each}}
+            }
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+        }
+    }
+}
+
+dependencies {
+}

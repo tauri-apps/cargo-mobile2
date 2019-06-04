@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+set -e
+
+source "$HOME/.cargo/env"
+
+if [ "$#" -ne 4 ]; then
+    echo "Wrong number of arguments passed to build script"
+    exit 1
+fi
+
+SDKROOT="${1:?}"
+CONFIGURATION="${2:?}"
+PLATFORM_DISPLAY_NAME="${3:?}"
+ARCHS="${4:?}"
+
+if [ ! -d "$SDKROOT" ]; then
+    echo '`$SDKROOT`'" doesn't exist: $SDKROOT"
+    exit 1
+fi
+
+
+MAC_SDKROOT=$SDKROOT/../../../../MacOSX.platform/Developer/SDKs/MacOSX.sdk
+MAC_ARCH=x86_64_apple_darwin
+
+# set host flags which are used by build scripts
+export MAC_FLAGS="-isysroot ${MAC_SDKROOT:?}"
+export CFLAGS_$MAC_ARCH="${MAC_FLAGS:?}"
+export CXXFLAGS_$MAC_ARCH="${MAC_FLAGS:?}"
+export OBJC_INCLUDE_PATH_$MAC_ARCH="${SDKROOT:?}/usr/include"
+
+# set target specific flags to not muck up build.rs scripts
+for ARCH in ${ARCHS:?}; do
+    if [ "${ARCH:?}" = "arm64" ]; then
+        PLATFORM_ARCH=aarch64_apple_ios
+    fi
+    FLAGS="-isysroot ${SDKROOT:?}"
+    export CFLAGS_$PLATFORM_ARCH="${FLAGS:?}"
+    export CXXFLAGS_$PLATFORM_ARCH="${FLAGS:?}"
+    export OBJC_INCLUDE_PATH_$PLATFORM_ARCH="${SDKROOT:?}/usr/include"
+done
+export RUST_BACKTRACE=1
+
+if [ "${CONFIGURATION:?}" = "release" ]; then
+    CONFIG="--release"
+fi
+
+if [ "${PLATFORM_DISPLAY_NAME:?}" = "macOS" ]; then
+    MACOS="--macos"
+fi
+
+for ARCH in ${ARCHS:?}; do
+    COMMAND="cargo {{tool_name}} ios compile-lib $MACOS $ARCH $CONFIG"
+    echo $COMMAND
+    eval $COMMAND
+done

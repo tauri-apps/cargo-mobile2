@@ -1,0 +1,27 @@
+include! {concat!(env!("OUT_DIR"), "/fragment.rs")}
+include! {concat!(env!("OUT_DIR"), "/vertex.rs")}
+
+use rust_lib::{
+    draw::shaders::DefaultVertexShader,
+    renderer::shader::{FragmentShader, Shader},
+};
+
+#[derive(Debug)]
+pub enum SwizzleFragmentShader {}
+
+impl FragmentShader for SwizzleFragmentShader {
+    const SPIRV: &'static [u8] = fragment::swizzle();
+
+    const OBJECT_SAMPLER2D_COUNT: u8 = 1;
+
+    type PassUniform = ();
+    type ObjectUniform = ();
+}
+
+#[derive(Debug)]
+pub enum SwizzleShader {}
+
+impl Shader for SwizzleShader {
+    type FragmentShader = SwizzleFragmentShader;
+    type VertexShader = DefaultVertexShader;
+}

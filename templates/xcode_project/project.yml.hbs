@@ -1,0 +1,110 @@
+name: {{app_name}}
+options:
+  bundleIdPrefix: {{reverse_domain}}
+  deploymentTarget:
+    iOS: 8.0
+fileGroups: [rust]
+configs:
+  debug: debug
+  release: release
+settingGroups:
+  app:
+    base:
+      PRODUCT_NAME: {{app_name}}
+      PRODUCT_BUNDLE_IDENTIFIER: {{reverse_domain}}.{{app_name}}
+      DEVELOPMENT_TEAM: {{config.ios.development_team}}
+targetTemplates:
+  app:
+    type: application
+    sources:
+      - path: Sources
+    scheme:
+      environmentVariables:
+        RUST_BACKTRACE: full
+        RUST_LOG: info
+    settings:
+      groups: [app]
+targets:
+  {{app_name}}_iOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: res
+        buildPhase: resources
+        type: folder
+    info:
+      path: {{app_name}}_iOS/Info.plist
+      properties:
+        LSRequiresIPhoneOS: true
+        UILaunchStoryboardName: LaunchScreen
+        UIRequiredDeviceCapabilities: [arm64, metal]
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    scheme:
+      environmentVariables:
+        RUST_BACKTRACE: full
+        RUST_LOG: info
+    settings:
+      base:
+        LIBRARY_SEARCH_PATHS: $(inherited) {{prefix_path "target/aarch64-apple-ios/$(CONFIGURATION)"}}
+        ENABLE_BITCODE: false
+        VALID_ARCHS: arm64 # rustc doesn't support arm64e yet
+      groups: [app]
+    dependencies:
+      - target: rust_{{app_name}}_iOS
+        embed: false
+        link: false
+      - framework: lib{{app_name}}.a
+        embed: false
+      - sdk: CoreGraphics.framework
+      - sdk: Metal.framework
+      - sdk: MetalKit.framework
+      - sdk: QuartzCore.framework
+      - sdk: Security.framework
+      - sdk: UIKit.framework
+  {{app_name}}_macOS:
+    type: application
+    platform: macOS
+    sources: Sources
+    scheme:
+      environmentVariables:
+        RUST_BACKTRACE: full
+        RUST_LOG: info
+    settings:
+      base:
+        LIBRARY_SEARCH_PATHS: $(inherited) {{prefix_path "target/x86_64-apple-darwin/$(CONFIGURATION)"}}
+      groups: [app]
+    dependencies:
+      - target: rust_{{app_name}}_macOS
+        embed: false
+        link: false
+      - framework: lib{{app_name}}.a
+        embed: false
+      - sdk: Metal.framework
+  rust_{{app_name}}_iOS:
+    type: ""
+    platform: iOS
+    settings:
+      ENABLE_BITCODE: false
+      VALID_ARCHS: arm64
+    legacy:
+      toolPath: $(SRCROOT)/cargo_xcode.sh
+      arguments: ${SDKROOT:?} ${CONFIGURATION:?} ${PLATFORM_DISPLAY_NAME:?} ${ARCHS:?}
+      passSettings: false # prevents evil linker errors
+      workingDirectory: $(SRCROOT)/..
+  rust_{{app_name}}_macOS:
+    type: ""
+    platform: macOS
+    legacy:
+      toolPath: $(SRCROOT)/cargo_xcode.sh
+      arguments: ${SDKROOT:?} ${CONFIGURATION:?} ${PLATFORM_DISPLAY_NAME:?} ${ARCHS:?}
+      passSettings: false
+      workingDirectory: $(SRCROOT)/..

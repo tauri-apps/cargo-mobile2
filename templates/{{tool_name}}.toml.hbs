@@ -1,0 +1,24 @@
+[global]
+app_name = "{{app_name}}"
+stylized_app_name = "{{stylized_app_name}}"
+domain = "{{domain}}"
+source_root = "rust"
+manifest_path = "rust/{{app_name}}/Cargo.toml"
+asset_path = "rust/{{app_name}}/res"
+
+[android]
+project_root = "gen/android"
+
+[android.targets]
+aarch64 = { triple = "aarch64-linux-android", abi = "arm64-v8a", arch = "arm64" }
+arm = { triple = "arm-linux-androideabi", abi = "armeabi", arch = "arm" }
+armv7 = { triple = "armv7-linux-androideabi", abi = "armeabi-v7a", arch = "arm" }
+i686 = { triple = "i686-linux-android", abi = "x86", arch = "x86" }
+x86_64 = { triple = "x86_64-linux-android", abi = "x86_64", arch = "x86_64" }
+
+[ios]
+project_root = "gen/ios"
+development_team = "{{development_team}}"
+
+[ios.targets]
+aarch64 = { triple = "aarch64-apple-ios", arch = "arm64" }
