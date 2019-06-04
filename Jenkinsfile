@@ -27,10 +27,10 @@ lock(resource: resourceName, inversePrecedence: true) {
             sh "ci/test.sh"
         }
         citools.failableStage('install', []) {
-            sh "ci/install.sh"
+            sh "ci/install.sh ${branchName} ${citools.devBranch}"
         }
         citools.failableStage('test project', []) {
-            sh "ci/test_project.sh"
+            sh "ci/test_project.sh ${branchName} ${citools.devBranch}"
         }
     }
 }
