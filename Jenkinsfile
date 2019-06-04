@@ -23,13 +23,13 @@ lock(resource: resourceName, inversePrecedence: true) {
         }
     }
     citools.parseLog {
-        citools.failableStage('test', citools.default_notify_branches) {
+        citools.failableStage('test', []) {
             sh "ci/test.sh"
         }
-        citools.failableStage('install', citools.default_notify_branches) {
+        citools.failableStage('install', []) {
             sh "ci/install.sh"
         }
-        citools.failableStage('test project', citools.default_notify_branches) {
+        citools.failableStage('test project', []) {
             sh "ci/test_project.sh"
         }
     }
