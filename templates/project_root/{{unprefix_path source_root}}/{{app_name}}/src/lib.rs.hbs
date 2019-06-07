@@ -7,9 +7,9 @@ use rust_lib::{
         RectBuilder, Vertex,
     },
     fs::source::default_asset_source,
-    game::{self, entry_point, AppResource, DrawResource, InitResource, UpdateTime},
+    game::{self, entry_point, AppResource, DrawResource, InitResource, TextureHandle, UpdateTime},
     geometry::{ortho, Mat4, Point, Rect, Size},
-    renderer::{color::*, graph::*, TextureId},
+    renderer::{color::*, graph::*},
     text,
     window::{TouchPhase, TouchScreen},
 };
@@ -20,9 +20,9 @@ const CLEAR_COLOR: SrgbRgba = SrgbRgba([0.95, 0.93, 0.91, 1.0]);
 
 #[derive(Debug)]
 pub struct Game {
-    canvas_tex_id:   TextureId,
-    spot_count:      usize,
-    spots_touched:   Vec<Point>,
+    canvas: TextureHandle,
+    spot_count: usize,
+    spots_touched: Vec<Point>,
 }
 
 impl game::Game for Game {
@@ -37,7 +37,7 @@ impl game::Game for Game {
         );
         init_lazy_resources(init_resource);
         Self {
-            canvas_tex_id: init_resource.create_blank_texture(
+            canvas: init_resource.create_blank_texture(
                 colors::INVISIBLE,
                 init_resource.swapchain_size(),
             ).expect("failed to create canvas texture"),
@@ -98,7 +98,7 @@ impl Game {
         screen_rect: Rect,
     ) -> ObjectBuilder<Vertex, Mat4, ()> {
         RectBuilder::new(screen_rect)
-            .with_texture(self.canvas_tex_id)
+            .with_texture(self.canvas.id())
             .into()
     }
 
@@ -164,7 +164,7 @@ impl Game {
         proj: Mat4,
     ) -> AttachmentStageBuilder {
         StageBuilder::new()
-            .with_attachment(StageAttachment::texture(self.canvas_tex_id, None))
+            .with_attachment(StageAttachment::texture(self.canvas.id(), None))
             .with_pass::<shaders::SwizzleShader>(PassBuilder::from_objects(
                 proj,
                 (),
