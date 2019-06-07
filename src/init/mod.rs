@@ -56,7 +56,9 @@ pub fn init(force: bool, skip: Vec<String>) {
 // TODO: We should probably also try to install `rust-xcode-plugin`
 pub fn install_deps() {
     Command::new("brew")
-        .args(&["install", "xcodegen"])
+        // reinstall works even if it's not installed yet,
+        // and will upgrade if it's already installed!
+        .args(&["reinstall", "xcodegen"])
         .status()
         .into_result()
         .expect("Failed to install `xcodegen`");
