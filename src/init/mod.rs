@@ -5,7 +5,7 @@ mod rust;
 pub use self::cargo::CargoTarget;
 use self::{cargo::CargoConfig, config::interactive_config_gen};
 use crate::{android, Config, ios, util::{self, FriendlyContains, IntoResult}};
-use std::{fs, path::Path, process::Command};
+use std::{path::Path, process::Command};
 
 pub static STEPS: &'static [&'static str] = &[
     "cargo",
@@ -66,9 +66,6 @@ pub fn install_deps() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let dest = root.join("ios-deploy");
     if dest.exists() {
-        // see `fs::remove_dir_all` below
-        util::git(&dest, &["checkout", "HEAD", "--", "ios-deploy.xcodeproj"])
-            .expect("Failed to reset `ios-deploy` repo");
         util::git(&dest, &["pull", "--rebase", "origin", "master"])
             .expect("Failed to pull `ios-deploy` repo");
     } else {
@@ -83,10 +80,4 @@ pub fn install_deps() {
         .status()
         .into_result()
         .expect("Failed to build `ios-deploy`");
-    // Since we're currently putting our cargo tool in our rust folder
-    // (which is symlinked into our Xcode project), this project ends up
-    // getting detected and adding targets in Xcode... so, we can just
-    // delete it for now.
-    fs::remove_dir_all(project)
-        .expect("Failed to delete `ios-deploy.xcodeproj`");
 }
