@@ -135,10 +135,10 @@ impl Game {
                 0 => text::Style::new(font, self.hype_color()),
             },
         ).unwrap();
-        draw_resource.queue_text(std::iter::once(
+        draw_resource.draw_text(std::iter::once(
             para.position(Point::new(32., 32.))
                 .to_inner()
-        )).into()
+        ))
     }
 
     fn draw_spots(
