@@ -90,7 +90,7 @@ impl Game {
         let bg_size = Size::new(730., 606.).scaled_to_fill_and_fit(screen_rect.size());
         RectBuilder::new(Rect::with_center(screen_rect.center(), bg_size))
             .with_texture(TEXTURE_MANAGER.logo())
-            .into()
+            .into_object_builder()
     }
 
     fn draw_canvas(
@@ -99,7 +99,7 @@ impl Game {
     ) -> ObjectBuilder<Vertex, Mat4, ()> {
         RectBuilder::new(screen_rect)
             .with_texture(self.canvas.id())
-            .into()
+            .into_object_builder()
     }
 
     fn hype_color(&self) -> SrgbRgba {
@@ -123,21 +123,23 @@ impl Game {
         draw_resource: &mut DrawResource<'_>,
     ) -> DefaultObjectBuilder {
         let spot_count = self.spot_count.to_string();
-        let font = text::Font::new(FONT_MANAGER.fira_sans_regular(), 64.);
         let para = text::expand_and_parse(
             "[0: %0] spot%1",
             &text::subs! {
                 0 => &spot_count,
                 1 => if self.spot_count != 1 { "s" } else { "" },
             },
-            text::Style::new(font, colors::BLACK),
+            text::Style::new(FONT_MANAGER.fira_sans_regular(), 64., colors::BLACK),
             &text::tags! {
-                0 => text::Style::new(font, self.hype_color()),
+                0 => text::Style::new(
+                    FONT_MANAGER.fira_sans_regular(),
+                    64.,
+                    self.hype_color(),
+                ),
             },
         ).unwrap();
         draw_resource.draw_text(std::iter::once(
-            para.position(Point::new(32., 32.))
-                .to_inner()
+            para.position(Point::new(32., 32.)).to_inner()
         ))
     }
 
