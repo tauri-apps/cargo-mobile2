@@ -7,7 +7,10 @@ use rust_lib::{
         RectBuilder, Vertex,
     },
     fs::source::default_asset_source,
-    game::{self, entry_point, AppResource, DrawResource, InitResource, TextureHandle, UpdateTime},
+    game::{
+        self, entry_point, AppResource, AssetManager, DrawResource, InitResource, TextureHandle,
+        UpdateTime,
+    },
     geometry::{ortho, Mat4, Point, Rect, Size},
     renderer::{color::*, graph::*},
     text,
@@ -29,13 +32,15 @@ impl game::Game for Game {
     const GAME_NAME: &'static str = "{{stylized_app_name}}";
 
     type UserEvent = ();
+    type TextureManager = TextureManager;
+    type SoundManager = SoundManager;
+    type FontManager = FontManager;
 
     fn new(init_resource: &mut InitResource<'_, Self>) -> Self {
         init_resource.file_cache.register_source(
             "assets",
             default_asset_source(env!("CARGO_MANIFEST_DIR")).unwrap(),
         );
-        init_lazy_resources(init_resource);
         Self {
             canvas: init_resource.create_blank_texture(
                 colors::INVISIBLE,
@@ -46,20 +51,29 @@ impl game::Game for Game {
         }
     }
 
-    fn update(&mut self, _update_time: UpdateTime, _update_resource: &mut AppResource<'_, Self>) {}
+    fn update(
+        &mut self,
+        _update_time: UpdateTime,
+        _update_resource: &mut AppResource<'_, Self>,
+        _assets: &AssetManager<Self>,
+    ) {}
 
-    fn draw(&mut self, draw_resource: &mut DrawResource<'_>) -> GraphBuilder {
+    fn draw(
+        &mut self,
+        draw_resource: &mut DrawResource<'_>,
+        assets: &AssetManager<Self>,
+    ) -> GraphBuilder {
         let screen_size = draw_resource.window.screen_safe_size().unwrap();
         let screen_rect = Rect::with_top_left(Point::zero(), screen_size);
         let proj = ortho(screen_size);
         StageBuilder::new()
             .with_attachment(StageAttachment::swapchain(Some(CLEAR_COLOR.to_linear())))
             .with_pass::<DefaultShader>(PassBuilder::new(proj, ())
-                .with_object(self.draw_background(screen_rect))
+                .with_object(self.draw_background(assets, screen_rect))
                 .with_object(self.draw_canvas(screen_rect))
-                .with_object(self.draw_score(draw_resource))
+                .with_object(self.draw_score(draw_resource, assets))
             )
-            .with_sub_stage(self.draw_spots_on_canvas(screen_size, proj))
+            .with_sub_stage(self.draw_spots_on_canvas(assets, screen_size, proj))
             .into_graph_builder()
     }
 
@@ -68,6 +82,7 @@ impl game::Game for Game {
         touch: TouchScreen,
         _time: std::time::Instant,
         touch_resource: &mut AppResource<'_, Self>,
+        _assets: &AssetManager<Self>,
     ) {
         if touch.phase == TouchPhase::Began
         || touch.phase == TouchPhase::Moved {
@@ -85,11 +100,16 @@ impl game::Game for Game {
 impl Game {
     fn draw_background(
         &mut self,
+        assets: &AssetManager<Self>,
         screen_rect: Rect,
     ) -> ObjectBuilder<Vertex, Mat4, ()> {
-        let bg_size = Size::new(730., 606.).scaled_to_fill_and_fit(screen_rect.size());
+        let logo = assets.textures.logo();
+        let bg_size = logo
+            .size()
+            .map(|n| n as f32)
+            .scaled_to_fill_and_fit(screen_rect.size());
         RectBuilder::new(Rect::with_center(screen_rect.center(), bg_size))
-            .with_texture(TEXTURE_MANAGER.logo())
+            .with_texture(logo.id())
             .into_object_builder()
     }
 
@@ -121,6 +141,7 @@ impl Game {
     fn draw_score(
         &self,
         draw_resource: &mut DrawResource<'_>,
+        assets: &AssetManager<Self>,
     ) -> DefaultObjectBuilder {
         let spot_count = self.spot_count.to_string();
         let para = text::expand_and_parse(
@@ -129,10 +150,10 @@ impl Game {
                 0 => &spot_count,
                 1 => if self.spot_count != 1 { "s" } else { "" },
             },
-            text::Style::new(FONT_MANAGER.fira_sans_regular(), 64., colors::BLACK),
+            text::Style::new(assets.fonts.fira_sans_regular(), 64., colors::BLACK),
             &text::tags! {
                 0 => text::Style::new(
-                    FONT_MANAGER.fira_sans_regular(),
+                    assets.fonts.fira_sans_regular(),
                     64.,
                     self.hype_color(),
                 ),
@@ -145,23 +166,25 @@ impl Game {
 
     fn draw_spots(
         &mut self,
+        assets: &AssetManager<Self>,
         screen_size: Size,
     ) -> impl Iterator<Item = ObjectBuilder<Vertex, Mat4, ()>> + '_ {
         let spot_size = {
             let spot_radius = screen_size.width.min(screen_size.height) / 5.;
             Size::new(spot_radius, spot_radius)
         };
-        let spot_texture = TEXTURE_MANAGER.spot();
+        let spot_texture = assets.textures.spot();
         self.spots_touched
             .drain(..)
             .map(move |spot| RectBuilder::new(Rect::with_center(spot, spot_size))
-                .with_texture(spot_texture)
+                .with_texture(spot_texture.id())
                 .into_object_builder()
             )
     }
 
     fn draw_spots_on_canvas(
         &mut self,
+        assets: &AssetManager<Self>,
         screen_size: Size,
         proj: Mat4,
     ) -> AttachmentStageBuilder {
@@ -170,7 +193,7 @@ impl Game {
             .with_pass::<shaders::SwizzleShader>(PassBuilder::from_objects(
                 proj,
                 (),
-                self.draw_spots(screen_size).collect(),
+                self.draw_spots(assets, screen_size).collect(),
             ))
     }
 }
