@@ -8,7 +8,7 @@ use rust_lib::{
     },
     fs::source::default_asset_source,
     game::{
-        self, entry_point, AppResource, AssetManager, DrawResource, InitResource, TextureHandle,
+        self, entry_point, AppResource, DrawResource, InitResource, TextureHandle,
         UpdateTime,
     },
     geometry::{ortho, Mat4, Point, Rect, Size},
@@ -32,9 +32,7 @@ impl game::Game for Game {
     const GAME_NAME: &'static str = "{{stylized_app_name}}";
 
     type UserEvent = ();
-    type TextureManager = TextureManager;
-    type SoundManager = SoundManager;
-    type FontManager = FontManager;
+    type AssetManager = AssetManager;
 
     fn new(init_resource: &mut InitResource<'_, Self>) -> Self {
         init_resource.file_cache.register_source(
@@ -55,13 +53,13 @@ impl game::Game for Game {
         &mut self,
         _update_time: UpdateTime,
         _update_resource: &mut AppResource<'_, Self>,
-        _assets: &AssetManager<Self>,
+        _assets: &AssetManager,
     ) {}
 
     fn draw(
         &mut self,
         draw_resource: &mut DrawResource<'_>,
-        assets: &AssetManager<Self>,
+        assets: &AssetManager,
     ) -> GraphBuilder {
         let screen_size = draw_resource.window.screen_safe_size().unwrap();
         let screen_rect = Rect::with_top_left(Point::zero(), screen_size);
@@ -82,7 +80,7 @@ impl game::Game for Game {
         touch: TouchScreen,
         _time: std::time::Instant,
         touch_resource: &mut AppResource<'_, Self>,
-        _assets: &AssetManager<Self>,
+        _assets: &AssetManager,
     ) {
         if touch.phase == TouchPhase::Began
         || touch.phase == TouchPhase::Moved {
@@ -100,7 +98,7 @@ impl game::Game for Game {
 impl Game {
     fn draw_background(
         &mut self,
-        assets: &AssetManager<Self>,
+        assets: &AssetManager,
         screen_rect: Rect,
     ) -> ObjectBuilder<Vertex, Mat4, ()> {
         let logo = assets.textures.logo();
@@ -141,7 +139,7 @@ impl Game {
     fn draw_score(
         &self,
         draw_resource: &mut DrawResource<'_>,
-        assets: &AssetManager<Self>,
+        assets: &AssetManager,
     ) -> DefaultObjectBuilder {
         let spot_count = self.spot_count.to_string();
         let para = text::expand_and_parse(
@@ -166,7 +164,7 @@ impl Game {
 
     fn draw_spots(
         &mut self,
-        assets: &AssetManager<Self>,
+        assets: &AssetManager,
         screen_size: Size,
     ) -> impl Iterator<Item = ObjectBuilder<Vertex, Mat4, ()>> + '_ {
         let spot_size = {
@@ -184,7 +182,7 @@ impl Game {
 
     fn draw_spots_on_canvas(
         &mut self,
-        assets: &AssetManager<Self>,
+        assets: &AssetManager,
         screen_size: Size,
         proj: Mat4,
     ) -> AttachmentStageBuilder {
