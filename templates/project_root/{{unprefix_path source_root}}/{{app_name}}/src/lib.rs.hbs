@@ -6,7 +6,6 @@ use rust_lib::{
         shaders::{DefaultObjectBuilder, DefaultShader},
         RectBuilder, Vertex,
     },
-    fs::source::default_asset_source,
     game::{
         self, entry_point, AppResource, DrawResource, InitResource, TextureHandle,
         UpdateTime,
@@ -34,11 +33,11 @@ impl game::Game for Game {
     type UserEvent = ();
     type AssetManager = AssetManager;
 
-    fn new(init_resource: &mut InitResource<'_, Self>) -> Self {
-        init_resource.file_cache.register_source(
-            "assets",
-            default_asset_source(env!("CARGO_MANIFEST_DIR")).unwrap(),
-        );
+    fn cargo_manifest_dir() -> &'static str {
+        env!("CARGO_MANIFEST_DIR")
+    }
+
+    fn new(init_resource: &mut InitResource<'_, Self>, _assets: &AssetManager) -> Self {
         Self {
             canvas: init_resource.create_blank_texture(
                 colors::INVISIBLE,
@@ -100,7 +99,7 @@ impl Game {
         &mut self,
         assets: &AssetManager,
         screen_rect: Rect,
-    ) -> ObjectBuilder<Vertex, Mat4, ()> {
+    ) -> DefaultObjectBuilder {
         let logo = assets.textures.logo();
         let bg_size = logo
             .size()
@@ -114,7 +113,7 @@ impl Game {
     fn draw_canvas(
         &mut self,
         screen_rect: Rect,
-    ) -> ObjectBuilder<Vertex, Mat4, ()> {
+    ) -> DefaultObjectBuilder {
         RectBuilder::new(screen_rect)
             .with_texture(self.canvas.id())
             .into_object_builder()
@@ -166,7 +165,7 @@ impl Game {
         &mut self,
         assets: &AssetManager,
         screen_size: Size,
-    ) -> impl Iterator<Item = ObjectBuilder<Vertex, Mat4, ()>> + '_ {
+    ) -> impl Iterator<Item = DefaultObjectBuilder> + '_ {
         let spot_size = {
             let spot_radius = screen_size.width.min(screen_size.height) / 5.;
             Size::new(spot_radius, spot_radius)
