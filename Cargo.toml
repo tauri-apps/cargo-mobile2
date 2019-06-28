@@ -10,7 +10,7 @@ name = "cargo-ginit"
 [dependencies]
 bicycle = { git = "ssh://git@bitbucket.org/brainium/bicycle.git" }
 colored = "1"
-derive_more = "0.14"
+derive_more = "0.15"
 env_logger = "0.6"
 Inflector = { version = "0.11", default-features = false }
 lazy_static = "1"
@@ -19,4 +19,4 @@ openssl = "0.10"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
 structopt = "0.2"
-toml = "0.4"
+toml = "0.5"
