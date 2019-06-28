@@ -91,6 +91,24 @@ impl IntoResult<Child, CommandError> for io::Result<Child> {
     }
 }
 
+pub fn command_path(name: &str) -> CommandResult<Vec<u8>> {
+    Command::new("command")
+        .arg("-v")
+        .arg(name)
+        .output()
+        .into_result()
+        .map(|output| output.stdout)
+}
+
+pub fn command_present(name: &str) -> CommandResult<bool> {
+    command_path(name)
+        .map(|_path| true)
+        .or_else(|err| match err {
+            CommandError::NonZeroExitStatus(Some(1)) => Ok(false),
+            _ => Err(err),
+        })
+}
+
 pub fn force_symlink(src: impl AsRef<OsStr>, dest: impl AsRef<OsStr>) -> CommandResult<()> {
     Command::new("ln")
         .arg("-sf") // always recreate symlink

@@ -40,8 +40,6 @@ pub enum Subcommand {
         )]
         skip: Vec<String>,
     },
-    #[structopt(name = "install-deps", about = "Install dependencies for this tool")]
-    InstallDeps,
     #[structopt(name = "android", about = "Tools for Android")]
     Android {
         #[structopt(subcommand)]
@@ -83,7 +81,6 @@ fn main() {
     let args = parse_args();
     match args.subcommand {
         Subcommand::Init { force, skip } => init::init(&init_templating(), force, skip),
-        Subcommand::InstallDeps => init::install_deps(),
         Subcommand::Android { subcommand } => subcommand.handle(args.verbose),
         Subcommand::IOS { subcommand } => subcommand.handle(args.verbose),
     }
