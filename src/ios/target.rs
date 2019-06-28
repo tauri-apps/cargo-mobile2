@@ -4,7 +4,6 @@ use crate::{
     util::{self, IntoResult},
     CONFIG,
 };
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
@@ -12,7 +11,7 @@ use std::{
     process::Command,
 };
 
-lazy_static! {
+lazy_static::lazy_static! {
     pub static ref POSSIBLE_TARGETS: Vec<&'static str> = {
         get_possible_values::<Target>()
     };
@@ -40,7 +39,7 @@ lazy_static! {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Target {
     pub triple: String,
-    pub arch:   String,
+    pub arch: String,
 }
 
 impl TargetTrait for Target {
@@ -60,8 +59,8 @@ impl Target {
     // aren't built with bitcode: https://github.com/rust-lang/rust/issues/35968
     pub fn get_cargo_config(&self) -> CargoTarget {
         CargoTarget {
-            ar:        None,
-            linker:    None,
+            ar: None,
+            linker: None,
             rustflags: vec![],
         }
     }

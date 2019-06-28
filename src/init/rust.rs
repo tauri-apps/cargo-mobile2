@@ -1,14 +1,12 @@
 use crate::{util, CONFIG};
-use derive_more::From;
-use lazy_static::lazy_static;
 use regex::Regex;
 use std::{ffi::OsStr, io, path::Path};
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref SUBMODULE_NAME_RE: Regex = Regex::new(r#"\[submodule "(.*)"\]"#).unwrap();
 }
 
-#[derive(Debug, From)]
+#[derive(Debug, derive_more::From)]
 pub enum ProjectCreationError {
     TemplateTraversalError(bicycle::TraversalError),
     TemplateProcessingError(bicycle::ProcessingError),

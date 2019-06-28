@@ -1,12 +1,11 @@
 use crate::CONFIG;
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
 };
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref ABI_LIST: String = {
         CONFIG
             .android
@@ -26,7 +25,7 @@ lazy_static! {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     pub project_root: String,
-    pub targets:      BTreeMap<String, super::Target>,
+    pub targets: BTreeMap<String, super::Target>,
 }
 
 impl Config {

@@ -2,10 +2,9 @@ use crate::{
     util::{self, IntoResult},
     CONFIG,
 };
-use derive_more::From;
 use std::{path::Path, process::Command};
 
-#[derive(Debug, From)]
+#[derive(Debug, derive_more::From)]
 pub enum ProjectCreationError {
     TemplateProcessingError(bicycle::ProcessingError),
     SymlinkRustError(util::CommandError),

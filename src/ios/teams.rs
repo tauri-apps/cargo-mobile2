@@ -1,7 +1,8 @@
 use crate::util::{self, IntoResult};
-use derive_more::From;
 use openssl::{
-    error::ErrorStack as OpenSslError, nid::Nid, x509::{X509, X509NameRef},
+    error::ErrorStack as OpenSslError,
+    nid::Nid,
+    x509::{X509NameRef, X509},
 };
 use std::{collections::BTreeSet, process::Command};
 
@@ -13,7 +14,7 @@ fn get_pem_list() -> util::CommandResult<Vec<u8>> {
         .map(|output| output.stdout)
 }
 
-#[derive(Debug, From)]
+#[derive(Debug, derive_more::From)]
 pub enum FindTeamsError {
     FindCertsError(util::CommandError),
     ParseX509Error(OpenSslError),
@@ -47,8 +48,7 @@ impl Team {
 }
 
 pub fn find_development_teams() -> Result<Vec<Team>, FindTeamsError> {
-    let certs = X509::stack_from_pem(&get_pem_list()?)
-        .map_err(FindTeamsError::ParseX509Error)?;
+    let certs = X509::stack_from_pem(&get_pem_list()?).map_err(FindTeamsError::ParseX509Error)?;
     let mut teams = BTreeSet::new();
     for cert in certs {
         teams.insert(Team::from_x509(cert)?);

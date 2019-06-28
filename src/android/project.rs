@@ -1,8 +1,7 @@
 use crate::{util, CONFIG};
-use derive_more::From;
 use std::{fs, path::Path};
 
-#[derive(Debug, From)]
+#[derive(Debug, derive_more::From)]
 pub enum ProjectCreationError {
     TemplateProcessingError(bicycle::ProcessingError),
     SymlinkAssetsError(util::CommandError),

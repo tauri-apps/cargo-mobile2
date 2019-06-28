@@ -1,5 +1,3 @@
-use lazy_static::lazy_static;
-use log::info;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
@@ -12,7 +10,7 @@ fn check_path() -> Option<PathBuf> {
     Config::discover_root().expect("Failed to canonicalize current directory")
 }
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref FILE_NAME: String = format!("{}.toml", crate::NAME);
     static ref MAYBE_ROOT: Mutex<Option<PathBuf>> = Mutex::new(check_path());
     static ref PROJECT_ROOT: PathBuf = MAYBE_ROOT
@@ -55,12 +53,12 @@ impl Config {
         while !path.exists() {
             if let Some(parent) = path.parent().and_then(Path::parent) {
                 path = parent.join(&*FILE_NAME);
-                info!("Looking for config file at {:?}", path);
+                log::info!("Looking for config file at {:?}", path);
             } else {
                 return Ok(None);
             }
         }
-        info!("Found config file at {:?}", path);
+        log::info!("Found config file at {:?}", path);
         path.pop();
         Ok(Some(path))
     }

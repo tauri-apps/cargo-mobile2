@@ -6,7 +6,6 @@ use crate::{
     util::{self, force_symlink, IntoResult},
     CONFIG,
 };
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
@@ -17,7 +16,7 @@ use std::{
 
 const API_VERSION: u32 = 24;
 
-lazy_static! {
+lazy_static::lazy_static! {
     pub static ref POSSIBLE_TARGETS: Vec<&'static str> = { get_possible_values::<Target>() };
     static ref NDK_HOME: String = env::var("NDK_HOME").expect("`NDK_HOME` env var missing");
 }
@@ -33,8 +32,8 @@ fn gradlew() -> Command {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Target {
     pub triple: String,
-    pub abi:    String,
-    pub arch:   String,
+    pub abi: String,
+    pub arch: String,
 }
 
 impl TargetTrait for Target {
@@ -87,8 +86,8 @@ impl Target {
             .expect("Linker path contained invalid unicode")
             .to_owned();
         CargoTarget {
-            ar:        Some(ar),
-            linker:    Some(linker),
+            ar: Some(ar),
+            linker: Some(linker),
             rustflags: vec![
                 "-C".to_owned(),
                 "link-arg=-landroid".to_owned(),
@@ -112,11 +111,7 @@ impl Target {
     }
 
     fn compile_lib(&self, verbose: bool, release: bool, check: bool) {
-        let subcommand = if check {
-            "check"
-        } else {
-            "build"
-        };
+        let subcommand = if check { "check" } else { "build" };
         util::CargoCommand::new(subcommand)
             .with_verbose(verbose)
             .with_package(Some(CONFIG.app_name()))
