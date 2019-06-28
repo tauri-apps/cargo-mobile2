@@ -1,26 +1,6 @@
 use crate::CONFIG;
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::BTreeMap,
-    path::{Path, PathBuf},
-};
-
-lazy_static::lazy_static! {
-    static ref ABI_LIST: String = {
-        CONFIG
-            .android
-            .targets
-            .values()
-            .map(|target| format!("\"{}\"", target.abi))
-            .collect::<Vec<_>>()
-            .join(", ")
-    };
-    static ref PROJECT_PATH: PathBuf = CONFIG
-        .project_root()
-        .join(&CONFIG.android.project_root)
-        .join(CONFIG.app_name());
-    static ref NDK_PATH: PathBuf = PROJECT_PATH.parent().unwrap().join(".ndk-toolchains");
-}
+use std::{collections::BTreeMap, path::PathBuf};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
@@ -29,15 +9,25 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn abi_list(&self) -> &str {
-        &ABI_LIST
+    pub fn abi_list(&self) -> String {
+        self.targets
+            .values()
+            .map(|target| format!("\"{}\"", target.abi))
+            .collect::<Vec<_>>()
+            .join(", ")
     }
 
-    pub fn project_path(&self) -> &Path {
-        &PROJECT_PATH
+    pub fn project_path(&self) -> PathBuf {
+        CONFIG
+            .project_root()
+            .join(&self.project_root)
+            .join(CONFIG.app_name())
     }
 
-    pub fn ndk_path(&self) -> &Path {
-        &NDK_PATH
+    pub fn ndk_path(&self) -> PathBuf {
+        self.project_path()
+            .parent()
+            .unwrap()
+            .join(".ndk-toolchains")
     }
 }

@@ -1,13 +1,10 @@
 use super::Target;
 use crate::CONFIG;
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::BTreeMap,
-    path::{Path, PathBuf},
-};
+use std::{collections::BTreeMap, path::PathBuf};
 
-lazy_static::lazy_static! {
-    static ref PROJECT_ROOT: PathBuf = CONFIG.prefix_path(&CONFIG.ios.project_root);
+pub fn scheme() -> String {
+    format!("{}_iOS", CONFIG.app_name())
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -18,7 +15,31 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn project_root(&self) -> &Path {
-        &PROJECT_ROOT
+    pub fn project_root(&self) -> PathBuf {
+        CONFIG.prefix_path(&self.project_root)
+    }
+
+    pub fn workspace_path(&self) -> PathBuf {
+        self.project_root().join(format!(
+            "{}.xcodeproj/project.xcworkspace/",
+            CONFIG.app_name()
+        ))
+    }
+
+    pub fn export_path(&self) -> PathBuf {
+        self.project_root().join("build")
+    }
+
+    pub fn export_plist_path(&self) -> PathBuf {
+        self.project_root().join("ExportOptions.plist")
+    }
+
+    pub fn ipa_path(&self) -> PathBuf {
+        self.export_path().join(format!("{}.ipa", scheme()))
+    }
+
+    pub fn app_path(&self) -> PathBuf {
+        self.export_path()
+            .join(format!("Payload/{}.app", CONFIG.app_name()))
     }
 }

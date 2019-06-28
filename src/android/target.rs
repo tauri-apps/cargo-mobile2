@@ -18,7 +18,10 @@ const API_VERSION: u32 = 24;
 
 lazy_static::lazy_static! {
     pub static ref POSSIBLE_TARGETS: Vec<&'static str> = { get_possible_values::<Target>() };
-    static ref NDK_HOME: String = env::var("NDK_HOME").expect("`NDK_HOME` env var missing");
+}
+
+fn ndk_home() -> String {
+    env::var("NDK_HOME").expect("`NDK_HOME` env var missing")
 }
 
 fn gradlew() -> Command {
@@ -160,8 +163,8 @@ impl Target {
         let arch_dir = toolchains_dir.join(&self.arch);
         if !arch_dir.exists() {
             fs::create_dir_all(&toolchains_dir).expect("Failed to create toolchain directory");
-            let ndk_home = Path::new(&*NDK_HOME);
-            Command::new(ndk_home.join("build/tools/make_standalone_toolchain.py"))
+            let ndk_home = ndk_home();
+            Command::new(Path::new(&ndk_home).join("build/tools/make_standalone_toolchain.py"))
                 .args(&["--api", &API_VERSION.to_string()])
                 .args(&["--arch", &self.arch])
                 .args(&["--install-dir", arch_dir.to_str().unwrap()])
@@ -214,7 +217,7 @@ impl Target {
         logcat_command.args(&["logcat", "-d"]); // print and exit
         let mut stack_command = Command::new("ndk-stack");
         stack_command
-            .env("PATH", util::add_to_path(&*NDK_HOME))
+            .env("PATH", util::add_to_path(&ndk_home()))
             .arg("-sym")
             .arg(self.get_jnilibs_subdir());
         util::pipe(logcat_command, stack_command).expect("Failed to get stacktrace");

@@ -2,10 +2,6 @@ use crate::{util, CONFIG};
 use regex::Regex;
 use std::{ffi::OsStr, io, path::Path};
 
-lazy_static::lazy_static! {
-    static ref SUBMODULE_NAME_RE: Regex = Regex::new(r#"\[submodule "(.*)"\]"#).unwrap();
-}
-
 #[derive(Debug, derive_more::From)]
 pub enum ProjectCreationError {
     TemplateTraversalError(bicycle::TraversalError),
@@ -24,6 +20,9 @@ fn git_init(root: &Path) -> Result<(), ProjectCreationError> {
 }
 
 fn submodule_exists(root: &Path, name: &str) -> io::Result<bool> {
+    lazy_static::lazy_static! {
+        static ref SUBMODULE_NAME_RE: Regex = Regex::new(r#"\[submodule "(.*)"\]"#).unwrap();
+    }
     let path = root.join(".gitmodules");
     if !path.exists() {
         Ok(false)

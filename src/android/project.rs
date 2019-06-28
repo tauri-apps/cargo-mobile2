@@ -15,7 +15,7 @@ pub fn create(bike: &bicycle::Bicycle) -> Result<(), ProjectCreationError> {
         "/templates/android_studio_project"
     ));
     let dest = CONFIG.android.project_path();
-    bike.process(src, dest, |map| {
+    bike.process(src, &dest, |map| {
         CONFIG.insert_data(map);
         map.insert("abi_list", CONFIG.android.abi_list());
     })?;

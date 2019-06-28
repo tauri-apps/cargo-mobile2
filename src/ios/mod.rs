@@ -3,14 +3,17 @@ pub mod project;
 mod target;
 mod teams;
 
-pub use self::{config::Config, target::Target, teams::*};
 use self::target::{MACOS, POSSIBLE_TARGETS};
+pub use self::{config::Config, target::Target, teams::*};
 use crate::target::{call_for_targets, FallbackBehavior, TargetTrait};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 pub enum Subcommand {
-    #[structopt(name = "toolchain-init", about = "Installs Rust toolchain for target(s)")]
+    #[structopt(
+        name = "toolchain-init",
+        about = "Installs Rust toolchain for target(s)"
+    )]
     ToolchainInit {
         #[structopt(name = "targets", raw(possible_values = "POSSIBLE_TARGETS.as_slice()"))]
         targets: Vec<String>,
@@ -30,7 +33,10 @@ pub enum Subcommand {
         #[structopt(long = "release")]
         release: bool,
     },
-    #[structopt(name = "compile-lib", about = "Compile static lib (should only be called by Xcode!)")]
+    #[structopt(
+        name = "compile-lib",
+        about = "Compile static lib (should only be called by Xcode!)"
+    )]
     CompileLib {
         #[structopt(long = "macos", help = "Awkwardly special-case for macOS")]
         macos: bool,
@@ -56,10 +62,15 @@ impl Subcommand {
             ),
             Subcommand::Build { release } => Target::build(release),
             Subcommand::Run { release } => Target::run(release),
-            Subcommand::CompileLib { macos, arch, release } => match macos {
+            Subcommand::CompileLib {
+                macos,
+                arch,
+                release,
+            } => match macos {
                 true => &*MACOS,
                 false => Target::for_arch(&arch).expect("Invalid architecture"),
-            }.compile_lib(verbose, release),
+            }
+            .compile_lib(verbose, release),
         }
     }
 }

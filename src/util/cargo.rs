@@ -1,11 +1,11 @@
-use std::{path::Path, process::Command};
+use std::{path::PathBuf, process::Command};
 
 #[derive(Debug)]
 pub struct CargoCommand<'a> {
     subcommand: &'a str,
     verbose: bool,
     package: Option<&'a str>,
-    manifest_path: Option<&'a Path>,
+    manifest_path: Option<PathBuf>,
     target: Option<&'a str>,
     features: Option<&'a str>,
     release: bool,
@@ -34,7 +34,7 @@ impl<'a> CargoCommand<'a> {
         self
     }
 
-    pub fn with_manifest_path(mut self, manifest_path: Option<&'a Path>) -> CargoCommand {
+    pub fn with_manifest_path(mut self, manifest_path: Option<PathBuf>) -> Self {
         self.manifest_path = manifest_path;
         self
     }

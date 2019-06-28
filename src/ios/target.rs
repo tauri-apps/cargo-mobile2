@@ -1,15 +1,12 @@
 use crate::{
     init::CargoTarget,
+    ios::config::scheme,
     target::{get_possible_values, TargetTrait},
     util::{self, IntoResult},
     CONFIG,
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::BTreeMap,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{collections::BTreeMap, path::Path, process::Command};
 
 lazy_static::lazy_static! {
     pub static ref POSSIBLE_TARGETS: Vec<&'static str> = {
@@ -21,19 +18,6 @@ lazy_static::lazy_static! {
         triple: "x86_64-apple-darwin".to_string(),
         arch: "x86_64".to_string(),
     };
-
-    static ref SCHEME: String = format!("{}_iOS", CONFIG.app_name());
-
-    static ref WORKSPACE_PATH: PathBuf = CONFIG.ios.project_root()
-        .join(format!("{}.xcodeproj/project.xcworkspace/", CONFIG.app_name()));
-    static ref EXPORT_PATH: PathBuf = CONFIG.ios.project_root()
-        .join("build");
-    static ref EXPORT_PLIST_PATH: PathBuf = CONFIG.ios.project_root()
-        .join("ExportOptions.plist");
-    static ref IPA_PATH: PathBuf = EXPORT_PATH
-        .join(format!("{}.ipa", &*SCHEME));
-    static ref APP_PATH: PathBuf = EXPORT_PATH
-        .join(format!("Payload/{}.app", CONFIG.app_name()));
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -105,9 +89,9 @@ impl Target {
     pub fn build(release: bool) {
         let config = Self::configuration(release);
         Command::new("xcodebuild")
-            .args(&["-scheme", &*SCHEME])
+            .args(&["-scheme", &scheme()])
             .arg("-workspace")
-            .arg(&*WORKSPACE_PATH)
+            .arg(&CONFIG.ios.workspace_path())
             .args(&["-configuration", config])
             .arg("build")
             .status()
@@ -117,11 +101,11 @@ impl Target {
 
     fn archive(release: bool) {
         let config = Self::configuration(release);
-        let archive_path = EXPORT_PATH.join(&*SCHEME);
+        let archive_path = CONFIG.ios.export_path().join(&scheme());
         Command::new("xcodebuild")
-            .args(&["-scheme", &*SCHEME])
+            .args(&["-scheme", &scheme()])
             .arg("-workspace")
-            .arg(&*WORKSPACE_PATH)
+            .arg(&CONFIG.ios.workspace_path())
             .args(&["-sdk", "iphoneos"])
             .args(&["-configuration", config])
             .arg("archive")
@@ -131,15 +115,18 @@ impl Target {
             .into_result()
             .expect("Failed to run `xcodebuild`");
         // Super fun discrepancy in expectation of `-archivePath` value
-        let archive_path = EXPORT_PATH.join(&format!("{}.xcarchive", &*SCHEME));
+        let archive_path = CONFIG
+            .ios
+            .export_path()
+            .join(&format!("{}.xcarchive", scheme()));
         Command::new("xcodebuild")
             .arg("-exportArchive")
             .arg("-archivePath")
             .arg(&archive_path)
             .arg("-exportOptionsPlist")
-            .arg(&*EXPORT_PLIST_PATH)
+            .arg(&CONFIG.ios.export_plist_path())
             .arg("-exportPath")
-            .arg(&*EXPORT_PATH)
+            .arg(&CONFIG.ios.export_path())
             .status()
             .into_result()
             .expect("Failed to run `xcodebuild`");
@@ -163,9 +150,9 @@ impl Target {
         Self::archive(release);
         Command::new("unzip")
             .arg("-o") // -o = always overwrite
-            .arg(&*IPA_PATH)
+            .arg(&CONFIG.ios.ipa_path())
             .arg("-d")
-            .arg(&*EXPORT_PATH)
+            .arg(&CONFIG.ios.export_path())
             .status()
             .into_result()
             .expect("Failed to run `unzip`");
@@ -176,7 +163,7 @@ impl Target {
         Self::ios_deploy()
             .arg("--debug")
             .arg("--bundle")
-            .arg(&*APP_PATH)
+            .arg(&CONFIG.ios.app_path())
             // This tool can apparently install over wifi, but not debug over
             // wifi... so if your device is connected over wifi (even if it's
             // wired as well) and we're using the `--debug` flag, then

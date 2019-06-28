@@ -6,12 +6,15 @@ use std::{
     sync::Mutex,
 };
 
+fn file_name() -> String {
+    format!("{}.toml", crate::NAME)
+}
+
 fn check_path() -> Option<PathBuf> {
     Config::discover_root().expect("Failed to canonicalize current directory")
 }
 
 lazy_static::lazy_static! {
-    static ref FILE_NAME: String = format!("{}.toml", crate::NAME);
     static ref MAYBE_ROOT: Mutex<Option<PathBuf>> = Mutex::new(check_path());
     static ref PROJECT_ROOT: PathBuf = MAYBE_ROOT
         .lock()
@@ -19,25 +22,6 @@ lazy_static::lazy_static! {
         .clone()
         .expect("Failed to find config file");
     pub static ref CONFIG: Config = Config::load();
-    static ref REVERSE_DOMAIN: String = {
-        CONFIG
-            .global
-            .domain
-            .clone()
-            .split('.')
-            .rev()
-            .collect::<Vec<_>>()
-            .join(".")
-    };
-    static ref SOURCE_ROOT: PathBuf = CONFIG.prefix_path(&CONFIG.global.source_root);
-    static ref MANIFEST_PATH: Option<PathBuf> = {
-        CONFIG
-            .global
-            .manifest_path
-            .as_ref()
-            .map(|path| PROJECT_ROOT.join(path))
-    };
-    static ref ASSET_PATH: PathBuf = CONFIG.prefix_path(&CONFIG.global.asset_path);
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -49,10 +33,10 @@ pub struct Config {
 
 impl Config {
     fn discover_root() -> io::Result<Option<PathBuf>> {
-        let mut path = Path::new(".").canonicalize()?.join(&*FILE_NAME);
+        let mut path = Path::new(".").canonicalize()?.join(&file_name());
         while !path.exists() {
             if let Some(parent) = path.parent().and_then(Path::parent) {
-                path = parent.join(&*FILE_NAME);
+                path = parent.join(&file_name());
                 log::info!("Looking for config file at {:?}", path);
             } else {
                 return Ok(None);
@@ -72,7 +56,7 @@ impl Config {
     }
 
     fn load() -> Self {
-        let path = PROJECT_ROOT.join(&*FILE_NAME);
+        let path = PROJECT_ROOT.join(&file_name());
         let mut file = File::open(&path).expect("Failed to open config file");
         let mut contents = Vec::new();
         file.read_to_end(&mut contents)
@@ -106,20 +90,29 @@ impl Config {
             .unwrap_or_else(|| &self.global.app_name)
     }
 
-    pub fn reverse_domain(&self) -> &str {
-        &REVERSE_DOMAIN
+    pub fn reverse_domain(&self) -> String {
+        self.global
+            .domain
+            .clone()
+            .split('.')
+            .rev()
+            .collect::<Vec<_>>()
+            .join(".")
     }
 
-    pub fn source_root(&self) -> &'static Path {
-        &SOURCE_ROOT
+    pub fn source_root(&self) -> PathBuf {
+        self.prefix_path(&self.global.source_root)
     }
 
-    pub fn manifest_path(&self) -> Option<&'static Path> {
-        MANIFEST_PATH.as_ref().map(|path| path.as_ref())
+    pub fn manifest_path(&self) -> Option<PathBuf> {
+        self.global
+            .manifest_path
+            .as_ref()
+            .map(|path| self.prefix_path(path))
     }
 
-    pub fn asset_path(&self) -> &'static Path {
-        &ASSET_PATH
+    pub fn asset_path(&self) -> PathBuf {
+        self.prefix_path(&self.global.asset_path)
     }
 
     pub fn insert_data(&self, map: &mut bicycle::JsonMap) {
