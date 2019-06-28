@@ -8,6 +8,7 @@ edition = "2018"
 name = "cargo-ginit"
 
 [dependencies]
+bicycle = { git = "ssh://git@bitbucket.org/brainium/bicycle.git" }
 colored = "1"
 derive_more = "0.14"
 env_logger = "0.6"

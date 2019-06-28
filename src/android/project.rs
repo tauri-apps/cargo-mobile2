@@ -1,22 +1,22 @@
-use crate::{template, util, CONFIG};
+use crate::{util, CONFIG};
 use derive_more::From;
 use std::{fs, path::Path};
 
 #[derive(Debug, From)]
 pub enum ProjectCreationError {
-    TemplateProcessingError(template::ProcessingError),
+    TemplateProcessingError(bicycle::ProcessingError),
     SymlinkAssetsError(util::CommandError),
     CreateDirError(std::io::Error),
 }
 
 // TODO: We should verify Android env vars / offer defaults
-pub fn create() -> Result<(), ProjectCreationError> {
+pub fn create(bike: &bicycle::Bicycle) -> Result<(), ProjectCreationError> {
     let src = Path::new(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/templates/android_studio_project"
     ));
     let dest = CONFIG.android.project_path();
-    template::process(src, dest, |map| {
+    bike.process(src, dest, |map| {
         CONFIG.insert_data(map);
         map.insert("abi_list", CONFIG.android.abi_list());
     })?;

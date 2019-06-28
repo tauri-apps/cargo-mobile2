@@ -1,18 +1,24 @@
-use crate::{CONFIG, template, util::{self, IntoResult}};
+use crate::{
+    util::{self, IntoResult},
+    CONFIG,
+};
 use derive_more::From;
 use std::{path::Path, process::Command};
 
 #[derive(Debug, From)]
 pub enum ProjectCreationError {
-    TemplateProcessingError(template::ProcessingError),
+    TemplateProcessingError(bicycle::ProcessingError),
     SymlinkRustError(util::CommandError),
     SymlinkResourcesError(util::CommandError),
 }
 
-pub fn create() -> Result<(), ProjectCreationError> {
-    let src = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/xcode_project"));
+pub fn create(bike: &bicycle::Bicycle) -> Result<(), ProjectCreationError> {
+    let src = Path::new(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/templates/xcode_project"
+    ));
     let dest = CONFIG.ios.project_root();
-    template::process(src, dest, |map| CONFIG.insert_data(map))?;
+    bike.process(src, dest, |map| CONFIG.insert_data(map))?;
 
     util::relative_symlink(CONFIG.source_root(), dest)
         .map_err(ProjectCreationError::SymlinkRustError)?;

@@ -3,10 +3,13 @@ mod config;
 mod init;
 mod ios;
 mod target;
-mod template;
+mod templating;
 mod util;
 
-use self::config::{Config, CONFIG};
+use self::{
+    config::{Config, CONFIG},
+    templating::init_templating,
+};
 use std::env;
 use structopt::StructOpt;
 
@@ -23,11 +26,18 @@ pub struct Args {
 
 #[derive(Debug, StructOpt)]
 pub enum Subcommand {
-    #[structopt(name = "init", about = "Create a new project in the current working directory")]
+    #[structopt(
+        name = "init",
+        about = "Create a new project in the current working directory"
+    )]
     Init {
         #[structopt(long = "force", help = "Clobber files with no remorse")]
         force: bool,
-        #[structopt(long = "skip", help = "Skip some steps", raw(possible_values = "init::STEPS"))]
+        #[structopt(
+            long = "skip",
+            help = "Skip some steps",
+            raw(possible_values = "init::STEPS")
+        )]
         skip: Vec<String>,
     },
     #[structopt(name = "install-deps", about = "Install dependencies for this tool")]
@@ -72,7 +82,7 @@ fn parse_args() -> Args {
 fn main() {
     let args = parse_args();
     match args.subcommand {
-        Subcommand::Init { force, skip } => init::init(force, skip),
+        Subcommand::Init { force, skip } => init::init(&init_templating(), force, skip),
         Subcommand::InstallDeps => init::install_deps(),
         Subcommand::Android { subcommand } => subcommand.handle(args.verbose),
         Subcommand::IOS { subcommand } => subcommand.handle(args.verbose),

@@ -4,14 +4,14 @@ mod rust;
 
 pub use self::cargo::CargoTarget;
 use self::{cargo::CargoConfig, config::interactive_config_gen};
-use crate::{android, Config, ios, util::{self, FriendlyContains, IntoResult}};
+use crate::{
+    android, ios,
+    util::{self, FriendlyContains, IntoResult},
+    Config,
+};
 use std::{path::Path, process::Command};
 
-pub static STEPS: &'static [&'static str] = &[
-    "cargo",
-    "android",
-    "ios",
-];
+pub static STEPS: &'static [&'static str] = &["cargo", "android", "ios"];
 
 #[derive(Debug)]
 struct Skip {
@@ -33,9 +33,9 @@ impl From<Vec<String>> for Skip {
 }
 
 // TODO: Don't redo things if no changes need to be made
-pub fn init(force: bool, skip: Vec<String>) {
+pub fn init(bike: &bicycle::Bicycle, force: bool, skip: Vec<String>) {
     if !Config::exists() {
-        interactive_config_gen();
+        interactive_config_gen(bike);
         Config::recheck_path();
     }
     let skip = Skip::from(skip);
@@ -43,13 +43,13 @@ pub fn init(force: bool, skip: Vec<String>) {
         CargoConfig::generate().write();
     }
     if !skip.hello_world {
-        rust::hello_world(force).unwrap();
+        rust::hello_world(bike, force).unwrap();
     }
     if !skip.android {
-        android::project::create().unwrap();
+        android::project::create(bike).unwrap();
     }
     if !skip.ios {
-        ios::project::create().unwrap();
+        ios::project::create(bike).unwrap();
     }
 }
 
@@ -75,14 +75,21 @@ pub fn install_deps() {
         util::git(&dest, &["pull", "--rebase", "origin", "master"])
             .expect("Failed to pull `ios-deploy` repo");
     } else {
-        util::git(&root, &[
-            "clone", "--depth", "1",
-            "https://github.com/ios-control/ios-deploy",
-        ]).expect("Failed to checkout `ios-deploy` repo");
+        util::git(
+            &root,
+            &[
+                "clone",
+                "--depth",
+                "1",
+                "https://github.com/ios-control/ios-deploy",
+            ],
+        )
+        .expect("Failed to checkout `ios-deploy` repo");
     }
     let project = dest.join("ios-deploy.xcodeproj");
     Command::new("xcodebuild")
-        .arg("-project").arg(&project)
+        .arg("-project")
+        .arg(&project)
         .status()
         .into_result()
         .expect("Failed to build `ios-deploy`");

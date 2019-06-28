@@ -1,13 +1,15 @@
-
-use crate::template::JsonMap;
 use lazy_static::lazy_static;
 use log::info;
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::{self, Read}, path::{Path, PathBuf}, sync::Mutex};
+use std::{
+    fs::File,
+    io::{self, Read},
+    path::{Path, PathBuf},
+    sync::Mutex,
+};
 
 fn check_path() -> Option<PathBuf> {
-    Config::discover_root()
-        .expect("Failed to canonicalize current directory")
+    Config::discover_root().expect("Failed to canonicalize current directory")
 }
 
 lazy_static! {
@@ -19,9 +21,10 @@ lazy_static! {
         .clone()
         .expect("Failed to find config file");
     pub static ref CONFIG: Config = Config::load();
-
     static ref REVERSE_DOMAIN: String = {
-        CONFIG.global.domain
+        CONFIG
+            .global
+            .domain
             .clone()
             .split('.')
             .rev()
@@ -30,7 +33,9 @@ lazy_static! {
     };
     static ref SOURCE_ROOT: PathBuf = CONFIG.prefix_path(&CONFIG.global.source_root);
     static ref MANIFEST_PATH: Option<PathBuf> = {
-        CONFIG.global.manifest_path
+        CONFIG
+            .global
+            .manifest_path
             .as_ref()
             .map(|path| PROJECT_ROOT.join(path))
     };
@@ -52,7 +57,7 @@ impl Config {
                 path = parent.join(&*FILE_NAME);
                 info!("Looking for config file at {:?}", path);
             } else {
-                return Ok(None)
+                return Ok(None);
             }
         }
         info!("Found config file at {:?}", path);
@@ -72,7 +77,8 @@ impl Config {
         let path = PROJECT_ROOT.join(&*FILE_NAME);
         let mut file = File::open(&path).expect("Failed to open config file");
         let mut contents = Vec::new();
-        file.read_to_end(&mut contents).expect("Failed to read config file");
+        file.read_to_end(&mut contents)
+            .expect("Failed to read config file");
         toml::from_slice(&contents).expect("Failed to parse config file")
     }
 
@@ -96,7 +102,8 @@ impl Config {
     }
 
     pub fn stylized_app_name(&self) -> &str {
-        self.global.stylized_app_name
+        self.global
+            .stylized_app_name
             .as_ref()
             .unwrap_or_else(|| &self.global.app_name)
     }
@@ -117,7 +124,7 @@ impl Config {
         &ASSET_PATH
     }
 
-    pub fn insert_data(&self, map: &mut JsonMap) {
+    pub fn insert_data(&self, map: &mut bicycle::JsonMap) {
         map.insert("config", &self);
         map.insert("app_name", self.app_name());
         map.insert("stylized_app_name", self.stylized_app_name());
