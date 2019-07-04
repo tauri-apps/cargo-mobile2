@@ -6,10 +6,7 @@ use rust_lib::{
         shaders::{DefaultObjectBuilder, DefaultShader},
         RectBuilder,
     },
-    game::{
-        self, entry_point, AppResource, DrawResource, InitResource, TextureHandle,
-        UpdateTime,
-    },
+    game::{self, entry_point, AppResource, DrawResource, TextureHandle, UpdateTime},
     geometry::{ortho, Mat4, Point, Rect, Size},
     renderer::{color::*, graph::*},
     text,
@@ -37,7 +34,7 @@ impl game::Game for Game {
         env!("CARGO_MANIFEST_DIR")
     }
 
-    fn new(init_resource: &mut InitResource<'_, Self>, _assets: &AssetManager) -> Self {
+    fn new(init_resource: &mut AppResource<'_, Self>, _assets: &AssetManager) -> Self {
         Self {
             canvas: init_resource.create_blank_texture(
                 colors::INVISIBLE,
