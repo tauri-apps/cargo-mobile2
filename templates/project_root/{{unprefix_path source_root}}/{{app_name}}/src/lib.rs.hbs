@@ -57,9 +57,9 @@ impl game::Game for Game {
         draw_resource: &mut DrawResource<'_>,
         assets: &AssetManager,
     ) -> GraphBuilder {
-        let screen_size = draw_resource.window.screen_safe_size().unwrap();
-        let screen_rect = Rect::with_top_left(Point::zero(), screen_size);
-        let proj = ortho(screen_size);
+        let screen_rect = draw_resource.window.screen_safe_surface_rect().unwrap();
+        let screen_size = screen_rect.size();
+        let proj = draw_resource.window.ortho();
         StageBuilder::new()
             .with_attachment(StageAttachment::swapchain(Some(CLEAR_COLOR.to_linear())))
             .with_pass::<DefaultShader>(PassBuilder::new(proj, ())
@@ -80,7 +80,7 @@ impl game::Game for Game {
     ) {
         if touch.phase == TouchPhase::Began
         || touch.phase == TouchPhase::Moved {
-            let size = touch_resource.window.screen_full_size().unwrap();
+            let size = touch_resource.window.screen_surface_size().unwrap();
             let rect = Rect::with_top_left(Point::zero(), size);
             if rect.contains(&touch.position) {
                 touch_resource.verts_changed();
