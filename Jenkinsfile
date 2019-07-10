@@ -32,5 +32,10 @@ lock(resource: resourceName, inversePrecedence: true) {
         citools.failableStage('test project', citools.default_notify_branches) {
             sh "ci/test_project.sh ${branchName} ${citools.devBranch}"
         }
+        stage('success') {
+            node {
+                citools.backToNormalGuarded(citools.default_notify_branches)
+            }
+        }
     }
 }
