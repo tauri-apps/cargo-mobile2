@@ -7,7 +7,7 @@ use rust_lib::{
         RectBuilder,
     },
     game::{self, entry_point, AppResource, DrawResource, TextureHandle, UpdateTime},
-    geometry::{ortho, Mat4, Point, Rect, Size},
+    geometry::{ortho, Mat4, Point, Rect, Size, Vec2},
     renderer::{color::*, graph::*},
     text,
     window::{TouchPhase, TouchScreen},
@@ -57,7 +57,7 @@ impl game::Game for Game {
         draw_resource: &mut DrawResource<'_>,
         assets: &AssetManager,
     ) -> GraphBuilder {
-        let screen_rect = draw_resource.window.screen_safe_surface_rect().unwrap();
+        let screen_rect = draw_resource.window.screen_surface_rect().unwrap();
         let screen_size = screen_rect.size();
         let proj = draw_resource.window.ortho();
         StageBuilder::new()
@@ -153,8 +153,9 @@ impl Game {
                 ),
             },
         ).unwrap();
+        let point = draw_resource.window.screen_safe_surface_origin().unwrap() + Vec2::new(32., 32.);
         draw_resource.draw_text(std::iter::once(
-            para.position(Point::new(32., 32.)).to_inner()
+            para.position(point).to_inner()
         ))
     }
 
