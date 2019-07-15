@@ -24,4 +24,5 @@ $EXE_PATH ios toolchain-init
 cargo check
 $EXE_PATH android check aarch64
 $EXE_PATH ios check aarch64
+$EXE_PATH ios check x86_64
 cd -
