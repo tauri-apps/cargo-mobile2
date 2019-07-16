@@ -62,7 +62,7 @@ impl game::Game for Game {
         let proj = ortho(screen_size);
         StageBuilder::new()
             .with_attachment(StageAttachment::swapchain(Some(CLEAR_COLOR.to_linear())))
-            .with_pass::<DefaultShader>(PassBuilder::new(proj, ())
+            .with_draw::<DefaultShader>(DrawBuilder::new(proj, ())
                 .with_object(self.draw_background(assets, screen_rect))
                 .with_object(self.draw_canvas(screen_rect))
                 .with_object(self.draw_score(draw_resource, assets))
@@ -184,7 +184,7 @@ impl Game {
     ) -> AttachmentStageBuilder {
         StageBuilder::new()
             .with_attachment(StageAttachment::texture(self.canvas.id(), None))
-            .with_pass::<shaders::SwizzleShader>(PassBuilder::from_objects(
+            .with_draw::<shaders::SwizzleShader>(DrawBuilder::from_objects(
                 proj,
                 (),
                 self.draw_spots(assets, screen_size).collect(),
