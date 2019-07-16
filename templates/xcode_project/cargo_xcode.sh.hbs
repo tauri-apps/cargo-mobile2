@@ -34,6 +34,9 @@ for ARCH in ${ARCHS:?}; do
     if [ "${ARCH:?}" = "arm64" ]; then
         PLATFORM_ARCH=aarch64_apple_ios
     fi
+    if [ "${ARCH:?}" = "x86_64" ]; then
+        PLATFORM_ARCH=x86_64_apple_ios
+    fi
     FLAGS="-isysroot ${SDKROOT:?}"
     export CFLAGS_$PLATFORM_ARCH="${FLAGS:?}"
     export CXXFLAGS_$PLATFORM_ARCH="${FLAGS:?}"
