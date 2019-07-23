@@ -12,11 +12,19 @@ use crate::{
 };
 use std::{path::Path, process::Command};
 
-pub static STEPS: &'static [&'static str] = &["deps", "cargo", "android", "ios"];
+pub static STEPS: &'static [&'static str] = &[
+    "deps",
+    "toolchains",
+    "cargo",
+    "hello_world",
+    "android",
+    "ios",
+];
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Skip {
     pub deps: bool,
+    pub toolchains: bool,
     pub cargo: bool,
     pub hello_world: bool,
     pub android: bool,
@@ -31,6 +39,7 @@ where
     fn from(skip: &'a [T]) -> Self {
         Skip {
             deps: skip.friendly_contains("deps"),
+            toolchains: skip.friendly_contains("toolchains"),
             cargo: skip.friendly_contains("cargo"),
             hello_world: skip.friendly_contains("hello_world"),
             android: skip.friendly_contains("android"),
@@ -42,9 +51,6 @@ where
 // TODO: Don't redo things if no changes need to be made
 pub fn init(config: &Config, bike: &bicycle::Bicycle, force: bool, skip: impl Into<Skip>) {
     let skip = skip.into();
-    if !skip.deps {
-        install_deps(force);
-    }
     if !skip.cargo {
         CargoConfig::generate(config).write(&config);
     }
@@ -52,21 +58,28 @@ pub fn init(config: &Config, bike: &bicycle::Bicycle, force: bool, skip: impl In
         rust::hello_world(config, bike, force).unwrap();
     }
     if !skip.android {
-        for target in config.android().targets().values() {
-            target.rustup_add();
+        if !skip.toolchains {
+            for target in config.android().targets().values() {
+                target.rustup_add();
+            }
         }
         android::project::create(config, bike).unwrap();
     }
     if !skip.ios {
-        for target in config.ios().targets().values() {
-            target.rustup_add();
+        if !skip.deps {
+            install_ios_deps(force);
+        }
+        if !skip.toolchains {
+            for target in config.ios().targets().values() {
+                target.rustup_add();
+            }
         }
         ios::project::create(config, bike).unwrap();
     }
 }
 
 // TODO: We should probably also try to install `rust-xcode-plugin`
-pub fn install_deps(force: bool) {
+pub fn install_ios_deps(force: bool) {
     let xcodegen_found = util::command_present("xcodegen").expect("Failed to check for `xcodegen`");
     if !xcodegen_found || force {
         Command::new("brew")
