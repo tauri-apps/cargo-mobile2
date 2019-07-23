@@ -152,7 +152,7 @@ pub fn relativize_path(abs_path: impl AsRef<Path>, abs_relative_to: impl AsRef<P
         rel_path.push("..");
     }
     let rel_path = rel_path.join(path);
-    log::info!("translated {:?} to {:?}", abs_path, rel_path);
+    log::info!("relativized {:?} to {:?}", abs_path, rel_path);
     rel_path
 }
 

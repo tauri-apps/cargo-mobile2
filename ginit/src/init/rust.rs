@@ -65,7 +65,16 @@ pub fn hello_world(
     bike: &bicycle::Bicycle,
     force: bool,
 ) -> Result<(), ProjectCreationError> {
-    let dest = dbg!(config.project_root());
+    let dest = config.project_root();
+    git_init(&dest)?;
+    submodule_init(
+        config,
+        &dest,
+        "rust_lib",
+        "git@bitbucket.org:brainium/rust_lib.git",
+        "lib",
+    )?;
+
     let insert_data = |map: &mut bicycle::JsonMap| {
         config.insert_template_data(map);
         let source_root = config.source_root();
@@ -88,13 +97,6 @@ pub fn hello_world(
         .iter()
         .filter(|action| force || !action.dest().exists());
     bike.process_actions(actions, insert_data)?;
-    git_init(&dest)?;
-    submodule_init(
-        config,
-        &dest,
-        "rust_lib",
-        "git@bitbucket.org:brainium/rust_lib.git",
-        "lib",
-    )?;
+
     Ok(())
 }
