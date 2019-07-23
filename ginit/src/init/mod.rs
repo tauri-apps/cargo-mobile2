@@ -78,10 +78,6 @@ pub fn install_deps(force: bool) {
     let ios_deploy_found = dest.join("build/Release/ios-deploy").exists();
     if !ios_deploy_found || force {
         if dest.exists() {
-            // this checkout is no longer necessary, but existing working trees
-            // are still dirty from before... so, we can phase this out in the near future!
-            util::git(&dest, &["checkout", "HEAD", "--", "ios-deploy.xcodeproj"])
-                .expect("Failed to reset `ios-deploy` repo");
             util::git(&dest, &["pull", "--rebase", "origin", "master"])
                 .expect("Failed to pull `ios-deploy` repo");
         } else {
