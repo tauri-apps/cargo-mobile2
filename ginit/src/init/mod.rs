@@ -7,6 +7,7 @@ use crate::{
     android,
     config::Config,
     ios,
+    target::TargetTrait as _,
     util::{self, FriendlyContains, IntoResult as _},
 };
 use std::{path::Path, process::Command};
@@ -51,9 +52,15 @@ pub fn init(config: &Config, bike: &bicycle::Bicycle, force: bool, skip: impl In
         rust::hello_world(config, bike, force).unwrap();
     }
     if !skip.android {
+        for target in config.android().targets().values() {
+            target.rustup_add();
+        }
         android::project::create(config, bike).unwrap();
     }
     if !skip.ios {
+        for target in config.ios().targets().values() {
+            target.rustup_add();
+        }
         ios::project::create(config, bike).unwrap();
     }
 }

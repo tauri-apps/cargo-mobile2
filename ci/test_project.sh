@@ -19,8 +19,6 @@ rm -rf ./tmp
 mkdir -p tmp
 cd ./tmp
 $EXE_PATH init
-$EXE_PATH android toolchain-init
-$EXE_PATH ios toolchain-init
 cargo check
 $EXE_PATH android check aarch64
 $EXE_PATH ios check aarch64

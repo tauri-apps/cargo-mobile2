@@ -3,7 +3,7 @@ use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
     android::target::Target,
     config::Config,
-    target::{call_for_targets, FallbackBehavior, TargetTrait},
+    target::{call_for_targets, FallbackBehavior},
 };
 
 pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
@@ -36,17 +36,10 @@ pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
                 .about("Displays a detailed stacktrace for a target")
                 .arg(Arg::with_name("TARGET").possible_values(targets)),
         )
-        .subcommand(
-            SubCommand::with_name("toolchain-init")
-                .about("Installs Rust toolchain for target(s)")
-                .display_order(4)
-                .arg(take_a_list(Arg::with_name("TARGETS"), targets)),
-        )
 }
 
 #[derive(Debug)]
 pub enum AndroidCommand {
-    ToolchainInit { targets: Vec<String> },
     Check { targets: Vec<String> },
     Build { targets: Vec<String>, release: bool },
     Run { targets: Vec<String>, release: bool },
@@ -70,9 +63,6 @@ impl AndroidCommand {
             },
             "st" => AndroidCommand::Stacktrace {
                 target: subcommand.matches.value_of("TARGET").map(Into::into),
-            },
-            "toolchain-init" => AndroidCommand::ToolchainInit {
-                targets: parse_targets(&subcommand.matches),
             },
             _ => unreachable!(), // clap will reject anything else
         }
@@ -113,12 +103,6 @@ impl AndroidCommand {
                 target.as_ref().map(std::iter::once),
                 FallbackBehavior::get_target(&detect_target, false),
                 |target: &Target| target.stacktrace(config),
-            ),
-            AndroidCommand::ToolchainInit { targets } => call_for_targets(
-                config,
-                Some(targets.iter()),
-                FallbackBehavior::all_targets(),
-                |target: &Target| target.rustup_add(),
             ),
         }
     }
