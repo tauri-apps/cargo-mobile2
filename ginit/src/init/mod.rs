@@ -1,20 +1,20 @@
-mod cargo;
-mod config;
-mod rust;
+pub mod cargo;
+pub mod config;
+pub mod rust;
 
-pub use self::cargo::CargoTarget;
-use self::{cargo::CargoConfig, config::interactive_config_gen};
+use self::cargo::CargoConfig;
 use crate::{
-    android, ios,
-    util::{self, FriendlyContains, IntoResult},
-    Config,
+    android,
+    config::Config,
+    ios,
+    util::{self, FriendlyContains, IntoResult as _},
 };
 use std::{path::Path, process::Command};
 
 pub static STEPS: &'static [&'static str] = &["deps", "cargo", "android", "ios"];
 
-#[derive(Debug)]
-struct Skip {
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Skip {
     pub deps: bool,
     pub cargo: bool,
     pub hello_world: bool,
@@ -22,8 +22,12 @@ struct Skip {
     pub ios: bool,
 }
 
-impl From<Vec<String>> for Skip {
-    fn from(skip: Vec<String>) -> Self {
+impl<'a, T> From<&'a [T]> for Skip
+where
+    &'a [T]: FriendlyContains<T>,
+    str: PartialEq<T>,
+{
+    fn from(skip: &'a [T]) -> Self {
         Skip {
             deps: skip.friendly_contains("deps"),
             cargo: skip.friendly_contains("cargo"),
@@ -35,31 +39,27 @@ impl From<Vec<String>> for Skip {
 }
 
 // TODO: Don't redo things if no changes need to be made
-pub fn init(bike: &bicycle::Bicycle, force: bool, skip: Vec<String>) {
-    if !Config::exists() {
-        interactive_config_gen(bike);
-        Config::recheck_path();
-    }
-    let skip = Skip::from(skip);
+pub fn init(config: &Config, bike: &bicycle::Bicycle, force: bool, skip: impl Into<Skip>) {
+    let skip = skip.into();
     if !skip.deps {
         install_deps(force);
     }
     if !skip.cargo {
-        CargoConfig::generate().write();
+        CargoConfig::generate(config).write(&config);
     }
     if !skip.hello_world {
-        rust::hello_world(bike, force).unwrap();
+        rust::hello_world(config, bike, force).unwrap();
     }
     if !skip.android {
-        android::project::create(bike).unwrap();
+        android::project::create(config, bike).unwrap();
     }
     if !skip.ios {
-        ios::project::create(bike).unwrap();
+        ios::project::create(config, bike).unwrap();
     }
 }
 
 // TODO: We should probably also try to install `rust-xcode-plugin`
-fn install_deps(force: bool) {
+pub fn install_deps(force: bool) {
     let xcodegen_found = util::command_present("xcodegen").expect("Failed to check for `xcodegen`");
     if !xcodegen_found || force {
         Command::new("brew")

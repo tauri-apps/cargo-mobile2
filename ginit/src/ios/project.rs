@@ -1,6 +1,6 @@
 use crate::{
+    config::Config,
     util::{self, IntoResult},
-    CONFIG,
 };
 use std::{path::Path, process::Command};
 
@@ -11,17 +11,17 @@ pub enum ProjectCreationError {
     SymlinkResourcesError(util::CommandError),
 }
 
-pub fn create(bike: &bicycle::Bicycle) -> Result<(), ProjectCreationError> {
+pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), ProjectCreationError> {
     let src = Path::new(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/templates/xcode_project"
     ));
-    let dest = CONFIG.ios.project_root();
-    bike.process(src, &dest, |map| CONFIG.insert_data(map))?;
+    let dest = config.ios().project_root();
+    bike.process(src, &dest, |map| config.insert_template_data(map))?;
 
-    util::relative_symlink(CONFIG.source_root(), &dest)
+    util::relative_symlink(config.source_root(), &dest)
         .map_err(ProjectCreationError::SymlinkRustError)?;
-    util::relative_symlink(CONFIG.asset_path(), &dest)
+    util::relative_symlink(config.asset_path(), &dest)
         .map_err(ProjectCreationError::SymlinkResourcesError)?;
 
     Command::new("chmod")

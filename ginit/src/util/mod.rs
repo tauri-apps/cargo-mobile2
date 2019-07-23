@@ -30,13 +30,19 @@ pub fn has_match(re: &Regex, body: &str, pattern: &str) -> bool {
 
 // yay for bad string ergonomics
 // https://github.com/rust-lang/rust/issues/42671
-pub trait FriendlyContains<T> {
-    fn friendly_contains(&self, value: impl PartialEq<T>) -> bool;
+pub trait FriendlyContains<T>
+where
+    str: PartialEq<T>,
+{
+    fn friendly_contains(&self, value: &str) -> bool;
 }
 
-impl<T> FriendlyContains<T> for Vec<T> {
-    fn friendly_contains(&self, value: impl PartialEq<T>) -> bool {
-        self.iter().any(|item| value == *item)
+impl<T> FriendlyContains<T> for &[T]
+where
+    str: PartialEq<T>,
+{
+    fn friendly_contains(&self, value: &str) -> bool {
+        self.iter().any(|item| value == item)
     }
 }
 

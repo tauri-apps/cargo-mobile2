@@ -1,4 +1,4 @@
-use crate::{util, CONFIG};
+use crate::{config::Config, util};
 use regex::Regex;
 use std::{ffi::OsStr, io, path::Path};
 
@@ -12,14 +12,14 @@ pub enum ProjectCreationError {
     GitSubmoduleInitError(util::CommandError),
 }
 
-fn git_init(root: &Path) -> Result<(), ProjectCreationError> {
+pub fn git_init(root: &Path) -> Result<(), ProjectCreationError> {
     if !root.join(".git").exists() {
         util::git(&root, &["init"]).map_err(ProjectCreationError::GitInitError)?;
     }
     Ok(())
 }
 
-fn submodule_exists(root: &Path, name: &str) -> io::Result<bool> {
+pub fn submodule_exists(root: &Path, name: &str) -> io::Result<bool> {
     lazy_static::lazy_static! {
         static ref SUBMODULE_NAME_RE: Regex = Regex::new(r#"\[submodule "(.*)"\]"#).unwrap();
     }
@@ -31,7 +31,8 @@ fn submodule_exists(root: &Path, name: &str) -> io::Result<bool> {
     }
 }
 
-fn submodule_init(
+pub fn submodule_init(
+    config: &Config,
     root: &Path,
     name: &str,
     remote: &str,
@@ -40,7 +41,7 @@ fn submodule_init(
     let submodule_exists =
         submodule_exists(root, name).map_err(ProjectCreationError::GitSubmoduleStatusError)?;
     if !submodule_exists {
-        let path = Path::new(&CONFIG.global.source_root).join(path.as_ref());
+        let path = config.source_root().join(path.as_ref());
         let path_str = path
             .to_str()
             .expect("`source_root` contained invalid unicode");
@@ -55,12 +56,16 @@ fn submodule_init(
     Ok(())
 }
 
-pub fn hello_world(bike: &bicycle::Bicycle, force: bool) -> Result<(), ProjectCreationError> {
+pub fn hello_world(
+    config: &Config,
+    bike: &bicycle::Bicycle,
+    force: bool,
+) -> Result<(), ProjectCreationError> {
     let template_dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates"));
-    let dest = CONFIG.project_root();
+    let dest = config.project_root();
     let insert_data = |map: &mut bicycle::JsonMap| {
-        CONFIG.insert_data(map);
-        let source_root = CONFIG.source_root();
+        config.insert_template_data(map);
+        let source_root = config.source_root();
         map.insert("source_root", &source_root);
     };
     let mut actions = bicycle::traverse(&template_dir.join("project_root"), &dest, |path| {
@@ -68,7 +73,7 @@ pub fn hello_world(bike: &bicycle::Bicycle, force: bool) -> Result<(), ProjectCr
     })?;
     actions.append(&mut bicycle::traverse(
         &template_dir.join("resources"),
-        CONFIG.asset_path(),
+        config.asset_path(),
         |path| bike.transform_path(path, insert_data),
     )?);
     // Prevent clobbering
@@ -78,6 +83,7 @@ pub fn hello_world(bike: &bicycle::Bicycle, force: bool) -> Result<(), ProjectCr
     bike.process_actions(actions, insert_data)?;
     git_init(&dest)?;
     submodule_init(
+        config,
         &dest,
         "rust_lib",
         "git@bitbucket.org:brainium/rust_lib.git",

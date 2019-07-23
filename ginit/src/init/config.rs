@@ -6,7 +6,11 @@ use std::{
     io::{self, Write},
 };
 
-fn prompt(label: &str, default: Option<&str>, default_color: Option<Color>) -> io::Result<String> {
+pub fn prompt(
+    label: &str,
+    default: Option<&str>,
+    default_color: Option<Color>,
+) -> io::Result<String> {
     let mut input = String::new();
     if let Some(default) = default {
         if let Some(default_color) = default_color {
@@ -34,7 +38,7 @@ pub fn interactive_config_gen(bike: &bicycle::Bicycle) {
     let stylized = prompt("Stylized app name", Some(&stylized), None)
         .expect("Failed to prompt for stylized app name");
     let domain = prompt("Domain", Some("example.com"), None).expect("Failed to prompt for domain");
-    let teams = ios::find_development_teams().expect("Failed to find development teams");
+    let teams = ios::teams::find_development_teams().expect("Failed to find development teams");
     let mut default_team = None;
     println!("Detected development teams:");
     for (index, team) in teams.iter().enumerate() {

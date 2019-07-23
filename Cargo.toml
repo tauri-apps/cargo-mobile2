@@ -1,22 +1,5 @@
-[package]
-name = "cargo-ginit"
-version = "0.1.0"
-authors = ["Brainium Studios LLC"]
-edition = "2018"
-
-[[bin]]
-name = "cargo-ginit"
-
-[dependencies]
-bicycle = { git = "ssh://git@bitbucket.org/brainium/bicycle.git" }
-colored = "1"
-derive_more = "0.15"
-env_logger = "0.6"
-Inflector = { version = "0.11", default-features = false }
-lazy_static = "1"
-log = "0.4"
-openssl = "0.10"
-regex = "1"
-serde = { version = "1", features = ["derive"] }
-structopt = "0.2"
-toml = "0.5"
+[workspace]
+members = [
+    "ginit",
+    "cargo-ginit",
+]

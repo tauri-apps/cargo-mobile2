@@ -1,64 +1,55 @@
 use crate::{
-    init::CargoTarget,
-    ios::config::scheme,
-    target::{get_possible_values, TargetTrait},
+    config::Config,
+    init::cargo::CargoTarget,
+    target::TargetTrait,
     util::{self, IntoResult},
-    CONFIG,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::Path, process::Command};
 
-lazy_static::lazy_static! {
-    pub static ref POSSIBLE_TARGETS: Vec<&'static str> = {
-        get_possible_values::<Target>()
-    };
-
-    // TODO: Make this cleaner
-    pub static ref MACOS: Target = Target {
-        triple: "x86_64-apple-darwin".to_string(),
-        arch: "x86_64".to_string(),
-    };
-}
-
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Target {
     pub triple: String,
     pub arch: String,
 }
 
 impl TargetTrait for Target {
-    fn all() -> &'static BTreeMap<String, Self> {
-        &CONFIG.ios.targets
+    fn all(config: &Config) -> &BTreeMap<String, Self> {
+        config.ios().targets()
     }
+
     fn triple(&self) -> &str {
         &self.triple
     }
+
     fn arch(&self) -> &str {
         &self.arch
     }
 }
 
 impl Target {
-    // NOTE: We still can't set ENABLE_BITCODE to true, since stdlib components
-    // aren't built with bitcode: https://github.com/rust-lang/rust/issues/35968
-    pub fn get_cargo_config(&self) -> CargoTarget {
-        CargoTarget {
-            ar: None,
-            linker: None,
-            rustflags: vec![],
+    // TODO: Make this cleaner
+    pub fn macos() -> Self {
+        Self {
+            triple: "x86_64-apple-darwin".to_string(),
+            arch: "x86_64".to_string(),
         }
     }
 
-    fn cargo<'a>(&'a self, subcommand: &'a str) -> util::CargoCommand<'a> {
+    pub fn generate_cargo_config(&self) -> CargoTarget {
+        Default::default()
+    }
+
+    fn cargo<'a>(&'a self, config: &'a Config, subcommand: &'a str) -> util::CargoCommand<'a> {
         util::CargoCommand::new(subcommand)
-            .with_package(Some(CONFIG.app_name()))
-            .with_manifest_path(CONFIG.manifest_path())
+            .with_package(Some(config.app_name()))
+            .with_manifest_path(config.manifest_path())
             .with_target(Some(&self.triple))
             .with_features(Some("metal"))
     }
 
-    pub fn check(&self, verbose: bool) {
-        self.cargo("check")
+    pub fn check(&self, config: &Config, verbose: bool) {
+        self.cargo(config, "check")
             .with_verbose(verbose)
             .into_command()
             .status()
@@ -66,10 +57,10 @@ impl Target {
             .expect("Failed to run `cargo check`");
     }
 
-    pub fn compile_lib(&self, verbose: bool, release: bool) {
+    pub fn compile_lib(&self, config: &Config, verbose: bool, release: bool) {
         // NOTE: it's up to Xcode to pass the verbose flag here, so even when
         // using our build/run commands it won't get passed.
-        self.cargo("build")
+        self.cargo(config, "build")
             .with_verbose(verbose)
             .with_release(release)
             .into_command()
@@ -86,28 +77,28 @@ impl Target {
         }
     }
 
-    pub fn build(release: bool) {
-        let config = Self::configuration(release);
+    pub fn build(config: &Config, release: bool) {
+        let configuration = Self::configuration(release);
         Command::new("xcodebuild")
-            .args(&["-scheme", &scheme()])
+            .args(&["-scheme", &config.ios().scheme()])
             .arg("-workspace")
-            .arg(&CONFIG.ios.workspace_path())
-            .args(&["-configuration", config])
+            .arg(&config.ios().workspace_path())
+            .args(&["-configuration", configuration])
             .arg("build")
             .status()
             .into_result()
             .expect("Failed to run `xcodebuild`");
     }
 
-    fn archive(release: bool) {
-        let config = Self::configuration(release);
-        let archive_path = CONFIG.ios.export_path().join(&scheme());
+    fn archive(config: &Config, release: bool) {
+        let configuration = Self::configuration(release);
+        let archive_path = config.ios().export_path().join(&config.ios().scheme());
         Command::new("xcodebuild")
-            .args(&["-scheme", &scheme()])
+            .args(&["-scheme", &config.ios().scheme()])
             .arg("-workspace")
-            .arg(&CONFIG.ios.workspace_path())
+            .arg(&config.ios().workspace_path())
             .args(&["-sdk", "iphoneos"])
-            .args(&["-configuration", config])
+            .args(&["-configuration", configuration])
             .arg("archive")
             .arg("-archivePath")
             .arg(&archive_path)
@@ -115,18 +106,18 @@ impl Target {
             .into_result()
             .expect("Failed to run `xcodebuild`");
         // Super fun discrepancy in expectation of `-archivePath` value
-        let archive_path = CONFIG
-            .ios
+        let archive_path = config
+            .ios()
             .export_path()
-            .join(&format!("{}.xcarchive", scheme()));
+            .join(&format!("{}.xcarchive", config.ios().scheme()));
         Command::new("xcodebuild")
             .arg("-exportArchive")
             .arg("-archivePath")
             .arg(&archive_path)
             .arg("-exportOptionsPlist")
-            .arg(&CONFIG.ios.export_plist_path())
+            .arg(&config.ios().export_plist_path())
             .arg("-exportPath")
-            .arg(&CONFIG.ios.export_path())
+            .arg(&config.ios().export_path())
             .status()
             .into_result()
             .expect("Failed to run `xcodebuild`");
@@ -144,15 +135,15 @@ impl Target {
         Command::new(path)
     }
 
-    pub fn run(release: bool) {
+    pub fn run(config: &Config, release: bool) {
         // TODO: These steps are run unconditionally, which is slooooooow
-        Self::build(release);
-        Self::archive(release);
+        Self::build(config, release);
+        Self::archive(config, release);
         Command::new("unzip")
             .arg("-o") // -o = always overwrite
-            .arg(&CONFIG.ios.ipa_path())
+            .arg(&config.ios().ipa_path())
             .arg("-d")
-            .arg(&CONFIG.ios.export_path())
+            .arg(&config.ios().export_path())
             .status()
             .into_result()
             .expect("Failed to run `unzip`");
@@ -163,7 +154,7 @@ impl Target {
         Self::ios_deploy()
             .arg("--debug")
             .arg("--bundle")
-            .arg(&CONFIG.ios.app_path())
+            .arg(&config.ios().app_path())
             // This tool can apparently install over wifi, but not debug over
             // wifi... so if your device is connected over wifi (even if it's
             // wired as well) and we're using the `--debug` flag, then

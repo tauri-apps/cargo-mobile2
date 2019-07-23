@@ -1,0 +1,14 @@
+[package]
+name = "cargo-ginit"
+version = "0.1.0"
+authors = ["Brainium Studios LLC"]
+edition = "2018"
+description = "Game dev productivity tools"
+
+[[bin]]
+name = "cargo-ginit"
+
+[dependencies]
+clap = "2.33.0"
+env_logger = "0.6"
+ginit = { path = "../ginit" }

@@ -6,7 +6,7 @@ use openssl::{
 };
 use std::{collections::BTreeSet, process::Command};
 
-fn get_pem_list() -> util::CommandResult<Vec<u8>> {
+pub fn get_pem_list() -> util::CommandResult<Vec<u8>> {
     Command::new("security")
         .args(&["find-certificate", "-p", "-a", "-c", "Developer:"])
         .output()
@@ -22,7 +22,7 @@ pub enum FindTeamsError {
     AsUtf8Error(OpenSslError),
 }
 
-fn get_x509_field(name: &X509NameRef, nid: Nid) -> Result<String, FindTeamsError> {
+pub fn get_x509_field(name: &X509NameRef, nid: Nid) -> Result<String, FindTeamsError> {
     name.entries_by_nid(nid)
         .nth(0)
         .ok_or(FindTeamsError::MissingX509Field(nid))?
@@ -39,7 +39,7 @@ pub struct Team {
 }
 
 impl Team {
-    fn from_x509(cert: X509) -> Result<Self, FindTeamsError> {
+    pub fn from_x509(cert: X509) -> Result<Self, FindTeamsError> {
         let subj = cert.subject_name();
         let name = get_x509_field(subj, Nid::ORGANIZATIONNAME)?;
         let id = get_x509_field(subj, Nid::ORGANIZATIONALUNITNAME)?;
