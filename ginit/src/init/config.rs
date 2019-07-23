@@ -1,4 +1,4 @@
-use crate::ios;
+use crate::{ios, templating::template_pack};
 use colored::*;
 use inflector::Inflector;
 use std::{
@@ -69,10 +69,7 @@ pub fn interactive_config_gen(bike: &bicycle::Bicycle) {
         .map(|team| team.id.clone())
         .unwrap_or_else(|| team_input);
     bike.process(
-        concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/templates/{{tool_name}}.toml.hbs"
-        ),
+        template_pack(None, "{{tool_name}}.toml.hbs").expect("missing config template"),
         &cwd,
         |map| {
             map.insert("app_name", &app_name);

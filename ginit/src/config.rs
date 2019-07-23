@@ -66,6 +66,22 @@ impl fmt::Display for UnprefixPathError {
     }
 }
 
+pub fn prefix_path(project_root: impl AsRef<Path>, path: impl AsRef<Path>) -> PathBuf {
+    project_root.as_ref().join(path)
+}
+
+pub fn unprefix_path(
+    project_root: impl AsRef<Path>,
+    path: impl AsRef<Path>,
+) -> Result<PathBuf, UnprefixPathError> {
+    path.as_ref()
+        .strip_prefix(project_root)
+        .map(|path| path.to_owned())
+        .map_err(|_| UnprefixPathError::PathNotPrefixed)
+}
+
+/// All paths returned by `Config` methods are prefixed (absolute).
+/// Use [`Config::unprefix_path`] if you want to make a path relative to the project root.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
     project_root: PathBuf,
@@ -124,14 +140,11 @@ impl Config {
     }
 
     pub fn prefix_path(&self, path: impl AsRef<Path>) -> PathBuf {
-        self.project_root().join(path)
+        prefix_path(self.project_root(), path)
     }
 
     pub fn unprefix_path(&self, path: impl AsRef<Path>) -> Result<PathBuf, UnprefixPathError> {
-        path.as_ref()
-            .strip_prefix(self.project_root())
-            .map(|path| path.to_owned())
-            .map_err(|_| UnprefixPathError::PathNotPrefixed)
+        unprefix_path(self.project_root(), path)
     }
 
     pub fn app_name(&self) -> &str {

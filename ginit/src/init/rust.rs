@@ -1,9 +1,10 @@
-use crate::{config::Config, util};
+use crate::{config::Config, templating::template_pack, util};
 use regex::Regex;
 use std::{ffi::OsStr, io, path::Path};
 
 #[derive(Debug, derive_more::From)]
 pub enum ProjectCreationError {
+    MissingTemplatePack,
     TemplateTraversalError(bicycle::TraversalError),
     TemplateProcessingError(bicycle::ProcessingError),
     GitInitError(util::CommandError),
@@ -41,7 +42,10 @@ pub fn submodule_init(
     let submodule_exists =
         submodule_exists(root, name).map_err(ProjectCreationError::GitSubmoduleStatusError)?;
     if !submodule_exists {
-        let path = config.source_root().join(path.as_ref());
+        let path = config
+            .unprefix_path(config.source_root())
+            .expect("`source_root` outside of the project")
+            .join(path.as_ref());
         let path_str = path
             .to_str()
             .expect("`source_root` contained invalid unicode");
@@ -61,18 +65,21 @@ pub fn hello_world(
     bike: &bicycle::Bicycle,
     force: bool,
 ) -> Result<(), ProjectCreationError> {
-    let template_dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates"));
-    let dest = config.project_root();
+    let dest = dbg!(config.project_root());
     let insert_data = |map: &mut bicycle::JsonMap| {
         config.insert_template_data(map);
         let source_root = config.source_root();
         map.insert("source_root", &source_root);
     };
-    let mut actions = bicycle::traverse(&template_dir.join("project_root"), &dest, |path| {
-        bike.transform_path(path, insert_data)
-    })?;
+    let mut actions = bicycle::traverse(
+        template_pack(Some(config), "project_root")
+            .ok_or_else(|| ProjectCreationError::MissingTemplatePack)?,
+        &dest,
+        |path| bike.transform_path(path, insert_data),
+    )?;
     actions.append(&mut bicycle::traverse(
-        &template_dir.join("resources"),
+        template_pack(Some(config), "resources")
+            .ok_or_else(|| ProjectCreationError::MissingTemplatePack)?,
         config.asset_path(),
         |path| bike.transform_path(path, insert_data),
     )?);

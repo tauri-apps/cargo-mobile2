@@ -1,8 +1,9 @@
-use crate::{config::Config, util};
-use std::{fs, path::Path};
+use crate::{config::Config, templating::template_pack, util};
+use std::fs;
 
 #[derive(Debug, derive_more::From)]
 pub enum ProjectCreationError {
+    MissingTemplatePack,
     TemplateProcessingError(bicycle::ProcessingError),
     SymlinkAssetsError(util::CommandError),
     CreateDirError(std::io::Error),
@@ -10,10 +11,8 @@ pub enum ProjectCreationError {
 
 // TODO: We should verify Android env vars / offer defaults
 pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), ProjectCreationError> {
-    let src = Path::new(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/templates/android_studio_project"
-    ));
+    let src = template_pack(Some(config), "android_studio_project")
+        .ok_or_else(|| ProjectCreationError::MissingTemplatePack)?;
     let dest = config.android().project_path();
     bike.process(src, &dest, |map| {
         config.insert_template_data(map);
