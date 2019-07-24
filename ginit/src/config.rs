@@ -172,6 +172,11 @@ impl Config {
         self.prefix_path(&self.global.source_root)
     }
 
+    // TODO: do we actually guarantee this?
+    pub fn app_root(&self) -> PathBuf {
+        self.source_root().join(self.app_name())
+    }
+
     pub fn manifest_path(&self) -> Option<PathBuf> {
         self.global
             .manifest_path
