@@ -50,6 +50,8 @@ impl fmt::Display for LoadError {
     }
 }
 
+impl std::error::Error for LoadError {}
+
 #[derive(Debug)]
 pub enum UnprefixPathError {
     PathNotPrefixed,
