@@ -31,7 +31,14 @@ impl CargoConfig {
             CargoTarget {
                 ar: None,
                 linker: None,
-                rustflags: vec!["-C".to_owned(), "target-cpu=native".to_owned()],
+                rustflags: vec![
+                    "-C".to_owned(),
+                    "target-cpu=native".to_owned(),
+                    // this makes sure we'll be able to change dylib IDs
+                    // (needed for dylib hot reloading)
+                    "-C".to_owned(),
+                    "link-arg=-headerpad_max_install_names".to_owned(),
+                ],
             },
         );
         CargoConfig { target }
