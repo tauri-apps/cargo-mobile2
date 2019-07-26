@@ -9,6 +9,7 @@ bicycle = { git = "ssh://git@bitbucket.org/brainium/bicycle.git" }
 colored = "1"
 derive_more = "0.15"
 Inflector = { version = "0.11", default-features = false }
+into-result = "0.1.0"
 lazy_static = "1"
 log = "0.4"
 openssl = "0.10"

@@ -1,4 +1,7 @@
-use crate::util::{self, IntoResult};
+use into_result::{
+    command::{CommandError, CommandResult},
+    IntoResult as _,
+};
 use openssl::{
     error::ErrorStack as OpenSslError,
     nid::Nid,
@@ -6,7 +9,7 @@ use openssl::{
 };
 use std::{collections::BTreeSet, process::Command};
 
-pub fn get_pem_list() -> util::CommandResult<Vec<u8>> {
+pub fn get_pem_list() -> CommandResult<Vec<u8>> {
     Command::new("security")
         .args(&["find-certificate", "-p", "-a", "-c", "Developer:"])
         .output()
@@ -16,7 +19,7 @@ pub fn get_pem_list() -> util::CommandResult<Vec<u8>> {
 
 #[derive(Debug, derive_more::From)]
 pub enum FindTeamsError {
-    FindCertsError(util::CommandError),
+    FindCertsError(CommandError),
     ParseX509Error(OpenSslError),
     MissingX509Field(Nid),
     AsUtf8Error(OpenSslError),

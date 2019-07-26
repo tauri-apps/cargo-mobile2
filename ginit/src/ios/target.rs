@@ -1,9 +1,5 @@
-use crate::{
-    config::Config,
-    init::cargo::CargoTarget,
-    target::TargetTrait,
-    util::{self, IntoResult},
-};
+use crate::{config::Config, init::cargo::CargoTarget, target::TargetTrait, util};
+use into_result::IntoResult as _;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::Path, process::Command};
 

@@ -1,4 +1,5 @@
 use crate::{config::Config, templating::template_pack, util};
+use into_result::command::CommandError;
 use regex::Regex;
 use std::{ffi::OsStr, io, path::Path};
 
@@ -7,10 +8,10 @@ pub enum ProjectCreationError {
     MissingTemplatePack,
     TemplateTraversalError(bicycle::TraversalError),
     TemplateProcessingError(bicycle::ProcessingError),
-    GitInitError(util::CommandError),
+    GitInitError(CommandError),
     GitSubmoduleStatusError(io::Error),
-    GitSubmoduleAddError(util::CommandError),
-    GitSubmoduleInitError(util::CommandError),
+    GitSubmoduleAddError(CommandError),
+    GitSubmoduleInitError(CommandError),
 }
 
 pub fn git_init(root: &Path) -> Result<(), ProjectCreationError> {

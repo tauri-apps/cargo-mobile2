@@ -1,16 +1,13 @@
-use crate::{
-    config::Config,
-    templating::template_pack,
-    util::{self, IntoResult},
-};
+use crate::{config::Config, templating::template_pack, util};
+use into_result::{command::CommandError, IntoResult as _};
 use std::process::Command;
 
 #[derive(Debug, derive_more::From)]
 pub enum ProjectCreationError {
     MissingTemplatePack,
     TemplateProcessingError(bicycle::ProcessingError),
-    SymlinkRustError(util::CommandError),
-    SymlinkResourcesError(util::CommandError),
+    SymlinkRustError(CommandError),
+    SymlinkResourcesError(CommandError),
 }
 
 pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), ProjectCreationError> {

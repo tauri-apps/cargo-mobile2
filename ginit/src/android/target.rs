@@ -4,8 +4,9 @@ use crate::{
     config::Config,
     init::cargo::CargoTarget,
     target::TargetTrait,
-    util::{self, force_symlink, IntoResult},
+    util::{self, force_symlink},
 };
+use into_result::{command::CommandResult, IntoResult as _};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
@@ -54,7 +55,7 @@ impl Target {
         Self::all(config).values().find(|target| target.abi == abi)
     }
 
-    pub fn for_connected<'a>(config: &'a Config) -> util::CommandResult<Option<&'a Self>> {
+    pub fn for_connected<'a>(config: &'a Config) -> CommandResult<Option<&'a Self>> {
         let output = Command::new("adb")
             .args(&["shell", "getprop", "ro.product.cpu.abi"])
             .output()

@@ -1,11 +1,12 @@
 use crate::{config::Config, templating::template_pack, util};
+use into_result::command::CommandError;
 use std::fs;
 
 #[derive(Debug, derive_more::From)]
 pub enum ProjectCreationError {
     MissingTemplatePack,
     TemplateProcessingError(bicycle::ProcessingError),
-    SymlinkAssetsError(util::CommandError),
+    SymlinkAssetsError(CommandError),
     CreateDirError(std::io::Error),
 }
 

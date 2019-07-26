@@ -8,8 +8,9 @@ use crate::{
     config::Config,
     ios,
     target::TargetTrait as _,
-    util::{self, FriendlyContains, IntoResult as _},
+    util::{self, FriendlyContains},
 };
+use into_result::IntoResult as _;
 use std::{path::Path, process::Command};
 
 pub static STEPS: &'static [&'static str] = &[

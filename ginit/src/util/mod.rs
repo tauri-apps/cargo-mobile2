@@ -1,6 +1,10 @@
 mod cargo;
 
 pub use self::cargo::CargoCommand;
+use into_result::{
+    command::{CommandError, CommandResult},
+    IntoResult as _,
+};
 use regex::Regex;
 use std::{
     env,
@@ -9,7 +13,7 @@ use std::{
     fs::File,
     io::{self, Read, Write},
     path::{Path, PathBuf},
-    process::{Child, Command, ExitStatus, Output, Stdio},
+    process::{Command, Stdio},
 };
 
 pub fn read_str(path: impl AsRef<OsStr>) -> io::Result<String> {
@@ -48,53 +52,6 @@ where
 
 pub fn add_to_path(path: impl fmt::Display) -> String {
     format!("{}:{}", path, env::var("PATH").unwrap())
-}
-
-#[derive(Debug, derive_more::From)]
-pub enum CommandError {
-    UnableToSpawn(io::Error),
-    NonZeroExitStatus(Option<i32>),
-}
-
-pub type CommandResult<T> = Result<T, CommandError>;
-
-pub trait IntoResult<T, E> {
-    fn into_result(self) -> Result<T, E>;
-}
-
-impl IntoResult<(), ()> for bool {
-    fn into_result(self) -> Result<(), ()> {
-        if self {
-            Ok(())
-        } else {
-            Err(())
-        }
-    }
-}
-
-impl IntoResult<(), CommandError> for ExitStatus {
-    fn into_result(self) -> CommandResult<()> {
-        self.success().into_result().map_err(|_| self.code().into())
-    }
-}
-
-impl IntoResult<(), CommandError> for io::Result<ExitStatus> {
-    fn into_result(self) -> CommandResult<()> {
-        self.map_err(Into::into).and_then(IntoResult::into_result)
-    }
-}
-
-impl IntoResult<Output, CommandError> for io::Result<Output> {
-    fn into_result(self) -> CommandResult<Output> {
-        self.map_err(Into::into)
-            .and_then(|output| output.status.into_result().map(|_| output))
-    }
-}
-
-impl IntoResult<Child, CommandError> for io::Result<Child> {
-    fn into_result(self) -> CommandResult<Child> {
-        self.map_err(Into::into)
-    }
 }
 
 pub fn command_path(name: &str) -> CommandResult<Vec<u8>> {
