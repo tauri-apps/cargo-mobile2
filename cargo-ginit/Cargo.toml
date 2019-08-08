@@ -10,5 +10,5 @@ name = "cargo-ginit"
 
 [dependencies]
 clap = "2.33.0"
-env_logger = "0.6"
+env_logger = "0.6.2"
 ginit = { path = "../ginit" }

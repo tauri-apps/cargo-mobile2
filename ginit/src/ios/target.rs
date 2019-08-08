@@ -1,34 +1,47 @@
 use crate::{config::Config, init::cargo::CargoTarget, target::TargetTrait, util};
 use into_result::IntoResult as _;
-use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::Path, process::Command};
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Target {
-    pub triple: String,
-    pub arch: String,
+#[derive(Clone, Copy, Debug)]
+pub struct Target<'a> {
+    pub triple: &'a str,
+    pub arch: &'a str,
 }
 
-impl TargetTrait for Target {
-    fn all(config: &Config) -> &BTreeMap<String, Self> {
-        config.ios().targets()
+impl<'a> TargetTrait<'a> for Target<'a> {
+    fn all() -> &'a BTreeMap<&'a str, Self> {
+        lazy_static::lazy_static! {
+            pub static ref TARGETS: BTreeMap<&'static str, Target<'static>> = {
+                let mut targets = BTreeMap::new();
+                targets.insert("aarch64", Target {
+                    triple: "aarch64-apple-ios",
+                    arch: "arm64",
+                });
+                targets.insert("x86_64", Target {
+                    triple: "x86_64-apple-ios",
+                    arch: "x86_64",
+                });
+                targets
+            };
+        }
+        &*TARGETS
     }
 
-    fn triple(&self) -> &str {
-        &self.triple
+    fn triple(&'a self) -> &'a str {
+        self.triple
     }
 
-    fn arch(&self) -> &str {
-        &self.arch
+    fn arch(&'a self) -> &'a str {
+        self.arch
     }
 }
 
-impl Target {
+impl<'a> Target<'a> {
     // TODO: Make this cleaner
     pub fn macos() -> Self {
         Self {
-            triple: "x86_64-apple-darwin".to_string(),
-            arch: "x86_64".to_string(),
+            triple: "x86_64-apple-darwin",
+            arch: "x86_64",
         }
     }
 
@@ -36,7 +49,7 @@ impl Target {
         Default::default()
     }
 
-    fn cargo<'a>(&'a self, config: &'a Config, subcommand: &'a str) -> util::CargoCommand<'a> {
+    fn cargo(&'a self, config: &'a Config, subcommand: &'a str) -> util::CargoCommand<'a> {
         util::CargoCommand::new(subcommand)
             .with_package(Some(config.app_name()))
             .with_manifest_path(config.manifest_path())

@@ -60,7 +60,7 @@ pub fn init(config: &Config, bike: &bicycle::Bicycle, force: bool, skip: impl In
     }
     if !skip.android {
         if !skip.toolchains {
-            for target in config.android().targets().values() {
+            for target in android::target::Target::all().values() {
                 target.rustup_add();
             }
         }
@@ -71,7 +71,7 @@ pub fn init(config: &Config, bike: &bicycle::Bicycle, force: bool, skip: impl In
             install_ios_deps(force);
         }
         if !skip.toolchains {
-            for target in config.ios().targets().values() {
+            for target in ios::target::Target::all().values() {
                 target.rustup_add();
             }
         }

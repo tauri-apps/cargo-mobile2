@@ -81,7 +81,6 @@ impl IOSCommand {
     pub fn exec(self, config: &Config, verbose: bool) {
         match self {
             IOSCommand::Check { targets } => call_for_targets(
-                config,
                 Some(targets.iter()),
                 FallbackBehavior::all_targets(),
                 |target: &Target| target.check(config, verbose),
@@ -94,7 +93,7 @@ impl IOSCommand {
                 release,
             } => match macos {
                 true => Target::macos().compile_lib(config, verbose, release),
-                false => Target::for_arch(config, &arch)
+                false => Target::for_arch(&arch)
                     .expect("Invalid architecture")
                     .compile_lib(config, verbose, release),
             },

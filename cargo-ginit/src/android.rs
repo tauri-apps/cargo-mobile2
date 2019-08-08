@@ -69,8 +69,8 @@ impl AndroidCommand {
     }
 
     pub fn exec(self, config: &Config, verbose: bool) {
-        fn detect_target<'a>(config: &'a Config) -> Option<&'a Target> {
-            let target = Target::for_connected(config)
+        fn detect_target<'a>() -> Option<&'a Target<'a>> {
+            let target = Target::for_connected()
                 .ok()
                 .and_then(std::convert::identity);
             if let Some(target) = target {
@@ -81,25 +81,21 @@ impl AndroidCommand {
 
         match self {
             AndroidCommand::Check { targets } => call_for_targets(
-                config,
                 Some(targets.iter()),
                 FallbackBehavior::get_target(&detect_target, true),
                 |target: &Target| target.check(config, verbose),
             ),
             AndroidCommand::Build { targets, release } => call_for_targets(
-                config,
                 Some(targets.iter()),
                 FallbackBehavior::get_target(&detect_target, true),
                 |target: &Target| target.build(config, verbose, release),
             ),
             AndroidCommand::Run { targets, release } => call_for_targets(
-                config,
                 Some(targets.iter()),
                 FallbackBehavior::get_target(&detect_target, true),
                 |target: &Target| target.run(config, verbose, release),
             ),
             AndroidCommand::Stacktrace { target } => call_for_targets(
-                config,
                 target.as_ref().map(std::iter::once),
                 FallbackBehavior::get_target(&detect_target, false),
                 |target: &Target| target.stacktrace(config),

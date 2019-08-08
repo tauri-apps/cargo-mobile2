@@ -7,7 +7,6 @@ use crate::{
     util::{self, force_symlink},
 };
 use into_result::{command::CommandResult, IntoResult as _};
-use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
     env, fs, io,
@@ -29,33 +28,59 @@ fn gradlew(config: &Config) -> Command {
     command
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Target {
-    pub triple: String,
-    pub abi: String,
-    pub arch: String,
+#[derive(Clone, Copy, Debug)]
+pub struct Target<'a> {
+    pub triple: &'a str,
+    pub abi: &'a str,
+    pub arch: &'a str,
 }
 
-impl TargetTrait for Target {
-    fn all(config: &Config) -> &BTreeMap<String, Self> {
-        &config.android().targets()
+impl<'a> TargetTrait<'a> for Target<'a> {
+    fn all() -> &'a BTreeMap<&'a str, Self> {
+        lazy_static::lazy_static! {
+            static ref TARGETS: BTreeMap<&'static str, Target<'static>> = {
+                let mut targets = BTreeMap::new();
+                targets.insert("aarch64", Target {
+                    triple: "aarch64-linux-android",
+                    abi: "arm64-v8a",
+                    arch: "arm64",
+                });
+                targets.insert("armv7", Target {
+                    triple: "armv7-linux-androideabi",
+                    abi: "armeabi-v7a",
+                    arch: "arm",
+                });
+                targets.insert("i686", Target {
+                    triple: "i686-linux-android",
+                    abi: "x86",
+                    arch: "x86",
+                });
+                targets.insert("x86_64", Target {
+                    triple: "x86_64-linux-android",
+                    abi: "x86_64",
+                    arch: "x86_64",
+                });
+                targets
+            };
+        }
+        &*TARGETS
     }
 
-    fn triple(&self) -> &str {
-        &self.triple
+    fn triple(&'a self) -> &'a str {
+        self.triple
     }
 
-    fn arch(&self) -> &str {
-        &self.arch
+    fn arch(&'a self) -> &'a str {
+        self.arch
     }
 }
 
-impl Target {
-    fn for_abi<'a>(config: &'a Config, abi: &str) -> Option<&'a Self> {
-        Self::all(config).values().find(|target| target.abi == abi)
+impl<'a> Target<'a> {
+    fn for_abi(abi: &str) -> Option<&'a Self> {
+        Self::all().values().find(|target| target.abi == abi)
     }
 
-    pub fn for_connected<'a>(config: &'a Config) -> CommandResult<Option<&'a Self>> {
+    pub fn for_connected() -> CommandResult<Option<&'a Self>> {
         let output = Command::new("adb")
             .args(&["shell", "getprop", "ro.product.cpu.abi"])
             .output()
@@ -63,7 +88,7 @@ impl Target {
         let raw_abi = String::from_utf8(output.stdout)
             .expect("`ro.product.cpu.abi` contained invalid unicode");
         let abi = raw_abi.trim();
-        Ok(Self::for_abi(config, abi))
+        Ok(Self::for_abi(abi))
     }
 
     fn bin_path(&self, config: &Config, bin: &str) -> String {

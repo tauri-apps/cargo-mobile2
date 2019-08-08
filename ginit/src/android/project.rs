@@ -1,4 +1,5 @@
-use crate::{config::Config, templating::template_pack, util};
+use super::target::Target;
+use crate::{config::Config, target::TargetTrait as _, templating::template_pack, util};
 use into_result::command::CommandError;
 use std::fs;
 
@@ -17,7 +18,13 @@ pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), ProjectCre
     let dest = config.android().project_path();
     bike.process(src, &dest, |map| {
         config.insert_template_data(map);
-        map.insert("abi_list", config.android().abi_list());
+        map.insert("abi_list", {
+            Target::all()
+                .values()
+                .map(|target| format!("\"{}\"", target.abi))
+                .collect::<Vec<_>>()
+                .join(", ")
+        });
     })?;
     let dest = dest.join("app/src/main/assets/");
     fs::create_dir_all(&dest)?;
