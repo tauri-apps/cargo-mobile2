@@ -1,7 +1,7 @@
 use crate::util::{parse_release, parse_targets, take_a_list};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
-    android::target::Target,
+    android::{ndk, target::Target},
     config::Config,
     target::{call_for_targets, FallbackBehavior},
 };
@@ -79,26 +79,27 @@ impl AndroidCommand {
             target
         }
 
+        let ndk_env = ndk::Env::new().expect("Failed to init NDK env");
         match self {
             AndroidCommand::Check { targets } => call_for_targets(
                 Some(targets.iter()),
                 FallbackBehavior::get_target(&detect_target, true),
-                |target: &Target| target.check(config, verbose),
+                |target: &Target| target.check(config, &ndk_env, verbose),
             ),
             AndroidCommand::Build { targets, release } => call_for_targets(
                 Some(targets.iter()),
                 FallbackBehavior::get_target(&detect_target, true),
-                |target: &Target| target.build(config, verbose, release),
+                |target: &Target| target.build(config, &ndk_env, verbose, release),
             ),
             AndroidCommand::Run { targets, release } => call_for_targets(
                 Some(targets.iter()),
                 FallbackBehavior::get_target(&detect_target, true),
-                |target: &Target| target.run(config, verbose, release),
+                |target: &Target| target.run(config, &ndk_env, verbose, release),
             ),
             AndroidCommand::Stacktrace { target } => call_for_targets(
                 target.as_ref().map(std::iter::once),
                 FallbackBehavior::get_target(&detect_target, false),
-                |target: &Target| target.stacktrace(config),
+                |target: &Target| target.stacktrace(config, &ndk_env),
             ),
         }
     }

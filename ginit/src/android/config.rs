@@ -31,11 +31,4 @@ impl<'a> Config<'a> {
             .join(&self.project_root)
             .join(self.root_config.app_name())
     }
-
-    pub fn ndk_path(&self) -> PathBuf {
-        self.project_path()
-            .parent()
-            .unwrap()
-            .join(".ndk-toolchains")
-    }
 }

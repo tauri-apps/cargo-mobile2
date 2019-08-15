@@ -1,5 +1,6 @@
 // TODO: Bad things happen if multiple Android devices are connected at once
 
+use super::ndk;
 use crate::{
     config::Config,
     init::cargo::CargoTarget,
@@ -7,18 +8,9 @@ use crate::{
     util::{self, force_symlink},
 };
 use into_result::{command::CommandResult, IntoResult as _};
-use std::{
-    collections::BTreeMap,
-    env, fs, io,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{collections::BTreeMap, fs, io, path::PathBuf, process::Command};
 
 const API_VERSION: u32 = 24;
-
-fn ndk_home() -> String {
-    env::var("NDK_HOME").expect("`NDK_HOME` env var missing")
-}
 
 fn gradlew(config: &Config) -> Command {
     let gradlew_path = config.android().project_path().join("gradlew");
@@ -31,6 +23,8 @@ fn gradlew(config: &Config) -> Command {
 #[derive(Clone, Copy, Debug)]
 pub struct Target<'a> {
     pub triple: &'a str,
+    clang_triple_override: Option<&'a str>,
+    binutils_triple_override: Option<&'a str>,
     pub abi: &'a str,
     pub arch: &'a str,
 }
@@ -42,21 +36,29 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                 let mut targets = BTreeMap::new();
                 targets.insert("aarch64", Target {
                     triple: "aarch64-linux-android",
+                    clang_triple_override: None,
+                    binutils_triple_override: None,
                     abi: "arm64-v8a",
                     arch: "arm64",
                 });
                 targets.insert("armv7", Target {
                     triple: "armv7-linux-androideabi",
+                    clang_triple_override: Some("armv7a-linux-androideabi"),
+                    binutils_triple_override: Some("arm-linux-androideabi"),
                     abi: "armeabi-v7a",
                     arch: "arm",
                 });
                 targets.insert("i686", Target {
                     triple: "i686-linux-android",
+                    clang_triple_override: None,
+                    binutils_triple_override: None,
                     abi: "x86",
                     arch: "x86",
                 });
                 targets.insert("x86_64", Target {
                     triple: "x86_64-linux-android",
+                    clang_triple_override: None,
+                    binutils_triple_override: None,
                     abi: "x86_64",
                     arch: "x86_64",
                 });
@@ -76,6 +78,14 @@ impl<'a> TargetTrait<'a> for Target<'a> {
 }
 
 impl<'a> Target<'a> {
+    fn clang_triple(&self) -> &'a str {
+        self.clang_triple_override.unwrap_or_else(|| self.triple)
+    }
+
+    fn binutils_triple(&self) -> &'a str {
+        self.binutils_triple_override.unwrap_or_else(|| self.triple)
+    }
+
     fn for_abi(abi: &str) -> Option<&'a Self> {
         Self::all().values().find(|target| target.abi == abi)
     }
@@ -91,29 +101,18 @@ impl<'a> Target<'a> {
         Ok(Self::for_abi(abi))
     }
 
-    fn bin_path(&self, config: &Config, bin: &str) -> String {
-        config
-            .android()
-            .ndk_path()
-            .join(format!("{}/bin/{}-{}", self.arch, self.triple, bin))
-            .to_str()
-            .expect("NDK path contained invalid unicode")
-            .to_owned()
-    }
-
-    pub fn generate_cargo_config(&self, config: &Config) -> CargoTarget {
-        let ar = config
-            .unprefix_path(self.bin_path(config, "ar"))
-            .expect("Archiver path outside of project")
-            .to_str()
-            .expect("Archiver path contained invalid unicode")
-            .to_owned();
-        let linker = config
-            .unprefix_path(self.bin_path(config, "clang"))
-            .expect("Linker path outside of project")
-            .to_str()
-            .expect("Linker path contained invalid unicode")
-            .to_owned();
+    pub fn generate_cargo_config(&self, ndk_env: &ndk::Env) -> CargoTarget {
+        let ar = ndk_env
+            .binutil_path(ndk::Binutil::Ar, self.binutils_triple())
+            .expect("couldn't find ar")
+            .display()
+            .to_string();
+        // Using clang as the linker seems to be the only way to get the right library search paths...
+        let linker = ndk_env
+            .compiler_path(ndk::Compiler::Clang, self.clang_triple(), API_VERSION)
+            .expect("couldn't find clang")
+            .display()
+            .to_string();
         CargoTarget {
             ar: Some(ar),
             linker: Some(linker),
@@ -128,28 +127,42 @@ impl<'a> Target<'a> {
         }
     }
 
-    // Add clang/gcc binaries to PATH
-    fn add_arch_to_path(&self, config: &Config) -> String {
-        let path = config
-            .android()
-            .ndk_path()
-            .join(format!("{}/bin", &self.arch))
-            .canonicalize()
-            .expect("Failed to canonicalize toolchain path");
-        util::add_to_path(path.to_str().unwrap())
-    }
-
-    fn compile_lib(&self, config: &Config, verbose: bool, release: bool, check: bool) {
+    fn compile_lib(
+        &self,
+        config: &Config,
+        ndk_env: &ndk::Env,
+        verbose: bool,
+        release: bool,
+        check: bool,
+    ) {
         let subcommand = if check { "check" } else { "build" };
         util::CargoCommand::new(subcommand)
             .with_verbose(verbose)
             .with_package(Some(config.app_name()))
             .with_manifest_path(config.manifest_path())
-            .with_target(Some(&self.triple))
-            .with_features(Some("vulkan"))
+            .with_target(Some(self.triple))
+            .with_features(Some("vulkan")) // TODO: rust-lib plugin
             .with_release(release)
             .into_command()
-            .env("PATH", self.add_arch_to_path(config))
+            .env("ANDROID_NATIVE_API_LEVEL", API_VERSION.to_string())
+            .env(
+                "TARGET_AR",
+                ndk_env
+                    .binutil_path(ndk::Binutil::Ar, self.binutils_triple())
+                    .expect("couldn't find ar"),
+            )
+            .env(
+                "TARGET_CC",
+                ndk_env
+                    .compiler_path(ndk::Compiler::Clang, self.clang_triple(), API_VERSION)
+                    .expect("couldn't find clang"),
+            )
+            .env(
+                "TARGET_CXX",
+                ndk_env
+                    .compiler_path(ndk::Compiler::Clangxx, self.clang_triple(), API_VERSION)
+                    .expect("couldn't find clang++"),
+            )
             .status()
             .into_result()
             .expect("Failed to run `cargo build`");
@@ -179,35 +192,17 @@ impl<'a> Target<'a> {
         force_symlink(src, dest).expect("Failed to symlink lib");
     }
 
-    pub fn check(&self, config: &Config, verbose: bool) {
-        self.build_toolchain(config);
-        self.compile_lib(config, verbose, false, true);
+    pub fn check(&self, config: &Config, ndk_env: &ndk::Env, verbose: bool) {
+        self.compile_lib(config, ndk_env, verbose, false, true);
     }
 
-    fn build_toolchain(&self, config: &Config) {
-        let toolchains_dir = config.android().ndk_path();
-        let arch_dir = toolchains_dir.join(&self.arch);
-        if !arch_dir.exists() {
-            fs::create_dir_all(&toolchains_dir).expect("Failed to create toolchain directory");
-            let ndk_home = ndk_home();
-            Command::new(Path::new(&ndk_home).join("build/tools/make_standalone_toolchain.py"))
-                .args(&["--api", &API_VERSION.to_string()])
-                .args(&["--arch", &self.arch])
-                .args(&["--install-dir", arch_dir.to_str().unwrap()])
-                .status()
-                .into_result()
-                .expect("Failed to build toolchain");
-        }
-    }
-
-    pub fn build(&self, config: &Config, verbose: bool, release: bool) {
-        self.build_toolchain(config);
-        self.compile_lib(config, verbose, release, false);
+    pub fn build(&self, config: &Config, ndk_env: &ndk::Env, verbose: bool, release: bool) {
+        self.compile_lib(config, ndk_env, verbose, release, false);
         self.symlink_lib(config);
     }
 
-    fn build_and_install(&self, config: &Config, verbose: bool, release: bool) {
-        self.build(config, verbose, release);
+    fn build_and_install(&self, config: &Config, ndk_env: &ndk::Env, verbose: bool, release: bool) {
+        self.build(config, ndk_env, verbose, release);
         gradlew(config)
             .arg("installDebug")
             .status()
@@ -223,8 +218,8 @@ impl<'a> Target<'a> {
             .expect("Failed to wake device screen");
     }
 
-    pub fn run(&self, config: &Config, verbose: bool, release: bool) {
-        self.build_and_install(config, verbose, release);
+    pub fn run(&self, config: &Config, ndk_env: &ndk::Env, verbose: bool, release: bool) {
+        self.build_and_install(config, ndk_env, verbose, release);
         let activity = format!(
             "{}.{}/android.app.NativeActivity",
             config.reverse_domain(),
@@ -238,12 +233,12 @@ impl<'a> Target<'a> {
         self.wake_screen();
     }
 
-    pub fn stacktrace(&self, config: &Config) {
+    pub fn stacktrace(&self, config: &Config, ndk_env: &ndk::Env) {
         let mut logcat_command = Command::new("adb");
         logcat_command.args(&["logcat", "-d"]); // print and exit
         let mut stack_command = Command::new("ndk-stack");
         stack_command
-            .env("PATH", util::add_to_path(&ndk_home()))
+            .env("PATH", util::add_to_path(ndk_env.home().display()))
             .arg("-sym")
             .arg(self.get_jnilibs_subdir(config));
         util::pipe(logcat_command, stack_command).expect("Failed to get stacktrace");

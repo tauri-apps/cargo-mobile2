@@ -53,7 +53,7 @@ where
 pub fn init(config: &Config, bike: &bicycle::Bicycle, force: bool, skip: impl Into<Skip>) {
     let skip = skip.into();
     if !skip.cargo {
-        CargoConfig::generate(config).write(&config);
+        CargoConfig::generate().write(&config);
     }
     if !skip.hello_world {
         rust::hello_world(config, bike, force).unwrap();
