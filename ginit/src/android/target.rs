@@ -4,7 +4,7 @@ use super::ndk;
 use crate::{
     config::Config,
     init::cargo::CargoTarget,
-    target::TargetTrait,
+    target::{Profile, TargetTrait},
     util::{self, force_symlink},
 };
 use into_result::{command::CommandResult, IntoResult as _};
@@ -18,6 +18,21 @@ fn gradlew(config: &Config) -> Command {
     command.arg("--project-dir");
     command.arg(config.android().project_path());
     command
+}
+
+#[derive(Clone, Copy, Debug)]
+enum CargoMode {
+    Check,
+    Build,
+}
+
+impl CargoMode {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            CargoMode::Check => "check",
+            CargoMode::Build => "build",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -132,17 +147,16 @@ impl<'a> Target<'a> {
         config: &Config,
         ndk_env: &ndk::Env,
         verbose: bool,
-        release: bool,
-        check: bool,
+        profile: Profile,
+        mode: CargoMode,
     ) {
-        let subcommand = if check { "check" } else { "build" };
-        util::CargoCommand::new(subcommand)
+        util::CargoCommand::new(mode.as_str())
             .with_verbose(verbose)
             .with_package(Some(config.app_name()))
             .with_manifest_path(config.manifest_path())
             .with_target(Some(self.triple))
             .with_features(Some("vulkan")) // TODO: rust-lib plugin
-            .with_release(release)
+            .with_release(profile.is_release())
             .into_command()
             .env("ANDROID_NATIVE_API_LEVEL", API_VERSION.to_string())
             .env(
@@ -180,11 +194,16 @@ impl<'a> Target<'a> {
         fs::create_dir_all(path)
     }
 
-    fn symlink_lib(&self, config: &Config) {
+    fn symlink_lib(&self, config: &Config, profile: Profile) {
         self.make_jnilibs_subdir(config)
             .expect("Failed to create jniLibs subdir");
         let so_name = format!("lib{}.so", config.app_name());
-        let src = config.prefix_path(format!("target/{}/debug/{}", &self.triple, &so_name));
+        let src = config.prefix_path(format!(
+            "target/{}/{}/{}",
+            &self.triple,
+            profile.as_str(),
+            &so_name
+        ));
         if !src.exists() {
             panic!("Symlink source doesn't exist: {:?}", src);
         }
@@ -193,16 +212,22 @@ impl<'a> Target<'a> {
     }
 
     pub fn check(&self, config: &Config, ndk_env: &ndk::Env, verbose: bool) {
-        self.compile_lib(config, ndk_env, verbose, false, true);
+        self.compile_lib(config, ndk_env, verbose, Profile::Debug, CargoMode::Check);
     }
 
-    pub fn build(&self, config: &Config, ndk_env: &ndk::Env, verbose: bool, release: bool) {
-        self.compile_lib(config, ndk_env, verbose, release, false);
-        self.symlink_lib(config);
+    pub fn build(&self, config: &Config, ndk_env: &ndk::Env, verbose: bool, profile: Profile) {
+        self.compile_lib(config, ndk_env, verbose, profile, CargoMode::Build);
+        self.symlink_lib(config, profile);
     }
 
-    fn build_and_install(&self, config: &Config, ndk_env: &ndk::Env, verbose: bool, release: bool) {
-        self.build(config, ndk_env, verbose, release);
+    fn build_and_install(
+        &self,
+        config: &Config,
+        ndk_env: &ndk::Env,
+        verbose: bool,
+        profile: Profile,
+    ) {
+        self.build(config, ndk_env, verbose, profile);
         gradlew(config)
             .arg("installDebug")
             .status()
@@ -218,8 +243,8 @@ impl<'a> Target<'a> {
             .expect("Failed to wake device screen");
     }
 
-    pub fn run(&self, config: &Config, ndk_env: &ndk::Env, verbose: bool, release: bool) {
-        self.build_and_install(config, ndk_env, verbose, release);
+    pub fn run(&self, config: &Config, ndk_env: &ndk::Env, verbose: bool, profile: Profile) {
+        self.build_and_install(config, ndk_env, verbose, profile);
         let activity = format!(
             "{}.{}/android.app.NativeActivity",
             config.reverse_domain(),

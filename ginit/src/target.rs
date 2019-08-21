@@ -1,6 +1,29 @@
 use crate::util;
 use std::collections::BTreeMap;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Profile {
+    Debug,
+    Release,
+}
+
+impl Profile {
+    pub fn is_debug(self) -> bool {
+        self == Profile::Debug
+    }
+
+    pub fn is_release(self) -> bool {
+        self == Profile::Release
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Profile::Debug => "debug",
+            Profile::Release => "release",
+        }
+    }
+}
+
 pub trait TargetTrait<'a>: Sized {
     fn all() -> &'a BTreeMap<&'a str, Self>;
 

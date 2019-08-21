@@ -1,9 +1,9 @@
-use crate::util::{parse_release, parse_targets, take_a_list};
+use crate::util::{parse_profile, parse_targets, take_a_list};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
     android::{ndk, target::Target},
     config::Config,
-    target::{call_for_targets, FallbackBehavior},
+    target::{call_for_targets, FallbackBehavior, Profile},
 };
 
 pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
@@ -40,10 +40,20 @@ pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
 
 #[derive(Debug)]
 pub enum AndroidCommand {
-    Check { targets: Vec<String> },
-    Build { targets: Vec<String>, release: bool },
-    Run { targets: Vec<String>, release: bool },
-    Stacktrace { target: Option<String> },
+    Check {
+        targets: Vec<String>,
+    },
+    Build {
+        targets: Vec<String>,
+        profile: Profile,
+    },
+    Run {
+        targets: Vec<String>,
+        profile: Profile,
+    },
+    Stacktrace {
+        target: Option<String>,
+    },
 }
 
 impl AndroidCommand {
@@ -55,11 +65,11 @@ impl AndroidCommand {
             },
             "build" => AndroidCommand::Build {
                 targets: parse_targets(&subcommand.matches),
-                release: parse_release(&subcommand.matches),
+                profile: parse_profile(&subcommand.matches),
             },
             "run" => AndroidCommand::Run {
                 targets: parse_targets(&subcommand.matches),
-                release: parse_release(&subcommand.matches),
+                profile: parse_profile(&subcommand.matches),
             },
             "st" => AndroidCommand::Stacktrace {
                 target: subcommand.matches.value_of("TARGET").map(Into::into),
@@ -86,15 +96,15 @@ impl AndroidCommand {
                 FallbackBehavior::get_target(&detect_target, true),
                 |target: &Target| target.check(config, &ndk_env, verbose),
             ),
-            AndroidCommand::Build { targets, release } => call_for_targets(
+            AndroidCommand::Build { targets, profile } => call_for_targets(
                 Some(targets.iter()),
                 FallbackBehavior::get_target(&detect_target, true),
-                |target: &Target| target.build(config, &ndk_env, verbose, release),
+                |target: &Target| target.build(config, &ndk_env, verbose, profile),
             ),
-            AndroidCommand::Run { targets, release } => call_for_targets(
+            AndroidCommand::Run { targets, profile } => call_for_targets(
                 Some(targets.iter()),
                 FallbackBehavior::get_target(&detect_target, true),
-                |target: &Target| target.run(config, &ndk_env, verbose, release),
+                |target: &Target| target.run(config, &ndk_env, verbose, profile),
             ),
             AndroidCommand::Stacktrace { target } => call_for_targets(
                 target.as_ref().map(std::iter::once),
