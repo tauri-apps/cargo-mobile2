@@ -2,7 +2,11 @@ use crate::util::take_a_list;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ginit::{
     config::Config,
-    init::{config::interactive_config_gen, init, Skip, STEPS},
+    init::{
+        config::interactive_config_gen,
+        init,
+        steps::{Steps, STEPS},
+    },
     templating::init_templating,
 };
 
@@ -10,6 +14,13 @@ pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("init")
         .about("Creates a new project in the current working directory")
         .arg_from_usage("--force 'Clobber files with no remorse'")
+        .arg(take_a_list(
+            Arg::with_name("only")
+                .long("only")
+                .help("Only do some steps")
+                .value_name("STEPS"),
+            STEPS,
+        ))
         .arg(take_a_list(
             Arg::with_name("skip")
                 .long("skip")
@@ -22,18 +33,24 @@ pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
 #[derive(Debug)]
 pub struct InitCommand {
     force: bool,
-    skip: Skip,
+    only: Steps,
+    skip: Steps,
 }
 
 impl InitCommand {
     pub fn parse<'a>(matches: ArgMatches<'a>) -> Self {
         let force = matches.is_present("force");
+        let only = matches
+            .args
+            .get("only")
+            .map(|only| Steps::from(only.vals.as_slice()))
+            .unwrap_or_default();
         let skip = matches
             .args
             .get("skip")
-            .map(|skip| Skip::from(skip.vals.as_slice()))
+            .map(|skip| Steps::from(skip.vals.as_slice()))
             .unwrap_or_default();
-        Self { force, skip }
+        Self { force, only, skip }
     }
 
     pub fn exec(self, config: Option<&Config>) {
@@ -50,6 +67,6 @@ impl InitCommand {
         };
         let config = config.unwrap_or_else(|| new_config.as_ref().unwrap());
         let new_bike = init_templating(Some(&config));
-        init(&config, &new_bike, self.force, self.skip);
+        init(&config, &new_bike, self.force, self.only, self.skip);
     }
 }

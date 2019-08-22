@@ -1,76 +1,41 @@
 pub mod cargo;
 pub mod config;
 pub mod rust;
+pub mod steps;
 
-use self::cargo::CargoConfig;
-use crate::{
-    android,
-    config::Config,
-    ios,
-    target::TargetTrait as _,
-    util::{self, FriendlyContains},
-};
+use self::{cargo::CargoConfig, steps::Steps};
+use crate::{android, config::Config, ios, target::TargetTrait as _, util};
 use into_result::IntoResult as _;
 use std::{path::Path, process::Command};
 
-pub static STEPS: &'static [&'static str] = &[
-    "deps",
-    "toolchains",
-    "cargo",
-    "hello_world",
-    "android",
-    "ios",
-];
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct Skip {
-    pub deps: bool,
-    pub toolchains: bool,
-    pub cargo: bool,
-    pub hello_world: bool,
-    pub android: bool,
-    pub ios: bool,
-}
-
-impl<'a, T> From<&'a [T]> for Skip
-where
-    &'a [T]: FriendlyContains<T>,
-    str: PartialEq<T>,
-{
-    fn from(skip: &'a [T]) -> Self {
-        Skip {
-            deps: skip.friendly_contains("deps"),
-            toolchains: skip.friendly_contains("toolchains"),
-            cargo: skip.friendly_contains("cargo"),
-            hello_world: skip.friendly_contains("hello_world"),
-            android: skip.friendly_contains("android"),
-            ios: skip.friendly_contains("ios"),
-        }
-    }
-}
-
 // TODO: Don't redo things if no changes need to be made
-pub fn init(config: &Config, bike: &bicycle::Bicycle, force: bool, skip: impl Into<Skip>) {
-    let skip = skip.into();
-    if !skip.cargo {
+pub fn init(
+    config: &Config,
+    bike: &bicycle::Bicycle,
+    force: bool,
+    only: impl Into<Steps>,
+    skip: impl Into<Steps>,
+) {
+    let steps = Steps::all(true).and(only).and(skip.into().not());
+    if steps.cargo {
         CargoConfig::generate().write(&config);
     }
-    if !skip.hello_world {
+    if steps.hello_world {
         rust::hello_world(config, bike, force).unwrap();
     }
-    if !skip.android {
-        if !skip.toolchains {
+    if steps.android {
+        if steps.toolchains {
             for target in android::target::Target::all().values() {
                 target.rustup_add();
             }
         }
         android::project::create(config, bike).unwrap();
     }
-    if !skip.ios {
-        if !skip.deps {
+    if steps.ios {
+        if steps.deps {
             install_ios_deps(force);
         }
-        if !skip.toolchains {
+        if steps.toolchains {
             for target in ios::target::Target::all().values() {
                 target.rustup_add();
             }
