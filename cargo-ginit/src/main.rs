@@ -7,7 +7,7 @@ use self::{android::AndroidCommand, init::InitCommand, ios::IOSCommand};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
     android::target::Target as AndroidTarget, config::Config, ios::target::Target as IOSTarget,
-    target::TargetTrait as _, NAME,
+    noise_level::NoiseLevel, target::TargetTrait as _, NAME,
 };
 
 fn cli_app<'a, 'b>(android_targets: &'a [&'a str], ios_targets: &'a [&'a str]) -> App<'a, 'b> {
@@ -25,14 +25,18 @@ fn cli_app<'a, 'b>(android_targets: &'a [&'a str], ios_targets: &'a [&'a str]) -
 
 #[derive(Debug)]
 struct CliInput {
-    verbose: bool,
+    noise_level: NoiseLevel,
     command: Command,
 }
 
 impl CliInput {
     fn parse(matches: ArgMatches<'_>) -> Self {
         Self {
-            verbose: matches.is_present("verbose"),
+            noise_level: if matches.is_present("verbose") {
+                NoiseLevel::LoudAndProud
+            } else {
+                NoiseLevel::default()
+            },
             command: Command::parse(*matches.subcommand.unwrap()), // claps makes sure we got a subcommand
         }
     }
@@ -56,7 +60,7 @@ impl Command {
     }
 }
 
-fn get_args() -> (Vec<String>, bool) {
+fn get_args() -> (Vec<String>, NoiseLevel) {
     let mut raw: Vec<String> = std::env::args().collect();
     // Running this as a cargo subcommand gives us our name as an argument,
     // so let's just discard that...
@@ -66,25 +70,33 @@ fn get_args() -> (Vec<String>, bool) {
 
     // We have to initialize logging as early as possible, so we'll do some
     // rough manual parsing.
-    let verbose = {
+    let noise_level = {
         use ginit::util::FriendlyContains as _;
         // This will fail if multiple short flags are put together, i.e. `-vh`
-        raw.as_slice().friendly_contains("--verbose") || raw.as_slice().friendly_contains("-v")
+        if raw.as_slice().friendly_contains("--verbose") || raw.as_slice().friendly_contains("-v") {
+            NoiseLevel::LoudAndProud
+        } else {
+            NoiseLevel::default()
+        }
     };
 
-    (raw, verbose)
+    (raw, noise_level)
 }
 
-fn log_init(verbose: bool) {
+fn log_init(noise_level: NoiseLevel) {
     use env_logger::{Builder, Env};
-    let default_level = if verbose { "info" } else { "warn" };
+    let default_level = match noise_level {
+        NoiseLevel::Polite => "warn",
+        NoiseLevel::LoudAndProud => "info",
+        NoiseLevel::FranklyQuitePedantic => "trace",
+    };
     let env = Env::default().default_filter_or(default_level);
     Builder::from_env(env).init();
 }
 
 fn main() {
-    let (args, verbose) = get_args();
-    log_init(verbose);
+    let (args, noise_level) = get_args();
+    log_init(noise_level);
 
     let config = Config::load(".").expect("failed to load config");
 
@@ -101,11 +113,11 @@ fn main() {
         }
         Command::Android(command) => {
             let config = config.as_ref().expect("ginit.toml not found");
-            command.exec(config, input.verbose);
+            command.exec(config, input.noise_level);
         }
         Command::IOS(command) => {
             let config = config.as_ref().expect("ginit.toml not found");
-            command.exec(config, input.verbose);
+            command.exec(config, input.noise_level);
         }
     }
 }

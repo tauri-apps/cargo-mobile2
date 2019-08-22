@@ -3,6 +3,7 @@ use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
     config::Config,
     ios::target::Target,
+    noise_level::NoiseLevel,
     target::{call_for_targets, FallbackBehavior, Profile, TargetTrait as _},
 };
 
@@ -78,12 +79,12 @@ impl IOSCommand {
         }
     }
 
-    pub fn exec(self, config: &Config, verbose: bool) {
+    pub fn exec(self, config: &Config, noise_level: NoiseLevel) {
         match self {
             IOSCommand::Check { targets } => call_for_targets(
                 Some(targets.iter()),
                 FallbackBehavior::all_targets(),
-                |target: &Target| target.check(config, verbose),
+                |target: &Target| target.check(config, noise_level),
             ),
             IOSCommand::Build { profile } => Target::build(config, profile),
             IOSCommand::Run { profile } => Target::run(config, profile),
@@ -92,10 +93,10 @@ impl IOSCommand {
                 arch,
                 profile,
             } => match macos {
-                true => Target::macos().compile_lib(config, verbose, profile),
+                true => Target::macos().compile_lib(config, noise_level, profile),
                 false => Target::for_arch(&arch)
                     .expect("Invalid architecture")
-                    .compile_lib(config, verbose, profile),
+                    .compile_lib(config, noise_level, profile),
             },
         }
     }

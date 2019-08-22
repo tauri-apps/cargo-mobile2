@@ -1,6 +1,7 @@
 use crate::{
     config::Config,
     init::cargo::CargoTarget,
+    noise_level::NoiseLevel,
     target::{Profile, TargetTrait},
     util,
 };
@@ -62,20 +63,20 @@ impl<'a> Target<'a> {
             .with_features(Some("metal"))
     }
 
-    pub fn check(&self, config: &Config, verbose: bool) {
+    pub fn check(&self, config: &Config, noise_level: NoiseLevel) {
         self.cargo(config, "check")
-            .with_verbose(verbose)
+            .with_verbose(noise_level.is_verbose())
             .into_command()
             .status()
             .into_result()
             .expect("Failed to run `cargo check`");
     }
 
-    pub fn compile_lib(&self, config: &Config, verbose: bool, profile: Profile) {
+    pub fn compile_lib(&self, config: &Config, noise_level: NoiseLevel, profile: Profile) {
         // NOTE: it's up to Xcode to pass the verbose flag here, so even when
         // using our build/run commands it won't get passed.
         self.cargo(config, "build")
-            .with_verbose(verbose)
+            .with_verbose(noise_level.is_verbose())
             .with_release(profile.is_release())
             .into_command()
             .status()

@@ -4,6 +4,7 @@ use super::ndk;
 use crate::{
     config::Config,
     init::cargo::CargoTarget,
+    noise_level::NoiseLevel,
     target::{Profile, TargetTrait},
     util::{self, force_symlink},
 };
@@ -150,12 +151,12 @@ impl<'a> Target<'a> {
         &self,
         config: &Config,
         ndk_env: &ndk::Env,
-        verbose: bool,
+        noise_level: NoiseLevel,
         profile: Profile,
         mode: CargoMode,
     ) {
         util::CargoCommand::new(mode.as_str())
-            .with_verbose(verbose)
+            .with_verbose(noise_level.is_verbose())
             .with_package(Some(config.app_name()))
             .with_manifest_path(config.manifest_path())
             .with_target(Some(self.triple))
@@ -215,12 +216,24 @@ impl<'a> Target<'a> {
         force_symlink(src, dest).expect("Failed to symlink lib");
     }
 
-    pub fn check(&self, config: &Config, ndk_env: &ndk::Env, verbose: bool) {
-        self.compile_lib(config, ndk_env, verbose, Profile::Debug, CargoMode::Check);
+    pub fn check(&self, config: &Config, ndk_env: &ndk::Env, noise_level: NoiseLevel) {
+        self.compile_lib(
+            config,
+            ndk_env,
+            noise_level,
+            Profile::Debug,
+            CargoMode::Check,
+        );
     }
 
-    pub fn build(&self, config: &Config, ndk_env: &ndk::Env, verbose: bool, profile: Profile) {
-        self.compile_lib(config, ndk_env, verbose, profile, CargoMode::Build);
+    pub fn build(
+        &self,
+        config: &Config,
+        ndk_env: &ndk::Env,
+        noise_level: NoiseLevel,
+        profile: Profile,
+    ) {
+        self.compile_lib(config, ndk_env, noise_level, profile, CargoMode::Build);
         self.symlink_lib(config, profile);
     }
 
@@ -244,11 +257,11 @@ impl<'a> Target<'a> {
         &self,
         config: &Config,
         ndk_env: &ndk::Env,
-        verbose: bool,
+        noise_level: NoiseLevel,
         profile: Profile,
     ) {
         Self::clean_jnilibs(config);
-        self.build(config, ndk_env, verbose, profile);
+        self.build(config, ndk_env, noise_level, profile);
         gradlew(config)
             .arg("installDebug")
             .status()
@@ -264,8 +277,14 @@ impl<'a> Target<'a> {
             .expect("Failed to wake device screen");
     }
 
-    pub fn run(&self, config: &Config, ndk_env: &ndk::Env, verbose: bool, profile: Profile) {
-        self.build_and_install(config, ndk_env, verbose, profile);
+    pub fn run(
+        &self,
+        config: &Config,
+        ndk_env: &ndk::Env,
+        noise_level: NoiseLevel,
+        profile: Profile,
+    ) {
+        self.build_and_install(config, ndk_env, noise_level, profile);
         let activity = format!(
             "{}.{}/android.app.NativeActivity",
             config.reverse_domain(),

@@ -3,6 +3,7 @@ use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
     android::{ndk, target::Target},
     config::Config,
+    noise_level::NoiseLevel,
     target::{call_for_targets, FallbackBehavior, Profile},
 };
 
@@ -70,7 +71,7 @@ impl AndroidCommand {
         }
     }
 
-    pub fn exec(self, config: &Config, verbose: bool) {
+    pub fn exec(self, config: &Config, noise_level: NoiseLevel) {
         fn try_detect_target<'a>() -> Option<&'a Target<'a>> {
             let target = Target::for_connected()
                 .ok()
@@ -90,15 +91,15 @@ impl AndroidCommand {
             AndroidCommand::Check { targets } => call_for_targets(
                 Some(targets.iter()),
                 FallbackBehavior::get_target(&try_detect_target, true),
-                |target: &Target| target.check(config, &ndk_env, verbose),
+                |target: &Target| target.check(config, &ndk_env, noise_level),
             ),
             AndroidCommand::Build { targets, profile } => call_for_targets(
                 Some(targets.iter()),
                 FallbackBehavior::get_target(&try_detect_target, true),
-                |target: &Target| target.build(config, &ndk_env, verbose, profile),
+                |target: &Target| target.build(config, &ndk_env, noise_level, profile),
             ),
             AndroidCommand::Run { profile } => {
-                detect_target().run(config, &ndk_env, verbose, profile)
+                detect_target().run(config, &ndk_env, noise_level, profile)
             }
             AndroidCommand::Stacktrace => detect_target().stacktrace(config, &ndk_env),
         }
