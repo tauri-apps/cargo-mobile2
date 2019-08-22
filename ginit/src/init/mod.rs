@@ -13,10 +13,15 @@ pub fn init(
     config: &Config,
     bike: &bicycle::Bicycle,
     force: bool,
-    only: impl Into<Steps>,
-    skip: impl Into<Steps>,
+    only: Option<impl Into<Steps>>,
+    skip: Option<impl Into<Steps>>,
 ) {
-    let steps = Steps::all(true).and(only).and(skip.into().not());
+    let steps = match (only.map(Into::into), skip.map(Into::into)) {
+        (None, None) => Steps::all(true),
+        (Some(only), None) => only,
+        (Some(only), Some(skip)) => only.and(skip.not()),
+        (None, Some(skip)) => skip.not(),
+    };
     if steps.cargo {
         CargoConfig::generate().write(&config);
     }

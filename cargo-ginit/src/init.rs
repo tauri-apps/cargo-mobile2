@@ -33,8 +33,8 @@ pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
 #[derive(Debug)]
 pub struct InitCommand {
     force: bool,
-    only: Steps,
-    skip: Steps,
+    only: Option<Steps>,
+    skip: Option<Steps>,
 }
 
 impl InitCommand {
@@ -43,13 +43,11 @@ impl InitCommand {
         let only = matches
             .args
             .get("only")
-            .map(|only| Steps::from(only.vals.as_slice()))
-            .unwrap_or_default();
+            .map(|only| Steps::from(only.vals.as_slice()));
         let skip = matches
             .args
             .get("skip")
-            .map(|skip| Steps::from(skip.vals.as_slice()))
-            .unwrap_or_default();
+            .map(|skip| Steps::from(skip.vals.as_slice()));
         Self { force, only, skip }
     }
 
