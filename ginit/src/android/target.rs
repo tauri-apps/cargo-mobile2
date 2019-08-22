@@ -12,6 +12,10 @@ use std::{collections::BTreeMap, fs, io, path::PathBuf, process::Command};
 
 const API_VERSION: u32 = 24;
 
+fn so_name(config: &Config) -> String {
+    format!("lib{}.so", config.app_name())
+}
+
 fn gradlew(config: &Config) -> Command {
     let gradlew_path = config.android().project_path().join("gradlew");
     let mut command = Command::new(&gradlew_path);
@@ -197,7 +201,7 @@ impl<'a> Target<'a> {
     fn symlink_lib(&self, config: &Config, profile: Profile) {
         self.make_jnilibs_subdir(config)
             .expect("Failed to create jniLibs subdir");
-        let so_name = format!("lib{}.so", config.app_name());
+        let so_name = so_name(config);
         let src = config.prefix_path(format!(
             "target/{}/{}/{}",
             &self.triple,
@@ -220,6 +224,22 @@ impl<'a> Target<'a> {
         self.symlink_lib(config, profile);
     }
 
+    fn clean_jnilibs(config: &Config) {
+        for target in Self::all().values() {
+            let link = target.get_jnilibs_subdir(config).join(so_name(config));
+            if let Ok(path) = fs::read_link(&link) {
+                if !path.exists() {
+                    log::info!(
+                        "deleting broken symlink {:?} (points to {:?}, which doesn't exist)",
+                        link,
+                        path
+                    );
+                    fs::remove_file(link).expect("Failed to delete broken symlink");
+                }
+            }
+        }
+    }
+
     fn build_and_install(
         &self,
         config: &Config,
@@ -227,6 +247,7 @@ impl<'a> Target<'a> {
         verbose: bool,
         profile: Profile,
     ) {
+        Self::clean_jnilibs(config);
         self.build(config, ndk_env, verbose, profile);
         gradlew(config)
             .arg("installDebug")
