@@ -43,25 +43,37 @@ pub trait TargetTrait<'a>: Sized {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OrElse {
+    GiveUp,
+    TryAll,
+}
+
+impl Default for OrElse {
+    fn default() -> Self {
+        OrElse::GiveUp
+    }
+}
+
 #[derive(Default)]
 pub struct FallbackBehavior<'a, T: TargetTrait<'a>> {
     // we use `dyn` so the type doesn't need to be known when this is `None`
     pub get_target: Option<&'a dyn Fn() -> Option<&'a T>>,
-    pub all_targets: bool,
+    pub or_else: OrElse,
 }
 
 impl<'a, T: TargetTrait<'a>> FallbackBehavior<'a, T> {
-    pub fn get_target(f: &'a dyn Fn() -> Option<&'a T>, then_try_all: bool) -> Self {
+    pub fn get_target(f: &'a dyn Fn() -> Option<&'a T>, or_else: OrElse) -> Self {
         FallbackBehavior {
-            all_targets: then_try_all,
             get_target: Some(f),
+            or_else,
         }
     }
 
     pub fn all_targets() -> Self {
         FallbackBehavior {
-            all_targets: true,
             get_target: None,
+            or_else: OrElse::TryAll,
         }
     }
 }
@@ -91,7 +103,10 @@ where
             .get_target
             .and_then(|get_target| get_target())
             .map(|target| vec![target])
-            .or_else(|| Some(T::all().values().collect()))
+            .or_else(|| match fallback.or_else {
+                OrElse::GiveUp => None,
+                OrElse::TryAll => Some(T::all().values().collect()),
+            })
     }
 }
 

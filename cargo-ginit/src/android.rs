@@ -4,7 +4,7 @@ use ginit::{
     android::{ndk, target::Target},
     config::Config,
     opts::NoiseLevel,
-    target::{call_for_targets, FallbackBehavior, Profile},
+    target::{call_for_targets, FallbackBehavior, OrElse, Profile},
 };
 
 pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
@@ -90,12 +90,12 @@ impl AndroidCommand {
         match self {
             AndroidCommand::Check { targets } => call_for_targets(
                 Some(targets.iter()),
-                FallbackBehavior::get_target(&try_detect_target, true),
+                FallbackBehavior::get_target(&try_detect_target, OrElse::GiveUp),
                 |target: &Target| target.check(config, &ndk_env, noise_level),
             ),
             AndroidCommand::Build { targets, profile } => call_for_targets(
                 Some(targets.iter()),
-                FallbackBehavior::get_target(&try_detect_target, true),
+                FallbackBehavior::get_target(&try_detect_target, OrElse::GiveUp),
                 |target: &Target| target.build(config, &ndk_env, noise_level, profile),
             ),
             AndroidCommand::Run { profile } => {
