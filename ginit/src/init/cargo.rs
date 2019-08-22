@@ -13,6 +13,12 @@ pub struct CargoTarget {
     pub rustflags: Vec<String>,
 }
 
+impl CargoTarget {
+    fn is_empty(&self) -> bool {
+        self.ar.is_none() && self.linker.is_none() && self.rustflags.is_empty()
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CargoConfig {
     target: BTreeMap<String, CargoTarget>,
@@ -50,7 +56,12 @@ impl CargoConfig {
                 ],
             },
         );
-        CargoConfig { target }
+        CargoConfig {
+            target: target
+                .into_iter()
+                .filter(|(_, target)| !target.is_empty())
+                .collect(),
+        }
     }
 
     pub fn write(&self, config: &Config) {
