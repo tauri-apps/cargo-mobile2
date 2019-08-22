@@ -1,6 +1,6 @@
 #!groovy
 
-projectName = 'cargo-ginit'
+projectName = 'ginit'
 branchName = env.BRANCH_NAME
 resourceName = "${projectName}_${branchName}_build"
 
