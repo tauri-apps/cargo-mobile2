@@ -25,7 +25,15 @@ impl Profile {
 }
 
 pub trait TargetTrait<'a>: Sized {
+    const DEFAULT_KEY: &'static str;
+
     fn all() -> &'a BTreeMap<&'a str, Self>;
+
+    fn default_ref() -> &'a Self {
+        Self::all()
+            .get(Self::DEFAULT_KEY)
+            .expect("No target matched `DEFAULT_KEY`")
+    }
 
     fn for_name(name: &str) -> Option<&'a Self> {
         Self::all().get(name)
@@ -43,44 +51,10 @@ pub trait TargetTrait<'a>: Sized {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum OrElse {
-    GiveUp,
-    TryAll,
-}
-
-impl Default for OrElse {
-    fn default() -> Self {
-        OrElse::GiveUp
-    }
-}
-
-#[derive(Default)]
-pub struct FallbackBehavior<'a, T: TargetTrait<'a>> {
-    // we use `dyn` so the type doesn't need to be known when this is `None`
-    pub get_target: Option<&'a dyn Fn() -> Option<&'a T>>,
-    pub or_else: OrElse,
-}
-
-impl<'a, T: TargetTrait<'a>> FallbackBehavior<'a, T> {
-    pub fn get_target(f: &'a dyn Fn() -> Option<&'a T>, or_else: OrElse) -> Self {
-        FallbackBehavior {
-            get_target: Some(f),
-            or_else,
-        }
-    }
-
-    pub fn all_targets() -> Self {
-        FallbackBehavior {
-            get_target: None,
-            or_else: OrElse::TryAll,
-        }
-    }
-}
-
 pub fn get_targets<'a, Iter, I, T>(
     targets: Option<Iter>,
-    fallback: FallbackBehavior<'a, T>,
+    // we use `dyn` so the type doesn't need to be known when this is `None`
+    fallback: Option<&'a dyn Fn() -> Option<&'a T>>,
 ) -> Option<Vec<&'a T>>
 where
     Iter: ExactSizeIterator<Item = &'a I>,
@@ -100,19 +74,18 @@ where
         )
     } else {
         fallback
-            .get_target
             .and_then(|get_target| get_target())
-            .map(|target| vec![target])
-            .or_else(|| match fallback.or_else {
-                OrElse::GiveUp => None,
-                OrElse::TryAll => Some(T::all().values().collect()),
+            .or_else(|| {
+                log::info!("falling back on default target ({})", T::DEFAULT_KEY);
+                Some(T::default_ref())
             })
+            .map(|target| vec![target])
     }
 }
 
 pub fn call_for_targets<'a, Iter, I, T, F>(
     targets: Option<Iter>,
-    fallback: FallbackBehavior<'a, T>,
+    fallback: Option<&'a dyn Fn() -> Option<&'a T>>,
     f: F,
 ) where
     Iter: ExactSizeIterator<Item = &'a I>,

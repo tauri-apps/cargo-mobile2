@@ -15,6 +15,8 @@ pub struct Target<'a> {
 }
 
 impl<'a> TargetTrait<'a> for Target<'a> {
+    const DEFAULT_KEY: &'static str = "aarch64";
+
     fn all() -> &'a BTreeMap<&'a str, Self> {
         lazy_static::lazy_static! {
             pub static ref TARGETS: BTreeMap<&'static str, Target<'static>> = {

@@ -4,7 +4,7 @@ use ginit::{
     config::Config,
     ios::target::Target,
     opts::NoiseLevel,
-    target::{call_for_targets, FallbackBehavior, Profile, TargetTrait as _},
+    target::{call_for_targets, Profile, TargetTrait as _},
 };
 
 pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
@@ -81,11 +81,11 @@ impl IOSCommand {
 
     pub fn exec(self, config: &Config, noise_level: NoiseLevel) {
         match self {
-            IOSCommand::Check { targets } => call_for_targets(
-                Some(targets.iter()),
-                FallbackBehavior::all_targets(),
-                |target: &Target| target.check(config, noise_level),
-            ),
+            IOSCommand::Check { targets } => {
+                call_for_targets(Some(targets.iter()), None, |target: &Target| {
+                    target.check(config, noise_level)
+                })
+            }
             IOSCommand::Build { profile } => Target::build(config, profile),
             IOSCommand::Run { profile } => Target::run(config, profile),
             IOSCommand::CompileLib {
