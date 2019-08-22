@@ -4,7 +4,7 @@ pub mod rust;
 pub mod steps;
 
 use self::{cargo::CargoConfig, steps::Steps};
-use crate::{android, config::Config, ios, target::TargetTrait as _, util};
+use crate::{android, config::Config, ios, opts::Clobbering, target::TargetTrait as _, util};
 use into_result::IntoResult as _;
 use std::{path::Path, process::Command};
 
@@ -12,7 +12,7 @@ use std::{path::Path, process::Command};
 pub fn init(
     config: &Config,
     bike: &bicycle::Bicycle,
-    force: bool,
+    clobbering: Clobbering,
     only: Option<impl Into<Steps>>,
     skip: Option<impl Into<Steps>>,
 ) {
@@ -26,7 +26,7 @@ pub fn init(
         CargoConfig::generate().write(&config);
     }
     if steps.hello_world {
-        rust::hello_world(config, bike, force).unwrap();
+        rust::hello_world(config, bike, clobbering).unwrap();
     }
     if steps.android {
         if steps.toolchains {
@@ -38,7 +38,7 @@ pub fn init(
     }
     if steps.ios {
         if steps.deps {
-            install_ios_deps(force);
+            install_ios_deps(clobbering);
         }
         if steps.toolchains {
             for target in ios::target::Target::all().values() {
@@ -50,9 +50,9 @@ pub fn init(
 }
 
 // TODO: We should probably also try to install `rust-xcode-plugin`
-pub fn install_ios_deps(force: bool) {
+pub fn install_ios_deps(clobbering: Clobbering) {
     let xcodegen_found = util::command_present("xcodegen").expect("Failed to check for `xcodegen`");
-    if !xcodegen_found || force {
+    if !xcodegen_found || clobbering.is_allowed() {
         Command::new("brew")
             // reinstall works even if it's not installed yet,
             // and will upgrade if it's already installed!
@@ -67,7 +67,7 @@ pub fn install_ios_deps(force: bool) {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let dest = root.join("ios-deploy");
     let ios_deploy_found = dest.join("build/Release/ios-deploy").exists();
-    if !ios_deploy_found || force {
+    if !ios_deploy_found || clobbering.is_allowed() {
         if dest.exists() {
             util::git(&dest, &["pull", "--rebase", "origin", "master"])
                 .expect("Failed to pull `ios-deploy` repo");

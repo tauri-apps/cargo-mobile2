@@ -7,6 +7,7 @@ use ginit::{
         init,
         steps::{Steps, STEPS},
     },
+    opts::Clobbering,
     templating::init_templating,
 };
 
@@ -32,14 +33,18 @@ pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
 
 #[derive(Debug)]
 pub struct InitCommand {
-    force: bool,
+    clobbering: Clobbering,
     only: Option<Steps>,
     skip: Option<Steps>,
 }
 
 impl InitCommand {
     pub fn parse<'a>(matches: ArgMatches<'a>) -> Self {
-        let force = matches.is_present("force");
+        let clobbering = if matches.is_present("force") {
+            Clobbering::Allow
+        } else {
+            Clobbering::Forbid
+        };
         let only = matches
             .args
             .get("only")
@@ -48,7 +53,11 @@ impl InitCommand {
             .args
             .get("skip")
             .map(|skip| Steps::from(skip.vals.as_slice()));
-        Self { force, only, skip }
+        Self {
+            clobbering,
+            only,
+            skip,
+        }
     }
 
     pub fn exec(self, config: Option<&Config>) {
@@ -65,6 +74,6 @@ impl InitCommand {
         };
         let config = config.unwrap_or_else(|| new_config.as_ref().unwrap());
         let new_bike = init_templating(Some(&config));
-        init(&config, &new_bike, self.force, self.only, self.skip);
+        init(&config, &new_bike, self.clobbering, self.only, self.skip);
     }
 }

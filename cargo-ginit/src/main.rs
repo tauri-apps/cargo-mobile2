@@ -7,7 +7,7 @@ use self::{android::AndroidCommand, init::InitCommand, ios::IOSCommand};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
     android::target::Target as AndroidTarget, config::Config, ios::target::Target as IOSTarget,
-    noise_level::NoiseLevel, target::TargetTrait as _, NAME,
+    opts::NoiseLevel, target::TargetTrait as _, NAME,
 };
 
 fn cli_app<'a, 'b>(android_targets: &'a [&'a str], ios_targets: &'a [&'a str]) -> App<'a, 'b> {

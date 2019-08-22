@@ -1,4 +1,4 @@
-use crate::{config::Config, templating::template_pack, util};
+use crate::{config::Config, opts::Clobbering, templating::template_pack, util};
 use into_result::command::CommandError;
 use regex::Regex;
 use std::{ffi::OsStr, io, path::Path};
@@ -64,7 +64,7 @@ pub fn submodule_init(
 pub fn hello_world(
     config: &Config,
     bike: &bicycle::Bicycle,
-    force: bool,
+    clobbering: Clobbering,
 ) -> Result<(), ProjectCreationError> {
     let dest = config.project_root();
     git_init(&dest)?;
@@ -96,7 +96,7 @@ pub fn hello_world(
     // Prevent clobbering
     let actions = actions
         .iter()
-        .filter(|action| force || !action.dest().exists());
+        .filter(|action| clobbering.is_allowed() || !action.dest().exists());
     bike.process_actions(actions, insert_data)?;
 
     Ok(())

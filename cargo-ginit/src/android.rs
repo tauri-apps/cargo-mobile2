@@ -3,7 +3,7 @@ use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
     android::{ndk, target::Target},
     config::Config,
-    noise_level::NoiseLevel,
+    opts::NoiseLevel,
     target::{call_for_targets, FallbackBehavior, Profile},
 };
 

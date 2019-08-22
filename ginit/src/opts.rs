@@ -16,3 +16,21 @@ impl NoiseLevel {
         self > NoiseLevel::Polite
     }
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Clobbering {
+    Forbid,
+    Allow,
+}
+
+impl Default for Clobbering {
+    fn default() -> Self {
+        Clobbering::Forbid
+    }
+}
+
+impl Clobbering {
+    pub fn is_allowed(self) -> bool {
+        self == Clobbering::Allow
+    }
+}

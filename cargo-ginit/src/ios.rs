@@ -3,7 +3,7 @@ use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
     config::Config,
     ios::target::Target,
-    noise_level::NoiseLevel,
+    opts::NoiseLevel,
     target::{call_for_targets, FallbackBehavior, Profile, TargetTrait as _},
 };
 

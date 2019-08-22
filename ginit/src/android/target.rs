@@ -4,7 +4,7 @@ use super::ndk;
 use crate::{
     config::Config,
     init::cargo::CargoTarget,
-    noise_level::NoiseLevel,
+    opts::NoiseLevel,
     target::{Profile, TargetTrait},
     util::{self, force_symlink},
 };
