@@ -14,10 +14,6 @@ pub fn parse_targets(matches: &ArgMatches<'_>) -> Vec<String> {
         .unwrap_or_default()
 }
 
-pub fn parse_release(matches: &ArgMatches<'_>) -> bool {
-    matches.is_present("release")
-}
-
 pub fn parse_profile(matches: &ArgMatches<'_>) -> Profile {
     if matches.is_present("release") {
         Profile::Release

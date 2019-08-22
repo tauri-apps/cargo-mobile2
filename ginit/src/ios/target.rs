@@ -1,4 +1,9 @@
-use crate::{config::Config, init::cargo::CargoTarget, target::TargetTrait, util};
+use crate::{
+    config::Config,
+    init::cargo::CargoTarget,
+    target::{Profile, TargetTrait},
+    util,
+};
 use into_result::IntoResult as _;
 use std::{collections::BTreeMap, path::Path, process::Command};
 
@@ -66,28 +71,20 @@ impl<'a> Target<'a> {
             .expect("Failed to run `cargo check`");
     }
 
-    pub fn compile_lib(&self, config: &Config, verbose: bool, release: bool) {
+    pub fn compile_lib(&self, config: &Config, verbose: bool, profile: Profile) {
         // NOTE: it's up to Xcode to pass the verbose flag here, so even when
         // using our build/run commands it won't get passed.
         self.cargo(config, "build")
             .with_verbose(verbose)
-            .with_release(release)
+            .with_release(profile.is_release())
             .into_command()
             .status()
             .into_result()
             .expect("Failed to run `cargo build`");
     }
 
-    fn configuration(release: bool) -> &'static str {
-        if release {
-            "release"
-        } else {
-            "debug"
-        }
-    }
-
-    pub fn build(config: &Config, release: bool) {
-        let configuration = Self::configuration(release);
+    pub fn build(config: &Config, profile: Profile) {
+        let configuration = profile.as_str();
         Command::new("xcodebuild")
             .args(&["-scheme", &config.ios().scheme()])
             .arg("-workspace")
@@ -99,8 +96,8 @@ impl<'a> Target<'a> {
             .expect("Failed to run `xcodebuild`");
     }
 
-    fn archive(config: &Config, release: bool) {
-        let configuration = Self::configuration(release);
+    fn archive(config: &Config, profile: Profile) {
+        let configuration = profile.as_str();
         let archive_path = config.ios().export_path().join(&config.ios().scheme());
         Command::new("xcodebuild")
             .args(&["-scheme", &config.ios().scheme()])
@@ -144,10 +141,10 @@ impl<'a> Target<'a> {
         Command::new(path)
     }
 
-    pub fn run(config: &Config, release: bool) {
+    pub fn run(config: &Config, profile: Profile) {
         // TODO: These steps are run unconditionally, which is slooooooow
-        Self::build(config, release);
-        Self::archive(config, release);
+        Self::build(config, profile);
+        Self::archive(config, profile);
         Command::new("unzip")
             .arg("-o") // -o = always overwrite
             .arg(&config.ios().ipa_path())

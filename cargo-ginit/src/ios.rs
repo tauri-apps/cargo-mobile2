@@ -1,9 +1,9 @@
-use crate::util::{parse_release, parse_targets, take_a_list};
+use crate::util::{parse_profile, parse_targets, take_a_list};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
     config::Config,
     ios::target::Target,
-    target::{call_for_targets, FallbackBehavior, TargetTrait as _},
+    target::{call_for_targets, FallbackBehavior, Profile, TargetTrait as _},
 };
 
 pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
@@ -44,15 +44,15 @@ pub enum IOSCommand {
         targets: Vec<String>,
     },
     Build {
-        release: bool,
+        profile: Profile,
     },
     Run {
-        release: bool,
+        profile: Profile,
     },
     CompileLib {
         macos: bool,
         arch: String,
-        release: bool,
+        profile: Profile,
     },
 }
 
@@ -64,15 +64,15 @@ impl IOSCommand {
                 targets: parse_targets(&subcommand.matches),
             },
             "build" => IOSCommand::Build {
-                release: parse_release(&subcommand.matches),
+                profile: parse_profile(&subcommand.matches),
             },
             "run" => IOSCommand::Run {
-                release: parse_release(&subcommand.matches),
+                profile: parse_profile(&subcommand.matches),
             },
             "compile-lib" => IOSCommand::CompileLib {
                 macos: subcommand.matches.is_present("macos"),
                 arch: subcommand.matches.value_of("ARCH").unwrap().into(), // unwrap is fine, since clap makes sure we have this
-                release: parse_release(&subcommand.matches),
+                profile: parse_profile(&subcommand.matches),
             },
             _ => unreachable!(), // clap will reject anything else
         }
@@ -85,17 +85,17 @@ impl IOSCommand {
                 FallbackBehavior::all_targets(),
                 |target: &Target| target.check(config, verbose),
             ),
-            IOSCommand::Build { release } => Target::build(config, release),
-            IOSCommand::Run { release } => Target::run(config, release),
+            IOSCommand::Build { profile } => Target::build(config, profile),
+            IOSCommand::Run { profile } => Target::run(config, profile),
             IOSCommand::CompileLib {
                 macos,
                 arch,
-                release,
+                profile,
             } => match macos {
-                true => Target::macos().compile_lib(config, verbose, release),
+                true => Target::macos().compile_lib(config, verbose, profile),
                 false => Target::for_arch(&arch)
                     .expect("Invalid architecture")
-                    .compile_lib(config, verbose, release),
+                    .compile_lib(config, verbose, profile),
             },
         }
     }
