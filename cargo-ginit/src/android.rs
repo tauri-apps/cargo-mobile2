@@ -25,16 +25,14 @@ pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
         )
         .subcommand(
             SubCommand::with_name("run")
-                .about("Deploys APK for target(s)")
+                .about("Deploys APK for target")
                 .display_order(2)
-                .arg(take_a_list(Arg::with_name("TARGETS"), targets))
                 .arg_from_usage("--release 'Build with release optimizations'"),
         )
         .subcommand(
             SubCommand::with_name("st")
                 .display_order(3)
-                .about("Displays a detailed stacktrace for a target")
-                .arg(Arg::with_name("TARGET").possible_values(targets)),
+                .about("Displays a detailed stacktrace for a target"),
         )
 }
 
@@ -48,12 +46,9 @@ pub enum AndroidCommand {
         profile: Profile,
     },
     Run {
-        targets: Vec<String>,
         profile: Profile,
     },
-    Stacktrace {
-        target: Option<String>,
-    },
+    Stacktrace,
 }
 
 impl AndroidCommand {
@@ -68,18 +63,15 @@ impl AndroidCommand {
                 profile: parse_profile(&subcommand.matches),
             },
             "run" => AndroidCommand::Run {
-                targets: parse_targets(&subcommand.matches),
                 profile: parse_profile(&subcommand.matches),
             },
-            "st" => AndroidCommand::Stacktrace {
-                target: subcommand.matches.value_of("TARGET").map(Into::into),
-            },
+            "st" => AndroidCommand::Stacktrace,
             _ => unreachable!(), // clap will reject anything else
         }
     }
 
     pub fn exec(self, config: &Config, verbose: bool) {
-        fn detect_target<'a>() -> Option<&'a Target<'a>> {
+        fn try_detect_target<'a>() -> Option<&'a Target<'a>> {
             let target = Target::for_connected()
                 .ok()
                 .and_then(std::convert::identity);
@@ -89,28 +81,26 @@ impl AndroidCommand {
             target
         }
 
+        fn detect_target<'a>() -> &'a Target<'a> {
+            try_detect_target().expect("Failed to detect target for connected device")
+        }
+
         let ndk_env = ndk::Env::new().expect("Failed to init NDK env");
         match self {
             AndroidCommand::Check { targets } => call_for_targets(
                 Some(targets.iter()),
-                FallbackBehavior::get_target(&detect_target, true),
+                FallbackBehavior::get_target(&try_detect_target, true),
                 |target: &Target| target.check(config, &ndk_env, verbose),
             ),
             AndroidCommand::Build { targets, profile } => call_for_targets(
                 Some(targets.iter()),
-                FallbackBehavior::get_target(&detect_target, true),
+                FallbackBehavior::get_target(&try_detect_target, true),
                 |target: &Target| target.build(config, &ndk_env, verbose, profile),
             ),
-            AndroidCommand::Run { targets, profile } => call_for_targets(
-                Some(targets.iter()),
-                FallbackBehavior::get_target(&detect_target, true),
-                |target: &Target| target.run(config, &ndk_env, verbose, profile),
-            ),
-            AndroidCommand::Stacktrace { target } => call_for_targets(
-                target.as_ref().map(std::iter::once),
-                FallbackBehavior::get_target(&detect_target, false),
-                |target: &Target| target.stacktrace(config, &ndk_env),
-            ),
+            AndroidCommand::Run { profile } => {
+                detect_target().run(config, &ndk_env, verbose, profile)
+            }
+            AndroidCommand::Stacktrace => detect_target().stacktrace(config, &ndk_env),
         }
     }
 }
