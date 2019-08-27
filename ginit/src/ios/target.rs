@@ -1,6 +1,7 @@
 use crate::{
     config::Config,
     init::cargo::CargoTarget,
+    ios::system_profile::DeveloperTools,
     opts::NoiseLevel,
     target::{Profile, TargetTrait},
     util,
@@ -12,6 +13,7 @@ use std::{collections::BTreeMap, path::Path, process::Command};
 pub struct Target<'a> {
     pub triple: &'a str,
     pub arch: &'a str,
+    min_xcode_version: Option<((u32, u32), &'static str)>,
 }
 
 impl<'a> TargetTrait<'a> for Target<'a> {
@@ -24,10 +26,14 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                 targets.insert("aarch64", Target {
                     triple: "aarch64-apple-ios",
                     arch: "arm64",
+                    min_xcode_version: None,
                 });
                 targets.insert("x86_64", Target {
                     triple: "x86_64-apple-ios",
                     arch: "x86_64",
+                    // Simulator only supports Metal as of Xcode 11.0:
+                    // https://developer.apple.com/documentation/metal/developing_metal_apps_that_run_in_simulator?language=objc
+                    min_xcode_version: Some(((11, 0), "iOS Simulator doesn't support Metal until")),
                 });
                 targets
             };
@@ -50,6 +56,7 @@ impl<'a> Target<'a> {
         Self {
             triple: "x86_64-apple-darwin",
             arch: "x86_64",
+            min_xcode_version: None,
         }
     }
 
@@ -57,7 +64,28 @@ impl<'a> Target<'a> {
         Default::default()
     }
 
+    fn min_xcode_version_satisfied(&self) -> Result<(), String> {
+        self.min_xcode_version
+            .map(|(min_version, msg)| {
+                let tool_info = DeveloperTools::new().expect("Failed to get developer tool info");
+                let installed_version = tool_info.version;
+                if installed_version >= min_version {
+                    Ok(())
+                } else {
+                    Err(format!(
+                        "{} Xcode {}.{}; you have Xcode {}.{}",
+                        msg, min_version.0, min_version.1, installed_version.0, installed_version.1
+                    ))
+                }
+            })
+            .unwrap_or_else(|| Ok(()))
+    }
+
     fn cargo(&'a self, config: &'a Config, subcommand: &'a str) -> util::CargoCommand<'a> {
+        if let Err(msg) = self.min_xcode_version_satisfied() {
+            // panicking here is silly...
+            panic!("{}", msg);
+        }
         util::CargoCommand::new(subcommand)
             .with_package(Some(config.app_name()))
             .with_manifest_path(config.manifest_path())
@@ -77,6 +105,7 @@ impl<'a> Target<'a> {
     pub fn compile_lib(&self, config: &Config, noise_level: NoiseLevel, profile: Profile) {
         // NOTE: it's up to Xcode to pass the verbose flag here, so even when
         // using our build/run commands it won't get passed.
+        // TODO: I don't undestand this comment
         self.cargo(config, "build")
             .with_verbose(noise_level.is_verbose())
             .with_release(profile.is_release())
