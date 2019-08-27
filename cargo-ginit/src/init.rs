@@ -3,7 +3,7 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use ginit::{
     config::Config,
     init::{
-        config::interactive_config_gen,
+        config_gen::interactive_config_gen,
         init,
         steps::{Steps, STEPS},
     },

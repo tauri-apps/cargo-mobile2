@@ -1,5 +1,5 @@
 [workspace]
 members = [
-    "ginit",
     "cargo-ginit",
+    "ginit",
 ]

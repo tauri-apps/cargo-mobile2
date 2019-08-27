@@ -1,5 +1,5 @@
 pub mod cargo;
-pub mod config;
+pub mod config_gen;
 pub mod rust;
 pub mod steps;
 

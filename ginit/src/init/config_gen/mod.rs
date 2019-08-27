@@ -1,3 +1,6 @@
+mod domain_blacklist;
+
+use self::domain_blacklist::DOMAIN_BLACKLIST;
 use crate::{ios, templating::template_pack};
 use colored::*;
 use inflector::Inflector;
@@ -40,7 +43,7 @@ enum DefaultDomainError {
     FailedToParseEmailAddr,
 }
 
-fn default_domain() -> Result<String, DefaultDomainError> {
+fn default_domain() -> Result<Option<String>, DefaultDomainError> {
     let bytes = Command::new("git")
         .args(&["config", "user.email"])
         .output()
@@ -53,7 +56,11 @@ fn default_domain() -> Result<String, DefaultDomainError> {
         .split('@')
         .last()
         .ok_or(DefaultDomainError::FailedToParseEmailAddr)?;
-    Ok(domain.to_owned())
+    Ok(if DOMAIN_BLACKLIST.contains(&domain) {
+        None
+    } else {
+        Some(domain.to_owned())
+    })
 }
 
 pub fn interactive_config_gen(bike: &bicycle::Bicycle) {
@@ -69,11 +76,11 @@ pub fn interactive_config_gen(bike: &bicycle::Bicycle) {
     }
     .expect("Failed to prompt for stylized app name");
     let domain = {
-        let default_domain = default_domain();
+        let default_domain = default_domain().ok().and_then(std::convert::identity);
         let default_domain = default_domain
             .as_ref()
             .map(|domain| domain.as_str())
-            .unwrap_or_else(|_| "example.com");
+            .unwrap_or_else(|| "example.com");
         prompt("Domain", Some(default_domain), None)
     }
     .expect("Failed to prompt for domain");
