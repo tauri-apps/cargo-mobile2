@@ -33,6 +33,9 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                     arch: "x86_64",
                     // Simulator only supports Metal as of Xcode 11.0:
                     // https://developer.apple.com/documentation/metal/developing_metal_apps_that_run_in_simulator?language=objc
+                    // While this doesn't matter if you aren't using Metal,
+                    // it should be fine to be opinionated about this given
+                    // OpenGL's deprecation.
                     min_xcode_version: Some(((11, 0), "iOS Simulator doesn't support Metal until")),
                 });
                 targets

@@ -21,6 +21,9 @@ impl DeveloperTools {
         lazy_static::lazy_static! {
             static ref VERSION_RE: Regex = Regex::new(r#"\bVersion: (\d+)\.(\d+)\b"#).unwrap();
         }
+        // The `-xml` flag can be used to get this info in plist format, but
+        // there don't seem to be any high quality plist crates, and parsing
+        // XML sucks, we'll be lazy for now.
         let bytes = Command::new("system_profiler")
             .arg("SPDeveloperToolsDataType")
             .output()

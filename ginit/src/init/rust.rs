@@ -25,7 +25,7 @@ pub fn submodule_exists(root: &Path, name: &str) -> io::Result<bool> {
     lazy_static::lazy_static! {
         static ref SUBMODULE_NAME_RE: Regex = Regex::new(r#"\[submodule "(.*)"\]"#).unwrap();
     }
-    let path = root.join(".gitmodules");
+    let path = root.join(".git/config");
     if !path.exists() {
         Ok(false)
     } else {
