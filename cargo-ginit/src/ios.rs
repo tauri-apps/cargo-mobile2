@@ -21,6 +21,7 @@ pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
             SubCommand::with_name("build")
                 .about("Builds static library")
                 .display_order(1)
+                .arg(take_a_list(Arg::with_name("TARGETS"), targets))
                 .arg_from_usage("--release 'Build with release optimizations'"),
         )
         .subcommand(
@@ -45,6 +46,7 @@ pub enum IOSCommand {
         targets: Vec<String>,
     },
     Build {
+        targets: Vec<String>,
         profile: Profile,
     },
     Run {
@@ -65,6 +67,7 @@ impl IOSCommand {
                 targets: parse_targets(&subcommand.matches),
             },
             "build" => IOSCommand::Build {
+                targets: parse_targets(&subcommand.matches),
                 profile: parse_profile(&subcommand.matches),
             },
             "run" => IOSCommand::Run {
@@ -86,8 +89,15 @@ impl IOSCommand {
                     target.check(config, noise_level)
                 })
             }
-            IOSCommand::Build { profile } => Target::build(config, profile),
-            IOSCommand::Run { profile } => Target::run(config, profile),
+            IOSCommand::Build { targets, profile } => {
+                call_for_targets(Some(targets.iter()), None, |target: &Target| {
+                    target.build(config, profile)
+                })
+            }
+            IOSCommand::Run { profile } => {
+                // TODO: this isn't simulator-friendly, among other things
+                Target::default_ref().run(config, profile)
+            }
             IOSCommand::CompileLib {
                 macos,
                 arch,

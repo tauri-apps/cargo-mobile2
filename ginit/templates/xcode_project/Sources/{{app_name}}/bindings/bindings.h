@@ -2,7 +2,7 @@
 
 namespace ffi {
     extern "C" {
-        void start_game();
+        void start_app();
     }
 }
 

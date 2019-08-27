@@ -9,11 +9,13 @@ if [ "$#" -lt 4 ]; then
     exit 1
 fi
 
+# To prevent horrible arcane linker errors, none of Xcode's env vars are passed
+# to this script. Instead, we pass things explicitly as args.
 SDKROOT="${1:?}"
 CONFIGURATION="${2:?}"
 PLATFORM_DISPLAY_NAME="${3:?}"
 shift 3
-ARCHES="${@:?}"
+ARCHS="${@:?}"
 
 if [ ! -d "$SDKROOT" ]; then
     echo '`$SDKROOT`'" doesn't exist: $SDKROOT"
@@ -29,8 +31,8 @@ export CFLAGS_$MAC_ARCH="${MAC_FLAGS:?}"
 export CXXFLAGS_$MAC_ARCH="${MAC_FLAGS:?}"
 export OBJC_INCLUDE_PATH_$MAC_ARCH="${SDKROOT:?}/usr/include"
 
-# set target specific flags to not muck up build.rs scripts
-for ARCH in ${ARCHES:?}; do
+# set target-specific flags to not muck up build.rs scripts
+for ARCH in ${ARCHS:?}; do
     if [ "${ARCH:?}" = "arm64" ]; then
         PLATFORM_ARCH=aarch64_apple_ios
     fi
@@ -52,7 +54,7 @@ if [ "${PLATFORM_DISPLAY_NAME:?}" = "macOS" ]; then
     MACOS="--macos"
 fi
 
-for ARCH in ${ARCHES:?}; do
+for ARCH in ${ARCHS:?}; do
     COMMAND="cargo {{tool_name}} ios compile-lib $MACOS $ARCH $CONFIG"
     echo $COMMAND
     eval $COMMAND

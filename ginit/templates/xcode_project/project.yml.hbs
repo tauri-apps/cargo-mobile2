@@ -55,7 +55,7 @@ targets:
     settings:
       base:
         ENABLE_BITCODE: false
-        ARCHS: [arm64,x86_64] # rustc doesn't support arm64e yet
+        ARCHS: [arm64, x86_64] # rustc doesn't support arm64e yet
         VALID_ARCHS: arm64 x86_64 # rustc doesn't support arm64e yet
         LIBRARY_SEARCH_PATHS[sdk=iphoneos*]: $(inherited) {{prefix_path "target/aarch64-apple-ios/$(CONFIGURATION)"}}
         LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]: $(inherited) {{prefix_path "target/x86_64-apple-ios/$(CONFIGURATION)"}}
@@ -96,11 +96,11 @@ targets:
     platform: iOS
     settings:
       ENABLE_BITCODE: false
-      ARCHS: [arm64,x86_64] # rustc doesn't support arm64e yet
+      ARCHS: [arm64, x86_64] # rustc doesn't support arm64e yet
       VALID_ARCHS: arm64 x86_64 # rustc doesn't support arm64e yet
     legacy:
       toolPath: $(SRCROOT)/cargo_xcode.sh
-      arguments: ${SDKROOT:?} ${CONFIGURATION:?} ${PLATFORM_DISPLAY_NAME:?} ${ARCHS:?}
+      arguments: ${SDKROOT:?} ${CONFIGURATION:?} ${PLATFORM_DISPLAY_NAME:?} ${ARCHS:?}  
       passSettings: false # prevents evil linker errors
       workingDirectory: $(SRCROOT)/..
   rust_{{app_name}}_macOS:
@@ -108,6 +108,6 @@ targets:
     platform: macOS
     legacy:
       toolPath: $(SRCROOT)/cargo_xcode.sh
-      arguments: ${SDKROOT:?} ${CONFIGURATION:?} ${PLATFORM_DISPLAY_NAME:?} ${ARCHS:?}
+      arguments: ${SDKROOT:?} ${CONFIGURATION:?} ${PLATFORM_DISPLAY_NAME:?} ${ARCHS:?} 
       passSettings: false
       workingDirectory: $(SRCROOT)/..

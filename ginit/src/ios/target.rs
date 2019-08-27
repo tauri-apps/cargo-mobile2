@@ -86,20 +86,21 @@ impl<'a> Target<'a> {
             .expect("Failed to run `cargo build`");
     }
 
-    pub fn build(config: &Config, profile: Profile) {
+    pub fn build(&self, config: &Config, profile: Profile) {
         let configuration = profile.as_str();
         Command::new("xcodebuild")
             .args(&["-scheme", &config.ios().scheme()])
             .arg("-workspace")
             .arg(&config.ios().workspace_path())
             .args(&["-configuration", configuration])
+            .args(&["-arch", self.arch])
             .arg("build")
             .status()
             .into_result()
             .expect("Failed to run `xcodebuild`");
     }
 
-    fn archive(config: &Config, profile: Profile) {
+    fn archive(&self, config: &Config, profile: Profile) {
         let configuration = profile.as_str();
         let archive_path = config.ios().export_path().join(&config.ios().scheme());
         Command::new("xcodebuild")
@@ -108,6 +109,7 @@ impl<'a> Target<'a> {
             .arg(&config.ios().workspace_path())
             .args(&["-sdk", "iphoneos"])
             .args(&["-configuration", configuration])
+            .args(&["-arch", self.arch])
             .arg("archive")
             .arg("-archivePath")
             .arg(&archive_path)
@@ -144,10 +146,10 @@ impl<'a> Target<'a> {
         Command::new(path)
     }
 
-    pub fn run(config: &Config, profile: Profile) {
+    pub fn run(&self, config: &Config, profile: Profile) {
         // TODO: These steps are run unconditionally, which is slooooooow
-        Self::build(config, profile);
-        Self::archive(config, profile);
+        self.build(config, profile);
+        self.archive(config, profile);
         Command::new("unzip")
             .arg("-o") // -o = always overwrite
             .arg(&config.ios().ipa_path())
