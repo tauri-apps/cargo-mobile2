@@ -16,31 +16,30 @@ pub fn init(
     only: Option<impl Into<Steps>>,
     skip: Option<impl Into<Steps>>,
 ) {
-    let steps = match (only.map(Into::into), skip.map(Into::into)) {
-        (None, None) => Steps::all(true),
-        (Some(only), None) => only,
-        (Some(only), Some(skip)) => only.and(skip.not()),
-        (None, Some(skip)) => skip.not(),
+    let steps = {
+        let only = only.map(Into::into).unwrap_or_else(|| Steps::all());
+        let skip = skip.map(Into::into).unwrap_or_else(|| Steps::empty());
+        only & !skip
     };
-    if steps.cargo {
+    if steps.contains(Steps::CARGO) {
         CargoConfig::generate().write(&config);
     }
-    if steps.hello_world {
+    if steps.contains(Steps::HELLO_WORLD) {
         rust::hello_world(config, bike, clobbering).unwrap();
     }
-    if steps.android {
-        if steps.toolchains {
+    if steps.contains(Steps::ANDROID) {
+        if steps.contains(Steps::TOOLCHAINS) {
             for target in android::target::Target::all().values() {
                 target.rustup_add();
             }
         }
         android::project::create(config, bike).unwrap();
     }
-    if steps.ios {
-        if steps.deps {
+    if steps.contains(Steps::IOS) {
+        if steps.contains(Steps::DEPS) {
             install_ios_deps(clobbering);
         }
-        if steps.toolchains {
+        if steps.contains(Steps::TOOLCHAINS) {
             for target in ios::target::Target::all().values() {
                 target.rustup_add();
             }

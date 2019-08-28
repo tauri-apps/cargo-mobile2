@@ -9,14 +9,15 @@ pub static STEPS: &'static [&'static str] = &[
     "ios",
 ];
 
-#[derive(Clone, Copy, Debug, Default)]
-pub struct Steps {
-    pub deps: bool,
-    pub toolchains: bool,
-    pub cargo: bool,
-    pub hello_world: bool,
-    pub android: bool,
-    pub ios: bool,
+bitflags::bitflags! {
+    pub struct Steps: u32 {
+        const DEPS = 0b00000001;
+        const TOOLCHAINS = 0b00000010;
+        const CARGO = 0b00000100;
+        const HELLO_WORLD = 0b00001000;
+        const ANDROID = 0b00010000;
+        const IOS = 0b00100000;
+    }
 }
 
 impl<'a, T> From<&'a [T]> for Steps
@@ -25,56 +26,25 @@ where
     str: PartialEq<T>,
 {
     fn from(steps: &'a [T]) -> Self {
-        Self {
-            deps: steps.friendly_contains("deps"),
-            toolchains: steps.friendly_contains("toolchains"),
-            cargo: steps.friendly_contains("cargo"),
-            hello_world: steps.friendly_contains("hello_world"),
-            android: steps.friendly_contains("android"),
-            ios: steps.friendly_contains("ios"),
+        let mut flags = Self::empty();
+        if steps.friendly_contains("deps") {
+            flags |= Self::DEPS;
         }
-    }
-}
-
-impl Steps {
-    fn map_steps(mut self, f: impl Fn(bool) -> bool) -> Self {
-        for step in &mut [
-            &mut self.deps,
-            &mut self.toolchains,
-            &mut self.cargo,
-            &mut self.hello_world,
-            &mut self.android,
-            &mut self.ios,
-        ] {
-            **step = f(**step);
+        if steps.friendly_contains("toolchains") {
+            flags |= Self::TOOLCHAINS;
         }
-        self
-    }
-
-    fn zip_map_steps(mut self, other: impl Into<Self>, f: impl Fn(bool, bool) -> bool) -> Self {
-        let other = other.into();
-        for (step, other_step) in &mut [
-            (&mut self.deps, other.deps),
-            (&mut self.toolchains, other.toolchains),
-            (&mut self.cargo, other.cargo),
-            (&mut self.hello_world, other.hello_world),
-            (&mut self.android, other.android),
-            (&mut self.ios, other.ios),
-        ] {
-            **step = f(**step, *other_step);
+        if steps.friendly_contains("cargo") {
+            flags |= Self::CARGO;
         }
-        self
-    }
-
-    pub fn all(state: bool) -> Self {
-        Self::default().map_steps(|_| state)
-    }
-
-    pub fn not(self) -> Self {
-        self.map_steps(|state| !state)
-    }
-
-    pub fn and(self, other: impl Into<Self>) -> Self {
-        self.zip_map_steps(other, |a, b| a && b)
+        if steps.friendly_contains("hello_world") {
+            flags |= Self::HELLO_WORLD;
+        }
+        if steps.friendly_contains("android") {
+            flags |= Self::ANDROID;
+        }
+        if steps.friendly_contains("ios") {
+            flags |= Self::IOS;
+        }
+        flags
     }
 }
