@@ -3,12 +3,11 @@ pub mod ndk;
 pub mod project;
 pub mod target;
 
-use std::{ffi::OsStr, path::PathBuf};
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum EnvError {
-    PathNotSet(std::env::VarError),
-    TermNotSet(std::env::VarError),
+    BaseEnvError(crate::env::EnvError),
     // TODO: we should be nice and provide a platform-specific suggestion
     AndroidSdkRootNotSet(std::env::VarError),
     AndroidSdkRootNotADir,
@@ -17,16 +16,14 @@ pub enum EnvError {
 
 #[derive(Debug)]
 pub struct Env {
-    path: String,
-    term: String,
+    base: crate::env::Env,
     sdk_root: PathBuf,
     pub ndk: ndk::Env,
 }
 
 impl Env {
     pub fn new() -> Result<Self, EnvError> {
-        let path = std::env::var("PATH").map_err(EnvError::PathNotSet)?;
-        let term = std::env::var("TERM").map_err(EnvError::TermNotSet)?;
+        let base = crate::env::Env::new().map_err(EnvError::BaseEnvError)?;
         if std::env::var("ANDROID_HOME").is_ok() {
             log::warn!("`ANDROID_HOME` is set, which is deprecated and will be ignored");
         }
@@ -41,19 +38,18 @@ impl Env {
                 }
             })?;
         Ok(Self {
-            path,
-            term,
+            base,
             sdk_root,
             ndk: ndk::Env::new().map_err(EnvError::NdkEnvError)?,
         })
     }
 
-    pub fn command_env(&self) -> [(&'static str, &OsStr); 4] {
-        [
-            ("PATH", self.path.as_ref()),
-            ("TERM", self.term.as_ref()),
+    pub fn command_env(&self) -> Vec<(&'static str, &std::ffi::OsStr)> {
+        let mut envs = self.base.command_env();
+        envs.extend(&[
             ("ANDROID_SDK_ROOT", self.sdk_root.as_ref()),
             ("NDK_HOME", self.ndk.home().as_ref()),
-        ]
+        ]);
+        envs
     }
 }

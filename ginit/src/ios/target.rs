@@ -1,5 +1,6 @@
 use crate::{
     config::Config,
+    env::Env,
     init::cargo::CargoTarget,
     ios::system_profile::DeveloperTools,
     opts::NoiseLevel,
@@ -96,16 +97,24 @@ impl<'a> Target<'a> {
             .with_features(Some("metal"))
     }
 
-    pub fn check(&self, config: &Config, noise_level: NoiseLevel) {
+    pub fn check(&self, config: &Config, env: &Env, noise_level: NoiseLevel) {
         self.cargo(config, "check")
             .with_verbose(noise_level.is_verbose())
             .into_command()
+            .env_clear()
+            .envs(env.command_env())
             .status()
             .into_result()
             .expect("Failed to run `cargo check`");
     }
 
-    pub fn compile_lib(&self, config: &Config, noise_level: NoiseLevel, profile: Profile) {
+    pub fn compile_lib(
+        &self,
+        config: &Config,
+        env: &Env,
+        noise_level: NoiseLevel,
+        profile: Profile,
+    ) {
         // NOTE: it's up to Xcode to pass the verbose flag here, so even when
         // using our build/run commands it won't get passed.
         // TODO: I don't undestand this comment
@@ -113,14 +122,18 @@ impl<'a> Target<'a> {
             .with_verbose(noise_level.is_verbose())
             .with_release(profile.is_release())
             .into_command()
+            .env_clear()
+            .envs(env.command_env())
             .status()
             .into_result()
             .expect("Failed to run `cargo build`");
     }
 
-    pub fn build(&self, config: &Config, profile: Profile) {
+    pub fn build(&self, config: &Config, env: &Env, profile: Profile) {
         let configuration = profile.as_str();
         Command::new("xcodebuild")
+            .env_clear()
+            .envs(env.command_env())
             .args(&["-scheme", &config.ios().scheme()])
             .arg("-workspace")
             .arg(&config.ios().workspace_path())
@@ -132,10 +145,12 @@ impl<'a> Target<'a> {
             .expect("Failed to run `xcodebuild`");
     }
 
-    fn archive(&self, config: &Config, profile: Profile) {
+    fn archive(&self, config: &Config, env: &Env, profile: Profile) {
         let configuration = profile.as_str();
         let archive_path = config.ios().export_path().join(&config.ios().scheme());
         Command::new("xcodebuild")
+            .env_clear()
+            .envs(env.command_env())
             .args(&["-scheme", &config.ios().scheme()])
             .arg("-workspace")
             .arg(&config.ios().workspace_path())
@@ -154,6 +169,8 @@ impl<'a> Target<'a> {
             .export_path()
             .join(&format!("{}.xcarchive", config.ios().scheme()));
         Command::new("xcodebuild")
+            .env_clear()
+            .envs(env.command_env())
             .arg("-exportArchive")
             .arg("-archivePath")
             .arg(&archive_path)
@@ -178,11 +195,13 @@ impl<'a> Target<'a> {
         Command::new(path)
     }
 
-    pub fn run(&self, config: &Config, profile: Profile) {
+    pub fn run(&self, config: &Config, env: &Env, profile: Profile) {
         // TODO: These steps are run unconditionally, which is slooooooow
-        self.build(config, profile);
-        self.archive(config, profile);
+        self.build(config, env, profile);
+        self.archive(config, env, profile);
         Command::new("unzip")
+            .env_clear()
+            .envs(env.command_env())
             .arg("-o") // -o = always overwrite
             .arg(&config.ios().ipa_path())
             .arg("-d")
@@ -195,6 +214,8 @@ impl<'a> Target<'a> {
         // advance, giving us an opportunity to promt. Though, it's much more
         // relaxing to just turn off auto-lock under Display & Brightness.
         Self::ios_deploy()
+            .env_clear()
+            .envs(env.command_env())
             .arg("--debug")
             .arg("--bundle")
             .arg(&config.ios().app_path())

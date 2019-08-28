@@ -15,7 +15,7 @@ const API_VERSION: u32 = 24;
 
 fn android_command(env: &Env, name: impl AsRef<OsStr>) -> Command {
     let mut command = Command::new(name);
-    command.env_clear().envs(env.command_env().iter().cloned());
+    command.env_clear().envs(env.command_env());
     command
 }
 

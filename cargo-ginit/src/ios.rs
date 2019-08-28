@@ -2,6 +2,7 @@ use crate::util::{parse_profile, parse_targets, take_a_list};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
     config::Config,
+    env::Env,
     ios::target::Target,
     opts::NoiseLevel,
     target::{call_for_targets, Profile, TargetTrait as _},
@@ -83,28 +84,29 @@ impl IOSCommand {
     }
 
     pub fn exec(self, config: &Config, noise_level: NoiseLevel) {
+        let env = Env::new().expect("failed to init iOS env");
         match self {
             IOSCommand::Check { targets } => call_for_targets(targets.iter(), |target: &Target| {
-                target.check(config, noise_level)
+                target.check(config, &env, noise_level)
             }),
             IOSCommand::Build { targets, profile } => {
                 call_for_targets(targets.iter(), |target: &Target| {
-                    target.build(config, profile)
+                    target.build(config, &env, profile)
                 })
             }
             IOSCommand::Run { profile } => {
                 // TODO: this isn't simulator-friendly, among other things
-                Target::default_ref().run(config, profile)
+                Target::default_ref().run(config, &env, profile)
             }
             IOSCommand::CompileLib {
                 macos,
                 arch,
                 profile,
             } => match macos {
-                true => Target::macos().compile_lib(config, noise_level, profile),
+                true => Target::macos().compile_lib(config, &env, noise_level, profile),
                 false => Target::for_arch(&arch)
                     .expect("Invalid architecture")
-                    .compile_lib(config, noise_level, profile),
+                    .compile_lib(config, &env, noise_level, profile),
             },
         }
     }
