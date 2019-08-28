@@ -84,13 +84,11 @@ impl IOSCommand {
 
     pub fn exec(self, config: &Config, noise_level: NoiseLevel) {
         match self {
-            IOSCommand::Check { targets } => {
-                call_for_targets(Some(targets.iter()), None, |target: &Target| {
-                    target.check(config, noise_level)
-                })
-            }
+            IOSCommand::Check { targets } => call_for_targets(targets.iter(), |target: &Target| {
+                target.check(config, noise_level)
+            }),
             IOSCommand::Build { targets, profile } => {
-                call_for_targets(Some(targets.iter()), None, |target: &Target| {
+                call_for_targets(targets.iter(), |target: &Target| {
                     target.build(config, profile)
                 })
             }

@@ -83,6 +83,7 @@ pub enum EnvError {
     VersionTooLow { you_have: u32, you_need: u32 },
 }
 
+#[derive(Debug)]
 pub struct Env {
     ndk_home: PathBuf,
 }

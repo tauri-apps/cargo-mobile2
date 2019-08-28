@@ -1,6 +1,6 @@
 // TODO: Bad things happen if multiple Android devices are connected at once
 
-use super::ndk;
+use super::{ndk, Env};
 use crate::{
     config::Config,
     init::cargo::CargoTarget,
@@ -9,17 +9,23 @@ use crate::{
     util::{self, force_symlink},
 };
 use into_result::{command::CommandResult, IntoResult as _};
-use std::{collections::BTreeMap, fs, io, path::PathBuf, process::Command};
+use std::{collections::BTreeMap, ffi::OsStr, fs, io, path::PathBuf, process::Command};
 
 const API_VERSION: u32 = 24;
+
+fn android_command(env: &Env, name: impl AsRef<OsStr>) -> Command {
+    let mut command = Command::new(name);
+    command.env_clear().envs(env.command_env().iter().cloned());
+    command
+}
 
 fn so_name(config: &Config) -> String {
     format!("lib{}.so", config.app_name())
 }
 
-fn gradlew(config: &Config) -> Command {
+fn gradlew(config: &Config, env: &Env) -> Command {
     let gradlew_path = config.android().project_path().join("gradlew");
-    let mut command = Command::new(&gradlew_path);
+    let mut command = android_command(env, &gradlew_path);
     command.arg("--project-dir");
     command.arg(config.android().project_path());
     command
@@ -112,8 +118,8 @@ impl<'a> Target<'a> {
         Self::all().values().find(|target| target.abi == abi)
     }
 
-    pub fn for_connected() -> CommandResult<Option<&'a Self>> {
-        let output = Command::new("adb")
+    pub fn for_connected(env: &Env) -> CommandResult<Option<&'a Self>> {
+        let output = android_command(env, "adb")
             .args(&["shell", "getprop", "ro.product.cpu.abi"])
             .output()
             .into_result()?;
@@ -123,14 +129,16 @@ impl<'a> Target<'a> {
         Ok(Self::for_abi(abi))
     }
 
-    pub fn generate_cargo_config(&self, ndk_env: &ndk::Env) -> CargoTarget {
-        let ar = ndk_env
+    pub fn generate_cargo_config(&self, env: &Env) -> CargoTarget {
+        let ar = env
+            .ndk
             .binutil_path(ndk::Binutil::Ar, self.binutils_triple())
             .expect("couldn't find ar")
             .display()
             .to_string();
         // Using clang as the linker seems to be the only way to get the right library search paths...
-        let linker = ndk_env
+        let linker = env
+            .ndk
             .compiler_path(ndk::Compiler::Clang, self.clang_triple(), API_VERSION)
             .expect("couldn't find clang")
             .display()
@@ -152,7 +160,7 @@ impl<'a> Target<'a> {
     fn compile_lib(
         &self,
         config: &Config,
-        ndk_env: &ndk::Env,
+        env: &Env,
         noise_level: NoiseLevel,
         profile: Profile,
         mode: CargoMode,
@@ -165,22 +173,24 @@ impl<'a> Target<'a> {
             .with_features(Some("vulkan")) // TODO: rust-lib plugin
             .with_release(profile.is_release())
             .into_command()
+            .env_clear()
+            .envs(env.command_env().iter().cloned())
             .env("ANDROID_NATIVE_API_LEVEL", API_VERSION.to_string())
             .env(
                 "TARGET_AR",
-                ndk_env
+                env.ndk
                     .binutil_path(ndk::Binutil::Ar, self.binutils_triple())
                     .expect("couldn't find ar"),
             )
             .env(
                 "TARGET_CC",
-                ndk_env
+                env.ndk
                     .compiler_path(ndk::Compiler::Clang, self.clang_triple(), API_VERSION)
                     .expect("couldn't find clang"),
             )
             .env(
                 "TARGET_CXX",
-                ndk_env
+                env.ndk
                     .compiler_path(ndk::Compiler::Clangxx, self.clang_triple(), API_VERSION)
                     .expect("couldn't find clang++"),
             )
@@ -218,24 +228,12 @@ impl<'a> Target<'a> {
         force_symlink(src, dest).expect("Failed to symlink lib");
     }
 
-    pub fn check(&self, config: &Config, ndk_env: &ndk::Env, noise_level: NoiseLevel) {
-        self.compile_lib(
-            config,
-            ndk_env,
-            noise_level,
-            Profile::Debug,
-            CargoMode::Check,
-        );
+    pub fn check(&self, config: &Config, env: &Env, noise_level: NoiseLevel) {
+        self.compile_lib(config, env, noise_level, Profile::Debug, CargoMode::Check);
     }
 
-    pub fn build(
-        &self,
-        config: &Config,
-        ndk_env: &ndk::Env,
-        noise_level: NoiseLevel,
-        profile: Profile,
-    ) {
-        self.compile_lib(config, ndk_env, noise_level, profile, CargoMode::Build);
+    pub fn build(&self, config: &Config, env: &Env, noise_level: NoiseLevel, profile: Profile) {
+        self.compile_lib(config, env, noise_level, profile, CargoMode::Build);
         self.symlink_lib(config, profile);
     }
 
@@ -258,54 +256,48 @@ impl<'a> Target<'a> {
     fn build_and_install(
         &self,
         config: &Config,
-        ndk_env: &ndk::Env,
+        env: &Env,
         noise_level: NoiseLevel,
         profile: Profile,
     ) {
         Self::clean_jnilibs(config);
-        self.build(config, ndk_env, noise_level, profile);
-        gradlew(config)
+        self.build(config, env, noise_level, profile);
+        gradlew(config, env)
             .arg("installDebug")
             .status()
             .into_result()
             .expect("Failed to build and install APK");
     }
 
-    fn wake_screen(&self) {
-        Command::new("adb")
+    fn wake_screen(&self, env: &Env) {
+        android_command(env, "adb")
             .args(&["shell", "input", "keyevent", "KEYCODE_WAKEUP"])
             .status()
             .into_result()
             .expect("Failed to wake device screen");
     }
 
-    pub fn run(
-        &self,
-        config: &Config,
-        ndk_env: &ndk::Env,
-        noise_level: NoiseLevel,
-        profile: Profile,
-    ) {
-        self.build_and_install(config, ndk_env, noise_level, profile);
+    pub fn run(&self, config: &Config, env: &Env, noise_level: NoiseLevel, profile: Profile) {
+        self.build_and_install(config, env, noise_level, profile);
         let activity = format!(
             "{}.{}/android.app.NativeActivity",
             config.reverse_domain(),
             config.app_name(),
         );
-        Command::new("adb")
+        android_command(env, "adb")
             .args(&["shell", "am", "start", "-n", &activity])
             .status()
             .into_result()
             .expect("Failed to start APK on device");
-        self.wake_screen();
+        self.wake_screen(env);
     }
 
-    pub fn stacktrace(&self, config: &Config, ndk_env: &ndk::Env) {
-        let mut logcat_command = Command::new("adb");
+    pub fn stacktrace(&self, config: &Config, env: &Env) {
+        let mut logcat_command = android_command(env, "adb");
         logcat_command.args(&["logcat", "-d"]); // print and exit
-        let mut stack_command = Command::new("ndk-stack");
+        let mut stack_command = android_command(env, "ndk-stack");
         stack_command
-            .env("PATH", util::add_to_path(ndk_env.home().display()))
+            .env("PATH", util::add_to_path(env.ndk.home().display()))
             .arg("-sym")
             .arg(self.get_jnilibs_subdir(config));
         util::pipe(logcat_command, stack_command).expect("Failed to get stacktrace");

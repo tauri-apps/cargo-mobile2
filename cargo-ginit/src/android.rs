@@ -1,10 +1,10 @@
 use crate::util::{parse_profile, parse_targets, take_a_list};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
-    android::{ndk, target::Target},
+    android::{target::Target, Env},
     config::Config,
     opts::NoiseLevel,
-    target::{call_for_targets, Profile},
+    target::{call_for_targets_with_fallback, Profile},
 };
 
 pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
@@ -72,8 +72,8 @@ impl AndroidCommand {
     }
 
     pub fn exec(self, config: &Config, noise_level: NoiseLevel) {
-        fn try_detect_target<'a>() -> Option<&'a Target<'a>> {
-            let target = Target::for_connected()
+        fn try_detect_target<'a>(env: &Env) -> Option<&'a Target<'a>> {
+            let target = Target::for_connected(env)
                 .ok()
                 .and_then(std::convert::identity);
             if let Some(target) = target {
@@ -82,26 +82,28 @@ impl AndroidCommand {
             target
         }
 
-        fn detect_target<'a>() -> &'a Target<'a> {
-            try_detect_target().expect("Failed to detect target for connected device")
+        fn detect_target<'a>(env: &Env) -> &'a Target<'a> {
+            try_detect_target(env).expect("Failed to detect target for connected device")
         }
 
-        let ndk_env = ndk::Env::new().expect("Failed to init NDK env");
+        let env = Env::new().expect("Failed to init Android env");
         match self {
-            AndroidCommand::Check { targets } => call_for_targets(
-                Some(targets.iter()),
-                Some(&try_detect_target),
-                |target: &Target| target.check(config, &ndk_env, noise_level),
+            AndroidCommand::Check { targets } => call_for_targets_with_fallback(
+                targets.iter(),
+                &try_detect_target,
+                &env,
+                |target: &Target| target.check(config, &env, noise_level),
             ),
-            AndroidCommand::Build { targets, profile } => call_for_targets(
-                Some(targets.iter()),
-                Some(&try_detect_target),
-                |target: &Target| target.build(config, &ndk_env, noise_level, profile),
+            AndroidCommand::Build { targets, profile } => call_for_targets_with_fallback(
+                targets.iter(),
+                &try_detect_target,
+                &env,
+                |target: &Target| target.build(config, &env, noise_level, profile),
             ),
             AndroidCommand::Run { profile } => {
-                detect_target().run(config, &ndk_env, noise_level, profile)
+                detect_target(&env).run(config, &env, noise_level, profile)
             }
-            AndroidCommand::Stacktrace => detect_target().stacktrace(config, &ndk_env),
+            AndroidCommand::Stacktrace => detect_target(&env).stacktrace(config, &env),
         }
     }
 }

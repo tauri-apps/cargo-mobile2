@@ -31,7 +31,7 @@ impl CargoConfig {
             target.insert(
                 android_target.triple.to_owned(),
                 android_target.generate_cargo_config(
-                    &android::ndk::Env::new().expect("failed to init ndk env"),
+                    &android::Env::new().expect("failed to init android env"),
                 ),
             );
         }
