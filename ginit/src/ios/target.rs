@@ -5,10 +5,21 @@ use crate::{
     ios::system_profile::DeveloperTools,
     opts::NoiseLevel,
     target::{Profile, TargetTrait},
-    util,
+    util::{self, pure_command::PureCommand},
 };
 use into_result::IntoResult as _;
 use std::{collections::BTreeMap, path::Path, process::Command};
+
+fn ios_deploy(env: &Env) -> Command {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("ios-deploy/build/Release/ios-deploy");
+    if !path.exists() {
+        panic!(
+            "`ios-deploy` not found. Please run `cargo {} install-deps` and try again.",
+            crate::NAME,
+        );
+    }
+    PureCommand::new(path, env)
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct Target<'a> {
@@ -100,9 +111,7 @@ impl<'a> Target<'a> {
     pub fn check(&self, config: &Config, env: &Env, noise_level: NoiseLevel) {
         self.cargo(config, "check")
             .with_verbose(noise_level.is_verbose())
-            .into_command()
-            .env_clear()
-            .envs(env.command_env())
+            .into_command(env)
             .status()
             .into_result()
             .expect("Failed to run `cargo check`");
@@ -121,9 +130,7 @@ impl<'a> Target<'a> {
         self.cargo(config, "build")
             .with_verbose(noise_level.is_verbose())
             .with_release(profile.is_release())
-            .into_command()
-            .env_clear()
-            .envs(env.command_env())
+            .into_command(env)
             .status()
             .into_result()
             .expect("Failed to run `cargo build`");
@@ -131,9 +138,7 @@ impl<'a> Target<'a> {
 
     pub fn build(&self, config: &Config, env: &Env, profile: Profile) {
         let configuration = profile.as_str();
-        Command::new("xcodebuild")
-            .env_clear()
-            .envs(env.command_env())
+        PureCommand::new("xcodebuild", env)
             .args(&["-scheme", &config.ios().scheme()])
             .arg("-workspace")
             .arg(&config.ios().workspace_path())
@@ -148,9 +153,7 @@ impl<'a> Target<'a> {
     fn archive(&self, config: &Config, env: &Env, profile: Profile) {
         let configuration = profile.as_str();
         let archive_path = config.ios().export_path().join(&config.ios().scheme());
-        Command::new("xcodebuild")
-            .env_clear()
-            .envs(env.command_env())
+        PureCommand::new("xcodebuild", env)
             .args(&["-scheme", &config.ios().scheme()])
             .arg("-workspace")
             .arg(&config.ios().workspace_path())
@@ -168,9 +171,7 @@ impl<'a> Target<'a> {
             .ios()
             .export_path()
             .join(&format!("{}.xcarchive", config.ios().scheme()));
-        Command::new("xcodebuild")
-            .env_clear()
-            .envs(env.command_env())
+        PureCommand::new("xcodebuild", env)
             .arg("-exportArchive")
             .arg("-archivePath")
             .arg(&archive_path)
@@ -183,25 +184,11 @@ impl<'a> Target<'a> {
             .expect("Failed to run `xcodebuild`");
     }
 
-    fn ios_deploy() -> Command {
-        let path =
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("ios-deploy/build/Release/ios-deploy");
-        if !path.exists() {
-            panic!(
-                "`ios-deploy` not found. Please run `cargo {} install-deps` and try again.",
-                crate::NAME,
-            );
-        }
-        Command::new(path)
-    }
-
     pub fn run(&self, config: &Config, env: &Env, profile: Profile) {
         // TODO: These steps are run unconditionally, which is slooooooow
         self.build(config, env, profile);
         self.archive(config, env, profile);
-        Command::new("unzip")
-            .env_clear()
-            .envs(env.command_env())
+        PureCommand::new("unzip", env)
             .arg("-o") // -o = always overwrite
             .arg(&config.ios().ipa_path())
             .arg("-d")
@@ -213,9 +200,7 @@ impl<'a> Target<'a> {
         // that. `ios-deploy --detect` can apparently be used to check in
         // advance, giving us an opportunity to promt. Though, it's much more
         // relaxing to just turn off auto-lock under Display & Brightness.
-        Self::ios_deploy()
-            .env_clear()
-            .envs(env.command_env())
+        ios_deploy(env)
             .arg("--debug")
             .arg("--bundle")
             .arg(&config.ios().app_path())

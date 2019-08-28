@@ -1,23 +1,17 @@
 // TODO: Bad things happen if multiple Android devices are connected at once
 
-use super::{ndk, Env};
+use super::{env::Env, ndk};
 use crate::{
     config::Config,
     init::cargo::CargoTarget,
     opts::NoiseLevel,
     target::{Profile, TargetTrait},
-    util::{self, force_symlink},
+    util::{self, force_symlink, pure_command::PureCommand},
 };
 use into_result::{command::CommandResult, IntoResult as _};
-use std::{collections::BTreeMap, ffi::OsStr, fs, io, path::PathBuf, process::Command};
+use std::{collections::BTreeMap, fs, io, path::PathBuf, process::Command};
 
 const API_VERSION: u32 = 24;
-
-fn android_command(env: &Env, name: impl AsRef<OsStr>) -> Command {
-    let mut command = Command::new(name);
-    command.env_clear().envs(env.command_env());
-    command
-}
 
 fn so_name(config: &Config) -> String {
     format!("lib{}.so", config.app_name())
@@ -25,7 +19,7 @@ fn so_name(config: &Config) -> String {
 
 fn gradlew(config: &Config, env: &Env) -> Command {
     let gradlew_path = config.android().project_path().join("gradlew");
-    let mut command = android_command(env, &gradlew_path);
+    let mut command = PureCommand::new(&gradlew_path, env);
     command.arg("--project-dir");
     command.arg(config.android().project_path());
     command
@@ -119,7 +113,7 @@ impl<'a> Target<'a> {
     }
 
     pub fn for_connected(env: &Env) -> CommandResult<Option<&'a Self>> {
-        let output = android_command(env, "adb")
+        let output = PureCommand::new("adb", env)
             .args(&["shell", "getprop", "ro.product.cpu.abi"])
             .output()
             .into_result()?;
@@ -172,9 +166,7 @@ impl<'a> Target<'a> {
             .with_target(Some(self.triple))
             .with_features(Some("vulkan")) // TODO: rust-lib plugin
             .with_release(profile.is_release())
-            .into_command()
-            .env_clear()
-            .envs(env.command_env().iter().cloned())
+            .into_command(env)
             .env("ANDROID_NATIVE_API_LEVEL", API_VERSION.to_string())
             .env(
                 "TARGET_AR",
@@ -270,7 +262,7 @@ impl<'a> Target<'a> {
     }
 
     fn wake_screen(&self, env: &Env) {
-        android_command(env, "adb")
+        PureCommand::new("adb", env)
             .args(&["shell", "input", "keyevent", "KEYCODE_WAKEUP"])
             .status()
             .into_result()
@@ -284,7 +276,7 @@ impl<'a> Target<'a> {
             config.reverse_domain(),
             config.app_name(),
         );
-        android_command(env, "adb")
+        PureCommand::new("adb", env)
             .args(&["shell", "am", "start", "-n", &activity])
             .status()
             .into_result()
@@ -293,9 +285,9 @@ impl<'a> Target<'a> {
     }
 
     pub fn stacktrace(&self, config: &Config, env: &Env) {
-        let mut logcat_command = android_command(env, "adb");
+        let mut logcat_command = PureCommand::new("adb", env);
         logcat_command.args(&["logcat", "-d"]); // print and exit
-        let mut stack_command = android_command(env, "ndk-stack");
+        let mut stack_command = PureCommand::new("ndk-stack", env);
         stack_command
             .env("PATH", util::add_to_path(env.ndk.home().display()))
             .arg("-sym")

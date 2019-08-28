@@ -1,7 +1,7 @@
 use crate::util::{parse_profile, parse_targets, take_a_list};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
-    android::{target::Target, Env},
+    android::{env::Env, target::Target},
     config::Config,
     opts::NoiseLevel,
     target::{call_for_targets_with_fallback, Profile},

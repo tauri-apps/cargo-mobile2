@@ -1,4 +1,5 @@
 mod cargo;
+pub mod pure_command;
 
 pub use self::cargo::CargoCommand;
 use into_result::{

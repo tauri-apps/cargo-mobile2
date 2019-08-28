@@ -1,3 +1,4 @@
+use crate::util::pure_command::{ExplicitEnv, PureCommand};
 use std::{path::PathBuf, process::Command};
 
 #[derive(Debug)]
@@ -54,8 +55,8 @@ impl<'a> CargoCommand<'a> {
         self
     }
 
-    pub fn into_command(self) -> Command {
-        let mut command = Command::new("cargo");
+    pub fn into_command(self, env: &impl ExplicitEnv) -> Command {
+        let mut command = PureCommand::new("cargo", env);
         command.arg(self.subcommand);
         if self.verbose {
             command.arg("-vv");
