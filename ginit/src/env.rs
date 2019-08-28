@@ -1,11 +1,9 @@
 use crate::util::pure_command::ExplicitEnv;
-use std::{env::VarError, ffi::OsStr};
-
 #[derive(Debug)]
 pub enum EnvError {
-    HomeNotSet(VarError),
-    PathNotSet(VarError),
-    TermNotSet(VarError),
+    HomeNotSet(std::env::VarError),
+    PathNotSet(std::env::VarError),
+    TermNotSet(std::env::VarError),
 }
 
 #[derive(Debug)]
@@ -25,7 +23,7 @@ impl Env {
 }
 
 impl ExplicitEnv for Env {
-    fn explicit_env(&self) -> Vec<(&str, &OsStr)> {
+    fn explicit_env(&self) -> Vec<(&str, &std::ffi::OsStr)> {
         vec![
             ("HOME", self.home.as_ref()),
             ("PATH", self.path.as_ref()),

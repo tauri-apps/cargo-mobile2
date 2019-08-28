@@ -1,12 +1,12 @@
 use super::ndk;
 use crate::util::pure_command::ExplicitEnv;
-use std::{env::VarError, ffi::OsStr, path::PathBuf};
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum EnvError {
     BaseEnvError(crate::env::EnvError),
     // TODO: we should be nice and provide a platform-specific suggestion
-    AndroidSdkRootNotSet(VarError),
+    AndroidSdkRootNotSet(std::env::VarError),
     AndroidSdkRootNotADir,
     NdkEnvError(ndk::EnvError),
 }
@@ -43,7 +43,7 @@ impl Env {
 }
 
 impl ExplicitEnv for Env {
-    fn explicit_env(&self) -> Vec<(&str, &OsStr)> {
+    fn explicit_env(&self) -> Vec<(&str, &std::ffi::OsStr)> {
         let mut envs = self.base.explicit_env();
         envs.extend(&[
             ("ANDROID_SDK_ROOT", self.sdk_root.as_ref()),
