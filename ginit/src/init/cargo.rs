@@ -25,12 +25,13 @@ pub struct CargoConfig {
 }
 
 impl CargoConfig {
-    pub fn generate() -> Self {
+    pub fn generate(config: &Config) -> Self {
         let mut target = BTreeMap::new();
         for android_target in android::target::Target::all().values() {
             target.insert(
                 android_target.triple.to_owned(),
                 android_target.generate_cargo_config(
+                    config,
                     &android::env::Env::new().expect("failed to init android env"),
                 ),
             );

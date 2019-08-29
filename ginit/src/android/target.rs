@@ -11,8 +11,6 @@ use crate::{
 use into_result::{command::CommandResult, IntoResult as _};
 use std::{collections::BTreeMap, fs, io, path::PathBuf, process::Command};
 
-const API_VERSION: u32 = 24;
-
 fn so_name(config: &Config) -> String {
     format!("lib{}.so", config.app_name())
 }
@@ -123,7 +121,7 @@ impl<'a> Target<'a> {
         Ok(Self::for_abi(abi))
     }
 
-    pub fn generate_cargo_config(&self, env: &Env) -> CargoTarget {
+    pub fn generate_cargo_config(&self, config: &Config, env: &Env) -> CargoTarget {
         let ar = env
             .ndk
             .binutil_path(ndk::Binutil::Ar, self.binutils_triple())
@@ -133,7 +131,11 @@ impl<'a> Target<'a> {
         // Using clang as the linker seems to be the only way to get the right library search paths...
         let linker = env
             .ndk
-            .compiler_path(ndk::Compiler::Clang, self.clang_triple(), API_VERSION)
+            .compiler_path(
+                ndk::Compiler::Clang,
+                self.clang_triple(),
+                config.android().min_sdk_version(),
+            )
             .expect("couldn't find clang")
             .display()
             .to_string();
@@ -159,6 +161,7 @@ impl<'a> Target<'a> {
         profile: Profile,
         mode: CargoMode,
     ) {
+        let min_sdk_version = config.android().min_sdk_version();
         util::CargoCommand::new(mode.as_str())
             .with_verbose(noise_level.is_verbose())
             .with_package(Some(config.app_name()))
@@ -167,7 +170,7 @@ impl<'a> Target<'a> {
             .with_features(Some("vulkan")) // TODO: rust-lib plugin
             .with_release(profile.is_release())
             .into_command(env)
-            .env("ANDROID_NATIVE_API_LEVEL", API_VERSION.to_string())
+            .env("ANDROID_NATIVE_API_LEVEL", min_sdk_version.to_string())
             .env(
                 "TARGET_AR",
                 env.ndk
@@ -177,13 +180,13 @@ impl<'a> Target<'a> {
             .env(
                 "TARGET_CC",
                 env.ndk
-                    .compiler_path(ndk::Compiler::Clang, self.clang_triple(), API_VERSION)
+                    .compiler_path(ndk::Compiler::Clang, self.clang_triple(), min_sdk_version)
                     .expect("couldn't find clang"),
             )
             .env(
                 "TARGET_CXX",
                 env.ndk
-                    .compiler_path(ndk::Compiler::Clangxx, self.clang_triple(), API_VERSION)
+                    .compiler_path(ndk::Compiler::Clangxx, self.clang_triple(), min_sdk_version)
                     .expect("couldn't find clang++"),
             )
             .status()

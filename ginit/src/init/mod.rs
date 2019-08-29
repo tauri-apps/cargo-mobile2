@@ -22,7 +22,7 @@ pub fn init(
         only & !skip
     };
     if steps.contains(Steps::CARGO) {
-        CargoConfig::generate().write(&config);
+        CargoConfig::generate(config).write(&config);
     }
     if steps.contains(Steps::HELLO_WORLD) {
         rust::hello_world(config, bike, clobbering).unwrap();

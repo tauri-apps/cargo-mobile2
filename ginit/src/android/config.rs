@@ -2,8 +2,11 @@ use crate::config::Config as RootConfig;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 
+const DEFAULT_MIN_SDK_VERSION: u32 = 24;
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub(crate) struct RawConfig {
+    min_sdk_version: Option<u32>,
     project_root: String,
     targets: Option<HashMap<String, HashMap<String, String>>>,
 }
@@ -11,6 +14,7 @@ pub(crate) struct RawConfig {
 #[derive(Clone, Debug)]
 pub struct Config<'a> {
     root_config: &'a RootConfig,
+    min_sdk_version: Option<u32>,
     project_root: &'a str,
 }
 
@@ -21,8 +25,19 @@ impl<'a> Config<'a> {
         }
         Self {
             root_config,
+            min_sdk_version: raw_config.min_sdk_version,
             project_root: &raw_config.project_root,
         }
+    }
+
+    pub fn min_sdk_version(&self) -> u32 {
+        self.min_sdk_version.unwrap_or_else(|| {
+            log::info!(
+                "`android.min_sdk_version` not set; defaulting to {}",
+                DEFAULT_MIN_SDK_VERSION
+            );
+            DEFAULT_MIN_SDK_VERSION
+        })
     }
 
     pub fn project_path(&self) -> PathBuf {
