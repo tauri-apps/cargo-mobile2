@@ -13,7 +13,7 @@ use std::{
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct RawConfig {
     global: GlobalConfig,
-    android: AndroidRawConfig,
+    android: Option<AndroidRawConfig>,
     ios: IOSRawConfig,
 }
 
@@ -97,7 +97,7 @@ impl Config {
         Self {
             project_root,
             global: raw_config.global,
-            android: raw_config.android,
+            android: raw_config.android.unwrap_or_default(),
             ios: raw_config.ios,
         }
     }
