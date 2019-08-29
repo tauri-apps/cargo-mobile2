@@ -15,8 +15,8 @@ pub(crate) struct RawConfig {
 #[derive(Clone, Debug)]
 pub struct Config<'a> {
     root_config: &'a RootConfig,
-    min_sdk_version: Option<u32>,
-    project_root: Option<&'a str>,
+    min_sdk_version: u32,
+    project_root: &'a str,
 }
 
 impl<'a> Config<'a> {
@@ -33,39 +33,41 @@ impl<'a> Config<'a> {
                         log::warn!("`android.min_sdk_version` is set to the default value; you can remove it from your config");
                     }
                     min_sdk_version
+                })
+                .unwrap_or_else(|| {
+                    log::info!(
+                        "`android.min_sdk_version` not set; defaulting to {}",
+                        DEFAULT_MIN_SDK_VERSION
+                    );
+                    DEFAULT_MIN_SDK_VERSION
                 }),
             project_root: raw_config
                 .project_root
                 .as_ref()
                 .map(|project_root| {
                     if project_root == DEFAULT_PROJECT_ROOT {
-                            log::warn!("`android.project_root` is set to the default value; you can remove it from your config");
-                        }
+                        log::warn!("`android.project_root` is set to the default value; you can remove it from your config");
+                    }
                     project_root.as_str()
+                })
+                .unwrap_or_else(|| {
+                    log::info!(
+                        "`android.project_root` not set; defaulting to {}",
+                        DEFAULT_PROJECT_ROOT
+                    );
+                    DEFAULT_PROJECT_ROOT
                 }),
         }
     }
 
     pub fn min_sdk_version(&self) -> u32 {
-        self.min_sdk_version.unwrap_or_else(|| {
-            log::info!(
-                "`android.min_sdk_version` not set; defaulting to {}",
-                DEFAULT_MIN_SDK_VERSION
-            );
-            DEFAULT_MIN_SDK_VERSION
-        })
+        self.min_sdk_version
     }
 
     pub fn project_path(&self) -> PathBuf {
         self.root_config
             .project_root()
-            .join(self.project_root.unwrap_or_else(|| {
-                log::info!(
-                    "`android.project_root` not set; defaulting to {}",
-                    DEFAULT_PROJECT_ROOT
-                );
-                DEFAULT_PROJECT_ROOT
-            }))
+            .join(self.project_root)
             .join(self.root_config.app_name())
     }
 }

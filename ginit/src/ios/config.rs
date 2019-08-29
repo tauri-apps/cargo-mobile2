@@ -2,18 +2,20 @@ use crate::config::Config as RootConfig;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 
+static DEFAULT_PROJECT_ROOT: &'static str = "gen/ios";
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RawConfig {
-    project_root: String,
     development_team: String,
+    project_root: Option<String>,
     targets: Option<HashMap<String, HashMap<String, String>>>,
 }
 
 #[derive(Clone, Debug)]
 pub struct Config<'a> {
     root_config: &'a RootConfig,
-    project_root: &'a str,
     development_team: &'a str,
+    project_root: &'a str,
 }
 
 impl<'a> Config<'a> {
@@ -23,13 +25,27 @@ impl<'a> Config<'a> {
         }
         Self {
             root_config,
-            project_root: &raw_config.project_root,
             development_team: &raw_config.development_team,
+            project_root: raw_config
+                .project_root
+                .as_ref()
+                .map(|project_root| {
+                    if project_root == DEFAULT_PROJECT_ROOT {
+                        log::warn!("`ios.project_root` is set to the default value; you can remove it from your config");
+                    }
+                    project_root.as_str()
+                }).unwrap_or_else(|| {
+                    log::info!(
+                        "`ios.project_root` not set; defaulting to {}",
+                        DEFAULT_PROJECT_ROOT
+                    );
+                    DEFAULT_PROJECT_ROOT
+                }),
         }
     }
 
     pub fn project_root(&self) -> PathBuf {
-        self.root_config.prefix_path(&self.project_root)
+        self.root_config.prefix_path(self.project_root)
     }
 
     pub fn workspace_path(&self) -> PathBuf {

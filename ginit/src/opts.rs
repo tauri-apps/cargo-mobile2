@@ -12,8 +12,8 @@ impl Default for NoiseLevel {
 }
 
 impl NoiseLevel {
-    pub fn is_verbose(self) -> bool {
-        self > NoiseLevel::Polite
+    pub fn is_pedantic(self) -> bool {
+        self == NoiseLevel::FranklyQuitePedantic
     }
 }
 

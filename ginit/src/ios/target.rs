@@ -110,7 +110,7 @@ impl<'a> Target<'a> {
 
     pub fn check(&self, config: &Config, env: &Env, noise_level: NoiseLevel) {
         self.cargo(config, "check")
-            .with_verbose(noise_level.is_verbose())
+            .with_verbose(noise_level.is_pedantic())
             .into_command(env)
             .status()
             .into_result()
@@ -128,7 +128,7 @@ impl<'a> Target<'a> {
         // using our build/run commands it won't get passed.
         // TODO: I don't undestand this comment
         self.cargo(config, "build")
-            .with_verbose(noise_level.is_verbose())
+            .with_verbose(noise_level.is_pedantic())
             .with_release(profile.is_release())
             .into_command(env)
             .status()

@@ -17,7 +17,11 @@ fn cli_app<'a, 'b>(android_targets: &'a [&'a str], ios_targets: &'a [&'a str]) -
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
-        .arg(Arg::from_usage("-v, --verbose 'Make life louder'").global(true))
+        .arg(
+            Arg::from_usage("-v, --verbose 'Make life louder'")
+                .global(true)
+                .multiple(true),
+        )
         .subcommand(init::subcommand().display_order(0))
         .subcommand(android::subcommand(android_targets).display_order(1))
         .subcommand(ios::subcommand(ios_targets).display_order(1))
@@ -32,10 +36,10 @@ struct CliInput {
 impl CliInput {
     fn parse(matches: ArgMatches<'_>) -> Self {
         Self {
-            noise_level: if matches.is_present("verbose") {
-                NoiseLevel::LoudAndProud
-            } else {
-                NoiseLevel::default()
+            noise_level: match matches.occurrences_of("verbose") {
+                0 => NoiseLevel::Polite,
+                1 => NoiseLevel::LoudAndProud,
+                _ => NoiseLevel::FranklyQuitePedantic,
             },
             command: Command::parse(*matches.subcommand.unwrap()), // claps makes sure we got a subcommand
         }
@@ -60,46 +64,29 @@ impl Command {
     }
 }
 
-fn get_args() -> (Vec<String>, NoiseLevel) {
+fn get_args() -> Vec<String> {
     let mut raw: Vec<String> = std::env::args().collect();
     // Running this as a cargo subcommand gives us our name as an argument,
     // so let's just discard that...
     if raw.get(1).map(String::as_str) == Some(NAME) {
         raw.remove(1);
     }
-
-    // We have to initialize logging as early as possible, so we'll do some
-    // rough manual parsing.
-    let noise_level = {
-        use ginit::util::FriendlyContains as _;
-        // This will fail if multiple short flags are put together, i.e. `-vh`
-        if raw.as_slice().friendly_contains("--verbose") || raw.as_slice().friendly_contains("-v") {
-            NoiseLevel::LoudAndProud
-        } else {
-            NoiseLevel::default()
-        }
-    };
-
-    (raw, noise_level)
+    raw
 }
 
 fn log_init(noise_level: NoiseLevel) {
     use env_logger::{Builder, Env};
     let default_level = match noise_level {
         NoiseLevel::Polite => "warn",
-        NoiseLevel::LoudAndProud => "info",
-        NoiseLevel::FranklyQuitePedantic => "trace",
+        NoiseLevel::LoudAndProud => "ginit=info",
+        NoiseLevel::FranklyQuitePedantic => "info",
     };
     let env = Env::default().default_filter_or(default_level);
     Builder::from_env(env).init();
 }
 
 fn main() {
-    let (args, noise_level) = get_args();
-    log_init(noise_level);
-
-    let config = Config::load(".").expect("failed to load config");
-
+    let args = get_args();
     let android_targets = AndroidTarget::all()
         .keys()
         .map(|key| *key)
@@ -107,6 +94,8 @@ fn main() {
     let ios_targets = IOSTarget::all().keys().map(|key| *key).collect::<Vec<_>>();
     let app = cli_app(&android_targets, &ios_targets);
     let input = CliInput::parse(app.get_matches_from(args));
+    log_init(input.noise_level);
+    let config = Config::load(".").expect("failed to load config");
     match input.command {
         Command::Init(command) => {
             command.exec(config.as_ref());
