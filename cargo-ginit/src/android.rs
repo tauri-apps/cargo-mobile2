@@ -1,5 +1,5 @@
-use crate::util::{parse_profile, parse_targets, take_a_list};
-use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use crate::util::{parse_profile, parse_targets, take_a_target_list};
+use clap::{App, AppSettings, ArgMatches, SubCommand};
 use ginit::{
     android::{env::Env, target::Target},
     config::Config,
@@ -15,13 +15,13 @@ pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
             SubCommand::with_name("check")
                 .about("Checks if code compiles for target(s)")
                 .display_order(0)
-                .arg(take_a_list(Arg::with_name("TARGETS"), targets)),
+                .arg(take_a_target_list::<Target>(targets)),
         )
         .subcommand(
             SubCommand::with_name("build")
                 .about("Builds dynamic libraries for target(s)")
                 .display_order(1)
-                .arg(take_a_list(Arg::with_name("TARGETS"), targets))
+                .arg(take_a_target_list::<Target>(targets))
                 .arg_from_usage("--release 'Build with release optimizations'"),
         )
         .subcommand(

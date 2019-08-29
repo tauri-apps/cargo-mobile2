@@ -1,10 +1,14 @@
 use clap::{Arg, ArgMatches};
-use ginit::target::Profile;
+use ginit::target::{Profile, TargetTrait};
 
 pub fn take_a_list<'a, 'b>(arg: Arg<'a, 'b>, values: &'a [&'a str]) -> Arg<'a, 'b> {
     arg.possible_values(values)
         .multiple(true)
         .value_delimiter(" ")
+}
+
+pub fn take_a_target_list<'a, 'b, T: TargetTrait<'a>>(targets: &'a [&'a str]) -> Arg<'a, 'b> {
+    take_a_list(Arg::with_name("TARGETS"), targets).default_value(T::DEFAULT_KEY)
 }
 
 pub fn parse_targets(matches: &ArgMatches<'_>) -> Vec<String> {
