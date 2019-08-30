@@ -28,7 +28,7 @@ fn prefix_path(
     _: &Handlebars,
     ctx: &Context,
     _: &mut RenderContext,
-    out: &mut Output,
+    out: &mut dyn Output,
 ) -> HelperResult {
     out.write(
         config::prefix_path(project_root(ctx), path(helper))
@@ -43,7 +43,7 @@ fn unprefix_path(
     _: &Handlebars,
     ctx: &Context,
     _: &mut RenderContext,
-    out: &mut Output,
+    out: &mut dyn Output,
 ) -> HelperResult {
     out.write(
         config::unprefix_path(project_root(ctx), path(helper))
