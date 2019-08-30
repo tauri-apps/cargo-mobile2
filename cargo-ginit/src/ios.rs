@@ -103,10 +103,10 @@ impl IOSCommand {
                 arch,
                 profile,
             } => match macos {
-                true => Target::macos().compile_lib(config, &env, noise_level, profile),
+                true => Target::macos().compile_lib(config, noise_level, profile),
                 false => Target::for_arch(&arch)
                     .expect("Invalid architecture")
-                    .compile_lib(config, &env, noise_level, profile),
+                    .compile_lib(config, noise_level, profile),
             },
         }
     }

@@ -117,20 +117,14 @@ impl<'a> Target<'a> {
             .expect("Failed to run `cargo check`");
     }
 
-    pub fn compile_lib(
-        &self,
-        config: &Config,
-        env: &Env,
-        noise_level: NoiseLevel,
-        profile: Profile,
-    ) {
+    pub fn compile_lib(&self, config: &Config, noise_level: NoiseLevel, profile: Profile) {
         // NOTE: it's up to Xcode to pass the verbose flag here, so even when
         // using our build/run commands it won't get passed.
         // TODO: I don't undestand this comment
         self.cargo(config, "build")
             .with_verbose(noise_level.is_pedantic())
             .with_release(profile.is_release())
-            .into_command(env)
+            .into_command_impure()
             .status()
             .into_result()
             .expect("Failed to run `cargo build`");
