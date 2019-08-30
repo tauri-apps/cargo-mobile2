@@ -55,8 +55,7 @@ impl<'a> CargoCommand<'a> {
         self
     }
 
-    pub fn into_command(self, env: &impl ExplicitEnv) -> Command {
-        let mut command = PureCommand::new("cargo", env);
+    fn into_command_inner(self, mut command: Command) -> Command {
         command.arg(self.subcommand);
         if self.verbose {
             command.arg("-vv");
@@ -77,5 +76,13 @@ impl<'a> CargoCommand<'a> {
             command.arg("--release");
         }
         command
+    }
+
+    pub fn into_command_impure(self) -> Command {
+        self.into_command_inner(Command::new("cargo"))
+    }
+
+    pub fn into_command(self, env: &impl ExplicitEnv) -> Command {
+        self.into_command_inner(PureCommand::new("cargo", env))
     }
 }
