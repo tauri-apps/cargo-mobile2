@@ -165,7 +165,7 @@ impl<'a> Target<'a> {
         util::CargoCommand::new(mode.as_str())
             .with_verbose(noise_level.is_pedantic())
             .with_package(Some(config.app_name()))
-            .with_manifest_path(config.manifest_path())
+            .with_manifest_path(Some(config.manifest_path()))
             .with_target(Some(self.triple))
             .with_features(Some("vulkan")) // TODO: rust-lib plugin
             .with_release(profile.is_release())

@@ -10,11 +10,18 @@ use std::{
     path::{Path, PathBuf},
 };
 
+static DEFAULT_APP_ROOT: &'static str = "";
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
-struct RawConfig {
-    global: GlobalConfig,
-    android: Option<AndroidRawConfig>,
-    ios: IOSRawConfig,
+pub struct RawGlobalConfig {
+    app_name: String,
+    stylized_app_name: Option<String>,
+    domain: String,
+    app_root: Option<String>,
+    // These aren't used anymore, and only kept in so we can emit warnings about them!
+    source_root: Option<String>,
+    manifest_path: Option<String>,
+    asset_path: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -22,9 +29,39 @@ pub struct GlobalConfig {
     app_name: String,
     stylized_app_name: Option<String>,
     domain: String,
-    source_root: String,
-    manifest_path: Option<String>,
-    asset_path: String,
+    app_root: String,
+}
+
+impl GlobalConfig {
+    fn from_raw(raw_config: RawGlobalConfig) -> Self {
+        if raw_config.source_root.is_some() {
+            log::warn!("`global.source_root` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
+        }
+        if raw_config.manifest_path.is_some() {
+            log::warn!("`global.manifest_path` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
+        }
+        if raw_config.asset_path.is_some() {
+            log::warn!("`global.asset_path` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
+        }
+        Self {
+            app_name: raw_config.app_name,
+            stylized_app_name: raw_config.stylized_app_name,
+            domain: raw_config.domain,
+            app_root: raw_config.app_root.map(|app_root| {
+                if app_root.as_str() == DEFAULT_APP_ROOT {
+                    log::warn!("`global.app_root` is set to the default value; you can remove it from your config");
+                }
+                app_root
+            })
+            .unwrap_or_else(|| {
+                log::info!(
+                    "`global.app_root` not set; defaulting to {}",
+                    DEFAULT_APP_ROOT
+                );
+                DEFAULT_APP_ROOT.to_owned()
+            }),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -82,6 +119,13 @@ pub fn unprefix_path(
         .map_err(|_| UnprefixPathError::PathNotPrefixed)
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct RawConfig {
+    global: RawGlobalConfig,
+    android: Option<AndroidRawConfig>,
+    ios: IOSRawConfig,
+}
+
 /// All paths returned by `Config` methods are prefixed (absolute).
 /// Use [`Config::unprefix_path`] if you want to make a path relative to the project root.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -96,7 +140,7 @@ impl Config {
     fn from_raw(project_root: PathBuf, raw_config: RawConfig) -> Self {
         Self {
             project_root,
-            global: raw_config.global,
+            global: GlobalConfig::from_raw(raw_config.global),
             android: raw_config.android.unwrap_or_default(),
             ios: raw_config.ios,
         }
@@ -170,24 +214,16 @@ impl Config {
             .join(".")
     }
 
-    pub fn source_root(&self) -> PathBuf {
-        self.prefix_path(&self.global.source_root)
-    }
-
-    // TODO: do we actually guarantee this?
     pub fn app_root(&self) -> PathBuf {
-        self.source_root().join(self.app_name())
+        self.prefix_path(&self.global.app_root)
     }
 
-    pub fn manifest_path(&self) -> Option<PathBuf> {
-        self.global
-            .manifest_path
-            .as_ref()
-            .map(|path| self.prefix_path(path))
+    pub fn manifest_path(&self) -> PathBuf {
+        self.app_root().join("Cargo.toml")
     }
 
     pub fn asset_path(&self) -> PathBuf {
-        self.prefix_path(&self.global.asset_path)
+        self.app_root().join("res")
     }
 
     pub fn android(&self) -> AndroidConfig<'_> {

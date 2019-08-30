@@ -16,7 +16,7 @@ pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), ProjectCre
     let dest = config.ios().project_root();
     bike.process(src, &dest, |map| config.insert_template_data(map))?;
 
-    util::relative_symlink(config.source_root(), &dest)
+    util::relative_symlink(config.app_root(), &dest)
         .map_err(ProjectCreationError::SymlinkRustError)?;
     util::relative_symlink(config.asset_path(), &dest)
         .map_err(ProjectCreationError::SymlinkResourcesError)?;

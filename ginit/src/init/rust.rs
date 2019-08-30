@@ -44,12 +44,10 @@ pub fn submodule_init(
         submodule_exists(root, name).map_err(ProjectCreationError::GitSubmoduleStatusError)?;
     if !submodule_exists {
         let path = config
-            .unprefix_path(config.source_root())
-            .expect("`source_root` outside of the project")
+            .unprefix_path(config.app_root())
+            .expect("`app_root` outside of the project")
             .join(path.as_ref());
-        let path_str = path
-            .to_str()
-            .expect("`source_root` contained invalid unicode");
+        let path_str = path.to_str().expect("`app_root` contained invalid unicode");
         util::git(
             &root,
             &["submodule", "add", "--name", name, remote, path_str],
@@ -71,15 +69,15 @@ pub fn hello_world(
     submodule_init(
         config,
         &dest,
-        "rust_lib",
+        "rust-lib",
         "git@bitbucket.org:brainium/rust_lib.git",
-        "lib",
+        "rust-lib",
     )?;
 
     let insert_data = |map: &mut bicycle::JsonMap| {
         config.insert_template_data(map);
-        let source_root = config.source_root();
-        map.insert("source_root", &source_root);
+        let app_root = config.app_root();
+        map.insert("app_root", &app_root);
     };
     let mut actions = bicycle::traverse(
         template_pack(Some(config), "project_root")

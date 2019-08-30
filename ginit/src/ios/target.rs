@@ -103,7 +103,7 @@ impl<'a> Target<'a> {
         }
         util::CargoCommand::new(subcommand)
             .with_package(Some(config.app_name()))
-            .with_manifest_path(config.manifest_path())
+            .with_manifest_path(Some(config.manifest_path()))
             .with_target(Some(&self.triple))
             .with_features(Some("metal"))
     }

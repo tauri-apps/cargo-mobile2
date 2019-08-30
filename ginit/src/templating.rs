@@ -28,7 +28,7 @@ fn prefix_path(
     _: &Handlebars,
     ctx: &Context,
     _: &mut RenderContext,
-    out: &mut Output,
+    out: &mut dyn Output,
 ) -> HelperResult {
     out.write(
         config::prefix_path(project_root(ctx), path(helper))
@@ -43,7 +43,7 @@ fn unprefix_path(
     _: &Handlebars,
     ctx: &Context,
     _: &mut RenderContext,
-    out: &mut Output,
+    out: &mut dyn Output,
 ) -> HelperResult {
     out.write(
         config::unprefix_path(project_root(ctx), path(helper))
@@ -97,7 +97,7 @@ pub fn template_pack(config: Option<&Config>, name: &str) -> Option<PathBuf> {
         path = try_path(config.project_root(), name);
         // then we check rust-lib
         if path.is_none() {
-            path = try_path(config.source_root().join("lib"), name);
+            path = try_path(config.app_root().join("rust-lib"), name);
         }
     }
     // and then we check our internal/bundled templates
