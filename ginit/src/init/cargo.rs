@@ -1,4 +1,4 @@
-use crate::{android, config::Config, ios, target::TargetTrait};
+use crate::{android, config::Config, init::steps::Steps, ios, target::TargetTrait};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
@@ -25,22 +25,26 @@ pub struct CargoConfig {
 }
 
 impl CargoConfig {
-    pub fn generate(config: &Config) -> Self {
+    pub fn generate(config: &Config, steps: &Steps) -> Self {
         let mut target = BTreeMap::new();
-        for android_target in android::target::Target::all().values() {
-            target.insert(
-                android_target.triple.to_owned(),
-                android_target.generate_cargo_config(
-                    config,
-                    &android::env::Env::new().expect("failed to init android env"),
-                ),
-            );
+        if steps.contains(Steps::ANDROID) {
+            for android_target in android::target::Target::all().values() {
+                target.insert(
+                    android_target.triple.to_owned(),
+                    android_target.generate_cargo_config(
+                        config,
+                        &android::env::Env::new().expect("failed to init android env"),
+                    ),
+                );
+            }
         }
-        for ios_target in ios::target::Target::all().values() {
-            target.insert(
-                ios_target.triple.to_owned(),
-                ios_target.generate_cargo_config(),
-            );
+        if steps.contains(Steps::IOS) {
+            for ios_target in ios::target::Target::all().values() {
+                target.insert(
+                    ios_target.triple.to_owned(),
+                    ios_target.generate_cargo_config(),
+                );
+            }
         }
         target.insert(
             "x86_64-apple-darwin".to_owned(),
