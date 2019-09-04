@@ -1,4 +1,5 @@
 mod cargo;
+pub mod ln;
 pub mod pure_command;
 
 pub use self::cargo::CargoCommand;
@@ -73,15 +74,6 @@ pub fn command_present(name: &str) -> CommandResult<bool> {
         })
 }
 
-pub fn force_symlink(src: impl AsRef<OsStr>, dest: impl AsRef<OsStr>) -> CommandResult<()> {
-    Command::new("ln")
-        .arg("-sf") // always recreate symlink
-        .arg(src)
-        .arg(dest)
-        .status()
-        .into_result()
-}
-
 fn common_root(abs_src: &Path, abs_dest: &Path) -> PathBuf {
     let mut dest_root = abs_dest.to_owned();
     loop {
@@ -110,16 +102,13 @@ pub fn relativize_path(abs_path: impl AsRef<Path>, abs_relative_to: impl AsRef<P
         rel_path.push("..");
     }
     let rel_path = rel_path.join(path);
-    log::info!("relativized {:?} to {:?}", abs_path, rel_path);
+    log::info!(
+        "{:?} relative to {:?} is {:?}",
+        abs_path,
+        abs_relative_to,
+        rel_path
+    );
     rel_path
-}
-
-pub fn relative_symlink(
-    abs_src: impl AsRef<Path>,
-    abs_dest: impl AsRef<Path>,
-) -> CommandResult<()> {
-    let rel_src = relativize_path(abs_src, &abs_dest);
-    force_symlink(rel_src, abs_dest.as_ref())
 }
 
 pub fn git(dir: &impl AsRef<Path>, args: &[&str]) -> CommandResult<()> {

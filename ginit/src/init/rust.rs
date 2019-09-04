@@ -79,18 +79,12 @@ pub fn hello_world(
         let app_root = config.app_root();
         map.insert("app_root", &app_root);
     };
-    let mut actions = bicycle::traverse(
-        template_pack(Some(config), "project_root")
+    let actions = bicycle::traverse(
+        template_pack(Some(config), "rust_lib_app")
             .ok_or_else(|| ProjectCreationError::MissingTemplatePack)?,
         &dest,
         |path| bike.transform_path(path, insert_data),
     )?;
-    actions.append(&mut bicycle::traverse(
-        template_pack(Some(config), "resources")
-            .ok_or_else(|| ProjectCreationError::MissingTemplatePack)?,
-        config.asset_path(),
-        |path| bike.transform_path(path, insert_data),
-    )?);
     // Prevent clobbering
     let actions = actions
         .iter()

@@ -1,6 +1,5 @@
 use super::target::Target;
-use crate::{config::Config, target::TargetTrait as _, templating::template_pack, util};
-use into_result::command::CommandError;
+use crate::{config::Config, target::TargetTrait as _, templating::template_pack, util::ln};
 use std::{fs, path::PathBuf};
 
 #[derive(Debug, derive_more::From)]
@@ -13,7 +12,7 @@ pub enum ProjectCreationError {
         tried_to_create: PathBuf,
         error: std::io::Error,
     },
-    SymlinkAssetsError(CommandError),
+    SymlinkAssetsError(ln::Error),
 }
 
 // TODO: We should verify Android env vars / offer defaults
@@ -46,6 +45,6 @@ pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), ProjectCre
         tried_to_create: dest.clone(),
         error,
     })?;
-    util::relative_symlink(config.asset_path(), dest)?;
+    ln::force_symlink_relative(config.asset_path(), dest, ln::TargetStyle::Directory)?;
     Ok(())
 }

@@ -44,7 +44,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "bicycle"
 version = "0.1.0"
-source = "git+ssh://git@bitbucket.org/brainium/bicycle.git#9c4ea75e0ecf1576724615d5ebbda402f41ad13e"
+source = "git+ssh://git@bitbucket.org/brainium/bicycle.git#bc405fa14a45f995374bf54eb038737a98552f83"
 dependencies = [
  "handlebars 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",

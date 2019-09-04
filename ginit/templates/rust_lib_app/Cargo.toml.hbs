@@ -1,0 +1,26 @@
+[package]
+name = "{{app_name}}"
+version = "0.1.0"
+authors = ["Brainium Studios LLC"]
+edition = "2018"
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "{{app_name}}-desktop"
+path = "bin/desktop.rs"
+
+[features]
+code_reload = ["rust-lib/code_reload"]
+default = ["code_reload", "metal"]
+dx12 = ["rust-lib/dx12"]
+gl = ["rust-lib/gl"]
+metal = ["rust-lib/metal"]
+vulkan = ["rust-lib/vulkan"]
+
+[dependencies]
+rust-lib = { path = "rust-lib", features = ["serde"] }
+
+[build-dependencies]
+build = { path = "rust-lib/src/build" }

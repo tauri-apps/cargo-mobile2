@@ -6,7 +6,7 @@ use crate::{
     init::cargo::CargoTarget,
     opts::NoiseLevel,
     target::{Profile, TargetTrait},
-    util::{self, force_symlink, pure_command::PureCommand},
+    util::{self, ln, pure_command::PureCommand},
 };
 use into_result::{command::CommandResult, IntoResult as _};
 use std::{collections::BTreeMap, fs, io, path::PathBuf, process::Command};
@@ -220,7 +220,7 @@ impl<'a> Target<'a> {
             panic!("Symlink source doesn't exist: {:?}", src);
         }
         let dest = self.get_jnilibs_subdir(config).join(&so_name);
-        force_symlink(src, dest).expect("Failed to symlink lib");
+        ln::force_symlink(src, dest, ln::TargetStyle::File).expect("Failed to symlink lib");
     }
 
     pub fn check(&self, config: &Config, env: &Env, noise_level: NoiseLevel) {

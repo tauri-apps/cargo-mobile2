@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-static DEFAULT_APP_ROOT: &'static str = "";
+static DEFAULT_APP_ROOT: &'static str = ".";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RawGlobalConfig {
