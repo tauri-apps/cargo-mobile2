@@ -8,14 +8,12 @@ use rust_lib::{
     },
     app::{self, entry_point, app_env, App, AppResource, DrawResource, TextureHandle, Time},
     geometry::{Mat4, Point, Rect, Size, Vec2},
-    renderer::{builders::*, color::SrgbRgba},
+    renderer::builders::*,
     text,
     window::{TouchPhase, TouchScreen},
 };
 
 include!(concat!(env!("OUT_DIR"), "/managers.rs"));
-
-const CLEAR_COLOR: SrgbRgba = SrgbRgba([0.95, 0.93, 0.91, 1.0]);
 
 #[derive(Debug)]
 pub struct Game {
@@ -56,7 +54,7 @@ impl App for Game {
         let screen_rect = draw_resource.window.screen_surface_rect().unwrap();
         let screen_size = screen_rect.size();
         let proj = draw_resource.window.ortho();
-        Pass::swapchain(Some(CLEAR_COLOR.to_linear()))
+        Pass::swapchain(Some(colors::UNICORN_HAIR.to_linear()))
             .with_pipeline::<DefaultShader>(
                 Pipeline::new(proj, ())
                     .with_draw(self.draw_background(screen_rect))
@@ -109,22 +107,6 @@ impl Game {
             .into_draw()
     }
 
-    fn hype_color(&self) -> SrgbRgba {
-        SrgbRgba(if self.spot_count > 1000 {
-            [1.0, 0.0, 1.0, 1.0]
-        } else if self.spot_count > 700 {
-            [0.0, 0.0, 1.0, 1.0]
-        } else if self.spot_count > 500 {
-            [0.0, 1.0, 0.0, 1.0]
-        } else if self.spot_count > 300 {
-            [1.0, 1.0, 0.0, 1.0]
-        } else if self.spot_count > 100 {
-            [1.0, 0.0, 0.0, 1.0]
-        } else {
-            [0.0, 0.0, 0.0, 1.0]
-        })
-    }
-
     fn draw_score(
         &self,
         draw_resource: &mut DrawResource<'_>,
@@ -141,7 +123,7 @@ impl Game {
                 0 => text::Style::new(
                     self.assets.fonts.fira_sans_regular(),
                     64.,
-                    self.hype_color(),
+                    colors::FUSCHIA,
                 ),
             },
         ).unwrap();
@@ -156,7 +138,7 @@ impl Game {
         screen_size: Size,
     ) -> impl Iterator<Item = DefaultDraw> + '_ {
         let spot_size = {
-            let spot_radius = screen_size.width.min(screen_size.height) / 5.;
+            let spot_radius = screen_size.width.min(screen_size.height) / 6.;
             Size::new(spot_radius, spot_radius)
         };
         let spot_texture = self.assets.textures.spot();
