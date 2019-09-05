@@ -168,6 +168,7 @@ impl<'a> Target<'a> {
             .with_manifest_path(Some(config.manifest_path()))
             .with_target(Some(self.triple))
             .with_features(Some("vulkan")) // TODO: rust-lib plugin
+            .with_no_default_features(true)
             .with_release(profile.is_release())
             .into_command(env)
             .env("ANDROID_NATIVE_API_LEVEL", min_sdk_version.to_string())

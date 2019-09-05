@@ -21,7 +21,7 @@ fn ios_deploy(env: &Env) -> Command {
     PureCommand::new(path, env)
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Target<'a> {
     pub triple: &'a str,
     pub arch: &'a str,
@@ -75,6 +75,10 @@ impl<'a> Target<'a> {
         }
     }
 
+    pub fn is_macos(&self) -> bool {
+        *self == Self::macos()
+    }
+
     pub fn generate_cargo_config(&self) -> CargoTarget {
         Default::default()
     }
@@ -106,6 +110,7 @@ impl<'a> Target<'a> {
             .with_manifest_path(Some(config.manifest_path()))
             .with_target(Some(&self.triple))
             .with_features(Some("metal"))
+            .with_no_default_features(!self.is_macos())
     }
 
     pub fn check(&self, config: &Config, env: &Env, noise_level: NoiseLevel) {
