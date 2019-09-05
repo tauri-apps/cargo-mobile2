@@ -70,11 +70,14 @@ impl UserCode<Moved> {
                 buf
             };
             let lines = buf.lines().collect::<Vec<_>>();
-            let new_length = lines.len() + 5;
+            let new_length = lines.len() + 6;
             let mut new_lines = Vec::with_capacity(new_length);
             for line in lines {
                 let trimmed = line.trim();
-                if trimmed.starts_with("default") {
+                if trimmed.starts_with("code_reload") {
+                    // Since we unconditionally add the `code_reload` feature,
+                    // we have to remove it if it's already present.
+                } else if trimmed.starts_with("default") {
                     new_lines.push(line.replace("[]", "[\"code_reload\", \"metal\"]"));
                 } else if trimmed.starts_with("rust-lib") {
                     new_lines.push(line.replace("../lib", "rust-lib"));
@@ -94,7 +97,6 @@ impl UserCode<Moved> {
                 }
             }
             new_lines.push(PROFILE.to_owned());
-            assert_eq!(new_lines.len(), new_length);
             new_lines.join("\n")
         };
         let mut file = File::create(&cargo_toml)?;
