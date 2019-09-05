@@ -9,7 +9,9 @@ bicycle = { git = "ssh://git@bitbucket.org/brainium/bicycle.git" }
 bitflags = "1.1.0"
 colored = "1"
 derive_more = "0.15"
-Inflector = { version = "0.11", default-features = false }
+deunicode = "1.0.0"
+heck = "0.3.1"
+hyphenation = "0.7.1"
 into-result = "0.1.0"
 java-properties = "1.2.0"
 lazy_static = "1"
@@ -17,4 +19,5 @@ log = "0.4"
 openssl = "0.10"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
+textwrap = { version = "0.11.0", features = ["hyphenation", "term_size"] }
 toml = "0.5"

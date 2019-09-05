@@ -1,4 +1,4 @@
-use colored::*;
+use colored::{Color, Colorize as _};
 use std::{
     fmt::Display,
     io::{self, Write},

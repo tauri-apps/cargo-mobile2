@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 pub mod android;
+pub mod app_name;
 pub mod config;
 pub mod env;
 pub mod init;

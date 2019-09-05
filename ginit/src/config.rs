@@ -1,7 +1,9 @@
 use crate::{
     android::config::{Config as AndroidConfig, RawConfig as AndroidRawConfig},
+    app_name,
     ios::config::{Config as IOSConfig, RawConfig as IOSRawConfig},
 };
+use heck::SnekCase as _;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt,
@@ -44,7 +46,7 @@ impl GlobalConfig {
             log::warn!("`global.asset_path` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
         }
         Self {
-            app_name: raw_config.app_name,
+            app_name: app_name::validate(raw_config.app_name).expect("`global.app_name` invalid"),
             stylized_app_name: raw_config.stylized_app_name,
             domain: raw_config.domain,
             app_root: raw_config.app_root.map(|app_root| {
@@ -197,6 +199,10 @@ impl Config {
         &self.global.app_name
     }
 
+    pub fn app_name_snake(&self) -> String {
+        self.app_name().to_snek_case()
+    }
+
     pub fn stylized_app_name(&self) -> &str {
         self.global
             .stylized_app_name
@@ -237,6 +243,7 @@ impl Config {
     pub(crate) fn insert_template_data(&self, map: &mut bicycle::JsonMap) {
         map.insert("config", &self);
         map.insert("app_name", self.app_name());
+        map.insert("app_name_snake", self.app_name_snake());
         map.insert("stylized_app_name", self.stylized_app_name());
         map.insert("reverse_domain", self.reverse_domain());
     }

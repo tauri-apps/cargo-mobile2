@@ -1,9 +1,10 @@
 mod domain_blacklist;
 
 use self::domain_blacklist::DOMAIN_BLACKLIST;
-use crate::{ios, templating::template_pack, util::prompt};
+use crate::{app_name, ios, templating::template_pack, util::prompt};
 use colored::*;
-use inflector::Inflector;
+use heck::{KebabCase as _, TitleCase as _};
+use hyphenation::Load as _;
 use into_result::{command::CommandError, IntoResult as _};
 use std::{env, process::Command, str};
 
@@ -35,12 +36,41 @@ fn default_domain() -> Result<Option<String>, DefaultDomainError> {
 }
 
 pub fn interactive_config_gen(bike: &bicycle::Bicycle) {
+    let dictionary = hyphenation::Standard::from_embedded(hyphenation::Language::EnglishUS)
+        .expect("Failed to load dictionary");
+    let wrapper = textwrap::Wrapper::with_splitter(textwrap::termwidth(), dictionary);
+
     let cwd = env::current_dir().expect("Failed to get current working directory");
     let app_name = {
-        let dir_name = cwd.file_name().unwrap().to_str().unwrap();
-        prompt::default("App name", Some(dir_name), None)
-    }
-    .expect("Failed to prompt for app name");
+        let mut default_app_name =
+            app_name::transliterate(&cwd.file_name().unwrap().to_str().unwrap().to_kebab_case());
+        let mut app_name = None;
+        while let None = app_name {
+            let response = prompt::default(
+                "App name",
+                default_app_name.as_ref().map(|s| s.as_str()),
+                None,
+            )
+            .expect("Failed to prompt for app name");
+            match app_name::validate(response) {
+                Ok(response) => {
+                    app_name = Some(response);
+                }
+                Err(err) => {
+                    println!(
+                        "{}",
+                        wrapper
+                            .fill(&format!("Gosh, that's not a valid app name! {}", err))
+                            .bright_magenta()
+                    );
+                    if let Some(suggested) = err.suggested() {
+                        default_app_name = Some(suggested.to_owned());
+                    }
+                }
+            }
+        }
+        app_name.unwrap()
+    };
     let stylized = {
         let stylized = app_name.replace("-", " ").replace("_", " ").to_title_case();
         prompt::default("Stylized app name", Some(&stylized), None)

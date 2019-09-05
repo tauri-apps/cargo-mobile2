@@ -19,6 +19,26 @@ use std::{
     process::{Command, Stdio},
 };
 
+pub fn list_display(list: &[impl fmt::Display]) -> String {
+    if list.len() == 1 {
+        list[0].to_string()
+    } else if list.len() == 2 {
+        format!("{} and {}", list[0], list[1])
+    } else {
+        let mut display = String::new();
+        for (idx, item) in list.iter().enumerate() {
+            let formatted = if idx + 1 == list.len() {
+                // this is the last item
+                format!("and {}", item)
+            } else {
+                format!("{}, ", item)
+            };
+            display.push_str(&formatted);
+        }
+        display
+    }
+}
+
 pub fn read_str(path: impl AsRef<OsStr>) -> io::Result<String> {
     File::open(path.as_ref()).and_then(|mut file| {
         let mut buf = String::new();
