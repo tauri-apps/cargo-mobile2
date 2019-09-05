@@ -1,5 +1,6 @@
 pub mod cargo;
 pub mod config_gen;
+pub mod migrate;
 pub mod rust;
 pub mod steps;
 
@@ -16,6 +17,10 @@ pub fn init(
     only: Option<impl Into<Steps>>,
     skip: Option<impl Into<Steps>>,
 ) {
+    if let Some(proj) = migrate::LegacyProject::heuristic_detect(config) {
+        println!("scary migration time");
+        proj.migrate(config).expect("my fears have been realized");
+    }
     let steps = {
         let only = only.map(Into::into).unwrap_or_else(|| Steps::all());
         let skip = skip.map(Into::into).unwrap_or_else(|| Steps::empty());

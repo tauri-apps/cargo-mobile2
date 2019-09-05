@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 pub mod android;
 pub mod config;
 pub mod env;
