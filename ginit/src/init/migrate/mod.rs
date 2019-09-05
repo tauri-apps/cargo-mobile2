@@ -10,6 +10,7 @@ use self::{
     bin_target::BinTarget, rust_dir::RustDir, rust_lib::RustLib, type_state::*, user_code::UserCode,
 };
 use crate::config::Config;
+use into_result::command::CommandError;
 use std::{fs, io};
 
 #[derive(Debug)]
@@ -17,7 +18,7 @@ pub enum MigrationError {
     BinTargetMoveFailed(io::Error),
     GenDirCreationFailed(io::Error),
     RustDirDeletionFailed(io::Error),
-    RustLibMoveFailed(io::Error),
+    RustLibMoveFailed(CommandError),
     UserCodeMoveFailed(io::Error),
     UserCodeUpdateFailed(io::Error),
 }

@@ -111,7 +111,7 @@ pub fn relativize_path(abs_path: impl AsRef<Path>, abs_relative_to: impl AsRef<P
     rel_path
 }
 
-pub fn git(dir: &impl AsRef<Path>, args: &[&str]) -> CommandResult<()> {
+pub fn git(dir: &impl AsRef<Path>, args: &[impl AsRef<OsStr>]) -> CommandResult<()> {
     Command::new("git")
         .arg("-C")
         .arg(dir.as_ref())
