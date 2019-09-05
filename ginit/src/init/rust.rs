@@ -69,7 +69,7 @@ pub fn hello_world(
     submodule_init(
         config,
         &dest,
-        "rust-lib",
+        "rust_lib",
         "git@bitbucket.org:brainium/rust_lib.git",
         "rust-lib",
     )?;
