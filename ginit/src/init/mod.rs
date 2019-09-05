@@ -18,8 +18,31 @@ pub fn init(
     skip: Option<impl Into<Steps>>,
 ) {
     if let Some(proj) = migrate::LegacyProject::heuristic_detect(config) {
-        println!("scary migration time");
-        proj.migrate(config).expect("my fears have been realized");
+        println!(
+            r#"
+It looks like you're using the old project structure, which is now unsupported.
+The new project structure is super sleek, and ginit can migrate your project
+automatically! However, this can potentially fail. Be sure you have a backup of
+your project in case things explode. You've been warned! 💀
+        "#
+        );
+        let response = config_gen::prompt(
+            "I have a backup, and I'm ready to migrate [y/N]",
+            None,
+            None,
+        )
+        .expect("Failed to prompt for migration");
+        if response.eq_ignore_ascii_case("y") {
+            proj.migrate(config)
+                .expect("Failed to migrate project - project state is now undefined! 💀");
+            println!("Migration successful! 🎉\n");
+        } else if response.is_empty() || response.eq_ignore_ascii_case("n") {
+            println!("Maybe next time. Buh-bye!");
+            return;
+        } else {
+            println!("That was neither a Y nor an N! You're pretty silly.");
+            return;
+        }
     }
     let steps = {
         let only = only.map(Into::into).unwrap_or_else(|| Steps::all());
