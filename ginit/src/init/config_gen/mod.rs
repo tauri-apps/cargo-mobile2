@@ -1,40 +1,11 @@
 mod domain_blacklist;
 
 use self::domain_blacklist::DOMAIN_BLACKLIST;
-use crate::{ios, templating::template_pack};
+use crate::{ios, templating::template_pack, util::prompt};
 use colored::*;
 use inflector::Inflector;
 use into_result::{command::CommandError, IntoResult as _};
-use std::{
-    env,
-    io::{self, Write},
-    process::Command,
-    str,
-};
-
-pub fn prompt(
-    label: &str,
-    default: Option<&str>,
-    default_color: Option<Color>,
-) -> io::Result<String> {
-    let mut input = String::new();
-    if let Some(default) = default {
-        if let Some(default_color) = default_color {
-            print!("{} ({}): ", label, default.color(default_color));
-        } else {
-            print!("{} ({}): ", label, default);
-        }
-    } else {
-        print!("{}: ", label);
-    }
-    io::stdout().flush()?;
-    io::stdin().read_line(&mut input)?;
-    input = input.trim().to_owned();
-    if input.is_empty() && default.is_some() {
-        input = default.unwrap().to_owned();
-    }
-    Ok(input)
-}
+use std::{env, process::Command, str};
 
 #[derive(Debug)]
 enum DefaultDomainError {
@@ -67,12 +38,12 @@ pub fn interactive_config_gen(bike: &bicycle::Bicycle) {
     let cwd = env::current_dir().expect("Failed to get current working directory");
     let app_name = {
         let dir_name = cwd.file_name().unwrap().to_str().unwrap();
-        prompt("App name", Some(dir_name), None)
+        prompt::default("App name", Some(dir_name), None)
     }
     .expect("Failed to prompt for app name");
     let stylized = {
         let stylized = app_name.replace("-", " ").replace("_", " ").to_title_case();
-        prompt("Stylized app name", Some(&stylized), None)
+        prompt::default("Stylized app name", Some(&stylized), None)
     }
     .expect("Failed to prompt for stylized app name");
     let domain = {
@@ -81,7 +52,7 @@ pub fn interactive_config_gen(bike: &bicycle::Bicycle) {
             .as_ref()
             .map(|domain| domain.as_str())
             .unwrap_or_else(|| "example.com");
-        prompt("Domain", Some(default_domain), None)
+        prompt::default("Domain", Some(default_domain), None)
     }
     .expect("Failed to prompt for domain");
     let team = {
@@ -107,8 +78,9 @@ pub fn interactive_config_gen(bike: &bicycle::Bicycle) {
             "index".green(),
             "team ID".cyan(),
         );
-        let team_input = prompt("Apple development team", default_team, Some(Color::Green))
-            .expect("Failed to prompt for development team");
+        let team_input =
+            prompt::default("Apple development team", default_team, Some(Color::Green))
+                .expect("Failed to prompt for development team");
         team_input
             .parse::<usize>()
             .ok()

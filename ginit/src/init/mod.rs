@@ -5,7 +5,17 @@ pub mod rust;
 pub mod steps;
 
 use self::{cargo::CargoConfig, steps::Steps};
-use crate::{android, config::Config, ios, opts::Clobbering, target::TargetTrait as _, util};
+use crate::{
+    android,
+    config::Config,
+    ios,
+    opts::Clobbering,
+    target::TargetTrait as _,
+    util::{
+        self,
+        prompt::{self, YesOrNo},
+    },
+};
 use into_result::IntoResult as _;
 use std::{path::Path, process::Command};
 
@@ -26,22 +36,25 @@ automatically! However, this can potentially fail. Be sure you have a backup of
 your project in case things explode. You've been warned! 💀
         "#
         );
-        let response = config_gen::prompt(
-            "I have a backup, and I'm ready to migrate [y/N]",
-            None,
-            None,
+        let response = prompt::yes_no(
+            "I have a backup, and I'm ready to migrate",
+            Some(YesOrNo::No),
         )
         .expect("Failed to prompt for migration");
-        if response.eq_ignore_ascii_case("y") {
-            proj.migrate(config)
-                .expect("Failed to migrate project - project state is now undefined! 💀");
-            println!("Migration successful! 🎉\n");
-        } else if response.is_empty() || response.eq_ignore_ascii_case("n") {
-            println!("Maybe next time. Buh-bye!");
-            return;
-        } else {
-            println!("That was neither a Y nor an N! You're pretty silly.");
-            return;
+        match response {
+            Some(YesOrNo::Yes) => {
+                proj.migrate(config)
+                    .expect("Failed to migrate project - project state is now undefined! 💀");
+                println!("Migration successful! 🎉\n");
+            }
+            Some(YesOrNo::No) => {
+                println!("Maybe next time. Buh-bye!");
+                return;
+            }
+            None => {
+                println!("That was neither a Y nor an N! You're pretty silly.");
+                return;
+            }
         }
     }
     let steps = {

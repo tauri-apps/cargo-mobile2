@@ -1,5 +1,6 @@
 mod cargo;
 pub mod ln;
+pub mod prompt;
 pub mod pure_command;
 
 pub use self::cargo::CargoCommand;
