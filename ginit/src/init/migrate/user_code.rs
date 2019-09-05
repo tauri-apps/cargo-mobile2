@@ -73,16 +73,18 @@ impl UserCode<Moved> {
             let new_length = lines.len() + 5;
             let mut new_lines = Vec::with_capacity(new_length);
             for line in lines {
-                if line.starts_with("default") {
+                let trimmed = line.trim();
+                if trimmed.starts_with("default") {
                     new_lines.push(line.replace("[]", "[\"code_reload\", \"metal\"]"));
-                } else if line.starts_with("rust-lib") {
+                } else if trimmed.starts_with("rust-lib") {
                     new_lines.push(line.replace("../lib", "rust-lib"));
-                } else if line.starts_with("build") {
+                } else if trimmed.starts_with("build") {
                     new_lines.push(line.replace("../lib/src/build", "rust-lib/src/build"));
                 } else {
                     new_lines.push(line.to_owned());
-                    let trimmed = line.trim();
-                    if trimmed.starts_with("edition") {
+                    if trimmed.starts_with("[features]") {
+                        new_lines.push("code_reload = [\"rust-lib/code_reload\"]".to_owned());
+                    } else if trimmed.starts_with("edition") {
                         new_lines.push(format!("build = \"gen/build.rs\""));
                     } else if trimmed.starts_with("crate-type") {
                         new_lines.push("\n[[bin]]".to_owned());
