@@ -1,5 +1,5 @@
 use crate::{config::Config, templating::template_pack, util::ln};
-use into_result::IntoResult as _;
+use into_result::{command::CommandError, IntoResult as _};
 use std::{fmt, process::Command};
 
 #[derive(Debug)]
@@ -9,6 +9,8 @@ pub enum Error {
     AppSymlinkFailed(ln::Error),
     LibSymlinkFailed(ln::Error),
     ResourcesSymlinkFailed(ln::Error),
+    ScriptChmodFailed(CommandError),
+    XcodegenFailed(CommandError),
 }
 
 impl fmt::Display for Error {
@@ -25,6 +27,10 @@ impl fmt::Display for Error {
             Error::ResourcesSymlinkFailed(err) => {
                 write!(f, "Resources couldn't be symlinked: {}", err)
             }
+            Error::ScriptChmodFailed(err) => {
+                write!(f, "Failed to `chmod` \"cargo_xcode.sh\": {}", err)
+            }
+            Error::XcodegenFailed(err) => write!(f, "Failed to run `xcodegen`: {}", err),
         }
     }
 }
@@ -59,7 +65,7 @@ pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
         .arg(dest.join("cargo_xcode.sh"))
         .status()
         .into_result()
-        .expect("Failed to run `chmod`");
+        .map_err(Error::ScriptChmodFailed)?;
     // Note that Xcode doesn't always reload the project nicely; reopening is
     // often necessary.
     Command::new("xcodegen")
@@ -67,6 +73,6 @@ pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
         .arg(dest.join("project.yml"))
         .status()
         .into_result()
-        .expect("Failed to run `xcodegen`");
+        .map_err(Error::XcodegenFailed)?;
     Ok(())
 }

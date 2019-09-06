@@ -165,6 +165,18 @@ pub enum PipeError {
     PipeFailed(io::Error),
 }
 
+impl fmt::Display for PipeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PipeError::TxCommandFailed(err) => write!(f, "Failed to run sending command: {}", err),
+            PipeError::RxCommandFailed(err) => {
+                write!(f, "Failed to run receiving command: {}", err)
+            }
+            PipeError::PipeFailed(err) => write!(f, "Failed to pipe output: {}", err),
+        }
+    }
+}
+
 pub fn pipe(mut tx_command: Command, mut rx_command: Command) -> Result<(), PipeError> {
     let tx_output = tx_command
         .output()

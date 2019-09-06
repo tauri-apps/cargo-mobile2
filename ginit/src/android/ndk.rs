@@ -64,6 +64,16 @@ pub struct MissingToolError {
     tried_path: PathBuf,
 }
 
+impl fmt::Display for MissingToolError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Missing tool `{}`; tried at {:?}.",
+            self.name, self.tried_path
+        )
+    }
+}
+
 #[derive(Debug)]
 pub enum VersionError {
     FailedToOpenSourceProps(io::Error),

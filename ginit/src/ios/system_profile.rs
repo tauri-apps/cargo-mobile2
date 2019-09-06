@@ -5,7 +5,7 @@ use std::{fmt, process::Command, str};
 #[derive(Debug)]
 pub enum Error {
     SystemProfilerFailed(CommandError),
-    OutputWasInvalidUtf8(str::Utf8Error),
+    OutputInvalidUtf8(str::Utf8Error),
     VersionNotMatched,
     VersionComponentNotNumeric(std::num::ParseIntError),
 }
@@ -14,7 +14,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::SystemProfilerFailed(err) => write!(f, "`system_profiler` call failed: {}", err),
-            Error::OutputWasInvalidUtf8(err) => write!(
+            Error::OutputInvalidUtf8(err) => write!(
                 f,
                 "`system_profiler` output contained invalid UTF-8: {}",
                 err
@@ -52,7 +52,7 @@ impl DeveloperTools {
             .into_result()
             .map_err(Error::SystemProfilerFailed)
             .map(|out| out.stdout)?;
-        let text = str::from_utf8(&bytes).map_err(Error::OutputWasInvalidUtf8)?;
+        let text = str::from_utf8(&bytes).map_err(Error::OutputInvalidUtf8)?;
         let components = VERSION_RE
             .captures_iter(text)
             .next()

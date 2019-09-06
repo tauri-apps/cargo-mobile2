@@ -23,6 +23,7 @@ impl CargoTarget {
 #[derive(Debug)]
 pub enum GenError {
     AndroidEnvInvalid(android::env::Error),
+    AndroidGenFailed(android::ndk::MissingToolError),
 }
 
 impl fmt::Display for GenError {
@@ -30,6 +31,9 @@ impl fmt::Display for GenError {
         match self {
             GenError::AndroidEnvInvalid(err) => {
                 write!(f, "Failed to initialize Android environment: {}", err)
+            }
+            GenError::AndroidGenFailed(err) => {
+                write!(f, "Failed to generate Android target config: {}", err)
             }
         }
     }
@@ -74,10 +78,12 @@ impl CargoConfig {
             for android_target in android::target::Target::all().values() {
                 target.insert(
                     android_target.triple.to_owned(),
-                    android_target.generate_cargo_config(
-                        config,
-                        &android::env::Env::new().map_err(GenError::AndroidEnvInvalid)?,
-                    ),
+                    android_target
+                        .generate_cargo_config(
+                            config,
+                            &android::env::Env::new().map_err(GenError::AndroidEnvInvalid)?,
+                        )
+                        .map_err(GenError::AndroidGenFailed)?,
                 );
             }
         }
