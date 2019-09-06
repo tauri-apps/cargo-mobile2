@@ -73,6 +73,16 @@ where
     }
 }
 
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug)]
+pub struct ExitCode(pub i32);
+
+impl ExitCode {
+    pub fn exit(self) -> ! {
+        std::process::exit(self.0)
+    }
+}
+
 pub fn add_to_path(path: impl fmt::Display) -> String {
     format!("{}:{}", path, env::var("PATH").unwrap())
 }
@@ -148,26 +158,26 @@ pub fn rustup_add(triple: &str) -> CommandResult<()> {
         .into_result()
 }
 
-#[derive(Debug, derive_more::From)]
+#[derive(Debug)]
 pub enum PipeError {
-    TxCommandError(CommandError),
-    RxCommandError(CommandError),
-    PipeError(io::Error),
+    TxCommandFailed(CommandError),
+    RxCommandFailed(CommandError),
+    PipeFailed(io::Error),
 }
 
 pub fn pipe(mut tx_command: Command, mut rx_command: Command) -> Result<(), PipeError> {
     let tx_output = tx_command
         .output()
         .into_result()
-        .map_err(PipeError::TxCommandError)?;
+        .map_err(PipeError::TxCommandFailed)?;
     let rx_command = rx_command
         .stdin(Stdio::piped())
         .spawn()
         .into_result()
-        .map_err(PipeError::RxCommandError)?;
+        .map_err(PipeError::RxCommandFailed)?;
     rx_command
         .stdin
         .unwrap()
         .write_all(&tx_output.stdout)
-        .map_err(From::from)
+        .map_err(PipeError::PipeFailed)
 }

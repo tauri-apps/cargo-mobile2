@@ -2,8 +2,9 @@ use crate::{android, config::Config, init::steps::Steps, ios, target::TargetTrai
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
+    fmt,
     fs::{self, File},
-    io::Write,
+    io::{self, Write},
 };
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -19,13 +20,55 @@ impl CargoTarget {
     }
 }
 
+#[derive(Debug)]
+pub enum GenError {
+    AndroidEnvInvalid(android::env::Error),
+}
+
+impl fmt::Display for GenError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            GenError::AndroidEnvInvalid(err) => {
+                write!(f, "Failed to initialize Android environment: {}", err)
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum WriteError {
+    SerializationFailed(toml::ser::Error),
+    DirCreationFailed(io::Error),
+    OpenFailed(io::Error),
+    WriteFailed(io::Error),
+}
+
+impl fmt::Display for WriteError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            WriteError::SerializationFailed(err) => {
+                write!(f, "Failed to serialize cargo config: {}", err)
+            }
+            WriteError::DirCreationFailed(err) => {
+                write!(f, "Failed to create \".cargo\" directory: {}", err)
+            }
+            WriteError::OpenFailed(err) => {
+                write!(f, "Failed to open \".cargo/config\" for writing: {}", err)
+            }
+            WriteError::WriteFailed(err) => {
+                write!(f, "Failed to write config to \".cargo/config\": {}", err)
+            }
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CargoConfig {
     target: BTreeMap<String, CargoTarget>,
 }
 
 impl CargoConfig {
-    pub fn generate(config: &Config, steps: &Steps) -> Self {
+    pub fn generate(config: &Config, steps: &Steps) -> Result<Self, GenError> {
         let mut target = BTreeMap::new();
         if steps.contains(Steps::ANDROID) {
             for android_target in android::target::Target::all().values() {
@@ -33,7 +76,7 @@ impl CargoConfig {
                     android_target.triple.to_owned(),
                     android_target.generate_cargo_config(
                         config,
-                        &android::env::Env::new().expect("failed to init android env"),
+                        &android::env::Env::new().map_err(GenError::AndroidEnvInvalid)?,
                     ),
                 );
             }
@@ -61,21 +104,21 @@ impl CargoConfig {
                 ],
             },
         );
-        CargoConfig {
+        Ok(CargoConfig {
             target: target
                 .into_iter()
                 .filter(|(_, target)| !target.is_empty())
                 .collect(),
-        }
+        })
     }
 
-    pub fn write(&self, config: &Config) {
-        let serialized = toml::to_string_pretty(self).expect("Failed to serialize cargo config");
+    pub fn write(&self, config: &Config) -> Result<(), WriteError> {
+        let serialized = toml::to_string_pretty(self).map_err(WriteError::SerializationFailed)?;
         let dir = config.prefix_path(".cargo");
-        fs::create_dir_all(&dir).expect("Failed to create `.cargo` directory");
+        fs::create_dir_all(&dir).map_err(WriteError::DirCreationFailed)?;
         let path = dir.join("config");
-        let mut file = File::create(path).expect("Failed to create cargo config file");
+        let mut file = File::create(path).map_err(WriteError::OpenFailed)?;
         file.write_all(serialized.as_bytes())
-            .expect("Failed to write to cargo config file");
+            .map_err(WriteError::WriteFailed)
     }
 }

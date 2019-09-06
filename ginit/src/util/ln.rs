@@ -1,5 +1,6 @@
 use into_result::{command::CommandError, IntoResult as _};
 use std::{
+    fmt,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -10,11 +11,30 @@ pub enum LinkType {
     Symbolic,
 }
 
+impl fmt::Display for LinkType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LinkType::Hard => write!(f, "hard"),
+            LinkType::Symbolic => write!(f, "symbolic"),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Clobber {
     Never,
     FileOnly,
     FileOrDirectory,
+}
+
+impl fmt::Display for Clobber {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Clobber::Never => write!(f, "clobbering disabled"),
+            Clobber::FileOnly => write!(f, "file clobbering enabled"),
+            Clobber::FileOrDirectory => write!(f, "file and directory clobbering enabled"),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -23,10 +43,30 @@ pub enum TargetStyle {
     Directory,
 }
 
+impl fmt::Display for TargetStyle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TargetStyle::File => write!(f, "file"),
+            TargetStyle::Directory => write!(f, "directory"),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum ErrorCause {
     MissingFileName,
     CommandFailed(CommandError),
+}
+
+impl fmt::Display for ErrorCause {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ErrorCause::MissingFileName => {
+                write!(f, "Neither the source nor target contained a file name.",)
+            }
+            ErrorCause::CommandFailed(err) => write!(f, "`ln` command failed: {}", err),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -37,6 +77,16 @@ pub struct Error {
     target: PathBuf,
     target_style: TargetStyle,
     cause: ErrorCause,
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Failed to create a {} link from {:?} to {} {:?} ({}): {}",
+            self.link_type, self.source, self.target_style, self.target, self.force, self.cause
+        )
+    }
 }
 
 #[derive(Clone, Debug)]

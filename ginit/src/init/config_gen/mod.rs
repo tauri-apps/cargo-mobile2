@@ -6,7 +6,7 @@ use colored::*;
 use heck::{KebabCase as _, TitleCase as _};
 use hyphenation::Load as _;
 use into_result::{command::CommandError, IntoResult as _};
-use std::{env, process::Command, str};
+use std::{env, fmt, io, process::Command, str};
 
 #[derive(Debug)]
 enum DefaultDomainError {
@@ -35,12 +35,45 @@ fn default_domain() -> Result<Option<String>, DefaultDomainError> {
     })
 }
 
-pub fn interactive_config_gen(bike: &bicycle::Bicycle) {
+#[derive(Debug)]
+pub enum Error {
+    CurrentDirFailed(io::Error),
+    AppNamePromptFailed(io::Error),
+    StylizedAppNamePromptFailed(io::Error),
+    DomainPromptFailed(io::Error),
+    DevelopmentTeamLookupFailed(ios::teams::Error),
+    DevelopmentTeamPromptFailed(io::Error),
+    ConfigRenderFailed(bicycle::ProcessingError),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::CurrentDirFailed(err) => {
+                write!(f, "Failed to get current working directory: {}", err)
+            }
+            Error::AppNamePromptFailed(err) => write!(f, "Failed to prompt for app name: {}", err),
+            Error::StylizedAppNamePromptFailed(err) => {
+                write!(f, "Failed to prompt for stylized app name: {}", err)
+            }
+            Error::DomainPromptFailed(err) => write!(f, "Failed to prompt for domain: {}", err),
+            Error::DevelopmentTeamLookupFailed(err) => {
+                write!(f, "Failed to find development teams: {}", err)
+            }
+            Error::DevelopmentTeamPromptFailed(err) => {
+                write!(f, "Failed to prompt for development team: {}", err)
+            }
+            Error::ConfigRenderFailed(err) => write!(f, "Failed to render config file: {}", err),
+        }
+    }
+}
+
+pub fn interactive_config_gen(bike: &bicycle::Bicycle) -> Result<(), Error> {
     let dictionary = hyphenation::Standard::from_embedded(hyphenation::Language::EnglishUS)
         .expect("Failed to load dictionary");
     let wrapper = textwrap::Wrapper::with_splitter(textwrap::termwidth(), dictionary);
 
-    let cwd = env::current_dir().expect("Failed to get current working directory");
+    let cwd = env::current_dir().map_err(Error::CurrentDirFailed)?;
     let app_name = {
         let mut default_app_name =
             app_name::transliterate(&cwd.file_name().unwrap().to_str().unwrap().to_kebab_case());
@@ -51,7 +84,7 @@ pub fn interactive_config_gen(bike: &bicycle::Bicycle) {
                 default_app_name.as_ref().map(|s| s.as_str()),
                 None,
             )
-            .expect("Failed to prompt for app name");
+            .map_err(Error::AppNamePromptFailed)?;
             match app_name::validate(response) {
                 Ok(response) => {
                     app_name = Some(response);
@@ -75,7 +108,7 @@ pub fn interactive_config_gen(bike: &bicycle::Bicycle) {
         let stylized = app_name.replace("-", " ").replace("_", " ").to_title_case();
         prompt::default("Stylized app name", Some(&stylized), None)
     }
-    .expect("Failed to prompt for stylized app name");
+    .map_err(Error::StylizedAppNamePromptFailed)?;
     let domain = {
         let default_domain = default_domain().ok().and_then(std::convert::identity);
         let default_domain = default_domain
@@ -84,9 +117,10 @@ pub fn interactive_config_gen(bike: &bicycle::Bicycle) {
             .unwrap_or_else(|| "example.com");
         prompt::default("Domain", Some(default_domain), None)
     }
-    .expect("Failed to prompt for domain");
+    .map_err(Error::DomainPromptFailed)?;
     let team = {
-        let teams = ios::teams::find_development_teams().expect("Failed to find development teams");
+        let teams =
+            ios::teams::find_development_teams().map_err(Error::DevelopmentTeamLookupFailed)?;
         let mut default_team = None;
         println!("Detected development teams:");
         for (index, team) in teams.iter().enumerate() {
@@ -110,7 +144,7 @@ pub fn interactive_config_gen(bike: &bicycle::Bicycle) {
         );
         let team_input =
             prompt::default("Apple development team", default_team, Some(Color::Green))
-                .expect("Failed to prompt for development team");
+                .map_err(Error::DevelopmentTeamPromptFailed)?;
         team_input
             .parse::<usize>()
             .ok()
@@ -128,5 +162,5 @@ pub fn interactive_config_gen(bike: &bicycle::Bicycle) {
             map.insert("development_team", &team);
         },
     )
-    .expect("Failed to render config file");
+    .map_err(Error::ConfigRenderFailed)
 }

@@ -1,24 +1,41 @@
 use super::target::Target;
 use crate::{config::Config, target::TargetTrait as _, templating::template_pack, util::ln};
-use std::{fs, path::PathBuf};
+use std::{fmt, fs, path::PathBuf};
 
-#[derive(Debug, derive_more::From)]
-pub enum ProjectCreationError {
+#[derive(Debug)]
+pub enum Error {
     MissingTemplatePack {
         name: &'static str,
     },
-    TemplateProcessingError(bicycle::ProcessingError),
-    CreateDirError {
-        tried_to_create: PathBuf,
-        error: std::io::Error,
+    TemplateProcessingFailed(bicycle::ProcessingError),
+    DirectoryCreationFailed {
+        path: PathBuf,
+        cause: std::io::Error,
     },
-    SymlinkAssetsError(ln::Error),
+    AssetSymlinkFailed(ln::Error),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::MissingTemplatePack { name } => {
+                write!(f, "The {:?} template pack is missing.", name)
+            }
+            Error::TemplateProcessingFailed(err) => {
+                write!(f, "Template processing failed: {}", err)
+            }
+            Error::DirectoryCreationFailed { path, cause } => {
+                write!(f, "Failed to create directory at {:?}: {}", path, cause)
+            }
+            Error::AssetSymlinkFailed(err) => write!(f, "Assets couldn't be symlinked: {}", err),
+        }
+    }
 }
 
 // TODO: We should verify Android env vars / offer defaults
-pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), ProjectCreationError> {
+pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
     let src = template_pack(Some(config), "android_studio_project").ok_or_else(|| {
-        ProjectCreationError::MissingTemplatePack {
+        Error::MissingTemplatePack {
             name: "android_studio_project",
         }
     })?;
@@ -39,12 +56,14 @@ pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), ProjectCre
                 .collect::<Vec<_>>()
                 .join(", ")
         });
-    })?;
+    })
+    .map_err(Error::TemplateProcessingFailed)?;
     let dest = dest.join("app/src/main/assets/");
-    fs::create_dir_all(&dest).map_err(|error| ProjectCreationError::CreateDirError {
-        tried_to_create: dest.clone(),
-        error,
+    fs::create_dir_all(&dest).map_err(|cause| Error::DirectoryCreationFailed {
+        path: dest.clone(),
+        cause,
     })?;
-    ln::force_symlink_relative(config.asset_path(), dest, ln::TargetStyle::Directory)?;
+    ln::force_symlink_relative(config.asset_path(), dest, ln::TargetStyle::Directory)
+        .map_err(Error::AssetSymlinkFailed)?;
     Ok(())
 }

@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     fs::File,
     io,
     num::ParseIntError,
@@ -72,15 +73,63 @@ pub enum VersionError {
     VersionHadTooFewComponents,
 }
 
+impl fmt::Display for VersionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            VersionError::FailedToOpenSourceProps(err) => {
+                write!(f, "Failed to open \"source.properties\": {}", err)
+            }
+            VersionError::FailedToParseSourceProps(err) => {
+                write!(f, "Failed to parse \"source.properties\": {}", err)
+            }
+            VersionError::VersionMissingFromSourceProps => {
+                write!(f, "No version number was present in \"source.properties\".")
+            }
+            VersionError::VersionComponentNotNumerical(err) => write!(
+                f,
+                "The version contained something that wasn't a valid number: {}",
+                err
+            ),
+            VersionError::VersionHadTooFewComponents => write!(
+                f,
+                "The version number didn't have as many components as expected."
+            ),
+        }
+    }
+}
+
 #[derive(Debug)]
-pub enum EnvError {
+pub enum Error {
     // link to docs/etc.
     NdkHomeNotSet(std::env::VarError),
     NdkHomeNotADir,
-    FailedToGetVersion(VersionError),
-    // "At least NDK r{} is required (you currently have NDK r{})"
-    // the minor version could be used to get a b suffix, too! - should make a version struct
+    VersionLookupFailed(VersionError),
     VersionTooLow { you_have: u32, you_need: u32 },
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::NdkHomeNotSet(err) => write!(
+                f,
+                "The `NDK_HOME` environment variable isn't set, and is required: {}",
+                err
+            ),
+            Error::NdkHomeNotADir => write!(
+                f,
+                "The `NDK_HOME` environment variable is set, but doesn't point to an existing directory."
+            ),
+            Error::VersionLookupFailed(err) => {
+                write!(f, "Failed to lookup version of installed NDK: {}", err)
+            }
+            Error::VersionTooLow { you_have, you_need } => write!(
+                f,
+                // the minor version could be used to get a b suffix, too! - should make a version struct
+                "At least NDK r{} is required (you currently have NDK r{})",
+                you_have, you_need
+            ),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -89,23 +138,23 @@ pub struct Env {
 }
 
 impl Env {
-    pub fn new() -> Result<Self, EnvError> {
+    pub fn new() -> Result<Self, Error> {
         let ndk_home = std::env::var("NDK_HOME")
-            .map_err(EnvError::NdkHomeNotSet)
+            .map_err(Error::NdkHomeNotSet)
             .map(PathBuf::from)
             .and_then(|ndk_home| {
                 if ndk_home.is_dir() {
                     Ok(ndk_home)
                 } else {
-                    Err(EnvError::NdkHomeNotADir)
+                    Err(Error::NdkHomeNotADir)
                 }
             })?;
         let env = Self { ndk_home };
-        let (major, ..) = env.version().map_err(EnvError::FailedToGetVersion)?;
+        let (major, ..) = env.version().map_err(Error::VersionLookupFailed)?;
         if major >= MIN_NDK_VERSION {
             Ok(env)
         } else {
-            Err(EnvError::VersionTooLow {
+            Err(Error::VersionTooLow {
                 you_have: major,
                 you_need: MIN_NDK_VERSION,
             })

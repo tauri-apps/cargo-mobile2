@@ -1,7 +1,7 @@
 use crate::{
     android::config::{Config as AndroidConfig, RawConfig as AndroidRawConfig},
     app_name,
-    ios::config::{Config as IOSConfig, RawConfig as IOSRawConfig},
+    ios::config::{Config as IosConfig, RawConfig as IosRawConfig},
 };
 use heck::SnekCase as _;
 use serde::{Deserialize, Serialize};
@@ -79,12 +79,12 @@ impl fmt::Display for LoadError {
         match self {
             LoadError::DiscoverFailed(err) => write!(
                 f,
-                "failed to canonicalize path while searching for project root: {:#?}",
+                "Failed to canonicalize path while searching for project root: {}",
                 err
             ),
-            LoadError::OpenFailed(err) => write!(f, "failed to open config file: {:#?}", err),
-            LoadError::ReadFailed(err) => write!(f, "failed to read config file: {:#?}", err),
-            LoadError::ParseFailed(err) => write!(f, "failed to parse config file: {:#?}", err),
+            LoadError::OpenFailed(err) => write!(f, "Failed to open config file: {}", err),
+            LoadError::ReadFailed(err) => write!(f, "Failed to read config file: {}", err),
+            LoadError::ParseFailed(err) => write!(f, "Failed to parse config file: {}", err),
         }
     }
 }
@@ -125,7 +125,7 @@ pub fn unprefix_path(
 struct RawConfig {
     global: RawGlobalConfig,
     android: Option<AndroidRawConfig>,
-    ios: IOSRawConfig,
+    ios: IosRawConfig,
 }
 
 /// All paths returned by `Config` methods are prefixed (absolute).
@@ -135,7 +135,7 @@ pub struct Config {
     project_root: PathBuf,
     global: GlobalConfig,
     android: AndroidRawConfig,
-    ios: IOSRawConfig,
+    ios: IosRawConfig,
 }
 
 impl Config {
@@ -236,8 +236,8 @@ impl Config {
         AndroidConfig::from_raw(self, &self.android)
     }
 
-    pub fn ios(&self) -> IOSConfig<'_> {
-        IOSConfig::from_raw(self, &self.ios)
+    pub fn ios(&self) -> IosConfig<'_> {
+        IosConfig::from_raw(self, &self.ios)
     }
 
     pub(crate) fn insert_template_data(&self, map: &mut bicycle::JsonMap) {

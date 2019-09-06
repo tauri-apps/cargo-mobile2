@@ -5,10 +5,10 @@ mod init;
 mod ios;
 mod util;
 
-use self::{android::AndroidCommand, init::InitCommand, ios::IOSCommand};
+use self::{android::AndroidCommand, init::InitCommand, ios::IosCommand};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
-    android::target::Target as AndroidTarget, config::Config, ios::target::Target as IOSTarget,
+    android::target::Target as AndroidTarget, config::Config, ios::target::Target as IosTarget,
     opts::NoiseLevel, target::TargetTrait as _, NAME,
 };
 
@@ -52,7 +52,7 @@ impl CliInput {
 enum Command {
     Init(InitCommand),
     Android(AndroidCommand),
-    IOS(IOSCommand),
+    Ios(IosCommand),
 }
 
 impl Command {
@@ -60,7 +60,7 @@ impl Command {
         match command.name.as_str() {
             "init" => Command::Init(InitCommand::parse(command.matches)),
             "android" => Command::Android(AndroidCommand::parse(command.matches)),
-            "ios" => Command::IOS(IOSCommand::parse(command.matches)),
+            "ios" => Command::Ios(IosCommand::parse(command.matches)),
             _ => unreachable!(), // clap will reject anything else
         }
     }
@@ -93,7 +93,7 @@ fn main() {
         .keys()
         .map(|key| *key)
         .collect::<Vec<_>>();
-    let ios_targets = IOSTarget::all().keys().map(|key| *key).collect::<Vec<_>>();
+    let ios_targets = IosTarget::all().keys().map(|key| *key).collect::<Vec<_>>();
     let app = cli_app(&android_targets, &ios_targets);
     let input = CliInput::parse(app.get_matches_from(args));
     log_init(input.noise_level);
@@ -106,7 +106,7 @@ fn main() {
             let config = config.as_ref().expect("ginit.toml not found");
             command.exec(config, input.noise_level);
         }
-        Command::IOS(command) => {
+        Command::Ios(command) => {
             let config = config.as_ref().expect("ginit.toml not found");
             command.exec(config, input.noise_level);
         }

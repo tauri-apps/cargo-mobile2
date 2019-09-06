@@ -11,16 +11,37 @@ use self::{
 };
 use crate::config::Config;
 use into_result::command::CommandError;
-use std::{fs, io};
+use std::{fmt, fs, io};
 
 #[derive(Debug)]
-pub enum MigrationError {
+pub enum Error {
     BinTargetMoveFailed(io::Error),
     GenDirCreationFailed(io::Error),
     RustDirDeletionFailed(io::Error),
     RustLibMoveFailed(CommandError),
     UserCodeMoveFailed(io::Error),
     UserCodeUpdateFailed(io::Error),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::BinTargetMoveFailed(err) => write!(f, "Failed to move bin target: {}", err),
+            Error::GenDirCreationFailed(err) => {
+                write!(f, "Failed to create \"gen\" directory: {}", err)
+            }
+            Error::RustDirDeletionFailed(err) => {
+                write!(f, "Failed to delete \"rust\" directory: {}", err)
+            }
+            Error::RustLibMoveFailed(err) => {
+                write!(f, "Failed to move \"rust/lib\" to \"rust-lib\": {}", err)
+            }
+            Error::UserCodeMoveFailed(err) => write!(f, "Failed to move user code: {}", err),
+            Error::UserCodeUpdateFailed(err) => {
+                write!(f, "Failed to update user \"Cargo.toml\": {}", err)
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -53,28 +74,27 @@ impl LegacyProject {
         }
     }
 
-    pub fn migrate(self, config: &Config) -> Result<MigratedProject, MigrationError> {
-        fs::create_dir_all(config.app_root().join("gen"))
-            .map_err(MigrationError::GenDirCreationFailed)?;
+    pub fn migrate(self, config: &Config) -> Result<MigratedProject, Error> {
+        fs::create_dir_all(config.app_root().join("gen")).map_err(Error::GenDirCreationFailed)?;
         let bin_target = self
             .bin_target
             .move_to_gen(config)
-            .map_err(MigrationError::BinTargetMoveFailed)?;
+            .map_err(Error::BinTargetMoveFailed)?;
         let rust_lib = self
             .rust_lib
             .move_to_root(config)
-            .map_err(MigrationError::RustLibMoveFailed)?;
+            .map_err(Error::RustLibMoveFailed)?;
         let user_code = self
             .user_code
             .move_to_root(config)
-            .map_err(MigrationError::UserCodeMoveFailed)?;
+            .map_err(Error::UserCodeMoveFailed)?;
         let rust_dir = self
             .rust_dir
             .delete(config, &bin_target, &rust_lib, &user_code)
-            .map_err(MigrationError::RustDirDeletionFailed)?;
+            .map_err(Error::RustDirDeletionFailed)?;
         let user_code = user_code
             .update_cargo_toml(config)
-            .map_err(MigrationError::UserCodeUpdateFailed)?;
+            .map_err(Error::UserCodeUpdateFailed)?;
         Ok(MigratedProject {
             bin_target,
             rust_dir,

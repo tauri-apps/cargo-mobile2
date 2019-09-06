@@ -1,22 +1,48 @@
 use crate::{config::Config, opts::Clobbering, templating::template_pack, util};
 use into_result::command::CommandError;
 use regex::Regex;
-use std::{ffi::OsStr, io, path::Path};
+use std::{ffi::OsStr, fmt, io, path::Path};
 
-#[derive(Debug, derive_more::From)]
-pub enum ProjectCreationError {
-    MissingTemplatePack,
-    TemplateTraversalError(bicycle::TraversalError),
-    TemplateProcessingError(bicycle::ProcessingError),
-    GitInitError(CommandError),
-    GitSubmoduleStatusError(io::Error),
-    GitSubmoduleAddError(CommandError),
-    GitSubmoduleInitError(CommandError),
+#[derive(Debug)]
+pub enum Error {
+    MissingTemplatePack { name: &'static str },
+    TemplateTraversalFailed(bicycle::TraversalError),
+    TemplateProcessingFailed(bicycle::ProcessingError),
+    GitInitFailed(CommandError),
+    GitSubmoduleStatusFailed { name: String, cause: io::Error },
+    GitSubmoduleAddFailed { name: String, cause: CommandError },
+    GitSubmoduleInitFailed { name: String, cause: CommandError },
 }
 
-pub fn git_init(root: &Path) -> Result<(), ProjectCreationError> {
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::MissingTemplatePack { name } => {
+                write!(f, "The {:?} template pack is missing.", name)
+            }
+            Error::TemplateTraversalFailed(err) => write!(f, "Template traversal failed: {}", err),
+            Error::TemplateProcessingFailed(err) => {
+                write!(f, "Template processing failed: {}", err)
+            }
+            Error::GitInitFailed(err) => write!(f, "Failed to initialize git: {}", err),
+            Error::GitSubmoduleStatusFailed { name, cause } => write!(
+                f,
+                "Failed to check \".gitmodules\" for submodule {:?}: {}",
+                name, cause,
+            ),
+            Error::GitSubmoduleAddFailed { name, cause } => {
+                write!(f, "Failed to add submodule {:?}: {}", name, cause)
+            }
+            Error::GitSubmoduleInitFailed { name, cause } => {
+                write!(f, "Failed to init submodule {:?}: {}", name, cause)
+            }
+        }
+    }
+}
+
+pub fn git_init(root: &Path) -> Result<(), Error> {
     if !root.join(".git").exists() {
-        util::git(&root, &["init"]).map_err(ProjectCreationError::GitInitError)?;
+        util::git(&root, &["init"]).map_err(Error::GitInitFailed)?;
     }
     Ok(())
 }
@@ -39,9 +65,12 @@ pub fn submodule_init(
     name: &str,
     remote: &str,
     path: impl AsRef<OsStr>,
-) -> Result<(), ProjectCreationError> {
+) -> Result<(), Error> {
     let submodule_exists =
-        submodule_exists(root, name).map_err(ProjectCreationError::GitSubmoduleStatusError)?;
+        submodule_exists(root, name).map_err(|cause| Error::GitSubmoduleStatusFailed {
+            name: name.to_owned(),
+            cause,
+        })?;
     if !submodule_exists {
         let path = config
             .unprefix_path(config.app_root())
@@ -52,9 +81,16 @@ pub fn submodule_init(
             &root,
             &["submodule", "add", "--name", name, remote, path_str],
         )
-        .map_err(ProjectCreationError::GitSubmoduleAddError)?;
-        util::git(&root, &["submodule", "update", "--init", "--recursive"])
-            .map_err(ProjectCreationError::GitSubmoduleInitError)?;
+        .map_err(|cause| Error::GitSubmoduleAddFailed {
+            name: name.to_owned(),
+            cause,
+        })?;
+        util::git(&root, &["submodule", "update", "--init", "--recursive"]).map_err(|cause| {
+            Error::GitSubmoduleInitFailed {
+                name: name.to_owned(),
+                cause,
+            }
+        })?;
     }
     Ok(())
 }
@@ -63,7 +99,7 @@ pub fn hello_world(
     config: &Config,
     bike: &bicycle::Bicycle,
     clobbering: Clobbering,
-) -> Result<(), ProjectCreationError> {
+) -> Result<(), Error> {
     let dest = config.project_root();
     git_init(&dest)?;
     submodule_init(
@@ -80,16 +116,19 @@ pub fn hello_world(
         map.insert("app_root", &app_root);
     };
     let actions = bicycle::traverse(
-        template_pack(Some(config), "rust_lib_app")
-            .ok_or_else(|| ProjectCreationError::MissingTemplatePack)?,
+        template_pack(Some(config), "rust_lib_app").ok_or_else(|| Error::MissingTemplatePack {
+            name: "rust_lib_app",
+        })?,
         &dest,
         |path| bike.transform_path(path, insert_data),
-    )?;
+    )
+    .map_err(Error::TemplateTraversalFailed)?;
     // Prevent clobbering
     let actions = actions
         .iter()
         .filter(|action| clobbering.is_allowed() || !action.dest().exists());
-    bike.process_actions(actions, insert_data)?;
+    bike.process_actions(actions, insert_data)
+        .map_err(Error::TemplateProcessingFailed)?;
 
     Ok(())
 }

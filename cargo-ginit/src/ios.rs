@@ -42,7 +42,7 @@ pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
 }
 
 #[derive(Debug)]
-pub enum IOSCommand {
+pub enum IosCommand {
     Check {
         targets: Vec<String>,
     },
@@ -60,21 +60,21 @@ pub enum IOSCommand {
     },
 }
 
-impl IOSCommand {
+impl IosCommand {
     pub fn parse(matches: ArgMatches<'_>) -> Self {
         let subcommand = matches.subcommand.as_ref().unwrap(); // clap makes sure we got a subcommand
         match subcommand.name.as_str() {
-            "check" => IOSCommand::Check {
+            "check" => IosCommand::Check {
                 targets: parse_targets(&subcommand.matches),
             },
-            "build" => IOSCommand::Build {
+            "build" => IosCommand::Build {
                 targets: parse_targets(&subcommand.matches),
                 profile: parse_profile(&subcommand.matches),
             },
-            "run" => IOSCommand::Run {
+            "run" => IosCommand::Run {
                 profile: parse_profile(&subcommand.matches),
             },
-            "compile-lib" => IOSCommand::CompileLib {
+            "compile-lib" => IosCommand::CompileLib {
                 macos: subcommand.matches.is_present("macos"),
                 arch: subcommand.matches.value_of("ARCH").unwrap().into(), // unwrap is fine, since clap makes sure we have this
                 profile: parse_profile(&subcommand.matches),
@@ -86,19 +86,19 @@ impl IOSCommand {
     pub fn exec(self, config: &Config, noise_level: NoiseLevel) {
         let env = Env::new().expect("failed to init iOS env");
         match self {
-            IOSCommand::Check { targets } => call_for_targets(targets.iter(), |target: &Target| {
+            IosCommand::Check { targets } => call_for_targets(targets.iter(), |target: &Target| {
                 target.check(config, &env, noise_level)
             }),
-            IOSCommand::Build { targets, profile } => {
+            IosCommand::Build { targets, profile } => {
                 call_for_targets(targets.iter(), |target: &Target| {
                     target.build(config, &env, profile)
                 })
             }
-            IOSCommand::Run { profile } => {
+            IosCommand::Run { profile } => {
                 // TODO: this isn't simulator-friendly, among other things
                 Target::default_ref().run(config, &env, profile)
             }
-            IOSCommand::CompileLib {
+            IosCommand::CompileLib {
                 macos,
                 arch,
                 profile,
