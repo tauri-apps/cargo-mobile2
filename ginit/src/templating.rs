@@ -1,6 +1,6 @@
 use crate::config::{self, Config};
 use bicycle::{
-    handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContext},
+    handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderError},
     Bicycle, EscapeFn, HelperDef, JsonMap,
 };
 use std::{
@@ -15,12 +15,14 @@ fn path<'a>(helper: &'a Helper) -> &'a str {
         .unwrap_or("")
 }
 
-fn project_root<'a>(ctx: &'a Context) -> &'a str {
-    ctx.data()
+fn project_root<'a>(ctx: &'a Context) -> Result<&'a str, RenderError> {
+    let project_root = ctx
+        .data()
         .get("project_root")
-        .expect("project root missing from template data")
+        .ok_or_else(|| RenderError::new("`project_root` missing from template data."))?;
+    project_root
         .as_str()
-        .expect("project root wasn't a string")
+        .ok_or_else(|| RenderError::new("`project_root` contained invalid UTF-8."))
 }
 
 fn prefix_path(
@@ -31,9 +33,13 @@ fn prefix_path(
     out: &mut dyn Output,
 ) -> HelperResult {
     out.write(
-        config::prefix_path(project_root(ctx), path(helper))
+        config::prefix_path(project_root(ctx)?, path(helper))
             .to_str()
-            .expect("either project root or path contained invalid utf-8"),
+            .ok_or_else(|| {
+                RenderError::new(
+                    "Either the `project_root` or the specified path contained invalid UTF-8.",
+                )
+            })?,
     )
     .map_err(Into::into)
 }
@@ -46,10 +52,16 @@ fn unprefix_path(
     out: &mut dyn Output,
 ) -> HelperResult {
     out.write(
-        config::unprefix_path(project_root(ctx), path(helper))
-            .expect("attempted to unprefix a path that wasn't in the project")
+        config::unprefix_path(project_root(ctx)?, path(helper))
+            .map_err(|_| {
+                RenderError::new("Attempted to unprefix a path that wasn't in the project.")
+            })?
             .to_str()
-            .expect("either project root or path contained invalid utf-8"),
+            .ok_or_else(|| {
+                RenderError::new(
+                    "Either the `project_root` or the specified path contained invalid UTF-8.",
+                )
+            })?,
     )
     .map_err(Into::into)
 }
