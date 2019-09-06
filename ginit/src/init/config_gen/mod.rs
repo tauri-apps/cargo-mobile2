@@ -46,6 +46,7 @@ pub enum Error {
     DomainPromptFailed(io::Error),
     DevelopmentTeamLookupFailed(ios::teams::Error),
     DevelopmentTeamPromptFailed(io::Error),
+    ConfigTemplateMissing,
     ConfigRenderFailed(bicycle::ProcessingError),
 }
 
@@ -66,6 +67,7 @@ impl fmt::Display for Error {
             Error::DevelopmentTeamPromptFailed(err) => {
                 write!(f, "Failed to prompt for development team: {}", err)
             }
+            Error::ConfigTemplateMissing => write!(f, "Missing \"{}.toml\" template.", crate::NAME),
             Error::ConfigRenderFailed(err) => write!(f, "Failed to render config file: {}", err),
         }
     }
@@ -155,7 +157,8 @@ pub fn interactive_config_gen(
             .unwrap_or_else(|| team_input)
     };
     bike.process(
-        template_pack(None, "{{tool_name}}.toml.hbs").expect("missing config template"),
+        template_pack(None, "{{tool_name}}.toml.hbs")
+            .ok_or_else(|| Error::ConfigTemplateMissing)?,
         &cwd,
         |map| {
             map.insert("app_name", &app_name);
