@@ -1,17 +1,39 @@
 use crate::{config::Config, opts::Clobbering, templating::template_pack, util};
 use into_result::command::CommandError;
 use regex::Regex;
-use std::{ffi::OsStr, fmt, io, path::Path};
+use std::{
+    ffi::OsStr,
+    fmt, io,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug)]
 pub enum Error {
-    MissingTemplatePack { name: &'static str },
+    MissingTemplatePack {
+        name: &'static str,
+    },
     TemplateTraversalFailed(bicycle::TraversalError),
     TemplateProcessingFailed(bicycle::ProcessingError),
     GitInitFailed(CommandError),
-    GitSubmoduleStatusFailed { name: String, cause: io::Error },
-    GitSubmoduleAddFailed { name: String, cause: CommandError },
-    GitSubmoduleInitFailed { name: String, cause: CommandError },
+    GitSubmoduleStatusFailed {
+        name: String,
+        cause: io::Error,
+    },
+    AppRootOutsideProject {
+        app_root: PathBuf,
+        project_root: PathBuf,
+    },
+    AppRootInvalidUtf8 {
+        app_root: PathBuf,
+    },
+    GitSubmoduleAddFailed {
+        name: String,
+        cause: CommandError,
+    },
+    GitSubmoduleInitFailed {
+        name: String,
+        cause: CommandError,
+    },
 }
 
 impl fmt::Display for Error {
@@ -30,6 +52,12 @@ impl fmt::Display for Error {
                 "Failed to check \".gitmodules\" for submodule {:?}: {}",
                 name, cause,
             ),
+            Error::AppRootOutsideProject { app_root, project_root } => write!(
+                f,
+                "The app root ({:?}) is outside of the project root ({:?}), which is pretty darn invalid.",
+                app_root, project_root
+            ),
+            Error::AppRootInvalidUtf8 { app_root } => write!(f, "The app root ({:?}) contains invalid UTF-8.", app_root),
             Error::GitSubmoduleAddFailed { name, cause } => {
                 write!(f, "Failed to add submodule {:?}: {}", name, cause)
             }
@@ -74,9 +102,14 @@ pub fn submodule_init(
     if !submodule_exists {
         let path = config
             .unprefix_path(config.app_root())
-            .expect("`app_root` outside of the project")
+            .map_err(|_| Error::AppRootOutsideProject {
+                app_root: config.app_root(),
+                project_root: config.project_root().to_owned(),
+            })?
             .join(path.as_ref());
-        let path_str = path.to_str().expect("`app_root` contained invalid unicode");
+        let path_str = path.to_str().ok_or_else(|| Error::AppRootInvalidUtf8 {
+            app_root: config.app_root(),
+        })?;
         util::git(
             &root,
             &["submodule", "add", "--name", name, remote, path_str],

@@ -26,8 +26,10 @@ pub enum Error {
     CargoConfigGenFailed(cargo::GenError),
     CargoConfigWriteFailed(cargo::WriteError),
     HelloWorldGenFailed(rust::Error),
+    AndroidRustupFailed(CommandError),
     AndroidGenFailed(android::project::Error),
     IosDepsFailed(IosDepsError),
+    IosRustupFailed(CommandError),
     IosGenFailed(ios::project::Error),
 }
 
@@ -51,10 +53,14 @@ impl fmt::Display for Error {
             Error::HelloWorldGenFailed(err) => {
                 write!(f, "Failed to generate hello world project: {}", err)
             }
+            Error::AndroidRustupFailed(err) => {
+                write!(f, "Failed to `rustup` Android toolchains: {}", err)
+            }
             Error::AndroidGenFailed(err) => {
                 write!(f, "Failed to generate Android project: {}", err)
             }
             Error::IosDepsFailed(err) => write!(f, "Failed to install iOS dependencies: {}", err),
+            Error::IosRustupFailed(err) => write!(f, "Failed to `rustup` iOS toolchains: {}", err),
             Error::IosGenFailed(err) => write!(f, "Failed to generate iOS project: {}", err),
         }
     }
@@ -114,7 +120,7 @@ your project in case things explode. You've been warned! 💀
     if steps.contains(Steps::ANDROID) {
         if steps.contains(Steps::TOOLCHAINS) {
             for target in android::target::Target::all().values() {
-                target.rustup_add();
+                target.rustup_add().map_err(Error::AndroidRustupFailed)?;
             }
         }
         android::project::create(config, bike).map_err(Error::AndroidGenFailed)?;
@@ -125,7 +131,7 @@ your project in case things explode. You've been warned! 💀
         }
         if steps.contains(Steps::TOOLCHAINS) {
             for target in ios::target::Target::all().values() {
-                target.rustup_add();
+                target.rustup_add().map_err(Error::IosRustupFailed)?;
             }
         }
         ios::project::create(config, bike).map_err(Error::IosGenFailed)?;

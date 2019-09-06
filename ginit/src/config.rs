@@ -101,7 +101,7 @@ impl fmt::Display for UnprefixPathError {
         match self {
             UnprefixPathError::PathNotPrefixed => write!(
                 f,
-                "attempted to remove the project path prefix from a path that wasn't in the project"
+                "Attempted to remove the project path prefix from a path that wasn't in the project."
             ),
         }
     }
