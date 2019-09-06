@@ -48,7 +48,7 @@ impl fmt::Display for Invalid {
                 "\"{}\" contains {}, but only lowercase letters, numbers, hyphens, and underscores are allowed.",
                 app_name,
                 util::list_display(
-                    &naughty_chars.iter().map(|c| format!("{:?}", c)).collect::<Vec<_>>()
+                    &naughty_chars.iter().map(|c| format!("'{}'", c)).collect::<Vec<_>>()
                 ),
             )?,
         }
