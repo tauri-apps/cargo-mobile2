@@ -35,7 +35,7 @@ pub struct GlobalConfig {
 }
 
 impl GlobalConfig {
-    fn from_raw(raw_config: RawGlobalConfig) -> Self {
+    fn from_raw(raw_config: RawGlobalConfig) -> Result<Self, app_name::Invalid> {
         if raw_config.source_root.is_some() {
             log::warn!("`global.source_root` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
         }
@@ -45,8 +45,8 @@ impl GlobalConfig {
         if raw_config.asset_path.is_some() {
             log::warn!("`global.asset_path` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
         }
-        Self {
-            app_name: app_name::validate(raw_config.app_name).expect("`global.app_name` invalid"),
+        Ok(Self {
+            app_name: app_name::validate(raw_config.app_name)?,
             stylized_app_name: raw_config.stylized_app_name,
             domain: raw_config.domain,
             app_root: raw_config.app_root.map(|app_root| {
@@ -62,7 +62,7 @@ impl GlobalConfig {
                 );
                 DEFAULT_APP_ROOT.to_owned()
             }),
-        }
+        })
     }
 }
 
@@ -72,6 +72,7 @@ pub enum LoadError {
     OpenFailed(io::Error),
     ReadFailed(io::Error),
     ParseFailed(toml::de::Error),
+    AppNameInvalid(app_name::Invalid),
 }
 
 impl fmt::Display for LoadError {
@@ -85,6 +86,7 @@ impl fmt::Display for LoadError {
             LoadError::OpenFailed(err) => write!(f, "Failed to open config file: {}", err),
             LoadError::ReadFailed(err) => write!(f, "Failed to read config file: {}", err),
             LoadError::ParseFailed(err) => write!(f, "Failed to parse config file: {}", err),
+            LoadError::AppNameInvalid(err) => write!(f, "`global.app_name` invalid: {}", err),
         }
     }
 }
@@ -139,13 +141,13 @@ pub struct Config {
 }
 
 impl Config {
-    fn from_raw(project_root: PathBuf, raw_config: RawConfig) -> Self {
-        Self {
+    fn from_raw(project_root: PathBuf, raw_config: RawConfig) -> Result<Self, app_name::Invalid> {
+        Ok(Self {
             project_root,
-            global: GlobalConfig::from_raw(raw_config.global),
+            global: GlobalConfig::from_raw(raw_config.global)?,
             android: raw_config.android.unwrap_or_default(),
             ios: raw_config.ios,
-        }
+        })
     }
 
     fn discover_root(cwd: impl AsRef<Path>) -> io::Result<Option<PathBuf>> {
@@ -173,7 +175,9 @@ impl Config {
             file.read_to_end(&mut contents)
                 .map_err(LoadError::ReadFailed)?;
             let raw_config = toml::from_slice(&contents).map_err(LoadError::ParseFailed)?;
-            Ok(Some(Self::from_raw(project_root, raw_config)))
+            Ok(Some(
+                Self::from_raw(project_root, raw_config).map_err(LoadError::AppNameInvalid)?,
+            ))
         } else {
             Ok(None)
         }
