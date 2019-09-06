@@ -19,6 +19,35 @@ use std::{
     process::{Command, Stdio},
 };
 
+#[derive(Debug)]
+pub enum BuildTextWrapperError {
+    HyphenationLoadFailed(hyphenation::load::Error),
+}
+
+impl fmt::Display for BuildTextWrapperError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            BuildTextWrapperError::HyphenationLoadFailed(err) => write!(
+                f,
+                "Failed to load hyphenation standard for \"en-US\": {}",
+                err
+            ),
+        }
+    }
+}
+
+pub type TextWrapper = textwrap::Wrapper<'static, hyphenation::Standard>;
+
+pub fn build_text_wrapper() -> Result<TextWrapper, BuildTextWrapperError> {
+    use hyphenation::Load as _;
+    let dictionary = hyphenation::Standard::from_embedded(hyphenation::Language::EnglishUS)
+        .map_err(BuildTextWrapperError::HyphenationLoadFailed)?;
+    Ok(TextWrapper::with_splitter(
+        textwrap::termwidth(),
+        dictionary,
+    ))
+}
+
 pub fn list_display(list: &[impl fmt::Display]) -> String {
     if list.len() == 1 {
         list[0].to_string()
@@ -70,16 +99,6 @@ where
 {
     fn friendly_contains(&self, value: &str) -> bool {
         self.iter().any(|item| value == item)
-    }
-}
-
-#[repr(transparent)]
-#[derive(Clone, Copy, Debug)]
-pub struct ExitCode(pub i32);
-
-impl ExitCode {
-    pub fn exit(self) -> ! {
-        std::process::exit(self.0)
     }
 }
 

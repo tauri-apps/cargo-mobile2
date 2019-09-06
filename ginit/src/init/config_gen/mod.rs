@@ -1,10 +1,13 @@
 mod domain_blacklist;
 
 use self::domain_blacklist::DOMAIN_BLACKLIST;
-use crate::{app_name, ios, templating::template_pack, util::prompt};
+use crate::{
+    app_name, ios,
+    templating::template_pack,
+    util::{self, prompt},
+};
 use colored::*;
 use heck::{KebabCase as _, TitleCase as _};
-use hyphenation::Load as _;
 use into_result::{command::CommandError, IntoResult as _};
 use std::{env, fmt, io, process::Command, str};
 
@@ -68,11 +71,10 @@ impl fmt::Display for Error {
     }
 }
 
-pub fn interactive_config_gen(bike: &bicycle::Bicycle) -> Result<(), Error> {
-    let dictionary = hyphenation::Standard::from_embedded(hyphenation::Language::EnglishUS)
-        .expect("Failed to load dictionary");
-    let wrapper = textwrap::Wrapper::with_splitter(textwrap::termwidth(), dictionary);
-
+pub fn interactive_config_gen(
+    bike: &bicycle::Bicycle,
+    wrapper: &util::TextWrapper,
+) -> Result<(), Error> {
     let cwd = env::current_dir().map_err(Error::CurrentDirFailed)?;
     let app_name = {
         let mut default_app_name =
