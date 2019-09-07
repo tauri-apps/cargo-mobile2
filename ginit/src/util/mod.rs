@@ -20,14 +20,14 @@ use std::{
 };
 
 #[derive(Debug)]
-pub enum BuildTextWrapperError {
+pub enum InitTextWrapperError {
     HyphenationLoadFailed(hyphenation::load::Error),
 }
 
-impl fmt::Display for BuildTextWrapperError {
+impl fmt::Display for InitTextWrapperError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            BuildTextWrapperError::HyphenationLoadFailed(err) => write!(
+            InitTextWrapperError::HyphenationLoadFailed(err) => write!(
                 f,
                 "Failed to load hyphenation standard for \"en-US\": {}",
                 err
@@ -38,10 +38,10 @@ impl fmt::Display for BuildTextWrapperError {
 
 pub type TextWrapper = textwrap::Wrapper<'static, hyphenation::Standard>;
 
-pub fn build_text_wrapper() -> Result<TextWrapper, BuildTextWrapperError> {
+pub fn init_text_wrapper() -> Result<TextWrapper, InitTextWrapperError> {
     use hyphenation::Load as _;
     let dictionary = hyphenation::Standard::from_embedded(hyphenation::Language::EnglishUS)
-        .map_err(BuildTextWrapperError::HyphenationLoadFailed)?;
+        .map_err(InitTextWrapperError::HyphenationLoadFailed)?;
     Ok(TextWrapper::with_splitter(
         textwrap::termwidth(),
         dictionary,

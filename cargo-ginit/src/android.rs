@@ -1,10 +1,15 @@
 use crate::util::{parse_profile, parse_targets, take_a_target_list};
 use clap::{App, AppSettings, ArgMatches, SubCommand};
 use ginit::{
-    android::{env::Env, target::Target},
+    android::{
+        env::{Env, Error as EnvError},
+        target::{
+            BuildError, CompileLibError, ConnectedTargetError, RunError, StacktraceError, Target,
+        },
+    },
     config::Config,
     opts::NoiseLevel,
-    target::{call_for_targets_with_fallback, Profile},
+    target::{call_for_targets_with_fallback, Profile, TargetInvalid},
 };
 
 pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
@@ -35,6 +40,17 @@ pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
                 .display_order(3)
                 .about("Displays a detailed stacktrace for a target"),
         )
+}
+
+#[derive(Debug)]
+pub enum Error {
+    EnvInitFailed(EnvError),
+    TargetDetectionFailed(ConnectedTargetError),
+    TargetInvalid(TargetInvalid),
+    CheckFailed(CompileLibError),
+    BuildFailed(BuildError),
+    RunFailed(RunError),
+    StacktraceFailed(StacktraceError),
 }
 
 #[derive(Debug)]
@@ -71,39 +87,49 @@ impl AndroidCommand {
         }
     }
 
-    pub fn exec(self, config: &Config, noise_level: NoiseLevel) {
-        fn try_detect_target<'a>(env: &Env) -> Option<&'a Target<'a>> {
-            let target = Target::for_connected(env)
-                .ok()
-                .and_then(std::convert::identity);
-            if let Some(target) = target {
+    pub fn exec(self, config: &Config, noise_level: NoiseLevel) -> Result<(), Error> {
+        fn detect_target<'a>(env: &Env) -> Result<&'a Target<'a>, Error> {
+            let target = Target::for_connected(env).map_err(Error::TargetDetectionFailed);
+            if let Ok(target) = target {
                 println!("Detected target for connected device: {}", target.triple);
             }
             target
         }
 
-        fn detect_target<'a>(env: &Env) -> &'a Target<'a> {
-            try_detect_target(env).expect("Failed to detect target for connected device")
+        fn detect_target_ok<'a>(env: &Env) -> Option<&'a Target<'a>> {
+            detect_target(env).ok()
         }
 
-        let env = Env::new().expect("Failed to init Android env");
+        let env = Env::new().map_err(Error::EnvInitFailed)?;
         match self {
             AndroidCommand::Check { targets } => call_for_targets_with_fallback(
                 targets.iter(),
-                &try_detect_target,
+                &detect_target_ok,
                 &env,
-                |target: &Target| target.check(config, &env, noise_level),
-            ),
+                |target: &Target| {
+                    target
+                        .check(config, &env, noise_level)
+                        .map_err(Error::CheckFailed)
+                },
+            )
+            .map_err(Error::TargetInvalid)?,
             AndroidCommand::Build { targets, profile } => call_for_targets_with_fallback(
                 targets.iter(),
-                &try_detect_target,
+                &detect_target_ok,
                 &env,
-                |target: &Target| target.build(config, &env, noise_level, profile),
-            ),
-            AndroidCommand::Run { profile } => {
-                detect_target(&env).run(config, &env, noise_level, profile)
-            }
-            AndroidCommand::Stacktrace => detect_target(&env).stacktrace(config, &env),
+                |target: &Target| {
+                    target
+                        .build(config, &env, noise_level, profile)
+                        .map_err(Error::BuildFailed)
+                },
+            )
+            .map_err(Error::TargetInvalid)?,
+            AndroidCommand::Run { profile } => detect_target(&env)?
+                .run(config, &env, noise_level, profile)
+                .map_err(Error::RunFailed),
+            AndroidCommand::Stacktrace => detect_target(&env)?
+                .stacktrace(config, &env)
+                .map_err(Error::StacktraceFailed),
         }
     }
 }

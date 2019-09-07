@@ -8,8 +8,9 @@ mod util;
 use self::{android::AndroidCommand, init::InitCommand, ios::IosCommand};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
-    android::target::Target as AndroidTarget, config::Config, ios::target::Target as IosTarget,
-    opts::NoiseLevel, target::TargetTrait as _, NAME,
+    android::target::Target as AndroidTarget, config::Config,
+    init::config_gen::interactive_config_gen, ios::target::Target as IosTarget, opts::NoiseLevel,
+    target::TargetTrait as _, templating, util::init_text_wrapper, NAME,
 };
 
 fn cli_app<'a, 'b>(android_targets: &'a [&'a str], ios_targets: &'a [&'a str]) -> App<'a, 'b> {
@@ -97,18 +98,29 @@ fn main() {
     let app = cli_app(&android_targets, &ios_targets);
     let input = CliInput::parse(app.get_matches_from(args));
     log_init(input.noise_level);
-    let config = Config::load(".").expect("failed to load config");
+    let config = Config::load(".")
+        .expect("failed to load config")
+        .unwrap_or_else(|| {
+            let old_bike = templating::init(None);
+            let wrapper = init_text_wrapper().expect("failed to init text wrapper");
+            interactive_config_gen(&old_bike, &wrapper).expect("config gen failed");
+            Config::load(".")
+                .expect("failed to load config")
+                .expect("no config found - did generation fail?")
+        });
     match input.command {
         Command::Init(command) => {
-            command.exec(config.as_ref());
+            command.exec(&config).expect("init exec failed");
         }
         Command::Android(command) => {
-            let config = config.as_ref().expect("ginit.toml not found");
-            command.exec(config, input.noise_level);
+            command
+                .exec(&config, input.noise_level)
+                .expect("android exec failed");
         }
         Command::Ios(command) => {
-            let config = config.as_ref().expect("ginit.toml not found");
-            command.exec(config, input.noise_level);
+            command
+                .exec(&config, input.noise_level)
+                .expect("ios exec failed");
         }
     }
 }

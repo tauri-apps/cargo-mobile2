@@ -2,10 +2,10 @@ use crate::util::{parse_profile, parse_targets, take_a_target_list};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
     config::Config,
-    env::Env,
-    ios::target::Target,
+    env::{Env, Error as EnvError},
+    ios::target::{BuildError, CheckError, CompileLibError, RunError, Target},
     opts::NoiseLevel,
-    target::{call_for_targets, Profile, TargetTrait as _},
+    target::{call_for_targets, Profile, TargetInvalid, TargetTrait as _},
 };
 
 pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
@@ -39,6 +39,17 @@ pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
                 .arg(Arg::with_name("ARCH").index(1).required(true))
                 .arg_from_usage("--release 'Build with release optimizations'"),
         )
+}
+
+#[derive(Debug)]
+pub enum Error {
+    EnvInitFailed(EnvError),
+    TargetInvalid(TargetInvalid),
+    CheckFailed(CheckError),
+    BuildFailed(BuildError),
+    RunFailed(RunError),
+    ArchInvalid { arch: String },
+    CompileLibFailed(CompileLibError),
 }
 
 #[derive(Debug)]
@@ -83,20 +94,28 @@ impl IosCommand {
         }
     }
 
-    pub fn exec(self, config: &Config, noise_level: NoiseLevel) {
-        let env = Env::new().expect("failed to init iOS env");
+    pub fn exec(self, config: &Config, noise_level: NoiseLevel) -> Result<(), Error> {
+        let env = Env::new().map_err(Error::EnvInitFailed)?;
         match self {
             IosCommand::Check { targets } => call_for_targets(targets.iter(), |target: &Target| {
-                target.check(config, &env, noise_level)
-            }),
+                target
+                    .check(config, &env, noise_level)
+                    .map_err(Error::CheckFailed)
+            })
+            .map_err(Error::TargetInvalid)?,
             IosCommand::Build { targets, profile } => {
                 call_for_targets(targets.iter(), |target: &Target| {
-                    target.build(config, &env, profile)
+                    target
+                        .build(config, &env, profile)
+                        .map_err(Error::BuildFailed)
                 })
+                .map_err(Error::TargetInvalid)?
             }
             IosCommand::Run { profile } => {
                 // TODO: this isn't simulator-friendly, among other things
-                Target::default_ref().run(config, &env, profile)
+                Target::default_ref()
+                    .run(config, &env, profile)
+                    .map_err(Error::RunFailed)
             }
             IosCommand::CompileLib {
                 macos,
@@ -105,9 +124,12 @@ impl IosCommand {
             } => match macos {
                 true => Target::macos().compile_lib(config, noise_level, profile),
                 false => Target::for_arch(&arch)
-                    .expect("Invalid architecture")
+                    .ok_or_else(|| Error::ArchInvalid {
+                        arch: arch.to_owned(),
+                    })?
                     .compile_lib(config, noise_level, profile),
-            },
+            }
+            .map_err(Error::CompileLibFailed),
         }
     }
 }

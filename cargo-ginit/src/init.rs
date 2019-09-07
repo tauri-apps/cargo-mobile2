@@ -3,12 +3,12 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use ginit::{
     config::Config,
     init::{
-        config_gen::interactive_config_gen,
         init,
         steps::{Steps, STEPS},
+        Error,
     },
     opts::Clobbering,
-    templating::init_templating,
+    templating,
 };
 
 pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
@@ -60,20 +60,8 @@ impl InitCommand {
         }
     }
 
-    pub fn exec(self, config: Option<&Config>) {
-        let new_config = if config.is_none() {
-            let old_bike = init_templating(None);
-            interactive_config_gen(&old_bike);
-            Some(
-                Config::load(".")
-                    .expect("failed to load config")
-                    .expect("no config found - did generation fail?"),
-            )
-        } else {
-            None
-        };
-        let config = config.unwrap_or_else(|| new_config.as_ref().unwrap());
-        let new_bike = init_templating(Some(&config));
-        init(&config, &new_bike, self.clobbering, self.only, self.skip);
+    pub fn exec(self, config: &Config) -> Result<(), Error> {
+        let bike = templating::init(Some(config));
+        init(config, &bike, self.clobbering, self.only, self.skip)
     }
 }

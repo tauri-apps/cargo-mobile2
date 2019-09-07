@@ -53,12 +53,12 @@ pub trait TargetTrait<'a>: Sized {
 }
 
 #[derive(Debug)]
-pub struct TargetInvalid<'a> {
+pub struct TargetInvalid {
     name: String,
-    possible: Vec<&'a str>,
+    possible: Vec<String>,
 }
 
-impl fmt::Display for TargetInvalid<'_> {
+impl fmt::Display for TargetInvalid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -72,7 +72,7 @@ pub fn get_targets<'a, Iter, I, T, U>(
     targets: Iter,
     // we use `dyn` so the type doesn't need to be known when this is `None`
     fallback: Option<(&'a dyn Fn(U) -> Option<&'a T>, U)>,
-) -> Result<Vec<&'a T>, TargetInvalid<'a>>
+) -> Result<Vec<&'a T>, TargetInvalid>
 where
     Iter: ExactSizeIterator<Item = &'a I>,
     I: AsRef<str> + 'a,
@@ -84,7 +84,7 @@ where
             .map(|name| {
                 T::for_name(name.as_ref()).ok_or_else(|| TargetInvalid {
                     name: name.as_ref().to_owned(),
-                    possible: T::all().keys().cloned().collect(),
+                    possible: T::all().keys().map(|key| key.to_string()).collect(),
                 })
             })
             .collect::<Result<_, _>>()?
@@ -99,35 +99,40 @@ where
     })
 }
 
-pub fn call_for_targets_with_fallback<'a, Iter, I, T, U, F>(
+pub fn call_for_targets_with_fallback<'a, Iter, I, T, U, E, F>(
     targets: Iter,
     fallback: &'a dyn Fn(U) -> Option<&'a T>,
     arg: U,
     f: F,
-) -> Result<(), TargetInvalid<'a>>
+) -> Result<Result<(), E>, TargetInvalid>
 where
     Iter: ExactSizeIterator<Item = &'a I>,
     I: AsRef<str> + 'a,
     T: TargetTrait<'a>,
-    F: Fn(&T),
+    F: Fn(&T) -> Result<(), E>,
 {
-    let targets = get_targets(targets, Some((fallback, arg)))?;
-    for target in targets {
-        f(target);
-    }
-    Ok(())
+    get_targets(targets, Some((fallback, arg))).map(|targets| {
+        for target in targets {
+            f(target)?;
+        }
+        Ok(())
+    })
 }
 
-pub fn call_for_targets<'a, Iter, I, T, F>(targets: Iter, f: F) -> Result<(), TargetInvalid<'a>>
+pub fn call_for_targets<'a, Iter, I, T, E, F>(
+    targets: Iter,
+    f: F,
+) -> Result<Result<(), E>, TargetInvalid>
 where
     Iter: ExactSizeIterator<Item = &'a I>,
     I: AsRef<str> + 'a,
     T: TargetTrait<'a> + 'a,
-    F: Fn(&T),
+    F: Fn(&T) -> Result<(), E>,
 {
-    let targets = get_targets::<_, _, _, ()>(targets, None)?;
-    for target in targets {
-        f(target);
-    }
-    Ok(())
+    get_targets::<_, _, _, ()>(targets, None).map(|targets| {
+        for target in targets {
+            f(target)?;
+        }
+        Ok(())
+    })
 }

@@ -66,7 +66,7 @@ fn unprefix_path(
     .map_err(Into::into)
 }
 
-pub fn init_templating(config: Option<&Config>) -> Bicycle {
+pub fn init(config: Option<&Config>) -> Bicycle {
     Bicycle::new(
         EscapeFn::None,
         {

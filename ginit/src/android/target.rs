@@ -51,6 +51,7 @@ impl CargoMode {
 pub enum ConnectedTargetError {
     ProductLookupFailed(CommandError),
     ProductInvalidUtf8(str::Utf8Error),
+    ProductAbiInvalid { abi: String },
 }
 
 impl fmt::Display for ConnectedTargetError {
@@ -62,6 +63,11 @@ impl fmt::Display for ConnectedTargetError {
             ConnectedTargetError::ProductInvalidUtf8(err) => {
                 write!(f, "`ro.product.cpu.abi` contained invalid UTF-8: {}", err)
             }
+            ConnectedTargetError::ProductAbiInvalid { abi } => write!(
+                f,
+                "`ro.product.cpu.abi` contained an invalid ABI: {:?}",
+                abi
+            ),
         }
     }
 }
@@ -249,15 +255,20 @@ impl<'a> Target<'a> {
         Self::all().values().find(|target| target.abi == abi)
     }
 
-    pub fn for_connected(env: &Env) -> Result<Option<&'a Self>, ConnectedTargetError> {
+    pub fn for_connected(env: &Env) -> Result<&'a Self, ConnectedTargetError> {
         let output = PureCommand::new("adb", env)
             .args(&["shell", "getprop", "ro.product.cpu.abi"])
             .output()
             .into_result()
             .map_err(ConnectedTargetError::ProductLookupFailed)?;
-        let abi =
+        let raw_abi =
             str::from_utf8(&output.stdout).map_err(ConnectedTargetError::ProductInvalidUtf8)?;
-        Ok(Self::for_abi(abi.trim()))
+        let abi = raw_abi.trim();
+        Ok(
+            Self::for_abi(abi).ok_or_else(|| ConnectedTargetError::ProductAbiInvalid {
+                abi: abi.to_owned(),
+            })?,
+        )
     }
 
     pub fn generate_cargo_config(
