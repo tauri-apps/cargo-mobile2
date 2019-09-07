@@ -11,6 +11,7 @@ use ginit::{
     opts::NoiseLevel,
     target::{call_for_targets_with_fallback, Profile, TargetInvalid},
 };
+use std::fmt;
 
 pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
     SubCommand::with_name("android")
@@ -51,6 +52,24 @@ pub enum Error {
     BuildFailed(BuildError),
     RunFailed(RunError),
     StacktraceFailed(StacktraceError),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::EnvInitFailed(err) => write!(f, "{}", err),
+            Error::TargetDetectionFailed(err) => write!(
+                f,
+                "Failed to detect architecture of connected Android device: {}",
+                err
+            ),
+            Error::TargetInvalid(err) => write!(f, "Specified target was invalid: {}", err),
+            Error::CheckFailed(err) => write!(f, "{}", err),
+            Error::BuildFailed(err) => write!(f, "{}", err),
+            Error::RunFailed(err) => write!(f, "{}", err),
+            Error::StacktraceFailed(err) => write!(f, "{}", err),
+        }
+    }
 }
 
 #[derive(Debug)]

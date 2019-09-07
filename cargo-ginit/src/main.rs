@@ -7,10 +7,17 @@ mod util;
 
 use self::{android::AndroidCommand, init::InitCommand, ios::IosCommand};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use colored::*;
 use ginit::{
-    android::target::Target as AndroidTarget, config::Config,
-    init::config_gen::interactive_config_gen, ios::target::Target as IosTarget, opts::NoiseLevel,
-    target::TargetTrait as _, templating, util::init_text_wrapper, NAME,
+    android::target::Target as AndroidTarget,
+    config::Config,
+    init::config_gen::interactive_config_gen,
+    ios::target::Target as IosTarget,
+    opts::NoiseLevel,
+    target::TargetTrait as _,
+    templating,
+    util::{init_text_wrapper, TextWrapper},
+    NAME,
 };
 
 fn cli_app<'a, 'b>(android_targets: &'a [&'a str], ios_targets: &'a [&'a str]) -> App<'a, 'b> {
@@ -77,7 +84,7 @@ fn get_args() -> Vec<String> {
     raw
 }
 
-fn log_init(noise_level: NoiseLevel) {
+fn init_log(noise_level: NoiseLevel) {
     use env_logger::{Builder, Env};
     let default_level = match noise_level {
         NoiseLevel::Polite => "warn",
@@ -86,6 +93,13 @@ fn log_init(noise_level: NoiseLevel) {
     };
     let env = Env::default().default_filter_or(default_level);
     Builder::from_env(env).init();
+}
+
+fn handle_error(wrapper: &TextWrapper, result: Result<(), impl std::fmt::Display>) {
+    if let Err(err) = result {
+        eprintln!("{}", wrapper.fill(&format!("{}", err)).bright_red());
+        std::process::exit(1)
+    }
 }
 
 fn main() {
@@ -97,30 +111,22 @@ fn main() {
     let ios_targets = IosTarget::all().keys().map(|key| *key).collect::<Vec<_>>();
     let app = cli_app(&android_targets, &ios_targets);
     let input = CliInput::parse(app.get_matches_from(args));
-    log_init(input.noise_level);
+    init_log(input.noise_level);
+    let wrapper = init_text_wrapper().expect("failed to init text wrapper");
     let config = Config::load(".")
         .expect("failed to load config")
         .unwrap_or_else(|| {
             let old_bike = templating::init(None);
-            let wrapper = init_text_wrapper().expect("failed to init text wrapper");
             interactive_config_gen(&old_bike, &wrapper).expect("config gen failed");
             Config::load(".")
                 .expect("failed to load config")
                 .expect("no config found - did generation fail?")
         });
     match input.command {
-        Command::Init(command) => {
-            command.exec(&config).expect("init exec failed");
-        }
+        Command::Init(command) => handle_error(&wrapper, command.exec(&config)),
         Command::Android(command) => {
-            command
-                .exec(&config, input.noise_level)
-                .expect("android exec failed");
+            handle_error(&wrapper, command.exec(&config, input.noise_level))
         }
-        Command::Ios(command) => {
-            command
-                .exec(&config, input.noise_level)
-                .expect("ios exec failed");
-        }
+        Command::Ios(command) => handle_error(&wrapper, command.exec(&config, input.noise_level)),
     }
 }

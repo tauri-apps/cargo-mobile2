@@ -7,6 +7,7 @@ use ginit::{
     opts::NoiseLevel,
     target::{call_for_targets, Profile, TargetInvalid, TargetTrait as _},
 };
+use std::fmt;
 
 pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
     SubCommand::with_name("ios")
@@ -50,6 +51,20 @@ pub enum Error {
     RunFailed(RunError),
     ArchInvalid { arch: String },
     CompileLibFailed(CompileLibError),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::EnvInitFailed(err) => write!(f, "{}", err),
+            Error::TargetInvalid(err) => write!(f, "Specified target was invalid: {}", err),
+            Error::CheckFailed(err) => write!(f, "{}", err),
+            Error::BuildFailed(err) => write!(f, "{}", err),
+            Error::RunFailed(err) => write!(f, "{}", err),
+            Error::ArchInvalid { arch } => write!(f, "Specified arch was invalid: {}", arch),
+            Error::CompileLibFailed(err) => write!(f, "{}", err),
+        }
+    }
 }
 
 #[derive(Debug)]
