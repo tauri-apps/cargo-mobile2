@@ -85,6 +85,18 @@ pub fn transliterate(s: &str) -> Option<String> {
     validate_non_recursive(normalize_case(&deunicode::deunicode(s))).ok()
 }
 
+fn char_allowed(c: char) -> bool {
+    c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-'
+}
+
+fn char_naughty(c: char) -> bool {
+    !c.is_ascii_lowercase() && !c.is_ascii_digit() && c != '_' && c != '-'
+}
+
+fn drop_naughty_chars(s: &str) -> String {
+    s.chars().filter(|c| char_allowed(*c)).collect()
+}
+
 fn validate_non_recursive<T: Deref<Target = str>>(app_name: T) -> Result<T, Invalid> {
     // crates.io and Android require alphanumeric ASCII with underscores
     // (crates.io also allows hyphens), which is stricter than Rust/Cargo's
@@ -96,16 +108,11 @@ fn validate_non_recursive<T: Deref<Target = str>>(app_name: T) -> Result<T, Inva
     if !app_name.is_empty() {
         if app_name.is_ascii() {
             if !BLACKLIST.contains(&app_name.deref()) {
-                if app_name
-                    .chars()
-                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-')
-                {
+                if app_name.chars().all(|c| char_allowed(c)) {
                     Ok(app_name)
                 } else {
                     let mut naughty_chars = Vec::new();
-                    for c in app_name.chars().filter(|c| {
-                        !c.is_ascii_lowercase() && !c.is_ascii_digit() && *c != '_' && *c != '-'
-                    }) {
+                    for c in app_name.chars().filter(|c| char_naughty(*c)) {
                         if !naughty_chars.contains(&c) {
                             naughty_chars.push(c);
                         }
@@ -143,7 +150,8 @@ pub fn validate<T: Deref<Target = str>>(app_name: T) -> Result<T, Invalid> {
             ..
         }) => {
             assert!(suggested.is_none());
-            *suggested = validate_non_recursive(normalize_case(&app_name)).ok();
+            *suggested =
+                validate_non_recursive(drop_naughty_chars(&normalize_case(&app_name))).ok();
         }
         Err(Invalid::NotAscii {
             app_name,
