@@ -6,7 +6,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const MIN_NDK_VERSION: u32 = 19;
+const MIN_NDK_VERSION: Version = Version {
+    major: 19,
+    minor: 0,
+};
 
 #[cfg(target_os = "macos")]
 pub fn host_tag() -> &'static str {
@@ -108,13 +111,39 @@ impl fmt::Display for VersionError {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Version {
+    major: u32,
+    minor: u32,
+}
+
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "r{}", self.major)?;
+        if self.minor != 0 {
+            write!(
+                f,
+                "{}",
+                (b'a'..=b'z')
+                    .map(char::from)
+                    .nth(self.minor as _)
+                    .expect("NDK minor version exceeded the number of letters in the alphabet")
+            )?;
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug)]
 pub enum Error {
     // link to docs/etc.
     NdkHomeNotSet(std::env::VarError),
     NdkHomeNotADir,
     VersionLookupFailed(VersionError),
-    VersionTooLow { you_have: u32, you_need: u32 },
+    VersionTooLow {
+        you_have: Version,
+        you_need: Version,
+    },
 }
 
 impl fmt::Display for Error {
@@ -123,7 +152,7 @@ impl fmt::Display for Error {
             Error::NdkHomeNotSet(err) => write!(
                 f,
                 "The `NDK_HOME` environment variable isn't set, and is required: {}",
-                err
+                err,
             ),
             Error::NdkHomeNotADir => write!(
                 f,
@@ -135,8 +164,9 @@ impl fmt::Display for Error {
             Error::VersionTooLow { you_have, you_need } => write!(
                 f,
                 // the minor version could be used to get a b suffix, too! - should make a version struct
-                "At least NDK r{} is required (you currently have NDK r{})",
-                you_have, you_need
+                "At least NDK {} is required (you currently have NDK {})",
+                you_need,
+                you_have,
             ),
         }
     }
@@ -160,12 +190,12 @@ impl Env {
                 }
             })?;
         let env = Self { ndk_home };
-        let (major, ..) = env.version().map_err(Error::VersionLookupFailed)?;
-        if major >= MIN_NDK_VERSION {
+        let version = env.version().map_err(Error::VersionLookupFailed)?;
+        if version >= MIN_NDK_VERSION {
             Ok(env)
         } else {
             Err(Error::VersionTooLow {
-                you_have: major,
+                you_have: version,
                 you_need: MIN_NDK_VERSION,
             })
         }
@@ -175,7 +205,7 @@ impl Env {
         &self.ndk_home
     }
 
-    pub fn version(&self) -> Result<(u32, u32), VersionError> {
+    pub fn version(&self) -> Result<Version, VersionError> {
         let file = File::open(self.ndk_home.join("source.properties"))
             .map_err(VersionError::FailedToOpenSourceProps)?;
         let props = java_properties::read(file).map_err(VersionError::FailedToParseSourceProps)?;
@@ -193,7 +223,10 @@ impl Env {
             .collect::<Result<Vec<_>, _>>()
             .map_err(VersionError::VersionComponentNotNumerical)?;
         if components.len() == 2 {
-            Ok((components[0], components[1]))
+            Ok(Version {
+                major: components[0],
+                minor: components[1],
+            })
         } else {
             Err(VersionError::VersionHadTooFewComponents)
         }
