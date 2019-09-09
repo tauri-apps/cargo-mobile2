@@ -78,10 +78,12 @@ pub fn interactive_config_gen(
     wrapper: &util::TextWrapper,
 ) -> Result<(), Error> {
     let cwd = env::current_dir().map_err(Error::CurrentDirFailed)?;
-    let app_name = {
+    let (app_name, default_stylized) = {
         let mut default_app_name =
             app_name::transliterate(&cwd.file_name().unwrap().to_str().unwrap().to_kebab_case());
         let mut app_name = None;
+        let mut rejected = None;
+        let mut default_stylized = None;
         while let None = app_name {
             let response = prompt::default(
                 "App name",
@@ -89,11 +91,15 @@ pub fn interactive_config_gen(
                 None,
             )
             .map_err(Error::AppNamePromptFailed)?;
-            match app_name::validate(response) {
+            match app_name::validate(response.clone()) {
                 Ok(response) => {
+                    if default_app_name == Some(response.clone()) && rejected.is_some() {
+                        default_stylized = rejected.take();
+                    }
                     app_name = Some(response);
                 }
                 Err(err) => {
+                    rejected = Some(response);
                     println!(
                         "{}",
                         wrapper
@@ -106,10 +112,11 @@ pub fn interactive_config_gen(
                 }
             }
         }
-        app_name.unwrap()
+        (app_name.unwrap(), default_stylized)
     };
     let stylized = {
-        let stylized = app_name.replace("-", " ").replace("_", " ").to_title_case();
+        let stylized = default_stylized
+            .unwrap_or_else(|| app_name.replace("-", " ").replace("_", " ").to_title_case());
         prompt::default("Stylized app name", Some(&stylized), None)
     }
     .map_err(Error::StylizedAppNamePromptFailed)?;
