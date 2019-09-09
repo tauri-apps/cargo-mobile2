@@ -34,3 +34,15 @@ impl Clobbering {
         self == Clobbering::Allow
     }
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OpenIn {
+    Nothing,
+    Editor,
+}
+
+impl Default for OpenIn {
+    fn default() -> Self {
+        OpenIn::Nothing
+    }
+}

@@ -9,7 +9,7 @@ use crate::{
     android,
     config::Config,
     ios,
-    opts::Clobbering,
+    opts::{Clobbering, OpenIn},
     target::TargetTrait as _,
     util::{
         self,
@@ -31,6 +31,7 @@ pub enum Error {
     IosDepsFailed(IosDepsError),
     IosRustupFailed(CommandError),
     IosGenFailed(ios::project::Error),
+    OpenInEditorFailed(CommandError),
 }
 
 impl fmt::Display for Error {
@@ -62,6 +63,7 @@ impl fmt::Display for Error {
             Error::IosDepsFailed(err) => write!(f, "Failed to install iOS dependencies: {}", err),
             Error::IosRustupFailed(err) => write!(f, "Failed to `rustup` iOS toolchains: {}", err),
             Error::IosGenFailed(err) => write!(f, "Failed to generate iOS project: {}", err),
+            Error::OpenInEditorFailed(err) => write!(f, "Failed to open project in editor (your project generated successfully though, so no worries): {}", err),
         }
     }
 }
@@ -71,6 +73,7 @@ pub fn init(
     config: &Config,
     bike: &bicycle::Bicycle,
     clobbering: Clobbering,
+    open: OpenIn,
     only: Option<impl Into<Steps>>,
     skip: Option<impl Into<Steps>>,
 ) -> Result<(), Error> {
@@ -135,6 +138,9 @@ your project in case things explode. You've been warned! 💀
             }
         }
         ios::project::create(config, bike).map_err(Error::IosGenFailed)?;
+    }
+    if let OpenIn::Editor = open {
+        util::open_in_editor(".").map_err(Error::OpenInEditorFailed)?;
     }
     Ok(())
 }

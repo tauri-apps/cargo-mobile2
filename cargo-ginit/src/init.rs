@@ -7,7 +7,7 @@ use ginit::{
         steps::{Steps, STEPS},
         Error,
     },
-    opts::Clobbering,
+    opts::{Clobbering, OpenIn},
     templating,
 };
 
@@ -15,6 +15,7 @@ pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("init")
         .about("Creates a new project in the current working directory")
         .arg_from_usage("--force 'Clobber files with no remorse'")
+        .arg_from_usage("--open 'Open in VS Code'")
         .arg(take_a_list(
             Arg::with_name("only")
                 .long("only")
@@ -34,6 +35,7 @@ pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
 #[derive(Debug)]
 pub struct InitCommand {
     clobbering: Clobbering,
+    open: OpenIn,
     only: Option<Steps>,
     skip: Option<Steps>,
 }
@@ -45,6 +47,11 @@ impl InitCommand {
         } else {
             Clobbering::Forbid
         };
+        let open = if matches.is_present("open") {
+            OpenIn::Editor
+        } else {
+            OpenIn::Nothing
+        };
         let only = matches
             .args
             .get("only")
@@ -55,6 +62,7 @@ impl InitCommand {
             .map(|skip| Steps::from(skip.vals.as_slice()));
         Self {
             clobbering,
+            open,
             only,
             skip,
         }
@@ -62,6 +70,14 @@ impl InitCommand {
 
     pub fn exec(self, config: &Config) -> Result<(), Error> {
         let bike = templating::init(Some(config));
-        init(config, &bike, self.clobbering, self.only, self.skip)
+        init(
+            config,
+            &bike,
+            self.clobbering,
+            self.open,
+            self.only,
+            self.skip,
+        )?;
+        Ok(())
     }
 }

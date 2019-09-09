@@ -177,6 +177,20 @@ pub fn rustup_add(triple: &str) -> CommandResult<()> {
         .into_result()
 }
 
+#[cfg(target_os = "macos")]
+pub fn open_in_editor(path: impl AsRef<OsStr>) -> CommandResult<()> {
+    Command::new("open")
+        .args(&["-a", "Visual Studio Code"])
+        .arg(path.as_ref())
+        .status()
+        .into_result()
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn open_in_editor(_path: impl AsRef<Path>) -> CommandResult<()> {
+    unimplemented!()
+}
+
 #[derive(Debug)]
 pub enum PipeError {
     TxCommandFailed(CommandError),
