@@ -75,14 +75,12 @@ impl CargoConfig {
     pub fn generate(config: &Config, steps: &Steps) -> Result<Self, GenError> {
         let mut target = BTreeMap::new();
         if steps.contains(Steps::ANDROID) {
+            let env = android::env::Env::new().map_err(GenError::AndroidEnvInvalid)?;
             for android_target in android::target::Target::all().values() {
                 target.insert(
                     android_target.triple.to_owned(),
                     android_target
-                        .generate_cargo_config(
-                            config,
-                            &android::env::Env::new().map_err(GenError::AndroidEnvInvalid)?,
-                        )
+                        .generate_cargo_config(config, &env)
                         .map_err(GenError::AndroidGenFailed)?,
                 );
             }
