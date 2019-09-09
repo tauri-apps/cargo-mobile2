@@ -17,6 +17,6 @@ lazy_static = "1"
 log = "0.4"
 openssl = "0.10"
 regex = "1"
-serde = { version = "1", features = ["derive"] }
+serde = { version = "1", features = ["derive", "rc"] }
 textwrap = { version = "0.11.0", features = ["hyphenation", "term_size"] }
 toml = "0.5"

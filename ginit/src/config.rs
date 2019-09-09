@@ -9,7 +9,9 @@ use std::{
     fmt,
     fs::File,
     io::{self, Read},
+    ops::Deref,
     path::{Path, PathBuf},
+    rc::Rc,
 };
 
 static DEFAULT_APP_ROOT: &'static str = ".";
@@ -130,23 +132,99 @@ struct RawConfig {
     ios: IosRawConfig,
 }
 
-/// All paths returned by `Config` methods are prefixed (absolute).
-/// Use [`Config::unprefix_path`] if you want to make a path relative to the project root.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Config {
+#[derive(Clone, Debug, Serialize)]
+pub struct SharedConfig {
     project_root: PathBuf,
     global: GlobalConfig,
-    android: AndroidRawConfig,
-    ios: IosRawConfig,
+}
+
+impl SharedConfig {
+    pub fn project_root(&self) -> &Path {
+        &self.project_root
+    }
+
+    pub fn global(&self) -> &GlobalConfig {
+        &self.global
+    }
+
+    pub fn prefix_path(&self, path: impl AsRef<Path>) -> PathBuf {
+        prefix_path(self.project_root(), path)
+    }
+
+    pub fn unprefix_path(&self, path: impl AsRef<Path>) -> Result<PathBuf, UnprefixPathError> {
+        unprefix_path(self.project_root(), path)
+    }
+
+    pub fn app_name(&self) -> &str {
+        &self.global().app_name
+    }
+
+    pub fn app_name_snake(&self) -> String {
+        self.app_name().to_snek_case()
+    }
+
+    pub fn stylized_app_name(&self) -> &str {
+        self.global()
+            .stylized_app_name
+            .as_ref()
+            .unwrap_or_else(|| &self.global().app_name)
+    }
+
+    pub fn reverse_domain(&self) -> String {
+        self.global()
+            .domain
+            .clone()
+            .split('.')
+            .rev()
+            .collect::<Vec<_>>()
+            .join(".")
+    }
+
+    pub fn app_root(&self) -> PathBuf {
+        self.prefix_path(&self.global().app_root)
+    }
+
+    pub fn manifest_path(&self) -> PathBuf {
+        self.app_root().join("Cargo.toml")
+    }
+
+    pub fn asset_path(&self) -> PathBuf {
+        self.app_root().join("res")
+    }
+}
+
+/// All paths returned by `Config` methods are prefixed (absolute).
+/// Use [`Config::unprefix_path`] if you want to make a path relative to the project root.
+#[derive(Clone, Debug, Serialize)]
+pub struct Config {
+    #[serde(flatten)]
+    shared: Rc<SharedConfig>,
+    android: AndroidConfig,
+    ios: IosConfig,
+}
+
+impl Deref for Config {
+    type Target = SharedConfig;
+
+    fn deref(&self) -> &Self::Target {
+        self.shared()
+    }
 }
 
 impl Config {
     fn from_raw(project_root: PathBuf, raw_config: RawConfig) -> Result<Self, app_name::Invalid> {
-        Ok(Self {
+        let shared = SharedConfig {
             project_root,
             global: GlobalConfig::from_raw(raw_config.global)?,
-            android: raw_config.android.unwrap_or_default(),
-            ios: raw_config.ios,
+        }
+        .into();
+        let android =
+            AndroidConfig::from_raw(Rc::clone(&shared), raw_config.android.unwrap_or_default());
+        let ios = IosConfig::from_raw(Rc::clone(&shared), raw_config.ios);
+        Ok(Self {
+            shared,
+            android,
+            ios,
         })
     }
 
@@ -187,68 +265,23 @@ impl Config {
         format!("{}.toml", crate::NAME)
     }
 
-    pub fn project_root(&self) -> &Path {
-        &self.project_root
+    pub fn shared(&self) -> &Rc<SharedConfig> {
+        &self.shared
     }
 
-    pub fn prefix_path(&self, path: impl AsRef<Path>) -> PathBuf {
-        prefix_path(self.project_root(), path)
+    pub fn android(&self) -> &AndroidConfig {
+        &self.android
     }
 
-    pub fn unprefix_path(&self, path: impl AsRef<Path>) -> Result<PathBuf, UnprefixPathError> {
-        unprefix_path(self.project_root(), path)
-    }
-
-    pub fn app_name(&self) -> &str {
-        &self.global.app_name
-    }
-
-    pub fn app_name_snake(&self) -> String {
-        self.app_name().to_snek_case()
-    }
-
-    pub fn stylized_app_name(&self) -> &str {
-        self.global
-            .stylized_app_name
-            .as_ref()
-            .unwrap_or_else(|| &self.global.app_name)
-    }
-
-    pub fn reverse_domain(&self) -> String {
-        self.global
-            .domain
-            .clone()
-            .split('.')
-            .rev()
-            .collect::<Vec<_>>()
-            .join(".")
-    }
-
-    pub fn app_root(&self) -> PathBuf {
-        self.prefix_path(&self.global.app_root)
-    }
-
-    pub fn manifest_path(&self) -> PathBuf {
-        self.app_root().join("Cargo.toml")
-    }
-
-    pub fn asset_path(&self) -> PathBuf {
-        self.app_root().join("res")
-    }
-
-    pub fn android(&self) -> AndroidConfig<'_> {
-        AndroidConfig::from_raw(self, &self.android)
-    }
-
-    pub fn ios(&self) -> IosConfig<'_> {
-        IosConfig::from_raw(self, &self.ios)
+    pub fn ios(&self) -> &IosConfig {
+        &self.ios
     }
 
     pub(crate) fn insert_template_data(&self, map: &mut bicycle::JsonMap) {
         map.insert("config", &self);
-        map.insert("app_name", self.app_name());
-        map.insert("app_name_snake", self.app_name_snake());
-        map.insert("stylized_app_name", self.stylized_app_name());
-        map.insert("reverse_domain", self.reverse_domain());
+        map.insert("app_name", self.shared().app_name());
+        map.insert("app_name_snake", self.shared().app_name_snake());
+        map.insert("stylized_app_name", self.shared().stylized_app_name());
+        map.insert("reverse_domain", self.shared().reverse_domain());
     }
 }
