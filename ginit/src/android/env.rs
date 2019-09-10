@@ -21,9 +21,6 @@ pub struct Env {
 impl Env {
     pub fn new() -> Result<Self, EnvError> {
         let base = crate::env::Env::new().map_err(EnvError::BaseEnvError)?;
-        if std::env::var("ANDROID_HOME").is_ok() {
-            log::warn!("`ANDROID_HOME` is set, which is deprecated and will be ignored");
-        }
         let sdk_root = std::env::var("ANDROID_SDK_ROOT")
             .map_err(EnvError::AndroidSdkRootNotSet)
             .map(PathBuf::from)
@@ -32,6 +29,18 @@ impl Env {
                     Ok(sdk_root)
                 } else {
                     Err(EnvError::AndroidSdkRootNotADir)
+                }
+            })
+            .or_else(|err| {
+                if let Some(android_home) = std::env::var("ANDROID_HOME")
+                    .ok()
+                    .map(PathBuf::from)
+                    .filter(|android_home| android_home.is_dir())
+                {
+                    log::warn!("`ANDROID_SDK_ROOT` isn't set; falling back to `ANDROID_HOME`, which is deprecated");
+                    Ok(android_home)
+                } else {
+                    Err(err)
                 }
             })?;
         Ok(Self {
