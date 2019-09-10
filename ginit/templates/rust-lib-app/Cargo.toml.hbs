@@ -1,5 +1,5 @@
 [package]
-name = "{{app_name}}"
+name = "{{app-name}}"
 version = "0.1.0"
 authors = ["Brainium Studios LLC"]
 edition = "2018"
@@ -9,12 +9,12 @@ build = "gen/build.rs"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
-name = "{{app_name}}-desktop"
+name = "{{app-name}}-desktop"
 path = "gen/bin/desktop.rs"
 
 [features]
-code_reload = ["rust-lib/code_reload"]
-default = ["code_reload", "metal"]
+code-reload = ["rust-lib/code-reload"]
+default = ["code-reload", "metal"]
 dx12 = ["rust-lib/dx12"]
 gl = ["rust-lib/gl"]
 metal = ["rust-lib/metal"]
