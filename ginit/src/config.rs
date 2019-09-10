@@ -90,7 +90,7 @@ impl fmt::Display for LoadError {
             LoadError::ReadFailed(err) => write!(f, "Failed to read config file: {}", err),
             LoadError::ParseFailed(err) => write!(f, "Failed to parse config file: {}", err),
             LoadError::AppNameInvalid(err) => write!(f, "`global.app_name` invalid: {}", err),
-            LoadError::IosConfigInvalid(err) => write!(f, "{}", err),
+            LoadError::IosConfigInvalid(err) => write!(f, "iOS config invalid: {}", err),
         }
     }
 }

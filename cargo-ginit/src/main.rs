@@ -95,10 +95,13 @@ fn init_log(noise_level: NoiseLevel) {
     Builder::from_env(env).init();
 }
 
-fn handle_error(wrapper: &TextWrapper, result: Result<(), impl std::fmt::Display>) {
-    if let Err(err) = result {
-        eprintln!("{}", wrapper.fill(&format!("{}", err)).bright_red());
-        std::process::exit(1)
+fn handle_error<T>(wrapper: &TextWrapper, result: Result<T, impl std::fmt::Display>) -> T {
+    match result {
+        Ok(val) => val,
+        Err(err) => {
+            eprintln!("{}", wrapper.fill(&format!("{}", err)).bright_red());
+            std::process::exit(1)
+        }
     }
 }
 
@@ -112,16 +115,12 @@ fn main() {
     let app = cli_app(&android_targets, &ios_targets);
     let input = CliInput::parse(app.get_matches_from(args));
     init_log(input.noise_level);
-    let wrapper = init_text_wrapper().expect("failed to init text wrapper");
-    let config = Config::load(".")
-        .expect("failed to load config")
-        .unwrap_or_else(|| {
-            let old_bike = templating::init(None);
-            interactive_config_gen(&old_bike, &wrapper).expect("config gen failed");
-            Config::load(".")
-                .expect("failed to load config")
-                .expect("no config found - did generation fail?")
-        });
+    let wrapper = init_text_wrapper().expect("Failed to init text wrapper");
+    let config = handle_error(&wrapper, Config::load(".")).unwrap_or_else(|| {
+        let old_bike = templating::init(None);
+        handle_error(&wrapper, interactive_config_gen(&old_bike, &wrapper));
+        handle_error(&wrapper, Config::load(".")).expect("Developer error: no config found even after doing a successful `interactive_config_gen`")
+    });
     match input.command {
         Command::Init(command) => handle_error(&wrapper, command.exec(&config)),
         Command::Android(command) => {
