@@ -7,12 +7,15 @@ static DEFAULT_PROJECT_ROOT: &'static str = "gen/android";
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub(crate) struct RawConfig {
+    #[serde(alias = "min-sdk-version")]
     min_sdk_version: Option<u32>,
+    #[serde(alias = "project-root")]
     project_root: Option<String>,
     targets: Option<HashMap<String, HashMap<String, String>>>,
 }
 
 #[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Config {
     #[serde(skip_serializing)]
     shared: Rc<SharedConfig>,
@@ -31,13 +34,13 @@ impl Config {
                 .min_sdk_version
                 .map(|min_sdk_version| {
                     if min_sdk_version == DEFAULT_MIN_SDK_VERSION {
-                        log::warn!("`android.min_sdk_version` is set to the default value; you can remove it from your config");
+                        log::warn!("`android.min-sdk-version` is set to the default value; you can remove it from your config");
                     }
                     min_sdk_version
                 })
                 .unwrap_or_else(|| {
                     log::info!(
-                        "`android.min_sdk_version` not set; defaulting to {}",
+                        "`android.min-sdk-version` not set; defaulting to {}",
                         DEFAULT_MIN_SDK_VERSION
                     );
                     DEFAULT_MIN_SDK_VERSION
@@ -46,13 +49,13 @@ impl Config {
                 .project_root
                 .map(|project_root| {
                     if project_root == DEFAULT_PROJECT_ROOT {
-                        log::warn!("`android.project_root` is set to the default value; you can remove it from your config");
+                        log::warn!("`android.project-root` is set to the default value; you can remove it from your config");
                     }
                     project_root
                 })
                 .unwrap_or_else(|| {
                     log::info!(
-                        "`android.project_root` not set; defaulting to {}",
+                        "`android.project-root` not set; defaulting to {}",
                         DEFAULT_PROJECT_ROOT
                     );
                     DEFAULT_PROJECT_ROOT.to_owned()

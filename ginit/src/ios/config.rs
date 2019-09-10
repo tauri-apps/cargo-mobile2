@@ -12,18 +12,21 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::DevelopmentTeamEmpty => write!(f, "`ios.development_team` is empty."),
+            Error::DevelopmentTeamEmpty => write!(f, "`ios.development-team` is empty."),
         }
     }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RawConfig {
+    #[serde(alias = "development-team")]
     development_team: String,
+    #[serde(alias = "project-root")]
     project_root: Option<String>,
     targets: Option<HashMap<String, HashMap<String, String>>>,
 }
 
+#[serde(rename_all = "kebab-case")]
 #[derive(Clone, Debug, Serialize)]
 pub struct Config {
     #[serde(skip_serializing)]
@@ -47,12 +50,12 @@ impl Config {
                     .project_root
                     .map(|project_root| {
                         if project_root == DEFAULT_PROJECT_ROOT {
-                            log::warn!("`ios.project_root` is set to the default value; you can remove it from your config");
+                            log::warn!("`ios.project-root` is set to the default value; you can remove it from your config");
                         }
                         project_root
                     }).unwrap_or_else(|| {
                         log::info!(
-                            "`ios.project_root` not set; defaulting to {}",
+                            "`ios.project-root` not set; defaulting to {}",
                             DEFAULT_PROJECT_ROOT
                         );
                         DEFAULT_PROJECT_ROOT.to_owned()

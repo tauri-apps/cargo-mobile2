@@ -169,14 +169,14 @@ pub fn interactive_config_gen(
             .unwrap_or_else(|| team_input)
     };
     bike.process(
-        template_pack(None, "{{tool_name}}.toml.hbs")
+        template_pack(None, "{{tool-name}}.toml.hbs")
             .ok_or_else(|| Error::ConfigTemplateMissing)?,
         &cwd,
         |map| {
-            map.insert("app_name", &app_name);
-            map.insert("stylized_app_name", &stylized);
+            map.insert("app-name", &app_name);
+            map.insert("stylized-app-name", &stylized);
             map.insert("domain", &domain);
-            map.insert("development_team", &team);
+            map.insert("development-team", &team);
         },
     )
     .map_err(Error::ConfigRenderFailed)

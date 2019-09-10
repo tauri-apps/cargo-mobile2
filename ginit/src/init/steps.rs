@@ -4,7 +4,7 @@ pub static STEPS: &'static [&'static str] = &[
     "deps",
     "toolchains",
     "cargo",
-    "hello_world",
+    "hello-world",
     "android",
     "ios",
 ];
@@ -36,7 +36,7 @@ where
         if steps.friendly_contains("cargo") {
             flags |= Self::CARGO;
         }
-        if steps.friendly_contains("hello_world") {
+        if steps.friendly_contains("hello-world") {
             flags |= Self::HELLO_WORLD;
         }
         if steps.friendly_contains("android") {

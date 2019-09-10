@@ -146,11 +146,11 @@ pub fn hello_world(
     let insert_data = |map: &mut bicycle::JsonMap| {
         config.insert_template_data(map);
         let app_root = config.app_root();
-        map.insert("app_root", &app_root);
+        map.insert("app-root", &app_root);
     };
     let actions = bicycle::traverse(
-        template_pack(Some(config), "rust_lib_app").ok_or_else(|| Error::MissingTemplatePack {
-            name: "rust_lib_app",
+        template_pack(Some(config), "rust-lib-app").ok_or_else(|| Error::MissingTemplatePack {
+            name: "rust-lib-app",
         })?,
         &dest,
         |path| bike.transform_path(path, insert_data),

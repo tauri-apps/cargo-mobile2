@@ -18,11 +18,11 @@ fn path<'a>(helper: &'a Helper) -> &'a str {
 fn project_root<'a>(ctx: &'a Context) -> Result<&'a str, RenderError> {
     let project_root = ctx
         .data()
-        .get("project_root")
-        .ok_or_else(|| RenderError::new("`project_root` missing from template data."))?;
+        .get("project-root")
+        .ok_or_else(|| RenderError::new("`project-root` missing from template data."))?;
     project_root
         .as_str()
-        .ok_or_else(|| RenderError::new("`project_root` contained invalid UTF-8."))
+        .ok_or_else(|| RenderError::new("`project-root` contained invalid UTF-8."))
 }
 
 fn prefix_path(
@@ -37,7 +37,7 @@ fn prefix_path(
             .to_str()
             .ok_or_else(|| {
                 RenderError::new(
-                    "Either the `project_root` or the specified path contained invalid UTF-8.",
+                    "Either the `project-root` or the specified path contained invalid UTF-8.",
                 )
             })?,
     )
@@ -59,7 +59,7 @@ fn unprefix_path(
             .to_str()
             .ok_or_else(|| {
                 RenderError::new(
-                    "Either the `project_root` or the specified path contained invalid UTF-8.",
+                    "Either the `project-root` or the specified path contained invalid UTF-8.",
                 )
             })?,
     )
@@ -73,16 +73,16 @@ pub fn init(config: Option<&Config>) -> Bicycle {
             let mut helpers = HashMap::<_, Box<dyn HelperDef>>::new();
             if config.is_some() {
                 // don't mix these up or very bad things will happen to all of us
-                helpers.insert("prefix_path", Box::new(prefix_path));
-                helpers.insert("unprefix_path", Box::new(unprefix_path));
+                helpers.insert("prefix-path", Box::new(prefix_path));
+                helpers.insert("unprefix-path", Box::new(unprefix_path));
             }
             helpers
         },
         {
             let mut map = JsonMap::default();
-            map.insert("tool_name", &*crate::NAME);
+            map.insert("tool-name", &*crate::NAME);
             if let Some(config) = config {
-                map.insert("project_root", config.project_root());
+                map.insert("project-root", config.project_root());
             }
             map
         },

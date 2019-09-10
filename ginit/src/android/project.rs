@@ -34,22 +34,22 @@ impl fmt::Display for Error {
 
 // TODO: We should verify Android env vars / offer defaults
 pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
-    let src = template_pack(Some(config), "android_studio_project").ok_or_else(|| {
+    let src = template_pack(Some(config), "android-studio-project").ok_or_else(|| {
         Error::MissingTemplatePack {
-            name: "android_studio_project",
+            name: "android-studio-project",
         }
     })?;
     let dest = config.android().project_path();
     bike.process(src, &dest, |map| {
         config.insert_template_data(map);
         map.insert(
-            "abi_list",
+            "abi-list",
             Target::all()
                 .values()
                 .map(|target| target.abi)
                 .collect::<Vec<_>>(),
         );
-        map.insert("abi_list_joined", {
+        map.insert("abi-list-joined", {
             Target::all()
                 .values()
                 .map(|target| format!("\"{}\"", target.abi))

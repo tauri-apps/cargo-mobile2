@@ -28,7 +28,7 @@ impl fmt::Display for Error {
                 write!(f, "Resources couldn't be symlinked: {}", err)
             }
             Error::ScriptChmodFailed(err) => {
-                write!(f, "Failed to `chmod` \"cargo_xcode.sh\": {}", err)
+                write!(f, "Failed to `chmod` \"cargo-xcode.sh\": {}", err)
             }
             Error::XcodegenFailed(err) => write!(f, "Failed to run `xcodegen`: {}", err),
         }
@@ -38,8 +38,8 @@ impl fmt::Display for Error {
 // unprefixed app_root seems pretty dangerous!!
 pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
     let src =
-        template_pack(Some(config), "xcode_project").ok_or_else(|| Error::MissingTemplatePack {
-            name: "xcode_project",
+        template_pack(Some(config), "xcode-project").ok_or_else(|| Error::MissingTemplatePack {
+            name: "xcode-project",
         })?;
     let dest = config.ios().project_root();
     bike.process(src, &dest, |map| config.insert_template_data(map))
@@ -62,7 +62,7 @@ pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
 
     Command::new("chmod")
         .arg("+x")
-        .arg(dest.join("cargo_xcode.sh"))
+        .arg(dest.join("cargo-xcode.sh"))
         .status()
         .into_result()
         .map_err(Error::ScriptChmodFailed)?;

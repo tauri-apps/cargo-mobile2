@@ -18,9 +18,12 @@ static DEFAULT_APP_ROOT: &'static str = ".";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RawGlobalConfig {
+    #[serde(alias = "app-name")]
     app_name: String,
+    #[serde(alias = "stylized-app-name")]
     stylized_app_name: Option<String>,
     domain: String,
+    #[serde(alias = "app-root")]
     app_root: Option<String>,
     // These aren't used anymore, and only kept in so we can emit warnings about them!
     source_root: Option<String>,
@@ -29,6 +32,7 @@ pub struct RawGlobalConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct GlobalConfig {
     app_name: String,
     stylized_app_name: Option<String>,
@@ -53,13 +57,13 @@ impl GlobalConfig {
             domain: raw_config.domain,
             app_root: raw_config.app_root.map(|app_root| {
                 if app_root.as_str() == DEFAULT_APP_ROOT {
-                    log::warn!("`global.app_root` is set to the default value; you can remove it from your config");
+                    log::warn!("`global.app-root` is set to the default value; you can remove it from your config");
                 }
                 app_root
             })
             .unwrap_or_else(|| {
                 log::info!(
-                    "`global.app_root` not set; defaulting to {}",
+                    "`global.app-root` not set; defaulting to {}",
                     DEFAULT_APP_ROOT
                 );
                 DEFAULT_APP_ROOT.to_owned()
@@ -89,7 +93,7 @@ impl fmt::Display for LoadError {
             LoadError::OpenFailed(err) => write!(f, "Failed to open config file: {}", err),
             LoadError::ReadFailed(err) => write!(f, "Failed to read config file: {}", err),
             LoadError::ParseFailed(err) => write!(f, "Failed to parse config file: {}", err),
-            LoadError::AppNameInvalid(err) => write!(f, "`global.app_name` invalid: {}", err),
+            LoadError::AppNameInvalid(err) => write!(f, "`global.app-name` invalid: {}", err),
             LoadError::IosConfigInvalid(err) => write!(f, "iOS config invalid: {}", err),
         }
     }
@@ -280,9 +284,9 @@ impl Config {
 
     pub(crate) fn insert_template_data(&self, map: &mut bicycle::JsonMap) {
         map.insert("config", &self);
-        map.insert("app_name", self.shared().app_name());
-        map.insert("app_name_snake", self.shared().app_name_snake());
-        map.insert("stylized_app_name", self.shared().stylized_app_name());
-        map.insert("reverse_domain", self.shared().reverse_domain());
+        map.insert("app-name", self.shared().app_name());
+        map.insert("app-name-snake", self.shared().app_name_snake());
+        map.insert("stylized-app-name", self.shared().stylized_app_name());
+        map.insert("reverse-domain", self.shared().reverse_domain());
     }
 }
