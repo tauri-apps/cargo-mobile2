@@ -127,7 +127,7 @@ fn main() {
         if let Some(config) = handle_error(&wrapper, Config::load(".")) {
             config
         } else {
-            non_zero_exit(format!("Developer error: no config found even after doing a successful `interactive_config_gen`").bright_red())
+            non_zero_exit(format!("Developer error: no config found even after doing a successful `interactive_config_gen`!").bright_red())
         }
     });
     match input.command {
