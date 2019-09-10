@@ -79,8 +79,9 @@ pub fn interactive_config_gen(
 ) -> Result<(), Error> {
     let cwd = env::current_dir().map_err(Error::CurrentDirFailed)?;
     let (app_name, default_stylized) = {
-        let mut default_app_name =
-            app_name::transliterate(&cwd.file_name().unwrap().to_str().unwrap().to_kebab_case());
+        let dir_name = cwd.file_name().unwrap();
+        let dir_name_str = dir_name.to_str().unwrap();
+        let mut default_app_name = app_name::transliterate(&dir_name_str.to_kebab_case());
         let mut app_name = None;
         let mut rejected = None;
         let mut default_stylized = None;
@@ -93,8 +94,12 @@ pub fn interactive_config_gen(
             .map_err(Error::AppNamePromptFailed)?;
             match app_name::validate(response.clone()) {
                 Ok(response) => {
-                    if default_app_name == Some(response.clone()) && rejected.is_some() {
-                        default_stylized = rejected.take();
+                    if default_app_name == Some(response.clone()) {
+                        if rejected.is_some() {
+                            default_stylized = rejected.take();
+                        } else {
+                            default_stylized = Some(dir_name_str.to_title_case());
+                        }
                     }
                     app_name = Some(response);
                 }
