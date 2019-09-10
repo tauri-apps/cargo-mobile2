@@ -1,8 +1,21 @@
 use crate::config::SharedConfig;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::PathBuf, rc::Rc};
+use std::{collections::HashMap, fmt, path::PathBuf, rc::Rc};
 
 static DEFAULT_PROJECT_ROOT: &'static str = "gen/ios";
+
+#[derive(Debug)]
+pub enum Error {
+    DevelopmentTeamEmpty,
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::DevelopmentTeamEmpty => write!(f, "`ios.development_team` is empty."),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RawConfig {
@@ -20,27 +33,31 @@ pub struct Config {
 }
 
 impl Config {
-    pub(crate) fn from_raw(shared: Rc<SharedConfig>, raw_config: RawConfig) -> Self {
+    pub(crate) fn from_raw(shared: Rc<SharedConfig>, raw_config: RawConfig) -> Result<Self, Error> {
         if raw_config.targets.is_some() {
             log::warn!("`ios.targets` specified in {}.toml - this config key is no longer necessary, and is ignored", crate::NAME);
         }
-        Self {
-            shared,
-            development_team: raw_config.development_team,
-            project_root: raw_config
-                .project_root
-                .map(|project_root| {
-                    if project_root == DEFAULT_PROJECT_ROOT {
-                        log::warn!("`ios.project_root` is set to the default value; you can remove it from your config");
-                    }
-                    project_root
-                }).unwrap_or_else(|| {
-                    log::info!(
-                        "`ios.project_root` not set; defaulting to {}",
-                        DEFAULT_PROJECT_ROOT
-                    );
-                    DEFAULT_PROJECT_ROOT.to_owned()
-                }),
+        if raw_config.development_team.is_empty() {
+            Err(Error::DevelopmentTeamEmpty)
+        } else {
+            Ok(Self {
+                shared,
+                development_team: raw_config.development_team,
+                project_root: raw_config
+                    .project_root
+                    .map(|project_root| {
+                        if project_root == DEFAULT_PROJECT_ROOT {
+                            log::warn!("`ios.project_root` is set to the default value; you can remove it from your config");
+                        }
+                        project_root
+                    }).unwrap_or_else(|| {
+                        log::info!(
+                            "`ios.project_root` not set; defaulting to {}",
+                            DEFAULT_PROJECT_ROOT
+                        );
+                        DEFAULT_PROJECT_ROOT.to_owned()
+                    }),
+            })
         }
     }
 

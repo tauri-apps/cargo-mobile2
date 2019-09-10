@@ -1,7 +1,7 @@
 use crate::{
     android::config::{Config as AndroidConfig, RawConfig as AndroidRawConfig},
     app_name,
-    ios::config::{Config as IosConfig, RawConfig as IosRawConfig},
+    ios::config::{Config as IosConfig, Error as IosError, RawConfig as IosRawConfig},
 };
 use heck::SnekCase as _;
 use serde::{Deserialize, Serialize};
@@ -75,6 +75,7 @@ pub enum LoadError {
     ReadFailed(io::Error),
     ParseFailed(toml::de::Error),
     AppNameInvalid(app_name::Invalid),
+    IosConfigInvalid(IosError),
 }
 
 impl fmt::Display for LoadError {
@@ -89,6 +90,7 @@ impl fmt::Display for LoadError {
             LoadError::ReadFailed(err) => write!(f, "Failed to read config file: {}", err),
             LoadError::ParseFailed(err) => write!(f, "Failed to parse config file: {}", err),
             LoadError::AppNameInvalid(err) => write!(f, "`global.app_name` invalid: {}", err),
+            LoadError::IosConfigInvalid(err) => write!(f, "{}", err),
         }
     }
 }
@@ -212,15 +214,16 @@ impl Deref for Config {
 }
 
 impl Config {
-    fn from_raw(project_root: PathBuf, raw_config: RawConfig) -> Result<Self, app_name::Invalid> {
+    fn from_raw(project_root: PathBuf, raw_config: RawConfig) -> Result<Self, LoadError> {
         let shared = SharedConfig {
             project_root,
-            global: GlobalConfig::from_raw(raw_config.global)?,
+            global: GlobalConfig::from_raw(raw_config.global).map_err(LoadError::AppNameInvalid)?,
         }
         .into();
         let android =
             AndroidConfig::from_raw(Rc::clone(&shared), raw_config.android.unwrap_or_default());
-        let ios = IosConfig::from_raw(Rc::clone(&shared), raw_config.ios);
+        let ios = IosConfig::from_raw(Rc::clone(&shared), raw_config.ios)
+            .map_err(LoadError::IosConfigInvalid)?;
         Ok(Self {
             shared,
             android,
@@ -253,9 +256,7 @@ impl Config {
             file.read_to_end(&mut contents)
                 .map_err(LoadError::ReadFailed)?;
             let raw_config = toml::from_slice(&contents).map_err(LoadError::ParseFailed)?;
-            Ok(Some(
-                Self::from_raw(project_root, raw_config).map_err(LoadError::AppNameInvalid)?,
-            ))
+            Ok(Some(Self::from_raw(project_root, raw_config)?))
         } else {
             Ok(None)
         }
