@@ -3,9 +3,7 @@ use clap::{App, AppSettings, ArgMatches, SubCommand};
 use ginit::{
     android::{
         env::{Env, Error as EnvError},
-        target::{
-            BuildError, CompileLibError, ConnectedTargetError, RunError, StacktraceError, Target,
-        },
+        target::{BuildError, CompileLibError, DetectionError, RunError, StacktraceError, Target},
     },
     config::Config,
     opts::NoiseLevel,
@@ -46,7 +44,7 @@ pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
 #[derive(Debug)]
 pub enum Error {
     EnvInitFailed(EnvError),
-    TargetDetectionFailed(ConnectedTargetError),
+    TargetDetectionFailed(DetectionError),
     TargetInvalid(TargetInvalid),
     CheckFailed(CompileLibError),
     BuildFailed(BuildError),
@@ -108,7 +106,7 @@ impl AndroidCommand {
 
     pub fn exec(self, config: &Config, noise_level: NoiseLevel) -> Result<(), Error> {
         fn detect_target<'a>(env: &Env) -> Result<&'a Target<'a>, Error> {
-            let target = Target::for_connected(env).map_err(Error::TargetDetectionFailed);
+            let target = Target::detect(env).map_err(Error::TargetDetectionFailed);
             if let Ok(target) = target {
                 println!("Detected target for connected device: {}", target.triple);
             }

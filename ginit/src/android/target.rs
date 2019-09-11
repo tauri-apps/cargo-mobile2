@@ -48,22 +48,22 @@ impl CargoMode {
 }
 
 #[derive(Debug)]
-pub enum ConnectedTargetError {
+pub enum DetectionError {
     ProductLookupFailed(CommandError),
     ProductInvalidUtf8(str::Utf8Error),
     ProductAbiInvalid { abi: String },
 }
 
-impl fmt::Display for ConnectedTargetError {
+impl fmt::Display for DetectionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ConnectedTargetError::ProductLookupFailed(err) => {
+            DetectionError::ProductLookupFailed(err) => {
                 write!(f, "Failed to get product information via `adb`: {}", err)
             }
-            ConnectedTargetError::ProductInvalidUtf8(err) => {
+            DetectionError::ProductInvalidUtf8(err) => {
                 write!(f, "`ro.product.cpu.abi` contained invalid UTF-8: {}", err)
             }
-            ConnectedTargetError::ProductAbiInvalid { abi } => write!(
+            DetectionError::ProductAbiInvalid { abi } => write!(
                 f,
                 "`ro.product.cpu.abi` contained an invalid ABI: {:?}",
                 abi
@@ -255,17 +255,16 @@ impl<'a> Target<'a> {
         Self::all().values().find(|target| target.abi == abi)
     }
 
-    pub fn for_connected(env: &Env) -> Result<&'a Self, ConnectedTargetError> {
+    pub fn detect(env: &Env) -> Result<&'a Self, DetectionError> {
         let output = PureCommand::new("adb", env)
             .args(&["shell", "getprop", "ro.product.cpu.abi"])
             .output()
             .into_result()
-            .map_err(ConnectedTargetError::ProductLookupFailed)?;
-        let raw_abi =
-            str::from_utf8(&output.stdout).map_err(ConnectedTargetError::ProductInvalidUtf8)?;
+            .map_err(DetectionError::ProductLookupFailed)?;
+        let raw_abi = str::from_utf8(&output.stdout).map_err(DetectionError::ProductInvalidUtf8)?;
         let abi = raw_abi.trim();
         Ok(
-            Self::for_abi(abi).ok_or_else(|| ConnectedTargetError::ProductAbiInvalid {
+            Self::for_abi(abi).ok_or_else(|| DetectionError::ProductAbiInvalid {
                 abi: abi.to_owned(),
             })?,
         )

@@ -8,7 +8,13 @@ use crate::{
     util::{self, pure_command::PureCommand},
 };
 use into_result::{command::CommandError, IntoResult as _};
-use std::{collections::BTreeMap, fmt, path::Path, process::Command};
+use serde::Deserialize;
+use std::{
+    collections::BTreeMap,
+    fmt,
+    path::Path,
+    process::{Command, Stdio},
+};
 
 #[derive(Debug)]
 pub enum VersionCheckError {
@@ -35,6 +41,41 @@ impl fmt::Display for VersionCheckError {
                 "{} Xcode {}.{}; you have Xcode {}.{}.",
                 msg, you_need.0, you_need.1, you_have.0, you_have.1
             ),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum DetectionError {
+    IosDeployMissing(IosDeployMissing),
+    LookupFailed(CommandError),
+    KillFailed(std::io::Error),
+    OutputFailed(std::io::Error),
+    InvalidUtf8(std::str::Utf8Error),
+    ParseFailed(serde_json::error::Error),
+}
+
+impl fmt::Display for DetectionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DetectionError::IosDeployMissing(err) => write!(f, "{}", err),
+            DetectionError::LookupFailed(err) => write!(
+                f,
+                "Failed to request device list from `ios-deploy`: {}",
+                err
+            ),
+            DetectionError::KillFailed(err) => write!(f, "Failed to kill `ios-deploy`: {}", err),
+            DetectionError::OutputFailed(err) => write!(
+                f,
+                "Failed to get collect device list output from `ios-deploy`: {}",
+                err
+            ),
+            DetectionError::InvalidUtf8(err) => {
+                write!(f, "Device info contained invalid UTF-8: {}", err)
+            }
+            DetectionError::ParseFailed(err) => {
+                write!(f, "Device info couldn't be parsed: {}", err)
+            }
         }
     }
 }
@@ -146,6 +187,28 @@ fn ios_deploy(env: &Env) -> Result<Command, IosDeployMissing> {
     }
 }
 
+#[derive(Debug, Deserialize)]
+pub struct Device {
+    #[serde(rename = "DeviceIdentifier")]
+    device_identifier: String,
+    #[serde(rename = "DeviceName")]
+    device_name: String,
+    #[serde(rename = "modelName")]
+    model_name: String,
+}
+
+impl fmt::Display for Device {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} ({})", self.device_name, self.model_name,)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct DeviceDetected {
+    #[serde(rename = "Device")]
+    device: Device,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Target<'a> {
     pub triple: &'a str,
@@ -202,6 +265,42 @@ impl<'a> Target<'a> {
 
     pub fn is_macos(&self) -> bool {
         *self == Self::macos()
+    }
+
+    pub fn detect(env: &Env) -> Result<Vec<Device>, DetectionError> {
+        let mut handle = ios_deploy(env)
+            .map_err(DetectionError::IosDeployMissing)?
+            .args(&["--detect", "--json", "--no-wifi", "--unbuffered"])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .into_result()
+            .map_err(DetectionError::LookupFailed)?;
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        handle.kill().map_err(DetectionError::KillFailed)?;
+        let output = handle
+            .wait_with_output()
+            .map_err(DetectionError::OutputFailed)?;
+        let raw_list = std::str::from_utf8(&output.stdout).map_err(DetectionError::InvalidUtf8)?;
+        let raw_docs = {
+            let mut raw_docs = Vec::new();
+            let mut prev_index = 0;
+            for (index, _) in raw_list.match_indices("}{") {
+                let end = index + 1;
+                raw_docs.push(&raw_list[prev_index..end]);
+                prev_index = end;
+            }
+            raw_docs.push(&raw_list[prev_index..]);
+            raw_docs
+        };
+        raw_docs
+            .into_iter()
+            .map(|raw_doc| {
+                serde_json::from_str::<DeviceDetected>(raw_doc)
+                    .map(|device_detected| device_detected.device)
+            })
+            .collect::<Result<_, _>>()
+            .map_err(DetectionError::ParseFailed)
     }
 
     pub fn generate_cargo_config(&self) -> CargoTarget {
