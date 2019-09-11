@@ -11,9 +11,9 @@ use colored::*;
 use ginit::{
     android::target::Target as AndroidTarget,
     config::Config,
-    init::config_gen::interactive_config_gen,
+    init::config_gen::{DefaultConfig, RequiredConfig},
     ios::target::Target as IosTarget,
-    opts::NoiseLevel,
+    opts::{Interactivity, NoiseLevel},
     target::TargetTrait as _,
     templating,
     util::{init_text_wrapper, TextWrapper},
@@ -32,6 +32,7 @@ fn cli_app<'a, 'b>(android_targets: &'a [&'a str], ios_targets: &'a [&'a str]) -
                 .global(true)
                 .multiple(true),
         )
+        .arg(Arg::from_usage("--non-interactive 'Go with the flow'").global(true))
         .subcommand(init::subcommand().display_order(0))
         .subcommand(android::subcommand(android_targets).display_order(1))
         .subcommand(ios::subcommand(ios_targets).display_order(1))
@@ -40,6 +41,7 @@ fn cli_app<'a, 'b>(android_targets: &'a [&'a str], ios_targets: &'a [&'a str]) -
 #[derive(Debug)]
 struct CliInput {
     noise_level: NoiseLevel,
+    interactivity: Interactivity,
     command: Command,
 }
 
@@ -50,6 +52,11 @@ impl CliInput {
                 0 => NoiseLevel::Polite,
                 1 => NoiseLevel::LoudAndProud,
                 _ => NoiseLevel::FranklyQuitePedantic,
+            },
+            interactivity: if matches.is_present("non-interactive") {
+                Interactivity::None
+            } else {
+                Interactivity::Full
             },
             command: Command::parse(*matches.subcommand.unwrap()), // claps makes sure we got a subcommand
         }
@@ -123,7 +130,16 @@ fn main() {
     };
     let config = handle_error(&wrapper, Config::load(".")).unwrap_or_else(|| {
         let old_bike = templating::init(None);
-        handle_error(&wrapper, interactive_config_gen(&old_bike, &wrapper));
+        let required_config = match input.interactivity {
+            Interactivity::Full => {
+                handle_error(&wrapper, RequiredConfig::interactive(&wrapper))
+            }
+            Interactivity::None => {
+                let defaults = handle_error(&wrapper, DefaultConfig::detect());
+                handle_error(&wrapper, defaults.upgrade())
+            }
+        };
+        handle_error(&wrapper, required_config.write(&old_bike, "."));
         if let Some(config) = handle_error(&wrapper, Config::load(".")) {
             config
         } else {

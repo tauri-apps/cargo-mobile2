@@ -35,7 +35,7 @@ pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
 #[derive(Debug)]
 pub struct InitCommand {
     clobbering: Clobbering,
-    open: OpenIn,
+    open_in: OpenIn,
     only: Option<Steps>,
     skip: Option<Steps>,
 }
@@ -47,7 +47,7 @@ impl InitCommand {
         } else {
             Clobbering::Forbid
         };
-        let open = if matches.is_present("open") {
+        let open_in = if matches.is_present("open") {
             OpenIn::Editor
         } else {
             OpenIn::Nothing
@@ -62,7 +62,7 @@ impl InitCommand {
             .map(|skip| Steps::from(skip.vals.as_slice()));
         Self {
             clobbering,
-            open,
+            open_in,
             only,
             skip,
         }
@@ -74,7 +74,7 @@ impl InitCommand {
             config,
             &bike,
             self.clobbering,
-            self.open,
+            self.open_in,
             self.only,
             self.skip,
         )?;

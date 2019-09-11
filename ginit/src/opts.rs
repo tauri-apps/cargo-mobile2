@@ -36,6 +36,18 @@ impl Clobbering {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Interactivity {
+    Full,
+    None,
+}
+
+impl Default for Interactivity {
+    fn default() -> Self {
+        Interactivity::Full
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum OpenIn {
     Nothing,
     Editor,

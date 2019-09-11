@@ -9,7 +9,12 @@ use crate::{
 use colored::*;
 use heck::{KebabCase as _, TitleCase as _};
 use into_result::{command::CommandError, IntoResult as _};
-use std::{env, fmt, io, process::Command, str};
+use std::{
+    env, fmt, io,
+    path::{Path, PathBuf},
+    process::Command,
+    str,
+};
 
 #[derive(Debug)]
 enum DefaultDomainError {
@@ -39,145 +44,268 @@ fn default_domain() -> Result<Option<String>, DefaultDomainError> {
 }
 
 #[derive(Debug)]
-pub enum Error {
+pub enum DetectionError {
     CurrentDirFailed(io::Error),
+    CurrentDirHasNoName(PathBuf),
+    CurrentDirInvalidUtf8(PathBuf),
+}
+
+impl fmt::Display for DetectionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DetectionError::CurrentDirFailed(err) => {
+                write!(f, "Failed to get current working directory: {}", err)
+            }
+            DetectionError::CurrentDirHasNoName(cwd) => {
+                write!(f, "Current working directory has no name: {:?}", cwd)
+            }
+            DetectionError::CurrentDirInvalidUtf8(cwd) => write!(
+                f,
+                "Current working directory contained invalid UTF-8: {:?}",
+                cwd
+            ),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum UpgradeError {
+    DeveloperTeamLookupFailed(ios::teams::Error),
+    AppNameNotDetected,
+    DeveloperTeamsEmpty,
+}
+
+impl fmt::Display for UpgradeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UpgradeError::DeveloperTeamLookupFailed(err) => {
+                write!(f, "Failed to find Apple developer teams: {}", err)
+            }
+            UpgradeError::AppNameNotDetected => write!(f, "No app name was detected."),
+            UpgradeError::DeveloperTeamsEmpty => {
+                write!(f, "No Apple developer teams were detected.")
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct DefaultConfig {
+    app_name: Option<String>,
+    stylized_app_name: String,
+    domain: String,
+}
+
+impl DefaultConfig {
+    pub fn detect() -> Result<Self, DetectionError> {
+        let cwd = env::current_dir().map_err(DetectionError::CurrentDirFailed)?;
+        let dir_name = cwd
+            .file_name()
+            .ok_or_else(|| DetectionError::CurrentDirHasNoName(cwd.clone()))?;
+        let dir_name_str = dir_name
+            .to_str()
+            .ok_or_else(|| DetectionError::CurrentDirInvalidUtf8(cwd.clone()))?;
+        let app_name = app_name::transliterate(&dir_name_str.to_kebab_case());
+        let stylized_app_name = dir_name_str.to_title_case();
+        let domain = default_domain()
+            .ok()
+            .and_then(std::convert::identity)
+            .unwrap_or_else(|| "example.com".to_owned());
+        Ok(Self {
+            app_name,
+            stylized_app_name,
+            domain,
+        })
+    }
+
+    pub fn upgrade(self) -> Result<RequiredConfig, UpgradeError> {
+        let development_teams = ios::teams::find_development_teams()
+            .map_err(UpgradeError::DeveloperTeamLookupFailed)?;
+        Ok(RequiredConfig {
+            app_name: self
+                .app_name
+                .ok_or_else(|| UpgradeError::AppNameNotDetected)?,
+            stylized_app_name: self.stylized_app_name,
+            domain: self.domain,
+            development_team: development_teams
+                .get(0)
+                .map(|development_team| development_team.id.clone())
+                .ok_or_else(|| UpgradeError::DeveloperTeamsEmpty)?,
+        })
+    }
+}
+
+#[derive(Debug)]
+pub enum InteractiveError {
+    DefaultConfigDetectionFailed(DetectionError),
     AppNamePromptFailed(io::Error),
     StylizedAppNamePromptFailed(io::Error),
     DomainPromptFailed(io::Error),
-    DevelopmentTeamLookupFailed(ios::teams::Error),
-    DevelopmentTeamPromptFailed(io::Error),
+    DeveloperTeamLookupFailed(ios::teams::Error),
+    DeveloperTeamPromptFailed(io::Error),
+}
+
+impl fmt::Display for InteractiveError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            InteractiveError::DefaultConfigDetectionFailed(err) => {
+                write!(f, "Failed to detect default config values: {}", err)
+            }
+            InteractiveError::AppNamePromptFailed(err) => {
+                write!(f, "Failed to prompt for app name: {}", err)
+            }
+            InteractiveError::StylizedAppNamePromptFailed(err) => {
+                write!(f, "Failed to prompt for stylized app name: {}", err)
+            }
+            InteractiveError::DomainPromptFailed(err) => {
+                write!(f, "Failed to prompt for domain: {}", err)
+            }
+            InteractiveError::DeveloperTeamLookupFailed(err) => {
+                write!(f, "Failed to find Apple developer teams: {}", err)
+            }
+            InteractiveError::DeveloperTeamPromptFailed(err) => {
+                write!(f, "Failed to prompt for Apple developer team: {}", err)
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum WriteError {
     ConfigTemplateMissing,
     ConfigRenderFailed(bicycle::ProcessingError),
 }
 
-impl fmt::Display for Error {
+impl fmt::Display for WriteError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::CurrentDirFailed(err) => {
-                write!(f, "Failed to get current working directory: {}", err)
+            WriteError::ConfigTemplateMissing => {
+                write!(f, "Missing \"{}.toml\" template.", crate::NAME)
             }
-            Error::AppNamePromptFailed(err) => write!(f, "Failed to prompt for app name: {}", err),
-            Error::StylizedAppNamePromptFailed(err) => {
-                write!(f, "Failed to prompt for stylized app name: {}", err)
+            WriteError::ConfigRenderFailed(err) => {
+                write!(f, "Failed to render config file: {}", err)
             }
-            Error::DomainPromptFailed(err) => write!(f, "Failed to prompt for domain: {}", err),
-            Error::DevelopmentTeamLookupFailed(err) => {
-                write!(f, "Failed to find development teams: {}", err)
-            }
-            Error::DevelopmentTeamPromptFailed(err) => {
-                write!(f, "Failed to prompt for development team: {}", err)
-            }
-            Error::ConfigTemplateMissing => write!(f, "Missing \"{}.toml\" template.", crate::NAME),
-            Error::ConfigRenderFailed(err) => write!(f, "Failed to render config file: {}", err),
         }
     }
 }
 
-pub fn interactive_config_gen(
-    bike: &bicycle::Bicycle,
-    wrapper: &util::TextWrapper,
-) -> Result<(), Error> {
-    let cwd = env::current_dir().map_err(Error::CurrentDirFailed)?;
-    let (app_name, default_stylized) = {
-        let dir_name = cwd.file_name().unwrap();
-        let dir_name_str = dir_name.to_str().unwrap();
-        let mut default_app_name = app_name::transliterate(&dir_name_str.to_kebab_case());
-        let mut app_name = None;
-        let mut rejected = None;
-        let mut default_stylized = None;
-        while let None = app_name {
-            let response = prompt::default(
-                "App name",
-                default_app_name.as_ref().map(|s| s.as_str()),
-                None,
-            )
-            .map_err(Error::AppNamePromptFailed)?;
-            match app_name::validate(response.clone()) {
-                Ok(response) => {
-                    if default_app_name == Some(response.clone()) {
-                        if rejected.is_some() {
-                            default_stylized = rejected.take();
-                        } else {
-                            default_stylized = Some(dir_name_str.to_title_case());
+#[derive(Debug)]
+pub struct RequiredConfig {
+    app_name: String,
+    stylized_app_name: String,
+    domain: String,
+    development_team: String,
+}
+
+impl RequiredConfig {
+    pub fn interactive(wrapper: &util::TextWrapper) -> Result<Self, InteractiveError> {
+        let defaults =
+            DefaultConfig::detect().map_err(InteractiveError::DefaultConfigDetectionFailed)?;
+        let (app_name, default_stylized) = {
+            let mut default_app_name = defaults.app_name;
+            let mut app_name = None;
+            let mut rejected = None;
+            let mut default_stylized = None;
+            while let None = app_name {
+                let response = prompt::default(
+                    "App name",
+                    default_app_name.as_ref().map(|s| s.as_str()),
+                    None,
+                )
+                .map_err(InteractiveError::AppNamePromptFailed)?;
+                match app_name::validate(response.clone()) {
+                    Ok(response) => {
+                        if default_app_name == Some(response.clone()) {
+                            if rejected.is_some() {
+                                default_stylized = rejected.take();
+                            } else {
+                                default_stylized = Some(defaults.stylized_app_name.clone());
+                            }
+                        }
+                        app_name = Some(response);
+                    }
+                    Err(err) => {
+                        rejected = Some(response);
+                        println!(
+                            "{}",
+                            wrapper
+                                .fill(&format!("Gosh, that's not a valid app name! {}", err))
+                                .bright_magenta()
+                        );
+                        if let Some(suggested) = err.suggested() {
+                            default_app_name = Some(suggested.to_owned());
                         }
                     }
-                    app_name = Some(response);
-                }
-                Err(err) => {
-                    rejected = Some(response);
-                    println!(
-                        "{}",
-                        wrapper
-                            .fill(&format!("Gosh, that's not a valid app name! {}", err))
-                            .bright_magenta()
-                    );
-                    if let Some(suggested) = err.suggested() {
-                        default_app_name = Some(suggested.to_owned());
-                    }
                 }
             }
+            (app_name.unwrap(), default_stylized)
+        };
+        let stylized_app_name = {
+            let stylized = default_stylized
+                .unwrap_or_else(|| app_name.replace("-", " ").replace("_", " ").to_title_case());
+            prompt::default("Stylized app name", Some(&stylized), None)
         }
-        (app_name.unwrap(), default_stylized)
-    };
-    let stylized = {
-        let stylized = default_stylized
-            .unwrap_or_else(|| app_name.replace("-", " ").replace("_", " ").to_title_case());
-        prompt::default("Stylized app name", Some(&stylized), None)
-    }
-    .map_err(Error::StylizedAppNamePromptFailed)?;
-    let domain = {
-        let default_domain = default_domain().ok().and_then(std::convert::identity);
-        let default_domain = default_domain
-            .as_ref()
-            .map(|domain| domain.as_str())
-            .unwrap_or_else(|| "example.com");
-        prompt::default("Domain", Some(default_domain), None)
-    }
-    .map_err(Error::DomainPromptFailed)?;
-    let team = {
-        let teams =
-            ios::teams::find_development_teams().map_err(Error::DevelopmentTeamLookupFailed)?;
-        let mut default_team = None;
-        println!("Detected development teams:");
-        for (index, team) in teams.iter().enumerate() {
+        .map_err(InteractiveError::StylizedAppNamePromptFailed)?;
+        let domain = { prompt::default("Domain", Some(&defaults.domain), None) }
+            .map_err(InteractiveError::DomainPromptFailed)?;
+        let development_team = {
+            let development_teams = ios::teams::find_development_teams()
+                .map_err(InteractiveError::DeveloperTeamLookupFailed)?;
+            let mut default_team = None;
+            println!("Detected development teams:");
+            for (index, team) in development_teams.iter().enumerate() {
+                println!(
+                    "  [{}] {} ({})",
+                    index.to_string().green(),
+                    team.name,
+                    team.id.cyan(),
+                );
+                if development_teams.len() == 1 {
+                    default_team = Some("0");
+                }
+            }
+            if development_teams.is_empty() {
+                println!("  -- none --");
+            }
             println!(
-                "  [{}] {} ({})",
-                index.to_string().green(),
-                team.name,
-                team.id.cyan(),
+                "  Enter an {} for a team above, or enter a {} manually.",
+                "index".green(),
+                "team ID".cyan(),
             );
-            if teams.len() == 1 {
-                default_team = Some("0");
-            }
-        }
-        if teams.is_empty() {
-            println!("  -- none --");
-        }
-        println!(
-            "  Enter an {} for a team above, or enter a {} manually.",
-            "index".green(),
-            "team ID".cyan(),
-        );
-        let team_input =
-            prompt::default("Apple development team", default_team, Some(Color::Green))
-                .map_err(Error::DevelopmentTeamPromptFailed)?;
-        team_input
-            .parse::<usize>()
-            .ok()
-            .and_then(|index| teams.get(index))
-            .map(|team| team.id.clone())
-            .unwrap_or_else(|| team_input)
-    };
-    bike.process(
-        template_pack(None, "{{tool-name}}.toml.hbs")
-            .ok_or_else(|| Error::ConfigTemplateMissing)?,
-        &cwd,
-        |map| {
-            map.insert("app-name", &app_name);
-            map.insert("stylized-app-name", &stylized);
-            map.insert("domain", &domain);
-            map.insert("development-team", &team);
-        },
-    )
-    .map_err(Error::ConfigRenderFailed)
+            let team_input =
+                prompt::default("Apple development team", default_team, Some(Color::Green))
+                    .map_err(InteractiveError::DeveloperTeamPromptFailed)?;
+            team_input
+                .parse::<usize>()
+                .ok()
+                .and_then(|index| development_teams.get(index))
+                .map(|team| team.id.clone())
+                .unwrap_or_else(|| team_input)
+        };
+        Ok(Self {
+            app_name,
+            stylized_app_name,
+            domain,
+            development_team,
+        })
+    }
+
+    pub fn write(
+        self,
+        bike: &bicycle::Bicycle,
+        project_root: impl AsRef<Path>,
+    ) -> Result<(), WriteError> {
+        bike.process(
+            template_pack(None, "{{tool-name}}.toml.hbs")
+                .ok_or_else(|| WriteError::ConfigTemplateMissing)?,
+            project_root,
+            |map| {
+                map.insert("app-name", &self.app_name);
+                map.insert("stylized-app-name", &self.stylized_app_name);
+                map.insert("domain", &self.domain);
+                map.insert("development-team", &self.development_team);
+            },
+        )
+        .map_err(WriteError::ConfigRenderFailed)
+    }
 }
