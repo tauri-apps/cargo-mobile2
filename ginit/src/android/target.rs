@@ -1,26 +1,16 @@
-// TODO: Bad things happen if multiple Android devices are connected at once
-
 use super::{env::Env, ndk};
 use crate::{
     config::Config,
     init::cargo::CargoTarget,
-    opts::NoiseLevel,
-    target::{Profile, TargetTrait},
-    util::{self, ln, pure_command::PureCommand},
+    opts::{NoiseLevel, Profile},
+    target::TargetTrait,
+    util::{self, ln},
 };
 use into_result::{command::CommandError, IntoResult as _};
-use std::{collections::BTreeMap, fmt, fs, io, path::PathBuf, process::Command, str};
+use std::{collections::BTreeMap, fmt, fs, io, path::PathBuf, str};
 
 fn so_name(config: &Config) -> String {
     format!("lib{}.so", config.app_name())
-}
-
-fn gradlew(config: &Config, env: &Env) -> Command {
-    let gradlew_path = config.android().project_path().join("gradlew");
-    let mut command = PureCommand::new(&gradlew_path, env);
-    command.arg("--project-dir");
-    command.arg(config.android().project_path());
-    command
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -43,31 +33,6 @@ impl CargoMode {
         match self {
             CargoMode::Check => "check",
             CargoMode::Build => "build",
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum DetectionError {
-    ProductLookupFailed(CommandError),
-    ProductInvalidUtf8(str::Utf8Error),
-    ProductAbiInvalid { abi: String },
-}
-
-impl fmt::Display for DetectionError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            DetectionError::ProductLookupFailed(err) => {
-                write!(f, "Failed to get product information via `adb`: {}", err)
-            }
-            DetectionError::ProductInvalidUtf8(err) => {
-                write!(f, "`ro.product.cpu.abi` contained invalid UTF-8: {}", err)
-            }
-            DetectionError::ProductAbiInvalid { abi } => write!(
-                f,
-                "`ro.product.cpu.abi` contained an invalid ABI: {:?}",
-                abi
-            ),
         }
     }
 }
@@ -130,60 +95,7 @@ impl fmt::Display for BuildError {
     }
 }
 
-#[derive(Debug)]
-pub enum BuildAndInstallError {
-    LibSymlinkCleaningFailed(io::Error),
-    BuildFailed(BuildError),
-    InstallFailed(CommandError),
-}
-
-impl fmt::Display for BuildAndInstallError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            BuildAndInstallError::LibSymlinkCleaningFailed(err) => {
-                write!(f, "Failed to delete broken symlink: {}", err)
-            }
-            BuildAndInstallError::BuildFailed(err) => write!(f, "{}", err),
-            BuildAndInstallError::InstallFailed(err) => write!(f, "Failed to install APK: {}", err),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum RunError {
-    BuildAndInstallFailed(BuildAndInstallError),
-    StartFailed(CommandError),
-    WakeScreenFailed(CommandError),
-}
-
-impl fmt::Display for RunError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            RunError::BuildAndInstallFailed(err) => {
-                write!(f, "Failed to build and install app: {}", err)
-            }
-            RunError::StartFailed(err) => write!(f, "Failed to start APK on device: {}", err),
-            RunError::WakeScreenFailed(err) => write!(f, "Failed to wake device screen: {}", err),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum StacktraceError {
-    PipeFailed(util::PipeError),
-}
-
-impl fmt::Display for StacktraceError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            StacktraceError::PipeFailed(err) => {
-                write!(f, "Failed to pipe stacktrace output: {}", err)
-            }
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Target<'a> {
     pub triple: &'a str,
     clang_triple_override: Option<&'a str>,
@@ -251,23 +163,8 @@ impl<'a> Target<'a> {
         self.binutils_triple_override.unwrap_or_else(|| self.triple)
     }
 
-    fn for_abi(abi: &str) -> Option<&'a Self> {
+    pub fn for_abi(abi: &str) -> Option<&'a Self> {
         Self::all().values().find(|target| target.abi == abi)
-    }
-
-    pub fn detect(env: &Env) -> Result<&'a Self, DetectionError> {
-        let output = PureCommand::new("adb", env)
-            .args(&["shell", "getprop", "ro.product.cpu.abi"])
-            .output()
-            .into_result()
-            .map_err(DetectionError::ProductLookupFailed)?;
-        let raw_abi = str::from_utf8(&output.stdout).map_err(DetectionError::ProductInvalidUtf8)?;
-        let abi = raw_abi.trim();
-        Ok(
-            Self::for_abi(abi).ok_or_else(|| DetectionError::ProductAbiInvalid {
-                abi: abi.to_owned(),
-            })?,
-        )
     }
 
     pub fn generate_cargo_config(
@@ -346,7 +243,7 @@ impl<'a> Target<'a> {
             .map_err(|cause| CompileLibError::CargoFailed { mode, cause })
     }
 
-    fn get_jnilibs_subdir(&self, config: &Config) -> PathBuf {
+    pub(super) fn get_jnilibs_subdir(&self, config: &Config) -> PathBuf {
         config
             .android()
             .project_path()
@@ -356,6 +253,23 @@ impl<'a> Target<'a> {
     fn make_jnilibs_subdir(&self, config: &Config) -> Result<(), io::Error> {
         let path = self.get_jnilibs_subdir(config);
         fs::create_dir_all(path)
+    }
+
+    pub(super) fn clean_jnilibs(config: &Config) -> io::Result<()> {
+        for target in Self::all().values() {
+            let link = target.get_jnilibs_subdir(config).join(so_name(config));
+            if let Ok(path) = fs::read_link(&link) {
+                if !path.exists() {
+                    log::info!(
+                        "deleting broken symlink {:?} (points to {:?}, which doesn't exist)",
+                        link,
+                        path
+                    );
+                    fs::remove_file(link)?;
+                }
+            }
+        }
+        Ok(())
     }
 
     fn symlink_lib(&self, config: &Config, profile: Profile) -> Result<(), LibSymlinkError> {
@@ -397,79 +311,5 @@ impl<'a> Target<'a> {
             .map_err(BuildError::BuildFailed)?;
         self.symlink_lib(config, profile)
             .map_err(BuildError::LibSymlinkFailed)
-    }
-
-    fn clean_jnilibs(config: &Config) -> io::Result<()> {
-        for target in Self::all().values() {
-            let link = target.get_jnilibs_subdir(config).join(so_name(config));
-            if let Ok(path) = fs::read_link(&link) {
-                if !path.exists() {
-                    log::info!(
-                        "deleting broken symlink {:?} (points to {:?}, which doesn't exist)",
-                        link,
-                        path
-                    );
-                    fs::remove_file(link)?;
-                }
-            }
-        }
-        Ok(())
-    }
-
-    fn build_and_install(
-        &self,
-        config: &Config,
-        env: &Env,
-        noise_level: NoiseLevel,
-        profile: Profile,
-    ) -> Result<(), BuildAndInstallError> {
-        Self::clean_jnilibs(config).map_err(BuildAndInstallError::LibSymlinkCleaningFailed)?;
-        self.build(config, env, noise_level, profile)
-            .map_err(BuildAndInstallError::BuildFailed)?;
-        gradlew(config, env)
-            .arg("installDebug")
-            .status()
-            .into_result()
-            .map_err(BuildAndInstallError::InstallFailed)
-    }
-
-    fn wake_screen(&self, env: &Env) -> Result<(), CommandError> {
-        PureCommand::new("adb", env)
-            .args(&["shell", "input", "keyevent", "KEYCODE_WAKEUP"])
-            .status()
-            .into_result()
-    }
-
-    pub fn run(
-        &self,
-        config: &Config,
-        env: &Env,
-        noise_level: NoiseLevel,
-        profile: Profile,
-    ) -> Result<(), RunError> {
-        self.build_and_install(config, env, noise_level, profile)
-            .map_err(RunError::BuildAndInstallFailed)?;
-        let activity = format!(
-            "{}.{}/android.app.NativeActivity",
-            config.reverse_domain(),
-            config.app_name(),
-        );
-        PureCommand::new("adb", env)
-            .args(&["shell", "am", "start", "-n", &activity])
-            .status()
-            .into_result()
-            .map_err(RunError::StartFailed)?;
-        self.wake_screen(env).map_err(RunError::WakeScreenFailed)
-    }
-
-    pub fn stacktrace(&self, config: &Config, env: &Env) -> Result<(), StacktraceError> {
-        let mut logcat_command = PureCommand::new("adb", env);
-        logcat_command.args(&["logcat", "-d"]); // print and exit
-        let mut stack_command = PureCommand::new("ndk-stack", env);
-        stack_command
-            .env("PATH", util::add_to_path(env.ndk.home().display()))
-            .arg("-sym")
-            .arg(self.get_jnilibs_subdir(config));
-        util::pipe(logcat_command, stack_command).map_err(StacktraceError::PipeFailed)
     }
 }

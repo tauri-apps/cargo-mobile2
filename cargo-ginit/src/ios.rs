@@ -4,8 +4,8 @@ use ginit::{
     config::Config,
     env::{Env, Error as EnvError},
     ios::target::{BuildError, CheckError, CompileLibError, DetectionError, RunError, Target},
-    opts::NoiseLevel,
-    target::{call_for_targets, Profile, TargetInvalid, TargetTrait as _},
+    opts::{NoiseLevel, Profile},
+    target::{call_for_targets, TargetInvalid, TargetTrait as _},
 };
 use std::fmt;
 

@@ -3,8 +3,8 @@ use crate::{
     env::Env,
     init::cargo::CargoTarget,
     ios::system_profile::{self, DeveloperTools},
-    opts::NoiseLevel,
-    target::{Profile, TargetTrait},
+    opts::{NoiseLevel, Profile},
+    target::TargetTrait,
     util::{self, pure_command::PureCommand},
 };
 use into_result::{command::CommandError, IntoResult as _};

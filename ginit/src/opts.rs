@@ -1,22 +1,3 @@
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub enum NoiseLevel {
-    Polite,
-    LoudAndProud,
-    FranklyQuitePedantic,
-}
-
-impl Default for NoiseLevel {
-    fn default() -> Self {
-        NoiseLevel::Polite
-    }
-}
-
-impl NoiseLevel {
-    pub fn is_pedantic(self) -> bool {
-        self == NoiseLevel::FranklyQuitePedantic
-    }
-}
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Clobbering {
     Forbid,
@@ -47,6 +28,25 @@ impl Default for Interactivity {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum NoiseLevel {
+    Polite,
+    LoudAndProud,
+    FranklyQuitePedantic,
+}
+
+impl Default for NoiseLevel {
+    fn default() -> Self {
+        NoiseLevel::Polite
+    }
+}
+
+impl NoiseLevel {
+    pub fn is_pedantic(self) -> bool {
+        self == NoiseLevel::FranklyQuitePedantic
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum OpenIn {
     Nothing,
@@ -56,5 +56,28 @@ pub enum OpenIn {
 impl Default for OpenIn {
     fn default() -> Self {
         OpenIn::Nothing
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Profile {
+    Debug,
+    Release,
+}
+
+impl Profile {
+    pub fn is_debug(self) -> bool {
+        self == Profile::Debug
+    }
+
+    pub fn is_release(self) -> bool {
+        self == Profile::Release
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Profile::Debug => "debug",
+            Profile::Release => "release",
+        }
     }
 }

@@ -57,7 +57,7 @@ impl DeveloperTools {
             .captures_iter(text)
             .next()
             .map(|caps| {
-                debug_assert_eq!(caps.len(), 2);
+                assert_eq!(caps.len(), 3);
                 caps.iter()
                     .skip(1)
                     .map(|component| {

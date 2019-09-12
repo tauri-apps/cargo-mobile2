@@ -1,5 +1,5 @@
 use clap::{Arg, ArgMatches};
-use ginit::target::{Profile, TargetTrait};
+use ginit::{opts::Profile, target::TargetTrait};
 
 pub fn take_a_list<'a, 'b>(arg: Arg<'a, 'b>, values: &'a [&'a str]) -> Arg<'a, 'b> {
     arg.possible_values(values)
