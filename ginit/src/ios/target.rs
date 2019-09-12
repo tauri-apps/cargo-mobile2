@@ -8,13 +8,7 @@ use crate::{
     util::{self, pure_command::PureCommand},
 };
 use into_result::{command::CommandError, IntoResult as _};
-use serde::Deserialize;
-use std::{
-    collections::BTreeMap,
-    fmt,
-    path::Path,
-    process::{Command, Stdio},
-};
+use std::{collections::BTreeMap, fmt};
 
 #[derive(Debug)]
 pub enum VersionCheckError {
@@ -41,41 +35,6 @@ impl fmt::Display for VersionCheckError {
                 "{} Xcode {}.{}; you have Xcode {}.{}.",
                 msg, you_need.0, you_need.1, you_have.0, you_have.1
             ),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum DetectionError {
-    IosDeployMissing(IosDeployMissing),
-    LookupFailed(CommandError),
-    KillFailed(std::io::Error),
-    OutputFailed(std::io::Error),
-    InvalidUtf8(std::str::Utf8Error),
-    ParseFailed(serde_json::error::Error),
-}
-
-impl fmt::Display for DetectionError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            DetectionError::IosDeployMissing(err) => write!(f, "{}", err),
-            DetectionError::LookupFailed(err) => write!(
-                f,
-                "Failed to request device list from `ios-deploy`: {}",
-                err
-            ),
-            DetectionError::KillFailed(err) => write!(f, "Failed to kill `ios-deploy`: {}", err),
-            DetectionError::OutputFailed(err) => write!(
-                f,
-                "Failed to get collect device list output from `ios-deploy`: {}",
-                err
-            ),
-            DetectionError::InvalidUtf8(err) => {
-                write!(f, "Device info contained invalid UTF-8: {}", err)
-            }
-            DetectionError::ParseFailed(err) => {
-                write!(f, "Device info couldn't be parsed: {}", err)
-            }
         }
     }
 }
@@ -142,77 +101,11 @@ impl fmt::Display for ArchiveError {
     }
 }
 
-#[derive(Debug)]
-pub enum RunError {
-    BuildFailed(BuildError),
-    ArchiveFailed(ArchiveError),
-    UnzipFailed(CommandError),
-    IosDeployMissing(IosDeployMissing),
-    DeployFailed(CommandError),
-}
-
-impl fmt::Display for RunError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            RunError::BuildFailed(err) => write!(f, "Failed to build app: {}", err),
-            RunError::ArchiveFailed(err) => write!(f, "Failed to archive app: {}", err),
-            RunError::UnzipFailed(err) => write!(f, "Failed to unzip archive: {}", err),
-            RunError::IosDeployMissing(err) => write!(f, "{}", err),
-            RunError::DeployFailed(err) => {
-                write!(f, "Failed to deploy app via `ios-deploy`: {}", err)
-            }
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct IosDeployMissing;
-
-impl fmt::Display for IosDeployMissing {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "`ios-deploy` not found. Please run `cargo {} init` and try again. If it still doesn't work after that, then this is a bug!",
-            crate::NAME
-        )
-    }
-}
-
-fn ios_deploy(env: &Env) -> Result<Command, IosDeployMissing> {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("ios-deploy/build/Release/ios-deploy");
-    if path.exists() {
-        Ok(PureCommand::new(path, env))
-    } else {
-        Err(IosDeployMissing)
-    }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Device {
-    #[serde(rename = "DeviceIdentifier")]
-    device_identifier: String,
-    #[serde(rename = "DeviceName")]
-    device_name: String,
-    #[serde(rename = "modelName")]
-    model_name: String,
-}
-
-impl fmt::Display for Device {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} ({})", self.device_name, self.model_name,)
-    }
-}
-
-#[derive(Debug, Deserialize)]
-struct DeviceDetected {
-    #[serde(rename = "Device")]
-    device: Device,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Target<'a> {
     pub triple: &'a str,
     pub arch: &'a str,
+    alias: Option<&'a str>,
     min_xcode_version: Option<((u32, u32), &'static str)>,
 }
 
@@ -226,11 +119,13 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                 targets.insert("aarch64", Target {
                     triple: "aarch64-apple-ios",
                     arch: "arm64",
+                    alias: Some("arm64e"),
                     min_xcode_version: None,
                 });
                 targets.insert("x86_64", Target {
                     triple: "x86_64-apple-ios",
                     arch: "x86_64",
+                    alias: None,
                     // Simulator only supports Metal as of Xcode 11.0:
                     // https://developer.apple.com/documentation/metal/developing_metal_apps_that_run_in_simulator?language=objc
                     // While this doesn't matter if you aren't using Metal,
@@ -259,6 +154,7 @@ impl<'a> Target<'a> {
         Self {
             triple: "x86_64-apple-darwin",
             arch: "x86_64",
+            alias: None,
             min_xcode_version: None,
         }
     }
@@ -267,40 +163,10 @@ impl<'a> Target<'a> {
         *self == Self::macos()
     }
 
-    pub fn detect(env: &Env) -> Result<Vec<Device>, DetectionError> {
-        let mut handle = ios_deploy(env)
-            .map_err(DetectionError::IosDeployMissing)?
-            .args(&["--detect", "--json", "--no-wifi", "--unbuffered"])
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .into_result()
-            .map_err(DetectionError::LookupFailed)?;
-        std::thread::sleep(std::time::Duration::from_millis(500));
-        handle.kill().map_err(DetectionError::KillFailed)?;
-        let output = handle
-            .wait_with_output()
-            .map_err(DetectionError::OutputFailed)?;
-        let raw_list = std::str::from_utf8(&output.stdout).map_err(DetectionError::InvalidUtf8)?;
-        let raw_docs = {
-            let mut raw_docs = Vec::new();
-            let mut prev_index = 0;
-            for (index, _) in raw_list.match_indices("}{") {
-                let end = index + 1;
-                raw_docs.push(&raw_list[prev_index..end]);
-                prev_index = end;
-            }
-            raw_docs.push(&raw_list[prev_index..]);
-            raw_docs
-        };
-        raw_docs
-            .into_iter()
-            .map(|raw_doc| {
-                serde_json::from_str::<DeviceDetected>(raw_doc)
-                    .map(|device_detected| device_detected.device)
-            })
-            .collect::<Result<_, _>>()
-            .map_err(DetectionError::ParseFailed)
+    pub fn for_arch(arch: &str) -> Option<&'a Self> {
+        Self::all()
+            .values()
+            .find(|target| target.arch == arch || target.alias == Some(arch))
     }
 
     pub fn generate_cargo_config(&self) -> CargoTarget {
@@ -388,7 +254,12 @@ impl<'a> Target<'a> {
             .map_err(BuildError)
     }
 
-    fn archive(&self, config: &Config, env: &Env, profile: Profile) -> Result<(), ArchiveError> {
+    pub(super) fn archive(
+        &self,
+        config: &Config,
+        env: &Env,
+        profile: Profile,
+    ) -> Result<(), ArchiveError> {
         let configuration = profile.as_str();
         let archive_path = config.ios().export_path().join(&config.ios().scheme());
         PureCommand::new("xcodebuild", env)
@@ -420,39 +291,5 @@ impl<'a> Target<'a> {
             .status()
             .into_result()
             .map_err(ArchiveError::ExportFailed)
-    }
-
-    pub fn run(&self, config: &Config, env: &Env, profile: Profile) -> Result<(), RunError> {
-        // TODO: These steps are run unconditionally, which is slooooooow
-        self.build(config, env, profile)
-            .map_err(RunError::BuildFailed)?;
-        self.archive(config, env, profile)
-            .map_err(RunError::ArchiveFailed)?;
-        PureCommand::new("unzip", env)
-            .arg("-o") // -o = always overwrite
-            .arg(&config.ios().ipa_path())
-            .arg("-d")
-            .arg(&config.ios().export_path())
-            .status()
-            .into_result()
-            .map_err(RunError::UnzipFailed)?;
-        // This dies if the device is locked, and gives you no time to react to
-        // that. `ios-deploy --detect` can apparently be used to check in
-        // advance, giving us an opportunity to promt. Though, it's much more
-        // relaxing to just turn off auto-lock under Display & Brightness.
-        ios_deploy(env)
-            .map_err(RunError::IosDeployMissing)?
-            .arg("--debug")
-            .arg("--bundle")
-            .arg(&config.ios().app_path())
-            // This tool can apparently install over wifi, but not debug over
-            // wifi... so if your device is connected over wifi (even if it's
-            // wired as well) and we're using the `--debug` flag, then
-            // launching will fail unless we also specify the `--no-wifi` flag
-            // to keep it from trying that.
-            .arg("--no-wifi")
-            .status()
-            .into_result()
-            .map_err(RunError::DeployFailed)
     }
 }

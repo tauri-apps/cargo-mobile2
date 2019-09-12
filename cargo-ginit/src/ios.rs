@@ -3,9 +3,13 @@ use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
     config::Config,
     env::{Env, Error as EnvError},
-    ios::target::{BuildError, CheckError, CompileLibError, DetectionError, RunError, Target},
+    ios::{
+        device::{Device, RunError},
+        ios_deploy,
+        target::{BuildError, CheckError, CompileLibError, Target},
+    },
     opts::{NoiseLevel, Profile},
-    target::{call_for_targets, TargetInvalid, TargetTrait as _},
+    target::{call_for_targets_with_fallback, TargetInvalid},
 };
 use std::fmt;
 
@@ -50,11 +54,13 @@ pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
 #[derive(Debug)]
 pub enum Error {
     EnvInitFailed(EnvError),
+    DeviceDetectionFailed(ios_deploy::DeviceListError),
+    NoDevicesDetected,
     TargetInvalid(TargetInvalid),
     CheckFailed(CheckError),
     BuildFailed(BuildError),
     RunFailed(RunError),
-    ListFailed(DetectionError),
+    ListFailed(ios_deploy::DeviceListError),
     ArchInvalid { arch: String },
     CompileLibFailed(CompileLibError),
 }
@@ -63,6 +69,10 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::EnvInitFailed(err) => write!(f, "{}", err),
+            Error::DeviceDetectionFailed(err) => {
+                write!(f, "Failed to detect connected iOS devices: {}", err)
+            }
+            Error::NoDevicesDetected => write!(f, "No connected iOS devices detected."),
             Error::TargetInvalid(err) => write!(f, "Specified target was invalid: {}", err),
             Error::CheckFailed(err) => write!(f, "{}", err),
             Error::BuildFailed(err) => write!(f, "{}", err),
@@ -119,35 +129,60 @@ impl IosCommand {
     }
 
     pub fn exec(self, config: &Config, noise_level: NoiseLevel) -> Result<(), Error> {
+        fn detect_device<'a>(env: &'_ Env) -> Result<Device<'a>, Error> {
+            let device_list = ios_deploy::device_list(env).map_err(Error::DeviceDetectionFailed)?;
+            if device_list.len() > 0 {
+                // By default, we're just taking the first device, which isn't super exciting.
+                let device = device_list.into_iter().next().unwrap();
+                println!(
+                    "Detected connected device: {} with target {:?}",
+                    device,
+                    device.target().triple,
+                );
+                Ok(device)
+            } else {
+                Err(Error::NoDevicesDetected)
+            }
+        }
+
+        fn detect_target_ok<'a>(env: &Env) -> Option<&'a Target<'a>> {
+            detect_device(env).map(|device| device.target()).ok()
+        }
+
         let env = Env::new().map_err(Error::EnvInitFailed)?;
         match self {
-            IosCommand::Check { targets } => call_for_targets(targets.iter(), |target: &Target| {
-                target
-                    .check(config, &env, noise_level)
-                    .map_err(Error::CheckFailed)
-            })
+            IosCommand::Check { targets } => call_for_targets_with_fallback(
+                targets.iter(),
+                &detect_target_ok,
+                &env,
+                |target: &Target| {
+                    target
+                        .check(config, &env, noise_level)
+                        .map_err(Error::CheckFailed)
+                },
+            )
             .map_err(Error::TargetInvalid)?,
-            IosCommand::Build { targets, profile } => {
-                call_for_targets(targets.iter(), |target: &Target| {
+            IosCommand::Build { targets, profile } => call_for_targets_with_fallback(
+                targets.iter(),
+                &detect_target_ok,
+                &env,
+                |target: &Target| {
                     target
                         .build(config, &env, profile)
                         .map_err(Error::BuildFailed)
-                })
-                .map_err(Error::TargetInvalid)?
-            }
-            IosCommand::Run { profile } => {
-                // TODO: this isn't simulator-friendly, among other things
-                Target::default_ref()
-                    .run(config, &env, profile)
-                    .map_err(Error::RunFailed)
-            }
-            IosCommand::List => Target::detect(&env)
+                },
+            )
+            .map_err(Error::TargetInvalid)?,
+            IosCommand::Run { profile } => detect_device(&env)?
+                .run(config, &env, profile)
+                .map_err(Error::RunFailed),
+            IosCommand::List => ios_deploy::device_list(&env)
+                .map_err(Error::ListFailed)
                 .map(|devices| {
                     for (index, device) in devices.iter().enumerate() {
                         println!("  [{}] {}", index, device);
                     }
-                })
-                .map_err(Error::ListFailed),
+                }),
             IosCommand::CompileLib {
                 macos,
                 arch,

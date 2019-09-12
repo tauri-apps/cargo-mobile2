@@ -166,13 +166,15 @@ impl AndroidCommand {
             AndroidCommand::Stacktrace => detect_device(&env)?
                 .stacktrace(config, &env)
                 .map_err(Error::StacktraceFailed),
-            AndroidCommand::List => adb::device_list(&env)
-                .map(|device_list| {
-                    for (index, device) in device_list.iter().enumerate() {
-                        println!("  [{}] {}", index, device);
-                    }
-                })
-                .map_err(Error::ListFailed),
+            AndroidCommand::List => {
+                adb::device_list(&env)
+                    .map_err(Error::ListFailed)
+                    .map(|device_list| {
+                        for (index, device) in device_list.iter().enumerate() {
+                            println!("  [{}] {}", index, device);
+                        }
+                    })
+            }
         }
     }
 }
