@@ -1,4 +1,7 @@
-use crate::util::{parse_profile, parse_targets, take_a_target_list};
+use crate::{
+    detect_device,
+    util::{parse_profile, parse_targets, take_a_target_list},
+};
 use clap::{App, AppSettings, ArgMatches, SubCommand};
 use ginit::{
     android::{
@@ -10,8 +13,9 @@ use ginit::{
     config::Config,
     opts::{NoiseLevel, Profile},
     target::{call_for_targets_with_fallback, TargetInvalid},
+    util::prompt,
 };
-use std::fmt;
+use std::{fmt, io};
 
 pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
     SubCommand::with_name("android")
@@ -52,6 +56,7 @@ pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
 pub enum Error {
     EnvInitFailed(EnvError),
     DeviceDetectionFailed(adb::DeviceListError),
+    DevicePromptFailed(io::Error),
     NoDevicesDetected,
     TargetInvalid(TargetInvalid),
     CheckFailed(CompileLibError),
@@ -68,6 +73,7 @@ impl fmt::Display for Error {
             Error::DeviceDetectionFailed(err) => {
                 write!(f, "Failed to detect connected Android devices: {}", err)
             }
+            Error::DevicePromptFailed(err) => write!(f, "Failed to prompt for device: {}", err),
             Error::NoDevicesDetected => write!(f, "No connected Android devices detected."),
             Error::TargetInvalid(err) => write!(f, "Specified target was invalid: {}", err),
             Error::CheckFailed(err) => write!(f, "{}", err),
@@ -116,21 +122,33 @@ impl AndroidCommand {
     }
 
     pub fn exec(self, config: &Config, noise_level: NoiseLevel) -> Result<(), Error> {
-        fn detect_device<'a>(env: &Env) -> Result<Device<'a>, Error> {
-            let device_list = adb::device_list(env).map_err(Error::DeviceDetectionFailed)?;
-            if device_list.len() > 0 {
-                // By default, we're just taking the first device, which isn't super exciting.
-                let device = device_list.into_iter().next().unwrap();
-                println!(
-                    "Detected connected device: {} with target {:?}",
-                    device,
-                    device.target().triple,
-                );
-                Ok(device)
-            } else {
-                Err(Error::NoDevicesDetected)
-            }
-        }
+        detect_device!(adb::device_list, Android);
+        // fn detect_device<'a>(env: &'_ Env) -> Result<Device<'a>, Error> {
+        //     let device_list = adb::device_list(env).map_err(Error::DeviceDetectionFailed)?;
+        //     if device_list.len() > 0 {
+        //         let index = if device_list.len() > 1 {
+        //             prompt::list(
+        //                 "Detected Android devices",
+        //                 device_list.iter(),
+        //                 "device",
+        //                 None,
+        //                 "Device",
+        //             )
+        //             .map_err(Error::DevicePromptFailed)?
+        //         } else {
+        //             0
+        //         };
+        //         let device = device_list.into_iter().nth(index).unwrap();
+        //         println!(
+        //             "Detected connected device: {} with target {:?}",
+        //             device,
+        //             device.target().triple,
+        //         );
+        //         Ok(device)
+        //     } else {
+        //         Err(Error::NoDevicesDetected)
+        //     }
+        // }
 
         fn detect_target_ok<'a>(env: &Env) -> Option<&'a Target<'a>> {
             detect_device(env).map(|device| device.target()).ok()
@@ -170,13 +188,7 @@ impl AndroidCommand {
                 adb::device_list(&env)
                     .map_err(Error::ListFailed)
                     .map(|device_list| {
-                        if !device_list.is_empty() {
-                            for (index, device) in device_list.iter().enumerate() {
-                                println!("  [{}] {}", index, device);
-                            }
-                        } else {
-                            println!("  No devices detected.");
-                        }
+                        prompt::list_display_only(device_list.iter(), device_list.len());
                     })
             }
         }

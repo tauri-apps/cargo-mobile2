@@ -1,4 +1,4 @@
-use crate::util::{parse_profile, parse_targets, take_a_target_list};
+use crate::{detect_device, util::{parse_profile, parse_targets, take_a_target_list}};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
     config::Config,
@@ -132,33 +132,7 @@ impl IosCommand {
     }
 
     pub fn exec(self, config: &Config, noise_level: NoiseLevel) -> Result<(), Error> {
-        fn detect_device<'a>(env: &'_ Env) -> Result<Device<'a>, Error> {
-            let device_list = ios_deploy::device_list(env).map_err(Error::DeviceDetectionFailed)?;
-            if device_list.len() > 0 {
-                let index = if device_list.len() > 1 {
-                    prompt::list(
-                        "Detected iOS devices",
-                        device_list.iter(),
-                        "device",
-                        None,
-                        "Device",
-                    )
-                    .map_err(Error::DevicePromptFailed)?
-                } else {
-                    0
-                };
-                let device = device_list.into_iter().nth(index).unwrap();
-                println!(
-                    "Detected connected device: {} with target {:?}",
-                    device,
-                    device.target().triple,
-                );
-                Ok(device)
-            } else {
-                Err(Error::NoDevicesDetected)
-            }
-        }
-
+        detect_device!(ios_deploy::device_list, iOS);
         fn detect_target_ok<'a>(env: &Env) -> Option<&'a Target<'a>> {
             detect_device(env).map(|device| device.target()).ok()
         }
@@ -193,13 +167,7 @@ impl IosCommand {
             IosCommand::List => ios_deploy::device_list(&env)
                 .map_err(Error::ListFailed)
                 .map(|device_list| {
-                    if !device_list.is_empty() {
-                        for (index, device) in device_list.iter().enumerate() {
-                            println!("  [{}] {}", index, device);
-                        }
-                    } else {
-                        println!("  No devices detected.");
-                    }
+                    prompt::list_display_only(device_list.iter(), device_list.len());
                 }),
             IosCommand::CompileLib {
                 macos,

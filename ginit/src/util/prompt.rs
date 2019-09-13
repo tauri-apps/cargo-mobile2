@@ -63,6 +63,16 @@ pub fn yes_no(msg: impl Display, default: Option<YesOrNo>) -> io::Result<Option<
     })
 }
 
+pub fn list_display_only(choices: impl Iterator<Item = impl Display>, choice_count: usize) {
+    if choice_count > 0 {
+        for (index, choice) in choices.enumerate() {
+            println!("  [{}] {}", index.to_string().green(), choice);
+        }
+    } else {
+        println!("  -- none --");
+    }
+}
+
 pub fn list(
     header: impl Display,
     choices: impl ExactSizeIterator<Item = impl Display>,
@@ -72,13 +82,7 @@ pub fn list(
 ) -> io::Result<usize> {
     println!("{}:", header);
     let choice_count = choices.len();
-    if choice_count > 0 {
-        for (index, choice) in choices.enumerate() {
-            println!("  [{}] {}", index.to_string().green(), choice);
-        }
-    } else {
-        println!("  -- none --");
-    }
+    list_display_only(choices, choice_count);
     if let Some(alternative) = alternative {
         println!(
             "  Enter an {} for a {} above, or enter a {} manually.",
