@@ -192,9 +192,13 @@ impl IosCommand {
                 .map_err(Error::RunFailed),
             IosCommand::List => ios_deploy::device_list(&env)
                 .map_err(Error::ListFailed)
-                .map(|devices| {
-                    for (index, device) in devices.iter().enumerate() {
-                        println!("  [{}] {}", index, device);
+                .map(|device_list| {
+                    if !device_list.is_empty() {
+                        for (index, device) in device_list.iter().enumerate() {
+                            println!("  [{}] {}", index, device);
+                        }
+                    } else {
+                        println!("  No devices detected.");
                     }
                 }),
             IosCommand::CompileLib {

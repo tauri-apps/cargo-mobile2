@@ -170,8 +170,12 @@ impl AndroidCommand {
                 adb::device_list(&env)
                     .map_err(Error::ListFailed)
                     .map(|device_list| {
-                        for (index, device) in device_list.iter().enumerate() {
-                            println!("  [{}] {}", index, device);
+                        if !device_list.is_empty() {
+                            for (index, device) in device_list.iter().enumerate() {
+                                println!("  [{}] {}", index, device);
+                            }
+                        } else {
+                            println!("  No devices detected.");
                         }
                     })
             }
