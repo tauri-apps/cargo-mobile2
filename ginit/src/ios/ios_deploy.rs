@@ -114,6 +114,7 @@ pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListErro
     };
     raw_docs
         .into_iter()
+        .filter(|raw_doc| !raw_doc.is_empty())
         .map(|raw_doc| {
             serde_json::from_str::<DeviceDetected>(raw_doc)
                 .map_err(DeviceListError::ParseFailed)
