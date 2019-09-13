@@ -10,8 +10,9 @@ use ginit::{
     },
     opts::{NoiseLevel, Profile},
     target::{call_for_targets_with_fallback, TargetInvalid},
+    util::prompt,
 };
-use std::fmt;
+use std::{fmt, io};
 
 pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
     SubCommand::with_name("ios")
@@ -55,6 +56,7 @@ pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
 pub enum Error {
     EnvInitFailed(EnvError),
     DeviceDetectionFailed(ios_deploy::DeviceListError),
+    DevicePromptFailed(io::Error),
     NoDevicesDetected,
     TargetInvalid(TargetInvalid),
     CheckFailed(CheckError),
@@ -72,6 +74,7 @@ impl fmt::Display for Error {
             Error::DeviceDetectionFailed(err) => {
                 write!(f, "Failed to detect connected iOS devices: {}", err)
             }
+            Error::DevicePromptFailed(err) => write!(f, "Failed to prompt for device: {}", err),
             Error::NoDevicesDetected => write!(f, "No connected iOS devices detected."),
             Error::TargetInvalid(err) => write!(f, "Specified target was invalid: {}", err),
             Error::CheckFailed(err) => write!(f, "{}", err),
@@ -132,8 +135,19 @@ impl IosCommand {
         fn detect_device<'a>(env: &'_ Env) -> Result<Device<'a>, Error> {
             let device_list = ios_deploy::device_list(env).map_err(Error::DeviceDetectionFailed)?;
             if device_list.len() > 0 {
-                // By default, we're just taking the first device, which isn't super exciting.
-                let device = device_list.into_iter().next().unwrap();
+                let index = if device_list.len() > 1 {
+                    prompt::list(
+                        "Detected iOS devices",
+                        device_list.iter(),
+                        "device",
+                        None,
+                        "Device",
+                    )
+                    .map_err(Error::DevicePromptFailed)?
+                } else {
+                    0
+                };
+                let device = device_list.into_iter().nth(index).unwrap();
                 println!(
                     "Detected connected device: {} with target {:?}",
                     device,
