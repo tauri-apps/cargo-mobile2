@@ -198,90 +198,107 @@ pub struct RequiredConfig {
 }
 
 impl RequiredConfig {
+    fn prompt_app_name(
+        wrapper: &util::TextWrapper,
+        defaults: &DefaultConfig,
+    ) -> Result<(String, Option<String>), InteractiveError> {
+        let mut default_app_name = defaults.app_name.clone();
+        let mut app_name = None;
+        let mut rejected = None;
+        let mut default_stylized = None;
+        while let None = app_name {
+            let response = prompt::default(
+                "App name",
+                default_app_name.as_ref().map(|s| s.as_str()),
+                None,
+            )
+            .map_err(InteractiveError::AppNamePromptFailed)?;
+            match app_name::validate(response.clone()) {
+                Ok(response) => {
+                    if default_app_name == Some(response.clone()) {
+                        if rejected.is_some() {
+                            default_stylized = rejected.take();
+                        } else {
+                            default_stylized = Some(defaults.stylized_app_name.clone());
+                        }
+                    }
+                    app_name = Some(response);
+                }
+                Err(err) => {
+                    rejected = Some(response);
+                    println!(
+                        "{}",
+                        wrapper
+                            .fill(&format!("Gosh, that's not a valid app name! {}", err))
+                            .bright_magenta()
+                    );
+                    if let Some(suggested) = err.suggested() {
+                        default_app_name = Some(suggested.to_owned());
+                    }
+                }
+            }
+        }
+        Ok((app_name.unwrap(), default_stylized))
+    }
+
+    fn prompt_stylized_app_name(
+        app_name: &str,
+        default_stylized: Option<String>,
+    ) -> Result<String, InteractiveError> {
+        let stylized = default_stylized
+            .unwrap_or_else(|| app_name.replace("-", " ").replace("_", " ").to_title_case());
+        prompt::default("Stylized app name", Some(&stylized), None)
+            .map_err(InteractiveError::StylizedAppNamePromptFailed)
+    }
+
+    fn prompt_domain(defaults: &DefaultConfig) -> Result<String, InteractiveError> {
+        prompt::default("Domain", Some(&defaults.domain), None)
+            .map_err(InteractiveError::DomainPromptFailed)
+    }
+
+    fn prompt_development_team() -> Result<String, InteractiveError> {
+        let development_teams = ios::teams::find_development_teams()
+            .map_err(InteractiveError::DeveloperTeamLookupFailed)?;
+        let mut default_team = None;
+        println!("Detected development teams:");
+        for (index, team) in development_teams.iter().enumerate() {
+            println!(
+                "  [{}] {} ({})",
+                index.to_string().green(),
+                team.name,
+                team.id.cyan(),
+            );
+            if development_teams.len() == 1 {
+                default_team = Some("0");
+            }
+        }
+        if development_teams.is_empty() {
+            println!("  -- none --");
+        }
+        println!(
+            "  Enter an {} for a team above, or enter a {} manually.",
+            "index".green(),
+            "team ID".cyan(),
+        );
+        let team_input =
+            prompt::default("Apple development team", default_team, Some(Color::Green))
+                .map_err(InteractiveError::DeveloperTeamPromptFailed)?;
+        let team_id = team_input
+            .parse::<usize>()
+            .ok()
+            .and_then(|index| development_teams.get(index))
+            .map(|team| team.id.clone())
+            .unwrap_or_else(|| team_input);
+        Ok(team_id)
+    }
+
     pub fn interactive(wrapper: &util::TextWrapper) -> Result<Self, InteractiveError> {
         let defaults =
             DefaultConfig::detect().map_err(InteractiveError::DefaultConfigDetectionFailed)?;
-        let (app_name, default_stylized) = {
-            let mut default_app_name = defaults.app_name;
-            let mut app_name = None;
-            let mut rejected = None;
-            let mut default_stylized = None;
-            while let None = app_name {
-                let response = prompt::default(
-                    "App name",
-                    default_app_name.as_ref().map(|s| s.as_str()),
-                    None,
-                )
-                .map_err(InteractiveError::AppNamePromptFailed)?;
-                match app_name::validate(response.clone()) {
-                    Ok(response) => {
-                        if default_app_name == Some(response.clone()) {
-                            if rejected.is_some() {
-                                default_stylized = rejected.take();
-                            } else {
-                                default_stylized = Some(defaults.stylized_app_name.clone());
-                            }
-                        }
-                        app_name = Some(response);
-                    }
-                    Err(err) => {
-                        rejected = Some(response);
-                        println!(
-                            "{}",
-                            wrapper
-                                .fill(&format!("Gosh, that's not a valid app name! {}", err))
-                                .bright_magenta()
-                        );
-                        if let Some(suggested) = err.suggested() {
-                            default_app_name = Some(suggested.to_owned());
-                        }
-                    }
-                }
-            }
-            (app_name.unwrap(), default_stylized)
-        };
-        let stylized_app_name = {
-            let stylized = default_stylized
-                .unwrap_or_else(|| app_name.replace("-", " ").replace("_", " ").to_title_case());
-            prompt::default("Stylized app name", Some(&stylized), None)
-        }
-        .map_err(InteractiveError::StylizedAppNamePromptFailed)?;
-        let domain = { prompt::default("Domain", Some(&defaults.domain), None) }
-            .map_err(InteractiveError::DomainPromptFailed)?;
-        let development_team = {
-            let development_teams = ios::teams::find_development_teams()
-                .map_err(InteractiveError::DeveloperTeamLookupFailed)?;
-            let mut default_team = None;
-            println!("Detected development teams:");
-            for (index, team) in development_teams.iter().enumerate() {
-                println!(
-                    "  [{}] {} ({})",
-                    index.to_string().green(),
-                    team.name,
-                    team.id.cyan(),
-                );
-                if development_teams.len() == 1 {
-                    default_team = Some("0");
-                }
-            }
-            if development_teams.is_empty() {
-                println!("  -- none --");
-            }
-            println!(
-                "  Enter an {} for a team above, or enter a {} manually.",
-                "index".green(),
-                "team ID".cyan(),
-            );
-            let team_input =
-                prompt::default("Apple development team", default_team, Some(Color::Green))
-                    .map_err(InteractiveError::DeveloperTeamPromptFailed)?;
-            team_input
-                .parse::<usize>()
-                .ok()
-                .and_then(|index| development_teams.get(index))
-                .map(|team| team.id.clone())
-                .unwrap_or_else(|| team_input)
-        };
+        let (app_name, default_stylized) = Self::prompt_app_name(wrapper, &defaults)?;
+        let stylized_app_name = Self::prompt_stylized_app_name(&app_name, default_stylized)?;
+        let domain = Self::prompt_domain(&defaults)?;
+        let development_team = Self::prompt_development_team()?;
         Ok(Self {
             app_name,
             stylized_app_name,
