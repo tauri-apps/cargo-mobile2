@@ -1,5 +1,5 @@
 use super::{domain_blacklist::DOMAIN_BLACKLIST, RequiredConfig};
-use crate::{app_name, ios};
+use crate::{config::app_name, ios};
 use heck::{KebabCase as _, TitleCase as _};
 use into_result::{command::CommandError, IntoResult as _};
 use std::{env, fmt, io, path::PathBuf, process::Command};

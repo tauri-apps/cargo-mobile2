@@ -1,3 +1,4 @@
+pub mod app_name;
 mod global;
 mod shared;
 

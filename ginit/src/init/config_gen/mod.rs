@@ -3,7 +3,8 @@ mod domain_blacklist;
 
 pub use self::default::*;
 use crate::{
-    app_name, ios,
+    config::app_name,
+    ios,
     templating::template_pack,
     util::{self, prompt},
 };

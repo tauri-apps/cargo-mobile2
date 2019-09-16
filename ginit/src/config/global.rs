@@ -1,4 +1,4 @@
-use crate::app_name;
+use super::app_name;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt, io,
