@@ -72,10 +72,11 @@ impl Deref for Config {
 
 impl Config {
     fn from_raw(project_root: PathBuf, raw_config: RawConfig) -> Result<Self, LoadError> {
+        let global = GlobalConfig::from_raw(&project_root, raw_config.global)
+            .map_err(LoadError::GlobalConfigInvalid)?;
         let shared = SharedConfig {
             project_root,
-            global: GlobalConfig::from_raw(raw_config.global)
-                .map_err(LoadError::GlobalConfigInvalid)?,
+            global,
         }
         .into();
         let android =

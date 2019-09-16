@@ -1,24 +1,59 @@
 use crate::app_name;
 use serde::{Deserialize, Serialize};
-use std::fmt;
+use std::{
+    fmt, io,
+    path::{Path, PathBuf},
+};
 
 static DEFAULT_APP_ROOT: &'static str = ".";
 
 #[derive(Debug)]
+pub enum AppRootInvalid {
+    CanonicalizationFailed {
+        app_root: PathBuf,
+        cause: io::Error,
+    },
+    OutsideOfProject {
+        app_root: PathBuf,
+        project_root: PathBuf,
+    },
+}
+
+impl fmt::Display for AppRootInvalid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::CanonicalizationFailed { app_root, cause } => {
+                write!(f, "{:?} couldn't be canonicalized: {}", app_root, cause)
+            }
+            Self::OutsideOfProject {
+                app_root,
+                project_root,
+            } => write!(
+                f,
+                "{:?} is outside of the project root ({:?}).",
+                app_root, project_root,
+            ),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum ValidationError {
     AppNameInvalid(app_name::Invalid),
-    DomainInvalid(String),
+    DomainInvalid { domain: String },
+    AppRootInvalid(AppRootInvalid),
 }
 
 impl fmt::Display for ValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::AppNameInvalid(err) => write!(f, "`global.app-name` invalid: {}", err),
-            Self::DomainInvalid(domain) => write!(
+            Self::DomainInvalid { domain } => write!(
                 f,
                 "`global.domain` invalid: {:?} isn't valid domain syntax.",
                 domain
             ),
+            Self::AppRootInvalid(err) => write!(f, "`global.app-root` invalid: {}", err),
         }
     }
 }
@@ -48,7 +83,10 @@ pub struct GlobalConfig {
 }
 
 impl GlobalConfig {
-    pub(super) fn from_raw(raw_config: RawGlobalConfig) -> Result<Self, ValidationError> {
+    pub(super) fn from_raw(
+        project_root: &Path,
+        raw_config: RawGlobalConfig,
+    ) -> Result<Self, ValidationError> {
         if raw_config.source_root.is_some() {
             log::warn!("`global.source_root` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
         }
@@ -64,24 +102,31 @@ impl GlobalConfig {
             domain: {
                 let domain = raw_config.domain;
                 if publicsuffix::Domain::has_valid_syntax(&domain) {
-                    domain
+                    Ok(domain)
                 } else {
-                    return Err(ValidationError::DomainInvalid(domain));
+                    Err(ValidationError::DomainInvalid { domain })
                 }
-            },
+            }?,
             app_root: raw_config.app_root.map(|app_root| {
                 if app_root.as_str() == DEFAULT_APP_ROOT {
                     log::warn!("`global.app-root` is set to the default value; you can remove it from your config");
                 }
-                app_root
+                if Path::new(&app_root).canonicalize().map_err(|cause| ValidationError::AppRootInvalid(AppRootInvalid::CanonicalizationFailed {
+                    app_root: app_root.clone().into(),
+                    cause,
+                }))?.starts_with(project_root) {
+                    Ok(app_root)
+                } else {
+                    Err(ValidationError::AppRootInvalid(AppRootInvalid::OutsideOfProject { app_root: app_root.into(), project_root: project_root.to_owned() }))
+                }
             })
             .unwrap_or_else(|| {
                 log::info!(
                     "`global.app-root` not set; defaulting to {}",
                     DEFAULT_APP_ROOT
                 );
-                DEFAULT_APP_ROOT.to_owned()
-            }),
+                Ok(DEFAULT_APP_ROOT.to_owned())
+            })?,
         })
     }
 }
