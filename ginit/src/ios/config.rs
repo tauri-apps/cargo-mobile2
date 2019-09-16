@@ -1,18 +1,60 @@
 use crate::config::SharedConfig;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt, path::PathBuf, rc::Rc};
+use std::{
+    collections::HashMap,
+    fmt, io,
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 
 static DEFAULT_PROJECT_ROOT: &'static str = "gen/ios";
 
 #[derive(Debug)]
+pub enum ProjectRootInvalid {
+    CanonicalizationFailed {
+        ios_project_root: String,
+        cause: io::Error,
+    },
+    OutsideOfProject {
+        ios_project_root: String,
+        project_root: PathBuf,
+    },
+}
+
+impl fmt::Display for ProjectRootInvalid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::CanonicalizationFailed {
+                ios_project_root,
+                cause,
+            } => write!(
+                f,
+                "{:?} couldn't be canonicalized: {}",
+                ios_project_root, cause
+            ),
+            Self::OutsideOfProject {
+                ios_project_root,
+                project_root,
+            } => write!(
+                f,
+                "{:?} is outside of the project root ({:?}).",
+                ios_project_root, project_root,
+            ),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum Error {
     DevelopmentTeamEmpty,
+    ProjectRootInvalid(ProjectRootInvalid),
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::DevelopmentTeamEmpty => write!(f, "`ios.development-team` is empty."),
+            Self::DevelopmentTeamEmpty => write!(f, "`ios.development-team` is empty."),
+            Self::ProjectRootInvalid(err) => write!(f, "`ios.project-root` invalid: {}", err),
         }
     }
 }
@@ -43,23 +85,38 @@ impl Config {
         if raw_config.development_team.is_empty() {
             Err(Error::DevelopmentTeamEmpty)
         } else {
+            let project_root = raw_config
+                .project_root
+                .map(|project_root| {
+                    if project_root == DEFAULT_PROJECT_ROOT {
+                        log::warn!("`ios.project-root` is set to the default value; you can remove it from your config");
+                    }
+                    if Path::new(&project_root)
+                        .canonicalize()
+                        .map_err(|cause| Error::ProjectRootInvalid(ProjectRootInvalid::CanonicalizationFailed {
+                            ios_project_root: project_root.clone(),
+                            cause,
+                        }))?
+                        .starts_with(shared.project_root())
+                    {
+                        Ok(project_root)
+                    } else {
+                        Err(Error::ProjectRootInvalid(ProjectRootInvalid::OutsideOfProject {
+                            ios_project_root: project_root,
+                            project_root: shared.project_root().to_owned(),
+                        }))
+                    }
+                }).unwrap_or_else(|| {
+                    log::info!(
+                        "`ios.project-root` not set; defaulting to {}",
+                        DEFAULT_PROJECT_ROOT
+                    );
+                    Ok(DEFAULT_PROJECT_ROOT.to_owned())
+                })?;
             Ok(Self {
                 shared,
                 development_team: raw_config.development_team,
-                project_root: raw_config
-                    .project_root
-                    .map(|project_root| {
-                        if project_root == DEFAULT_PROJECT_ROOT {
-                            log::warn!("`ios.project-root` is set to the default value; you can remove it from your config");
-                        }
-                        project_root
-                    }).unwrap_or_else(|| {
-                        log::info!(
-                            "`ios.project-root` not set; defaulting to {}",
-                            DEFAULT_PROJECT_ROOT
-                        );
-                        DEFAULT_PROJECT_ROOT.to_owned()
-                    }),
+                project_root,
             })
         }
     }
