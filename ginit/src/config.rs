@@ -16,6 +16,25 @@ use std::{
 
 static DEFAULT_APP_ROOT: &'static str = ".";
 
+#[derive(Debug)]
+pub enum ValidationError {
+    AppNameInvalid(app_name::Invalid),
+    DomainInvalid(String),
+}
+
+impl fmt::Display for ValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::AppNameInvalid(err) => write!(f, "`global.app-name` invalid: {}", err),
+            Self::DomainInvalid(domain) => write!(
+                f,
+                "`global.domain` invalid: {:?} isn't valid domain syntax.",
+                domain
+            ),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RawGlobalConfig {
     #[serde(alias = "app-name")]
@@ -41,7 +60,7 @@ pub struct GlobalConfig {
 }
 
 impl GlobalConfig {
-    fn from_raw(raw_config: RawGlobalConfig) -> Result<Self, app_name::Invalid> {
+    fn from_raw(raw_config: RawGlobalConfig) -> Result<Self, ValidationError> {
         if raw_config.source_root.is_some() {
             log::warn!("`global.source_root` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
         }
@@ -52,9 +71,16 @@ impl GlobalConfig {
             log::warn!("`global.asset_path` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
         }
         Ok(Self {
-            app_name: app_name::validate(raw_config.app_name)?,
+            app_name: app_name::validate(raw_config.app_name).map_err(ValidationError::AppNameInvalid)?,
             stylized_app_name: raw_config.stylized_app_name,
-            domain: raw_config.domain,
+            domain: {
+                let domain = raw_config.domain;
+                if publicsuffix::Domain::has_valid_syntax(&domain) {
+                    domain
+                } else {
+                    return Err(ValidationError::DomainInvalid(domain));
+                }
+            },
             app_root: raw_config.app_root.map(|app_root| {
                 if app_root.as_str() == DEFAULT_APP_ROOT {
                     log::warn!("`global.app-root` is set to the default value; you can remove it from your config");
@@ -78,7 +104,7 @@ pub enum LoadError {
     OpenFailed(io::Error),
     ReadFailed(io::Error),
     ParseFailed(toml::de::Error),
-    AppNameInvalid(app_name::Invalid),
+    GlobalConfigInvalid(ValidationError),
     IosConfigInvalid(IosError),
 }
 
@@ -93,8 +119,8 @@ impl fmt::Display for LoadError {
             LoadError::OpenFailed(err) => write!(f, "Failed to open config file: {}", err),
             LoadError::ReadFailed(err) => write!(f, "Failed to read config file: {}", err),
             LoadError::ParseFailed(err) => write!(f, "Failed to parse config file: {}", err),
-            LoadError::AppNameInvalid(err) => write!(f, "`global.app-name` invalid: {}", err),
-            LoadError::IosConfigInvalid(err) => write!(f, "iOS config invalid: {}", err),
+            LoadError::GlobalConfigInvalid(err) => write!(f, "`global` config invalid: {}", err),
+            LoadError::IosConfigInvalid(err) => write!(f, "`ios` config invalid: {}", err),
         }
     }
 }
@@ -221,7 +247,8 @@ impl Config {
     fn from_raw(project_root: PathBuf, raw_config: RawConfig) -> Result<Self, LoadError> {
         let shared = SharedConfig {
             project_root,
-            global: GlobalConfig::from_raw(raw_config.global).map_err(LoadError::AppNameInvalid)?,
+            global: GlobalConfig::from_raw(raw_config.global)
+                .map_err(LoadError::GlobalConfigInvalid)?,
         }
         .into();
         let android =
