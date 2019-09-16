@@ -16,6 +16,7 @@ java-properties = "1.2.0"
 lazy_static = "1"
 log = "0.4"
 openssl = "0.10"
+publicsuffix = { version = "1.5.3", default-features = false }
 regex = "1"
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1.0.40"

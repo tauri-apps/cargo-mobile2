@@ -36,11 +36,13 @@ fn default_domain() -> Result<Option<String>, DefaultDomainError> {
         .split('@')
         .last()
         .ok_or(DefaultDomainError::FailedToParseEmailAddr)?;
-    Ok(if DOMAIN_BLACKLIST.contains(&domain) {
-        None
-    } else {
-        Some(domain.to_owned())
-    })
+    Ok(
+        if !DOMAIN_BLACKLIST.contains(&domain) && publicsuffix::Domain::has_valid_syntax(&domain) {
+            Some(domain.to_owned())
+        } else {
+            None
+        },
+    )
 }
 
 #[derive(Debug)]
@@ -251,9 +253,29 @@ impl RequiredConfig {
             .map_err(InteractiveError::StylizedAppNamePromptFailed)
     }
 
-    fn prompt_domain(defaults: &DefaultConfig) -> Result<String, InteractiveError> {
-        prompt::default("Domain", Some(&defaults.domain), None)
-            .map_err(InteractiveError::DomainPromptFailed)
+    fn prompt_domain(
+        wrapper: &util::TextWrapper,
+        defaults: &DefaultConfig,
+    ) -> Result<String, InteractiveError> {
+        let mut domain = None;
+        while let None = domain {
+            let response = prompt::default("Domain", Some(&defaults.domain), None)
+                .map_err(InteractiveError::DomainPromptFailed)?;
+            if publicsuffix::Domain::has_valid_syntax(&response) {
+                domain = Some(response);
+            } else {
+                println!(
+                    "{}",
+                    wrapper
+                        .fill(&format!(
+                            "Sorry, but {:?} isn't valid domain syntax.",
+                            response
+                        ))
+                        .bright_magenta()
+                );
+            }
+        }
+        Ok(domain.unwrap())
     }
 
     fn prompt_development_team() -> Result<String, InteractiveError> {
@@ -297,7 +319,7 @@ impl RequiredConfig {
             DefaultConfig::detect().map_err(InteractiveError::DefaultConfigDetectionFailed)?;
         let (app_name, default_stylized) = Self::prompt_app_name(wrapper, &defaults)?;
         let stylized_app_name = Self::prompt_stylized_app_name(&app_name, default_stylized)?;
-        let domain = Self::prompt_domain(&defaults)?;
+        let domain = Self::prompt_domain(wrapper, &defaults)?;
         let development_team = Self::prompt_development_team()?;
         Ok(Self {
             app_name,
