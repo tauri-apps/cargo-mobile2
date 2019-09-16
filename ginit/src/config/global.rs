@@ -10,11 +10,11 @@ static DEFAULT_APP_ROOT: &'static str = ".";
 #[derive(Debug)]
 pub enum AppRootInvalid {
     CanonicalizationFailed {
-        app_root: PathBuf,
+        app_root: String,
         cause: io::Error,
     },
     OutsideOfProject {
-        app_root: PathBuf,
+        app_root: String,
         project_root: PathBuf,
     },
 }
@@ -38,13 +38,13 @@ impl fmt::Display for AppRootInvalid {
 }
 
 #[derive(Debug)]
-pub enum ValidationError {
+pub enum Error {
     AppNameInvalid(app_name::Invalid),
     DomainInvalid { domain: String },
     AppRootInvalid(AppRootInvalid),
 }
 
-impl fmt::Display for ValidationError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::AppNameInvalid(err) => write!(f, "`global.app-name` invalid: {}", err),
@@ -59,7 +59,7 @@ impl fmt::Display for ValidationError {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct RawGlobalConfig {
+pub(super) struct RawConfig {
     #[serde(alias = "app-name")]
     app_name: String,
     #[serde(alias = "stylized-app-name")]
@@ -75,18 +75,15 @@ pub struct RawGlobalConfig {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct GlobalConfig {
+pub struct Config {
     pub(super) app_name: String,
     pub(super) stylized_app_name: Option<String>,
     pub(super) domain: String,
     pub(super) app_root: String,
 }
 
-impl GlobalConfig {
-    pub(super) fn from_raw(
-        project_root: &Path,
-        raw_config: RawGlobalConfig,
-    ) -> Result<Self, ValidationError> {
+impl Config {
+    pub(super) fn from_raw(project_root: &Path, raw_config: RawConfig) -> Result<Self, Error> {
         if raw_config.source_root.is_some() {
             log::warn!("`global.source_root` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
         }
@@ -97,27 +94,27 @@ impl GlobalConfig {
             log::warn!("`global.asset_path` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
         }
         Ok(Self {
-            app_name: app_name::validate(raw_config.app_name).map_err(ValidationError::AppNameInvalid)?,
+            app_name: app_name::validate(raw_config.app_name).map_err(Error::AppNameInvalid)?,
             stylized_app_name: raw_config.stylized_app_name,
             domain: {
                 let domain = raw_config.domain;
                 if publicsuffix::Domain::has_valid_syntax(&domain) {
                     Ok(domain)
                 } else {
-                    Err(ValidationError::DomainInvalid { domain })
+                    Err(Error::DomainInvalid { domain })
                 }
             }?,
             app_root: raw_config.app_root.map(|app_root| {
                 if app_root.as_str() == DEFAULT_APP_ROOT {
                     log::warn!("`global.app-root` is set to the default value; you can remove it from your config");
                 }
-                if Path::new(&app_root).canonicalize().map_err(|cause| ValidationError::AppRootInvalid(AppRootInvalid::CanonicalizationFailed {
-                    app_root: app_root.clone().into(),
+                if Path::new(&app_root).canonicalize().map_err(|cause| Error::AppRootInvalid(AppRootInvalid::CanonicalizationFailed {
+                    app_root: app_root.clone(),
                     cause,
                 }))?.starts_with(project_root) {
                     Ok(app_root)
                 } else {
-                    Err(ValidationError::AppRootInvalid(AppRootInvalid::OutsideOfProject { app_root: app_root.into(), project_root: project_root.to_owned() }))
+                    Err(Error::AppRootInvalid(AppRootInvalid::OutsideOfProject { app_root, project_root: project_root.to_owned() }))
                 }
             })
             .unwrap_or_else(|| {

@@ -1,4 +1,4 @@
-use super::GlobalConfig;
+use super::global;
 use heck::SnekCase as _;
 use serde::Serialize;
 use std::{
@@ -39,7 +39,7 @@ pub fn unprefix_path(
 #[derive(Clone, Debug, Serialize)]
 pub struct SharedConfig {
     pub(super) project_root: PathBuf,
-    pub(super) global: GlobalConfig,
+    pub(super) global: global::Config,
 }
 
 impl SharedConfig {
@@ -47,7 +47,7 @@ impl SharedConfig {
         &self.project_root
     }
 
-    pub fn global(&self) -> &GlobalConfig {
+    pub fn global(&self) -> &global::Config {
         &self.global
     }
 

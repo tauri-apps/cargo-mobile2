@@ -1,10 +1,12 @@
 pub mod app_name;
-mod global;
+pub mod global;
 mod shared;
 
-pub use self::{global::*, shared::*};
+pub use self::shared::*;
 use crate::{
-    android::config::{Config as AndroidConfig, RawConfig as AndroidRawConfig},
+    android::config::{
+        Config as AndroidConfig, Error as AndroidError, RawConfig as AndroidRawConfig,
+    },
     ios::config::{Config as IosConfig, Error as IosError, RawConfig as IosRawConfig},
 };
 use serde::{Deserialize, Serialize};
@@ -23,7 +25,8 @@ pub enum LoadError {
     OpenFailed(io::Error),
     ReadFailed(io::Error),
     ParseFailed(toml::de::Error),
-    GlobalConfigInvalid(ValidationError),
+    GlobalConfigInvalid(global::Error),
+    AndroidConfigInvalid(AndroidError),
     IosConfigInvalid(IosError),
 }
 
@@ -39,6 +42,7 @@ impl fmt::Display for LoadError {
             LoadError::ReadFailed(err) => write!(f, "Failed to read config file: {}", err),
             LoadError::ParseFailed(err) => write!(f, "Failed to parse config file: {}", err),
             LoadError::GlobalConfigInvalid(err) => write!(f, "`global` config invalid: {}", err),
+            LoadError::AndroidConfigInvalid(err) => write!(f, "`android` config invalid: {}", err),
             LoadError::IosConfigInvalid(err) => write!(f, "`ios` config invalid: {}", err),
         }
     }
@@ -48,7 +52,7 @@ impl std::error::Error for LoadError {}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct RawConfig {
-    global: RawGlobalConfig,
+    global: global::RawConfig,
     android: Option<AndroidRawConfig>,
     ios: IosRawConfig,
 }
@@ -73,7 +77,7 @@ impl Deref for Config {
 
 impl Config {
     fn from_raw(project_root: PathBuf, raw_config: RawConfig) -> Result<Self, LoadError> {
-        let global = GlobalConfig::from_raw(&project_root, raw_config.global)
+        let global = global::Config::from_raw(&project_root, raw_config.global)
             .map_err(LoadError::GlobalConfigInvalid)?;
         let shared = SharedConfig {
             project_root,
@@ -81,7 +85,8 @@ impl Config {
         }
         .into();
         let android =
-            AndroidConfig::from_raw(Rc::clone(&shared), raw_config.android.unwrap_or_default());
+            AndroidConfig::from_raw(Rc::clone(&shared), raw_config.android.unwrap_or_default())
+                .map_err(LoadError::AndroidConfigInvalid)?;
         let ios = IosConfig::from_raw(Rc::clone(&shared), raw_config.ios)
             .map_err(LoadError::IosConfigInvalid)?;
         Ok(Self {
