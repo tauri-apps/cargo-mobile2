@@ -1,9 +1,9 @@
-use crate::config::SharedConfig;
+use crate::{config::SharedConfig, util};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    fmt, io,
-    path::{Path, PathBuf},
+    fmt,
+    path::PathBuf,
     rc::Rc,
 };
 
@@ -12,9 +12,9 @@ static DEFAULT_PROJECT_ROOT: &'static str = "gen/android";
 
 #[derive(Debug)]
 pub enum ProjectRootInvalid {
-    CanonicalizationFailed {
+    NormalizationFailed {
         android_project_root: String,
-        cause: io::Error,
+        cause: util::NormalizationError,
     },
     OutsideOfProject {
         android_project_root: String,
@@ -25,12 +25,12 @@ pub enum ProjectRootInvalid {
 impl fmt::Display for ProjectRootInvalid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::CanonicalizationFailed {
+            Self::NormalizationFailed {
                 android_project_root,
                 cause,
             } => write!(
                 f,
-                "{:?} couldn't be canonicalized: {}",
+                "{:?} couldn't be normalized: {}",
                 android_project_root, cause
             ),
             Self::OutsideOfProject {
@@ -102,9 +102,8 @@ impl Config {
                 if project_root == DEFAULT_PROJECT_ROOT {
                     log::warn!("`android.project-root` is set to the default value; you can remove it from your config");
                 }
-                if Path::new(&project_root)
-                    .canonicalize()
-                    .map_err(|cause| Error::ProjectRootInvalid(ProjectRootInvalid::CanonicalizationFailed {
+                if util::normalize_path(&project_root)
+                    .map_err(|cause| Error::ProjectRootInvalid(ProjectRootInvalid::NormalizationFailed {
                         android_project_root: project_root.clone(),
                         cause,
                     }))?

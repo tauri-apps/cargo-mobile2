@@ -1,7 +1,8 @@
 use super::app_name;
+use crate::util;
 use serde::{Deserialize, Serialize};
 use std::{
-    fmt, io,
+    fmt,
     path::{Path, PathBuf},
 };
 
@@ -9,9 +10,9 @@ static DEFAULT_APP_ROOT: &'static str = ".";
 
 #[derive(Debug)]
 pub enum AppRootInvalid {
-    CanonicalizationFailed {
+    NormalizationFailed {
         app_root: String,
-        cause: io::Error,
+        cause: util::NormalizationError,
     },
     OutsideOfProject {
         app_root: String,
@@ -22,8 +23,8 @@ pub enum AppRootInvalid {
 impl fmt::Display for AppRootInvalid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::CanonicalizationFailed { app_root, cause } => {
-                write!(f, "{:?} couldn't be canonicalized: {}", app_root, cause)
+            Self::NormalizationFailed { app_root, cause } => {
+                write!(f, "{:?} couldn't be normalized: {}", app_root, cause)
             }
             Self::OutsideOfProject {
                 app_root,
@@ -108,7 +109,7 @@ impl Config {
                 if app_root.as_str() == DEFAULT_APP_ROOT {
                     log::warn!("`global.app-root` is set to the default value; you can remove it from your config");
                 }
-                if Path::new(&app_root).canonicalize().map_err(|cause| Error::AppRootInvalid(AppRootInvalid::CanonicalizationFailed {
+                if util::normalize_path(&app_root).map_err(|cause| Error::AppRootInvalid(AppRootInvalid::NormalizationFailed {
                     app_root: app_root.clone(),
                     cause,
                 }))?.starts_with(project_root) {

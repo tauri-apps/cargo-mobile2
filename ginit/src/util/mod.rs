@@ -1,9 +1,10 @@
 mod cargo;
 pub mod ln;
+mod path;
 pub mod prompt;
 pub mod pure_command;
 
-pub use self::cargo::CargoCommand;
+pub use self::{cargo::CargoCommand, path::*};
 use into_result::{
     command::{CommandError, CommandResult},
     IntoResult as _,
@@ -15,7 +16,7 @@ use std::{
     fmt,
     fs::File,
     io::{self, Read, Write},
-    path::{Path, PathBuf},
+    path::Path,
     process::{Command, Stdio},
 };
 
@@ -122,43 +123,6 @@ pub fn command_present(name: &str) -> CommandResult<bool> {
             CommandError::NonZeroExitStatus(Some(1)) => Ok(false),
             _ => Err(err),
         })
-}
-
-fn common_root(abs_src: &Path, abs_dest: &Path) -> PathBuf {
-    let mut dest_root = abs_dest.to_owned();
-    loop {
-        if abs_src.starts_with(&dest_root) {
-            return dest_root;
-        } else {
-            if !dest_root.pop() {
-                unreachable!("`abs_src` and `abs_dest` have no common root");
-            }
-        }
-    }
-}
-
-pub fn relativize_path(abs_path: impl AsRef<Path>, abs_relative_to: impl AsRef<Path>) -> PathBuf {
-    let (abs_path, abs_relative_to) = (abs_path.as_ref(), abs_relative_to.as_ref());
-    assert!(abs_path.is_absolute());
-    assert!(abs_relative_to.is_absolute());
-    let (path, relative_to) = {
-        let common_root = common_root(abs_path, abs_relative_to);
-        let path = abs_path.strip_prefix(&common_root).unwrap();
-        let relative_to = abs_relative_to.strip_prefix(&common_root).unwrap();
-        (path, relative_to)
-    };
-    let mut rel_path = PathBuf::new();
-    for _ in 0..relative_to.iter().count() {
-        rel_path.push("..");
-    }
-    let rel_path = rel_path.join(path);
-    log::info!(
-        "{:?} relative to {:?} is {:?}",
-        abs_path,
-        abs_relative_to,
-        rel_path
-    );
-    rel_path
 }
 
 pub fn git(dir: &impl AsRef<Path>, args: &[impl AsRef<OsStr>]) -> CommandResult<()> {
