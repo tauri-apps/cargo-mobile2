@@ -153,7 +153,7 @@ impl RequiredConfig {
         Ok(domain.unwrap())
     }
 
-    fn prompt_development_team() -> Result<String, InteractiveError> {
+    fn prompt_development_team(wrapper: &util::TextWrapper) -> Result<String, InteractiveError> {
         let development_teams = ios::teams::find_development_teams()
             .map_err(InteractiveError::DeveloperTeamLookupFailed)?;
         let mut default_team = None;
@@ -172,21 +172,34 @@ impl RequiredConfig {
         if development_teams.is_empty() {
             println!("  -- none --");
         }
-        println!(
-            "  Enter an {} for a team above, or enter a {} manually.",
-            "index".green(),
-            "team ID".cyan(),
-        );
-        let team_input =
-            prompt::default("Apple development team", default_team, Some(Color::Green))
-                .map_err(InteractiveError::DeveloperTeamPromptFailed)?;
-        let team_id = team_input
-            .parse::<usize>()
-            .ok()
-            .and_then(|index| development_teams.get(index))
-            .map(|team| team.id.clone())
-            .unwrap_or_else(|| team_input);
-        Ok(team_id)
+        let mut development_team = None;
+        while let None = development_team {
+            println!(
+                "  Enter an {} for a team above, or enter a {} manually.",
+                "index".green(),
+                "team ID".cyan(),
+            );
+            let team_input =
+                prompt::default("Apple development team", default_team, Some(Color::Green))
+                    .map_err(InteractiveError::DeveloperTeamPromptFailed)?;
+            let team_id = team_input
+                .parse::<usize>()
+                .ok()
+                .and_then(|index| development_teams.get(index))
+                .map(|team| team.id.clone())
+                .unwrap_or_else(|| team_input);
+            if !team_id.is_empty() {
+                development_team = Some(team_id);
+            } else {
+                println!(
+                    "{}",
+                    wrapper
+                        .fill("Uh-oh, you need to specify a development team ID.")
+                        .bright_magenta()
+                );
+            }
+        }
+        Ok(development_team.unwrap())
     }
 
     pub fn interactive(wrapper: &util::TextWrapper) -> Result<Self, InteractiveError> {
@@ -195,7 +208,7 @@ impl RequiredConfig {
         let (app_name, default_stylized) = Self::prompt_app_name(wrapper, &defaults)?;
         let stylized_app_name = Self::prompt_stylized_app_name(&app_name, default_stylized)?;
         let domain = Self::prompt_domain(wrapper, &defaults)?;
-        let development_team = Self::prompt_development_team()?;
+        let development_team = Self::prompt_development_team(wrapper)?;
         Ok(Self {
             app_name,
             stylized_app_name,
