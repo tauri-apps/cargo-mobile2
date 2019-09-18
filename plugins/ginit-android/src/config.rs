@@ -1,11 +1,9 @@
-use crate::{config::SharedConfig, util};
-use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    fmt,
-    path::PathBuf,
-    rc::Rc,
+use ginit_core::{
+    config::{ConfigTrait, SharedConfig},
+    util,
 };
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fmt, path::PathBuf, rc::Rc};
 
 const DEFAULT_MIN_SDK_VERSION: u32 = 24;
 static DEFAULT_PROJECT_ROOT: &'static str = "gen/android";
@@ -59,7 +57,7 @@ impl fmt::Display for Error {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub(crate) struct RawConfig {
+pub struct Raw {
     #[serde(alias = "min-sdk-version")]
     min_sdk_version: Option<u32>,
     #[serde(alias = "project-root")]
@@ -76,12 +74,15 @@ pub struct Config {
     project_root: String,
 }
 
-impl Config {
-    pub(crate) fn from_raw(shared: Rc<SharedConfig>, raw_config: RawConfig) -> Result<Self, Error> {
-        if raw_config.targets.is_some() {
-            log::warn!("`android.targets` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
+impl ConfigTrait for Config {
+    type Raw = Raw;
+    type Error = Error;
+
+    fn from_raw(shared: Rc<SharedConfig>, raw: Self::Raw) -> Result<Self, Self::Error> {
+        if raw.targets.is_some() {
+            log::warn!("`android.targets` specified in {}.toml - this config key is no longer needed, and will be ignored", ginit_core::NAME);
         }
-        let min_sdk_version = raw_config
+        let min_sdk_version = raw
             .min_sdk_version
             .map(|min_sdk_version| {
                 if min_sdk_version == DEFAULT_MIN_SDK_VERSION {
@@ -96,7 +97,7 @@ impl Config {
                 );
                 DEFAULT_MIN_SDK_VERSION
             });
-        let project_root = raw_config
+        let project_root = raw
             .project_root
             .map(|project_root| {
                 if project_root == DEFAULT_PROJECT_ROOT {
@@ -131,6 +132,12 @@ impl Config {
         })
     }
 
+    fn shared(&self) -> &SharedConfig {
+        &self.shared
+    }
+}
+
+impl Config {
     pub fn min_sdk_version(&self) -> u32 {
         self.min_sdk_version
     }

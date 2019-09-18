@@ -11,13 +11,23 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    fmt,
+    fmt::{self, Debug, Display},
     fs::File,
     io::{self, Read},
     ops::Deref,
     path::{Path, PathBuf},
     rc::Rc,
 };
+
+// this will be renamed to `Config` once root config moves to `ginit`
+pub trait ConfigTrait: Debug + Display + Serialize {
+    type Raw: Deserialize + Serialize;
+    type Error: Debug + Display;
+
+    fn from_raw(shared: Rc<SharedConfig>, raw: Self::Raw) -> Result<Self, Self::Error>;
+
+    // fn insert_template_data(&self, map: &mut bicycle::JsonMap);
+}
 
 #[derive(Debug)]
 pub enum LoadError {
@@ -49,13 +59,6 @@ impl fmt::Display for LoadError {
 }
 
 impl std::error::Error for LoadError {}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-struct RawConfig {
-    global: global::RawConfig,
-    android: Option<AndroidRawConfig>,
-    ios: IosRawConfig,
-}
 
 /// All paths returned by `Config` methods are prefixed (absolute).
 /// Use [`Config::unprefix_path`] if you want to make a path relative to the project root.

@@ -1,10 +1,13 @@
-use super::ndk;
-use crate::util::pure_command::ExplicitEnv;
+use crate::ndk;
+use ginit_core::{
+    env::{Env as CoreEnv, Error as CoreError},
+    util::pure_command::ExplicitEnv,
+};
 use std::{fmt, path::PathBuf};
 
 #[derive(Debug)]
 pub enum Error {
-    BaseEnvError(crate::env::Error),
+    CoreEnvError(CoreError),
     // TODO: we should be nice and provide a platform-specific suggestion
     AndroidSdkRootNotSet(std::env::VarError),
     AndroidSdkRootNotADir,
@@ -14,7 +17,7 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::BaseEnvError(err) => write!(f, "{}", err),
+            Error::CoreEnvError(err) => write!(f, "{}", err),
             Error::AndroidSdkRootNotSet(err) => {
                 write!(f, "The `ANDROID_SDK_ROOT` environment variable isn't set, and is required: {}", err)
             }
@@ -29,14 +32,14 @@ impl fmt::Display for Error {
 
 #[derive(Debug)]
 pub struct Env {
-    base: crate::env::Env,
+    base: CoreEnv,
     sdk_root: PathBuf,
     pub ndk: ndk::Env,
 }
 
 impl Env {
     pub fn new() -> Result<Self, Error> {
-        let base = crate::env::Env::new().map_err(Error::BaseEnvError)?;
+        let base = CoreEnv::new().map_err(Error::CoreEnvError)?;
         let sdk_root = std::env::var("ANDROID_SDK_ROOT")
             .map_err(Error::AndroidSdkRootNotSet)
             .map(PathBuf::from)

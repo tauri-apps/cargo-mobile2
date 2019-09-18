@@ -60,7 +60,7 @@ impl fmt::Display for Error {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub(super) struct RawConfig {
+pub struct Raw {
     #[serde(alias = "app-name")]
     app_name: String,
     #[serde(alias = "stylized-app-name")]
@@ -84,7 +84,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub(super) fn from_raw(project_root: &Path, raw_config: RawConfig) -> Result<Self, Error> {
+    pub fn from_raw(project_root: &Path, raw_config: Raw) -> Result<Self, Error> {
         if raw_config.source_root.is_some() {
             log::warn!("`global.source_root` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
         }

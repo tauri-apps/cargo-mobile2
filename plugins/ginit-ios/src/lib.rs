@@ -1,4 +1,5 @@
 pub mod config;
+pub mod deps;
 pub mod device;
 pub mod ios_deploy;
 pub mod project;

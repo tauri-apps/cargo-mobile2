@@ -1,5 +1,8 @@
-use super::target::Target;
-use crate::{config::Config, target::TargetTrait as _, templating::template_pack, util::ln};
+use crate::{config::Config, target::Target, Android};
+use ginit_core::{
+    config::ConfigTrait, exports::bicycle, target::TargetTrait as _, templating::template_pack,
+    util::ln, Plugin,
+};
 use std::{fmt, fs, path::PathBuf};
 
 #[derive(Debug)]
@@ -32,16 +35,15 @@ impl fmt::Display for Error {
     }
 }
 
-// TODO: We should verify Android env vars / offer defaults
-pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
-    let src = template_pack(Some(config), "android-studio-project").ok_or_else(|| {
+pub fn generate(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
+    let src = template_pack(Some(config.shared()), "android-studio-project").ok_or_else(|| {
         Error::MissingTemplatePack {
             name: "android-studio-project",
         }
     })?;
-    let dest = config.android().project_path();
+    let dest = config.project_path();
     bike.process(src, &dest, |map| {
-        config.insert_template_data(map);
+        config.insert_template_data(Android::NAME, map);
         map.insert(
             "abi-list",
             Target::all()
@@ -58,12 +60,18 @@ pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
         });
     })
     .map_err(Error::TemplateProcessingFailed)?;
+
     let dest = dest.join("app/src/main/assets/");
     fs::create_dir_all(&dest).map_err(|cause| Error::DirectoryCreationFailed {
         path: dest.clone(),
         cause,
     })?;
-    ln::force_symlink_relative(config.asset_path(), dest, ln::TargetStyle::Directory)
-        .map_err(Error::AssetSymlinkFailed)?;
+    ln::force_symlink_relative(
+        config.shared().asset_path(),
+        dest,
+        ln::TargetStyle::Directory,
+    )
+    .map_err(Error::AssetSymlinkFailed)?;
+
     Ok(())
 }

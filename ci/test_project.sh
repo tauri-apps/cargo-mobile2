@@ -20,7 +20,7 @@ fi
 rm -rf ./tmp
 mkdir -p tmp
 cd ./tmp
-$EXE_PATH init
+$EXE_PATH init --non-interactive
 cargo check
 $EXE_PATH android check aarch64
 $EXE_PATH ios check aarch64

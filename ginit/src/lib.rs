@@ -1,13 +1,12 @@
-#![forbid(unsafe_code)]
+// pub mod cargo;
+// pub mod init;
+// pub mod steps;
 
-pub mod android;
-pub mod config;
-pub mod env;
-pub mod init;
-pub mod ios;
-pub mod opts;
-pub mod target;
-pub mod templating;
-pub mod util;
+use ginit_core::DynPlugin;
+use std::collections::HashMap;
 
-pub static NAME: &'static str = "ginit";
+pub struct Instance<'a> {
+    plugins: HashMap<&'a str, Box<dyn DynPlugin>>,
+}
+
+// must be able to query if it has a target

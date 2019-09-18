@@ -255,7 +255,7 @@ impl Env {
     ) -> Result<PathBuf, MissingToolError> {
         let path = self
             .tool_dir()?
-            .join(format!("{}{:?}-{}", triple, min_api, compiler.as_str()));
+            .join(format!("{}{}-{}", triple, min_api, compiler.as_str()));
         if path.is_file() {
             Ok(path)
         } else {

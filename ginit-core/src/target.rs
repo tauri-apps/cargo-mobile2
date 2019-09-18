@@ -1,8 +1,7 @@
-use crate::util;
-use into_result::command::CommandResult;
+use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fmt};
 
-pub trait TargetTrait<'a>: Sized {
+pub trait TargetTrait<'a>: fmt::Debug + Sized {
     const DEFAULT_KEY: &'static str;
 
     fn all() -> &'a BTreeMap<&'a str, Self>;
@@ -22,10 +21,20 @@ pub trait TargetTrait<'a>: Sized {
     }
 
     fn triple(&'a self) -> &'a str;
-    fn arch(&'a self) -> &'a str;
 
-    fn rustup_add(&'a self) -> CommandResult<()> {
-        util::rustup_add(self.triple())
+    fn arch(&'a self) -> &'a str;
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct TargetCargoConfig {
+    pub ar: Option<String>,
+    pub linker: Option<String>,
+    pub rustflags: Vec<String>,
+}
+
+impl TargetCargoConfig {
+    pub fn is_empty(&self) -> bool {
+        self.ar.is_none() && self.linker.is_none() && self.rustflags.is_empty()
     }
 }
 
