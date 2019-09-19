@@ -1,0 +1,170 @@
+mod shaders;
+
+use rust_lib::{
+    draw::{
+        colors,
+        shaders::{DefaultDraw, DefaultShader},
+        RectBuilder,
+    },
+    app::{self, entry_point, app_env, App, AppResource, DrawResource, TextureHandle, Time},
+    geometry::{Mat4, Point, Rect, Size, Vec2},
+    renderer::builders::*,
+    text,
+    window::{TouchPhase, TouchScreen},
+};
+
+include!(concat!(env!("OUT_DIR"), "/managers.rs"));
+
+#[derive(Debug)]
+pub struct Game {
+    assets: AssetManager,
+    canvas: TextureHandle,
+    spot_count: usize,
+    spots_touched: Vec<Point>,
+}
+
+impl App for Game {
+    const NAME: &'static str = "{{stylized-app-name}}";
+
+    type UserEvent = ();
+
+    fn new(init_resource: &mut AppResource<'_>) -> Self {
+        let size = init_resource.window.screen_surface_size().unwrap();
+        Self {
+            assets: AssetManager::new(init_resource),
+            canvas: init_resource.create_blank_texture(
+                colors::INVISIBLE,
+                size.map(|value| value as u32),
+            ).expect("failed to create canvas texture"),
+            spot_count: 0,
+            spots_touched: Default::default(),
+        }
+    }
+
+    fn time_changed(
+        &mut self,
+        _time: Time,
+        _time_resource: &mut AppResource<'_>,
+    ) {}
+
+    fn draw(
+        &mut self,
+        draw_resource: &mut DrawResource<'_>,
+    ) -> CommandGroup {
+        let screen_rect = draw_resource.window.screen_surface_rect().unwrap();
+        let screen_size = screen_rect.size();
+        let proj = draw_resource.window.ortho();
+        Pass::swapchain(Some(colors::UNICORN_HAIR.to_linear()))
+            .with_pipeline::<DefaultShader>(
+                Pipeline::new(proj, ())
+                    .with_draw(self.draw_background(screen_rect))
+                    .with_draw(self.draw_canvas(screen_rect))
+                    .with_draw(self.draw_score(draw_resource))
+            )
+            .into_command_group()
+            .with_dependency(self.draw_spots_on_canvas(screen_size, proj))
+    }
+
+    fn handle_touch(
+        &mut self,
+        touch: TouchScreen,
+        _time: std::time::Instant,
+        touch_resource: &mut AppResource<'_>,
+    ) {
+        if touch.phase == TouchPhase::Began
+        || touch.phase == TouchPhase::Moved {
+            let size = touch_resource.window.screen_surface_size().unwrap();
+            let rect = Rect::with_top_left(Point::zero(), size);
+            if rect.contains(&touch.position) {
+                touch_resource.request_redraw();
+                self.spot_count = self.spot_count.saturating_add(1);
+                self.spots_touched.push(touch.position);
+            }
+        }
+    }
+}
+
+impl Game {
+    fn draw_background(
+        &mut self,
+        screen_rect: Rect,
+    ) -> DefaultDraw {
+        let logo = self.assets.textures.logo();
+        let bg_size = logo
+            .size_f32()
+            .scaled_to_fill_and_fit(screen_rect.size());
+        RectBuilder::new(Rect::with_center(screen_rect.center(), bg_size))
+            .with_texture(**logo)
+            .into_draw()
+    }
+
+    fn draw_canvas(
+        &mut self,
+        screen_rect: Rect,
+    ) -> DefaultDraw {
+        RectBuilder::new(screen_rect)
+            .with_texture(*self.canvas)
+            .into_draw()
+    }
+
+    fn draw_score(
+        &self,
+        draw_resource: &mut DrawResource<'_>,
+    ) -> DefaultDraw {
+        let spot_count = self.spot_count.to_string();
+        let para = text::expand_and_parse(
+            "[0: %0] spot%1",
+            &text::subs! {
+                0 => &spot_count,
+                1 => if self.spot_count != 1 { "s" } else { "" },
+            },
+            text::Style::new(self.assets.fonts.fira_sans_regular(), 64., colors::BLACK),
+            &text::tags! {
+                0 => text::Style::new(
+                    self.assets.fonts.fira_sans_regular(),
+                    64.,
+                    colors::FUSCHIA,
+                ),
+            },
+        ).unwrap();
+        let point = draw_resource.window.screen_safe_surface_origin().unwrap() + Vec2::new(32., 32.);
+        draw_resource.draw_text(std::iter::once(
+            para.position(point).to_inner()
+        ))
+    }
+
+    fn draw_spots(
+        &mut self,
+        screen_size: Size,
+    ) -> impl Iterator<Item = DefaultDraw> + '_ {
+        let spot_size = {
+            let spot_radius = screen_size.width.min(screen_size.height) / 6.;
+            Size::new(spot_radius, spot_radius)
+        };
+        let spot_texture = self.assets.textures.spot();
+        self.spots_touched
+            .drain(..)
+            .map(move |spot| RectBuilder::new(Rect::with_center(spot, spot_size))
+                .with_texture(**spot_texture)
+                .into_draw()
+            )
+    }
+
+    fn draw_spots_on_canvas(
+        &mut self,
+        screen_size: Size,
+        proj: Mat4,
+    ) -> Pass {
+        Pass::texture(*self.canvas, None)
+            .with_pipeline::<shaders::SwizzleShader>(Pipeline::from_draws(
+                proj,
+                (),
+                self.draw_spots(screen_size).collect(),
+            ))
+    }
+}
+
+#[entry_point(Game)]
+fn start_app() {
+    app::run::<Game>(app_env!());
+}

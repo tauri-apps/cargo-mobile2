@@ -1,12 +1,18 @@
-use crate::util::{parse_profile, parse_targets, take_a_target_list};
+use crate::{detect_device, util::{parse_profile, parse_targets, take_a_target_list}};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use ginit::{
     config::Config,
-    env::Env,
-    ios::target::Target,
-    opts::NoiseLevel,
-    target::{call_for_targets, Profile, TargetTrait as _},
+    env::{Env, Error as EnvError},
+    ios::{
+        device::{Device, RunError},
+        ios_deploy,
+        target::{BuildError, CheckError, CompileLibError, Target},
+    },
+    opts::{NoiseLevel, Profile},
+    target::{call_for_targets_with_fallback, TargetInvalid},
+    util::prompt,
 };
+use std::{fmt, io};
 
 pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
     SubCommand::with_name("ios")
@@ -32,6 +38,11 @@ pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
                 .arg_from_usage("--release 'Build with release optimizations'"),
         )
         .subcommand(
+            SubCommand::with_name("list")
+                .about("Lists connected devices")
+                .display_order(3),
+        )
+        .subcommand(
             SubCommand::with_name("compile-lib")
                 .setting(AppSettings::Hidden)
                 .about("Compiles static lib (should only be called by Xcode!)")
@@ -42,7 +53,42 @@ pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
 }
 
 #[derive(Debug)]
-pub enum IOSCommand {
+pub enum Error {
+    EnvInitFailed(EnvError),
+    DeviceDetectionFailed(ios_deploy::DeviceListError),
+    DevicePromptFailed(io::Error),
+    NoDevicesDetected,
+    TargetInvalid(TargetInvalid),
+    CheckFailed(CheckError),
+    BuildFailed(BuildError),
+    RunFailed(RunError),
+    ListFailed(ios_deploy::DeviceListError),
+    ArchInvalid { arch: String },
+    CompileLibFailed(CompileLibError),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::EnvInitFailed(err) => write!(f, "{}", err),
+            Error::DeviceDetectionFailed(err) => {
+                write!(f, "Failed to detect connected iOS devices: {}", err)
+            }
+            Error::DevicePromptFailed(err) => write!(f, "Failed to prompt for device: {}", err),
+            Error::NoDevicesDetected => write!(f, "No connected iOS devices detected."),
+            Error::TargetInvalid(err) => write!(f, "Specified target was invalid: {}", err),
+            Error::CheckFailed(err) => write!(f, "{}", err),
+            Error::BuildFailed(err) => write!(f, "{}", err),
+            Error::RunFailed(err) => write!(f, "{}", err),
+            Error::ListFailed(err) => write!(f, "{}", err),
+            Error::ArchInvalid { arch } => write!(f, "Specified arch was invalid: {}", arch),
+            Error::CompileLibFailed(err) => write!(f, "{}", err),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum IosCommand {
     Check {
         targets: Vec<String>,
     },
@@ -53,6 +99,7 @@ pub enum IOSCommand {
     Run {
         profile: Profile,
     },
+    List,
     CompileLib {
         macos: bool,
         arch: String,
@@ -60,21 +107,22 @@ pub enum IOSCommand {
     },
 }
 
-impl IOSCommand {
+impl IosCommand {
     pub fn parse(matches: ArgMatches<'_>) -> Self {
         let subcommand = matches.subcommand.as_ref().unwrap(); // clap makes sure we got a subcommand
         match subcommand.name.as_str() {
-            "check" => IOSCommand::Check {
+            "check" => IosCommand::Check {
                 targets: parse_targets(&subcommand.matches),
             },
-            "build" => IOSCommand::Build {
+            "build" => IosCommand::Build {
                 targets: parse_targets(&subcommand.matches),
                 profile: parse_profile(&subcommand.matches),
             },
-            "run" => IOSCommand::Run {
+            "run" => IosCommand::Run {
                 profile: parse_profile(&subcommand.matches),
             },
-            "compile-lib" => IOSCommand::CompileLib {
+            "list" => IosCommand::List,
+            "compile-lib" => IosCommand::CompileLib {
                 macos: subcommand.matches.is_present("macos"),
                 arch: subcommand.matches.value_of("ARCH").unwrap().into(), // unwrap is fine, since clap makes sure we have this
                 profile: parse_profile(&subcommand.matches),
@@ -83,31 +131,57 @@ impl IOSCommand {
         }
     }
 
-    pub fn exec(self, config: &Config, noise_level: NoiseLevel) {
-        let env = Env::new().expect("failed to init iOS env");
+    pub fn exec(self, config: &Config, noise_level: NoiseLevel) -> Result<(), Error> {
+        detect_device!(ios_deploy::device_list, iOS);
+        fn detect_target_ok<'a>(env: &Env) -> Option<&'a Target<'a>> {
+            detect_device(env).map(|device| device.target()).ok()
+        }
+
+        let env = Env::new().map_err(Error::EnvInitFailed)?;
         match self {
-            IOSCommand::Check { targets } => call_for_targets(targets.iter(), |target: &Target| {
-                target.check(config, &env, noise_level)
-            }),
-            IOSCommand::Build { targets, profile } => {
-                call_for_targets(targets.iter(), |target: &Target| {
-                    target.build(config, &env, profile)
-                })
-            }
-            IOSCommand::Run { profile } => {
-                // TODO: this isn't simulator-friendly, among other things
-                Target::default_ref().run(config, &env, profile)
-            }
-            IOSCommand::CompileLib {
+            IosCommand::Check { targets } => call_for_targets_with_fallback(
+                targets.iter(),
+                &detect_target_ok,
+                &env,
+                |target: &Target| {
+                    target
+                        .check(config, &env, noise_level)
+                        .map_err(Error::CheckFailed)
+                },
+            )
+            .map_err(Error::TargetInvalid)?,
+            IosCommand::Build { targets, profile } => call_for_targets_with_fallback(
+                targets.iter(),
+                &detect_target_ok,
+                &env,
+                |target: &Target| {
+                    target
+                        .build(config, &env, profile)
+                        .map_err(Error::BuildFailed)
+                },
+            )
+            .map_err(Error::TargetInvalid)?,
+            IosCommand::Run { profile } => detect_device(&env)?
+                .run(config, &env, profile)
+                .map_err(Error::RunFailed),
+            IosCommand::List => ios_deploy::device_list(&env)
+                .map_err(Error::ListFailed)
+                .map(|device_list| {
+                    prompt::list_display_only(device_list.iter(), device_list.len());
+                }),
+            IosCommand::CompileLib {
                 macos,
                 arch,
                 profile,
             } => match macos {
                 true => Target::macos().compile_lib(config, noise_level, profile),
                 false => Target::for_arch(&arch)
-                    .expect("Invalid architecture")
+                    .ok_or_else(|| Error::ArchInvalid {
+                        arch: arch.to_owned(),
+                    })?
                     .compile_lib(config, noise_level, profile),
-            },
+            }
+            .map_err(Error::CompileLibFailed),
         }
     }
 }

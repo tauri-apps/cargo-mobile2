@@ -1,11 +1,21 @@
-use crate::util::{parse_profile, parse_targets, take_a_target_list};
+use crate::{
+    detect_device,
+    util::{parse_profile, parse_targets, take_a_target_list},
+};
 use clap::{App, AppSettings, ArgMatches, SubCommand};
 use ginit::{
-    android::{env::Env, target::Target},
+    android::{
+        adb,
+        device::{Device, RunError, StacktraceError},
+        env::{Env, Error as EnvError},
+        target::{BuildError, CompileLibError, Target},
+    },
     config::Config,
-    opts::NoiseLevel,
-    target::{call_for_targets_with_fallback, Profile},
+    opts::{NoiseLevel, Profile},
+    target::{call_for_targets_with_fallback, TargetInvalid},
+    util::prompt,
 };
+use std::{fmt, io};
 
 pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
     SubCommand::with_name("android")
@@ -35,6 +45,44 @@ pub fn subcommand<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
                 .display_order(3)
                 .about("Displays a detailed stacktrace for a target"),
         )
+        .subcommand(
+            SubCommand::with_name("list")
+                .about("Lists connected devices")
+                .display_order(4),
+        )
+}
+
+#[derive(Debug)]
+pub enum Error {
+    EnvInitFailed(EnvError),
+    DeviceDetectionFailed(adb::DeviceListError),
+    DevicePromptFailed(io::Error),
+    NoDevicesDetected,
+    TargetInvalid(TargetInvalid),
+    CheckFailed(CompileLibError),
+    BuildFailed(BuildError),
+    RunFailed(RunError),
+    StacktraceFailed(StacktraceError),
+    ListFailed(adb::DeviceListError),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::EnvInitFailed(err) => write!(f, "{}", err),
+            Error::DeviceDetectionFailed(err) => {
+                write!(f, "Failed to detect connected Android devices: {}", err)
+            }
+            Error::DevicePromptFailed(err) => write!(f, "Failed to prompt for device: {}", err),
+            Error::NoDevicesDetected => write!(f, "No connected Android devices detected."),
+            Error::TargetInvalid(err) => write!(f, "Specified target was invalid: {}", err),
+            Error::CheckFailed(err) => write!(f, "{}", err),
+            Error::BuildFailed(err) => write!(f, "{}", err),
+            Error::RunFailed(err) => write!(f, "{}", err),
+            Error::StacktraceFailed(err) => write!(f, "{}", err),
+            Error::ListFailed(err) => write!(f, "{}", err),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -50,6 +98,7 @@ pub enum AndroidCommand {
         profile: Profile,
     },
     Stacktrace,
+    List,
 }
 
 impl AndroidCommand {
@@ -67,43 +116,55 @@ impl AndroidCommand {
                 profile: parse_profile(&subcommand.matches),
             },
             "st" => AndroidCommand::Stacktrace,
+            "list" => AndroidCommand::List,
             _ => unreachable!(), // clap will reject anything else
         }
     }
 
-    pub fn exec(self, config: &Config, noise_level: NoiseLevel) {
-        fn try_detect_target<'a>(env: &Env) -> Option<&'a Target<'a>> {
-            let target = Target::for_connected(env)
-                .ok()
-                .and_then(std::convert::identity);
-            if let Some(target) = target {
-                println!("Detected target for connected device: {}", target.triple);
-            }
-            target
+    pub fn exec(self, config: &Config, noise_level: NoiseLevel) -> Result<(), Error> {
+        detect_device!(adb::device_list, Android);
+
+        fn detect_target_ok<'a>(env: &Env) -> Option<&'a Target<'a>> {
+            detect_device(env).map(|device| device.target()).ok()
         }
 
-        fn detect_target<'a>(env: &Env) -> &'a Target<'a> {
-            try_detect_target(env).expect("Failed to detect target for connected device")
-        }
-
-        let env = Env::new().expect("Failed to init Android env");
+        let env = Env::new().map_err(Error::EnvInitFailed)?;
         match self {
             AndroidCommand::Check { targets } => call_for_targets_with_fallback(
                 targets.iter(),
-                &try_detect_target,
+                &detect_target_ok,
                 &env,
-                |target: &Target| target.check(config, &env, noise_level),
-            ),
+                |target: &Target| {
+                    target
+                        .check(config, &env, noise_level)
+                        .map_err(Error::CheckFailed)
+                },
+            )
+            .map_err(Error::TargetInvalid)?,
             AndroidCommand::Build { targets, profile } => call_for_targets_with_fallback(
                 targets.iter(),
-                &try_detect_target,
+                &detect_target_ok,
                 &env,
-                |target: &Target| target.build(config, &env, noise_level, profile),
-            ),
-            AndroidCommand::Run { profile } => {
-                detect_target(&env).run(config, &env, noise_level, profile)
+                |target: &Target| {
+                    target
+                        .build(config, &env, noise_level, profile)
+                        .map_err(Error::BuildFailed)
+                },
+            )
+            .map_err(Error::TargetInvalid)?,
+            AndroidCommand::Run { profile } => detect_device(&env)?
+                .run(config, &env, noise_level, profile)
+                .map_err(Error::RunFailed),
+            AndroidCommand::Stacktrace => detect_device(&env)?
+                .stacktrace(config, &env)
+                .map_err(Error::StacktraceFailed),
+            AndroidCommand::List => {
+                adb::device_list(&env)
+                    .map_err(Error::ListFailed)
+                    .map(|device_list| {
+                        prompt::list_display_only(device_list.iter(), device_list.len());
+                    })
             }
-            AndroidCommand::Stacktrace => detect_target(&env).stacktrace(config, &env),
         }
     }
 }

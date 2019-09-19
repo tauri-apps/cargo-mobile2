@@ -1,3 +1,33 @@
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Clobbering {
+    Forbid,
+    Allow,
+}
+
+impl Default for Clobbering {
+    fn default() -> Self {
+        Clobbering::Forbid
+    }
+}
+
+impl Clobbering {
+    pub fn is_allowed(self) -> bool {
+        self == Clobbering::Allow
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Interactivity {
+    Full,
+    None,
+}
+
+impl Default for Interactivity {
+    fn default() -> Self {
+        Interactivity::Full
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum NoiseLevel {
     Polite,
@@ -18,19 +48,36 @@ impl NoiseLevel {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Clobbering {
-    Forbid,
-    Allow,
+pub enum OpenIn {
+    Nothing,
+    Editor,
 }
 
-impl Default for Clobbering {
+impl Default for OpenIn {
     fn default() -> Self {
-        Clobbering::Forbid
+        OpenIn::Nothing
     }
 }
 
-impl Clobbering {
-    pub fn is_allowed(self) -> bool {
-        self == Clobbering::Allow
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Profile {
+    Debug,
+    Release,
+}
+
+impl Profile {
+    pub fn is_debug(self) -> bool {
+        self == Profile::Debug
+    }
+
+    pub fn is_release(self) -> bool {
+        self == Profile::Release
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Profile::Debug => "debug",
+            Profile::Release => "release",
+        }
     }
 }

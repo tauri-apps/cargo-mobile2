@@ -1,11 +1,15 @@
 use std::{
+    fmt,
     fs::File,
     io,
     num::ParseIntError,
     path::{Path, PathBuf},
 };
 
-const MIN_NDK_VERSION: u32 = 19;
+const MIN_NDK_VERSION: Version = Version {
+    major: 19,
+    minor: 0,
+};
 
 #[cfg(target_os = "macos")]
 pub fn host_tag() -> &'static str {
@@ -63,6 +67,16 @@ pub struct MissingToolError {
     tried_path: PathBuf,
 }
 
+impl fmt::Display for MissingToolError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Missing tool `{}`; tried at {:?}.",
+            self.name, self.tried_path
+        )
+    }
+}
+
 #[derive(Debug)]
 pub enum VersionError {
     FailedToOpenSourceProps(io::Error),
@@ -72,15 +86,89 @@ pub enum VersionError {
     VersionHadTooFewComponents,
 }
 
+impl fmt::Display for VersionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            VersionError::FailedToOpenSourceProps(err) => {
+                write!(f, "Failed to open \"source.properties\": {}", err)
+            }
+            VersionError::FailedToParseSourceProps(err) => {
+                write!(f, "Failed to parse \"source.properties\": {}", err)
+            }
+            VersionError::VersionMissingFromSourceProps => {
+                write!(f, "No version number was present in \"source.properties\".")
+            }
+            VersionError::VersionComponentNotNumerical(err) => write!(
+                f,
+                "The version contained something that wasn't a valid number: {}",
+                err
+            ),
+            VersionError::VersionHadTooFewComponents => write!(
+                f,
+                "The version number didn't have as many components as expected."
+            ),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Version {
+    major: u32,
+    minor: u32,
+}
+
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "r{}", self.major)?;
+        if self.minor != 0 {
+            write!(
+                f,
+                "{}",
+                (b'a'..=b'z')
+                    .map(char::from)
+                    .nth(self.minor as _)
+                    .expect("NDK minor version exceeded the number of letters in the alphabet")
+            )?;
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug)]
-pub enum EnvError {
-    // link to docs/etc.
+pub enum Error {
+    // TODO: link to docs/etc.
     NdkHomeNotSet(std::env::VarError),
     NdkHomeNotADir,
-    FailedToGetVersion(VersionError),
-    // "At least NDK r{} is required (you currently have NDK r{})"
-    // the minor version could be used to get a b suffix, too! - should make a version struct
-    VersionTooLow { you_have: u32, you_need: u32 },
+    VersionLookupFailed(VersionError),
+    VersionTooLow {
+        you_have: Version,
+        you_need: Version,
+    },
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::NdkHomeNotSet(err) => write!(
+                f,
+                "The `NDK_HOME` environment variable isn't set, and is required: {}",
+                err,
+            ),
+            Error::NdkHomeNotADir => write!(
+                f,
+                "The `NDK_HOME` environment variable is set, but doesn't point to an existing directory."
+            ),
+            Error::VersionLookupFailed(err) => {
+                write!(f, "Failed to lookup version of installed NDK: {}", err)
+            }
+            Error::VersionTooLow { you_have, you_need } => write!(
+                f,
+                "At least NDK {} is required (you currently have NDK {})",
+                you_need,
+                you_have,
+            ),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -89,24 +177,24 @@ pub struct Env {
 }
 
 impl Env {
-    pub fn new() -> Result<Self, EnvError> {
+    pub fn new() -> Result<Self, Error> {
         let ndk_home = std::env::var("NDK_HOME")
-            .map_err(EnvError::NdkHomeNotSet)
+            .map_err(Error::NdkHomeNotSet)
             .map(PathBuf::from)
             .and_then(|ndk_home| {
                 if ndk_home.is_dir() {
                     Ok(ndk_home)
                 } else {
-                    Err(EnvError::NdkHomeNotADir)
+                    Err(Error::NdkHomeNotADir)
                 }
             })?;
         let env = Self { ndk_home };
-        let (major, ..) = env.version().map_err(EnvError::FailedToGetVersion)?;
-        if major >= MIN_NDK_VERSION {
+        let version = env.version().map_err(Error::VersionLookupFailed)?;
+        if version >= MIN_NDK_VERSION {
             Ok(env)
         } else {
-            Err(EnvError::VersionTooLow {
-                you_have: major,
+            Err(Error::VersionTooLow {
+                you_have: version,
                 you_need: MIN_NDK_VERSION,
             })
         }
@@ -116,7 +204,7 @@ impl Env {
         &self.ndk_home
     }
 
-    pub fn version(&self) -> Result<(u32, u32), VersionError> {
+    pub fn version(&self) -> Result<Version, VersionError> {
         let file = File::open(self.ndk_home.join("source.properties"))
             .map_err(VersionError::FailedToOpenSourceProps)?;
         let props = java_properties::read(file).map_err(VersionError::FailedToParseSourceProps)?;
@@ -134,7 +222,10 @@ impl Env {
             .collect::<Result<Vec<_>, _>>()
             .map_err(VersionError::VersionComponentNotNumerical)?;
         if components.len() == 2 {
-            Ok((components[0], components[1]))
+            Ok(Version {
+                major: components[0],
+                minor: components[1],
+            })
         } else {
             Err(VersionError::VersionHadTooFewComponents)
         }
@@ -163,7 +254,7 @@ impl Env {
     ) -> Result<PathBuf, MissingToolError> {
         let path = self
             .tool_dir()?
-            .join(format!("{}{:?}-{}", triple, min_api, compiler.as_str()));
+            .join(format!("{}{}-{}", triple, min_api, compiler.as_str()));
         if path.is_file() {
             Ok(path)
         } else {

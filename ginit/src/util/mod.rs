@@ -1,7 +1,10 @@
 mod cargo;
+pub mod ln;
+mod path;
+pub mod prompt;
 pub mod pure_command;
 
-pub use self::cargo::CargoCommand;
+pub use self::{cargo::CargoCommand, path::*};
 use into_result::{
     command::{CommandError, CommandResult},
     IntoResult as _,
@@ -13,9 +16,58 @@ use std::{
     fmt,
     fs::File,
     io::{self, Read, Write},
-    path::{Path, PathBuf},
+    path::Path,
     process::{Command, Stdio},
 };
+
+#[derive(Debug)]
+pub enum InitTextWrapperError {
+    HyphenationLoadFailed(hyphenation::load::Error),
+}
+
+impl fmt::Display for InitTextWrapperError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            InitTextWrapperError::HyphenationLoadFailed(err) => write!(
+                f,
+                "Failed to load hyphenation standard for \"en-US\": {}",
+                err
+            ),
+        }
+    }
+}
+
+pub type TextWrapper = textwrap::Wrapper<'static, hyphenation::Standard>;
+
+pub fn init_text_wrapper() -> Result<TextWrapper, InitTextWrapperError> {
+    use hyphenation::Load as _;
+    let dictionary = hyphenation::Standard::from_embedded(hyphenation::Language::EnglishUS)
+        .map_err(InitTextWrapperError::HyphenationLoadFailed)?;
+    Ok(TextWrapper::with_splitter(
+        textwrap::termwidth(),
+        dictionary,
+    ))
+}
+
+pub fn list_display(list: &[impl fmt::Display]) -> String {
+    if list.len() == 1 {
+        list[0].to_string()
+    } else if list.len() == 2 {
+        format!("{} and {}", list[0], list[1])
+    } else {
+        let mut display = String::new();
+        for (idx, item) in list.iter().enumerate() {
+            let formatted = if idx + 1 == list.len() {
+                // this is the last item
+                format!("and {}", item)
+            } else {
+                format!("{}, ", item)
+            };
+            display.push_str(&formatted);
+        }
+        display
+    }
+}
 
 pub fn read_str(path: impl AsRef<OsStr>) -> io::Result<String> {
     File::open(path.as_ref()).and_then(|mut file| {
@@ -73,56 +125,7 @@ pub fn command_present(name: &str) -> CommandResult<bool> {
         })
 }
 
-pub fn force_symlink(src: impl AsRef<OsStr>, dest: impl AsRef<OsStr>) -> CommandResult<()> {
-    Command::new("ln")
-        .arg("-sf") // always recreate symlink
-        .arg(src)
-        .arg(dest)
-        .status()
-        .into_result()
-}
-
-fn common_root(abs_src: &Path, abs_dest: &Path) -> PathBuf {
-    let mut dest_root = abs_dest.to_owned();
-    loop {
-        if abs_src.starts_with(&dest_root) {
-            return dest_root;
-        } else {
-            if !dest_root.pop() {
-                unreachable!("`abs_src` and `abs_dest` have no common root");
-            }
-        }
-    }
-}
-
-pub fn relativize_path(abs_path: impl AsRef<Path>, abs_relative_to: impl AsRef<Path>) -> PathBuf {
-    let (abs_path, abs_relative_to) = (abs_path.as_ref(), abs_relative_to.as_ref());
-    assert!(abs_path.is_absolute());
-    assert!(abs_relative_to.is_absolute());
-    let (path, relative_to) = {
-        let common_root = common_root(abs_path, abs_relative_to);
-        let path = abs_path.strip_prefix(&common_root).unwrap();
-        let relative_to = abs_relative_to.strip_prefix(&common_root).unwrap();
-        (path, relative_to)
-    };
-    let mut rel_path = PathBuf::new();
-    for _ in 0..relative_to.iter().count() {
-        rel_path.push("..");
-    }
-    let rel_path = rel_path.join(path);
-    log::info!("relativized {:?} to {:?}", abs_path, rel_path);
-    rel_path
-}
-
-pub fn relative_symlink(
-    abs_src: impl AsRef<Path>,
-    abs_dest: impl AsRef<Path>,
-) -> CommandResult<()> {
-    let rel_src = relativize_path(abs_src, &abs_dest);
-    force_symlink(rel_src, abs_dest.as_ref())
-}
-
-pub fn git(dir: &impl AsRef<Path>, args: &[&str]) -> CommandResult<()> {
+pub fn git(dir: &impl AsRef<Path>, args: &[impl AsRef<OsStr>]) -> CommandResult<()> {
     Command::new("git")
         .arg("-C")
         .arg(dir.as_ref())
@@ -138,26 +141,52 @@ pub fn rustup_add(triple: &str) -> CommandResult<()> {
         .into_result()
 }
 
-#[derive(Debug, derive_more::From)]
+#[cfg(target_os = "macos")]
+pub fn open_in_editor(path: impl AsRef<OsStr>) -> CommandResult<()> {
+    Command::new("open")
+        .args(&["-a", "Visual Studio Code"])
+        .arg(path.as_ref())
+        .status()
+        .into_result()
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn open_in_editor(_path: impl AsRef<Path>) -> CommandResult<()> {
+    unimplemented!()
+}
+
+#[derive(Debug)]
 pub enum PipeError {
-    TxCommandError(CommandError),
-    RxCommandError(CommandError),
-    PipeError(io::Error),
+    TxCommandFailed(CommandError),
+    RxCommandFailed(CommandError),
+    PipeFailed(io::Error),
+}
+
+impl fmt::Display for PipeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PipeError::TxCommandFailed(err) => write!(f, "Failed to run sending command: {}", err),
+            PipeError::RxCommandFailed(err) => {
+                write!(f, "Failed to run receiving command: {}", err)
+            }
+            PipeError::PipeFailed(err) => write!(f, "Failed to pipe output: {}", err),
+        }
+    }
 }
 
 pub fn pipe(mut tx_command: Command, mut rx_command: Command) -> Result<(), PipeError> {
     let tx_output = tx_command
         .output()
         .into_result()
-        .map_err(PipeError::TxCommandError)?;
+        .map_err(PipeError::TxCommandFailed)?;
     let rx_command = rx_command
         .stdin(Stdio::piped())
         .spawn()
         .into_result()
-        .map_err(PipeError::RxCommandError)?;
+        .map_err(PipeError::RxCommandFailed)?;
     rx_command
         .stdin
         .unwrap()
         .write_all(&tx_output.stdout)
-        .map_err(From::from)
+        .map_err(PipeError::PipeFailed)
 }

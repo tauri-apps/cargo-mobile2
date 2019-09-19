@@ -1,14 +1,30 @@
 use super::ndk;
 use crate::util::pure_command::ExplicitEnv;
-use std::path::PathBuf;
+use std::{fmt, path::PathBuf};
 
 #[derive(Debug)]
-pub enum EnvError {
-    BaseEnvError(crate::env::EnvError),
+pub enum Error {
+    BaseEnvError(crate::env::Error),
     // TODO: we should be nice and provide a platform-specific suggestion
     AndroidSdkRootNotSet(std::env::VarError),
     AndroidSdkRootNotADir,
-    NdkEnvError(ndk::EnvError),
+    NdkEnvError(ndk::Error),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::BaseEnvError(err) => write!(f, "{}", err),
+            Error::AndroidSdkRootNotSet(err) => {
+                write!(f, "The `ANDROID_SDK_ROOT` environment variable isn't set, and is required: {}", err)
+            }
+            Error::AndroidSdkRootNotADir => write!(
+                f,
+                "The `ANDROID_SDK_ROOT` environment variable is set, but doesn't point to an existing directory."
+            ),
+            Error::NdkEnvError(err) => write!(f, "{}", err),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -19,16 +35,28 @@ pub struct Env {
 }
 
 impl Env {
-    pub fn new() -> Result<Self, EnvError> {
-        let base = crate::env::Env::new().map_err(EnvError::BaseEnvError)?;
+    pub fn new() -> Result<Self, Error> {
+        let base = crate::env::Env::new().map_err(Error::BaseEnvError)?;
         let sdk_root = std::env::var("ANDROID_SDK_ROOT")
-            .map_err(EnvError::AndroidSdkRootNotSet)
+            .map_err(Error::AndroidSdkRootNotSet)
             .map(PathBuf::from)
             .and_then(|sdk_root| {
                 if sdk_root.is_dir() {
                     Ok(sdk_root)
                 } else {
-                    Err(EnvError::AndroidSdkRootNotADir)
+                    Err(Error::AndroidSdkRootNotADir)
+                }
+            })
+            .or_else(|err| {
+                if let Some(android_home) = std::env::var("ANDROID_HOME")
+                    .ok()
+                    .map(PathBuf::from)
+                    .filter(|android_home| android_home.is_dir())
+                {
+                    log::warn!("`ANDROID_SDK_ROOT` isn't set; falling back to `ANDROID_HOME`, which is deprecated");
+                    Ok(android_home)
+                } else {
+                    Err(err)
                 }
             })
             .or_else(|err| {
@@ -46,7 +74,7 @@ impl Env {
         Ok(Self {
             base,
             sdk_root,
-            ndk: ndk::Env::new().map_err(EnvError::NdkEnvError)?,
+            ndk: ndk::Env::new().map_err(Error::NdkEnvError)?,
         })
     }
 }

@@ -1,18 +1,18 @@
-name: {{app_name}}
+name: {{app-name}}
 options:
-  bundleIdPrefix: {{reverse_domain}}
+  bundleIdPrefix: {{reverse-domain}}
   deploymentTarget:
     iOS: 8.0
-fileGroups: [rust]
+fileGroups: [src, rust-lib]
 configs:
   debug: debug
   release: release
 settingGroups:
   app:
     base:
-      PRODUCT_NAME: {{app_name}}
-      PRODUCT_BUNDLE_IDENTIFIER: {{reverse_domain}}.{{app_name}}
-      DEVELOPMENT_TEAM: {{config.ios.development_team}}
+      PRODUCT_NAME: {{app-name}}
+      PRODUCT_BUNDLE_IDENTIFIER: {{reverse-domain}}.{{app-name}}
+      DEVELOPMENT_TEAM: {{config.ios.development-team}}
 targetTemplates:
   app:
     type: application
@@ -25,7 +25,7 @@ targetTemplates:
     settings:
       groups: [app]
 targets:
-  {{app_name}}_iOS:
+  {{app-name}}_iOS:
     type: application
     platform: iOS
     sources:
@@ -34,7 +34,7 @@ targets:
         buildPhase: resources
         type: folder
     info:
-      path: {{app_name}}_iOS/Info.plist
+      path: {{app-name}}_iOS/Info.plist
       properties:
         LSRequiresIPhoneOS: true
         UILaunchStoryboardName: LaunchScreen
@@ -57,14 +57,14 @@ targets:
         ENABLE_BITCODE: false
         ARCHS: [arm64, x86_64] # rustc doesn't support arm64e yet
         VALID_ARCHS: arm64 x86_64 # rustc doesn't support arm64e yet
-        LIBRARY_SEARCH_PATHS[sdk=iphoneos*]: $(inherited) {{prefix_path "target/aarch64-apple-ios/$(CONFIGURATION)"}}
-        LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]: $(inherited) {{prefix_path "target/x86_64-apple-ios/$(CONFIGURATION)"}}
+        LIBRARY_SEARCH_PATHS[sdk=iphoneos*]: $(inherited) {{prefix-path "target/aarch64-apple-ios/$(CONFIGURATION)"}}
+        LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]: $(inherited) {{prefix-path "target/x86_64-apple-ios/$(CONFIGURATION)"}}
       groups: [app]
     dependencies:
-      - target: rust_{{app_name}}_iOS
+      - target: lib_{{app-name}}_iOS
         embed: false
         link: false
-      - framework: lib{{app_name}}.a
+      - framework: lib{{app-name}}.a
         embed: false
       - sdk: CoreGraphics.framework
       - sdk: Metal.framework
@@ -72,7 +72,7 @@ targets:
       - sdk: QuartzCore.framework
       - sdk: Security.framework
       - sdk: UIKit.framework
-  {{app_name}}_macOS:
+  {{app-name}}_macOS:
     type: application
     platform: macOS
     sources: Sources
@@ -82,16 +82,16 @@ targets:
         RUST_LOG: info
     settings:
       base:
-        LIBRARY_SEARCH_PATHS: $(inherited) {{prefix_path "target/x86_64-apple-darwin/$(CONFIGURATION)"}}
+        LIBRARY_SEARCH_PATHS: $(inherited) {{prefix-path "target/x86_64-apple-darwin/$(CONFIGURATION)"}}
       groups: [app]
     dependencies:
-      - target: rust_{{app_name}}_macOS
+      - target: lib_{{app-name}}_macOS
         embed: false
         link: false
-      - framework: lib{{app_name}}.a
+      - framework: lib{{app-name}}.a
         embed: false
       - sdk: Metal.framework
-  rust_{{app_name}}_iOS:
+  lib_{{app-name}}_iOS:
     type: ""
     platform: iOS
     settings:
@@ -99,15 +99,15 @@ targets:
       ARCHS: [arm64, x86_64] # rustc doesn't support arm64e yet
       VALID_ARCHS: arm64 x86_64 # rustc doesn't support arm64e yet
     legacy:
-      toolPath: $(SRCROOT)/cargo_xcode.sh
-      arguments: ${SDKROOT:?} ${CONFIGURATION:?} ${PLATFORM_DISPLAY_NAME:?} ${ARCHS:?}  
+      toolPath: $(SRCROOT)/cargo-xcode.sh
+      arguments: ${SDKROOT:?} ${CONFIGURATION:?} ${PLATFORM_DISPLAY_NAME:?} ${ARCHS:?}
       passSettings: false # prevents evil linker errors
       workingDirectory: $(SRCROOT)/..
-  rust_{{app_name}}_macOS:
+  lib_{{app-name}}_macOS:
     type: ""
     platform: macOS
     legacy:
-      toolPath: $(SRCROOT)/cargo_xcode.sh
-      arguments: ${SDKROOT:?} ${CONFIGURATION:?} ${PLATFORM_DISPLAY_NAME:?} ${ARCHS:?} 
+      toolPath: $(SRCROOT)/cargo-xcode.sh
+      arguments: ${SDKROOT:?} ${CONFIGURATION:?} ${PLATFORM_DISPLAY_NAME:?} ${ARCHS:?}
       passSettings: false
       workingDirectory: $(SRCROOT)/..

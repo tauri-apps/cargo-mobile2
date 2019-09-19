@@ -9,6 +9,7 @@ pub struct CargoCommand<'a> {
     manifest_path: Option<PathBuf>,
     target: Option<&'a str>,
     features: Option<&'a str>,
+    no_default_features: bool,
     release: bool,
 }
 
@@ -21,16 +22,17 @@ impl<'a> CargoCommand<'a> {
             manifest_path: Default::default(),
             target: Default::default(),
             features: Default::default(),
+            no_default_features: Default::default(),
             release: Default::default(),
         }
     }
 
-    pub fn with_verbose(mut self, verbose: bool) -> CargoCommand<'a> {
+    pub fn with_verbose(mut self, verbose: bool) -> Self {
         self.verbose = verbose;
         self
     }
 
-    pub fn with_package(mut self, package: Option<&'a str>) -> CargoCommand {
+    pub fn with_package(mut self, package: Option<&'a str>) -> Self {
         self.package = package;
         self
     }
@@ -40,17 +42,22 @@ impl<'a> CargoCommand<'a> {
         self
     }
 
-    pub fn with_target(mut self, target: Option<&'a str>) -> CargoCommand {
+    pub fn with_target(mut self, target: Option<&'a str>) -> Self {
         self.target = target;
         self
     }
 
-    pub fn with_features(mut self, features: Option<&'a str>) -> CargoCommand {
+    pub fn with_features(mut self, features: Option<&'a str>) -> Self {
         self.features = features;
         self
     }
 
-    pub fn with_release(mut self, release: bool) -> CargoCommand<'a> {
+    pub fn with_no_default_features(mut self, no_default_features: bool) -> Self {
+        self.no_default_features = no_default_features;
+        self
+    }
+
+    pub fn with_release(mut self, release: bool) -> Self {
         self.release = release;
         self
     }
@@ -71,6 +78,9 @@ impl<'a> CargoCommand<'a> {
         }
         if let Some(features) = self.features {
             command.args(&["--features", features]);
+        }
+        if self.no_default_features {
+            command.arg("--no-default-features");
         }
         if self.release {
             command.arg("--release");

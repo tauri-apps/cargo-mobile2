@@ -3,7 +3,7 @@ apply plugin: "com.android.application"
 android {
     compileSdkVersion 28
     defaultConfig {
-        applicationId "{{reverse_domain}}.{{app_name}}"
+        applicationId "{{reverse-domain}}.{{app-name-snake}}"
         minSdkVersion 24
         targetSdkVersion 28
         versionCode 1
@@ -11,7 +11,7 @@ android {
         ndk {
             // Tells Gradle to build outputs for the following ABIs and package
             // them into your APK.
-            abiFilters {{abi_list_joined}}
+            abiFilters {{abi-list-joined}}
         }
     }
     sourceSets {
@@ -28,7 +28,7 @@ android {
             minifyEnabled false
             useProguard false
             packagingOptions {
-                {{~#each abi_list}}
+                {{~#each abi-list}}
                 doNotStrip "*/{{this}}/*.so"{{/each}}
             }
         }

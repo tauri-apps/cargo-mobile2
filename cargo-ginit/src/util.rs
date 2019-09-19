@@ -1,5 +1,5 @@
 use clap::{Arg, ArgMatches};
-use ginit::target::{Profile, TargetTrait};
+use ginit::{opts::Profile, target::TargetTrait};
 
 pub fn take_a_list<'a, 'b>(arg: Arg<'a, 'b>, values: &'a [&'a str]) -> Arg<'a, 'b> {
     arg.possible_values(values)
@@ -24,4 +24,36 @@ pub fn parse_profile(matches: &ArgMatches<'_>) -> Profile {
     } else {
         Profile::Debug
     }
+}
+
+#[macro_export]
+macro_rules! detect_device {
+    ($func:path, $name:ident) => {
+        fn detect_device<'a>(env: &'_ Env) -> Result<Device<'a>, Error> {
+            let device_list = $func(env).map_err(Error::DeviceDetectionFailed)?;
+            if device_list.len() > 0 {
+                let index = if device_list.len() > 1 {
+                    prompt::list(
+                        concat!("Detected ", stringify!($name), " devices"),
+                        device_list.iter(),
+                        "device",
+                        None,
+                        "Device",
+                    )
+                    .map_err(Error::DevicePromptFailed)?
+                } else {
+                    0
+                };
+                let device = device_list.into_iter().nth(index).unwrap();
+                println!(
+                    "Detected connected device: {} with target {:?}",
+                    device,
+                    device.target().triple,
+                );
+                Ok(device)
+            } else {
+                Err(Error::NoDevicesDetected)
+            }
+        }
+    };
 }

@@ -1,0 +1,9 @@
+#[cfg(target_os = "macos")]
+fn main() {
+    {{app-name-snake}}::start_app();
+}
+
+#[cfg(not(target_os = "macos"))]
+fn main() {
+    unimplemented!("stub for vscode")
+}

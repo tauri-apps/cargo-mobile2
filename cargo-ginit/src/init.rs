@@ -3,18 +3,19 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use ginit::{
     config::Config,
     init::{
-        config_gen::interactive_config_gen,
         init,
         steps::{Steps, STEPS},
+        Error,
     },
-    opts::Clobbering,
-    templating::init_templating,
+    opts::{Clobbering, OpenIn},
+    templating,
 };
 
 pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("init")
         .about("Creates a new project in the current working directory")
         .arg_from_usage("--force 'Clobber files with no remorse'")
+        .arg_from_usage("--open 'Open in VS Code'")
         .arg(take_a_list(
             Arg::with_name("only")
                 .long("only")
@@ -34,6 +35,7 @@ pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
 #[derive(Debug)]
 pub struct InitCommand {
     clobbering: Clobbering,
+    open_in: OpenIn,
     only: Option<Steps>,
     skip: Option<Steps>,
 }
@@ -45,6 +47,11 @@ impl InitCommand {
         } else {
             Clobbering::Forbid
         };
+        let open_in = if matches.is_present("open") {
+            OpenIn::Editor
+        } else {
+            OpenIn::Nothing
+        };
         let only = matches
             .args
             .get("only")
@@ -55,25 +62,22 @@ impl InitCommand {
             .map(|skip| Steps::from(skip.vals.as_slice()));
         Self {
             clobbering,
+            open_in,
             only,
             skip,
         }
     }
 
-    pub fn exec(self, config: Option<&Config>) {
-        let new_config = if config.is_none() {
-            let old_bike = init_templating(None);
-            interactive_config_gen(&old_bike);
-            Some(
-                Config::load(".")
-                    .expect("failed to load config")
-                    .expect("no config found - did generation fail?"),
-            )
-        } else {
-            None
-        };
-        let config = config.unwrap_or_else(|| new_config.as_ref().unwrap());
-        let new_bike = init_templating(Some(&config));
-        init(&config, &new_bike, self.clobbering, self.only, self.skip);
+    pub fn exec(self, config: &Config) -> Result<(), Error> {
+        let bike = templating::init(Some(config));
+        init(
+            config,
+            &bike,
+            self.clobbering,
+            self.open_in,
+            self.only,
+            self.skip,
+        )?;
+        Ok(())
     }
 }

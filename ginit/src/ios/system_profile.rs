@@ -1,13 +1,35 @@
 use into_result::{command::CommandError, IntoResult as _};
 use regex::Regex;
-use std::{process::Command, str};
+use std::{fmt, process::Command, str};
 
 #[derive(Debug)]
-pub enum DeveloperToolsError {
+pub enum Error {
     SystemProfilerFailed(CommandError),
-    OutputWasInvalidUtf8(str::Utf8Error),
+    OutputInvalidUtf8(str::Utf8Error),
     VersionNotMatched,
     VersionComponentNotNumeric(std::num::ParseIntError),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::SystemProfilerFailed(err) => write!(f, "`system_profiler` call failed: {}", err),
+            Error::OutputInvalidUtf8(err) => write!(
+                f,
+                "`system_profiler` output contained invalid UTF-8: {}",
+                err
+            ),
+            Error::VersionNotMatched => write!(
+                f,
+                "No version number was found within the `SPDeveloperToolsDataType` data."
+            ),
+            Error::VersionComponentNotNumeric(err) => write!(
+                f,
+                "The version contained something that wasn't a valid number: {}",
+                err
+            ),
+        }
+    }
 }
 
 // There's a bunch more info available, but the version is all we need for now.
@@ -17,7 +39,7 @@ pub struct DeveloperTools {
 }
 
 impl DeveloperTools {
-    pub fn new() -> Result<Self, DeveloperToolsError> {
+    pub fn new() -> Result<Self, Error> {
         lazy_static::lazy_static! {
             static ref VERSION_RE: Regex = Regex::new(r#"\bVersion: (\d+)\.(\d+)\b"#).unwrap();
         }
@@ -28,14 +50,14 @@ impl DeveloperTools {
             .arg("SPDeveloperToolsDataType")
             .output()
             .into_result()
-            .map_err(DeveloperToolsError::SystemProfilerFailed)
+            .map_err(Error::SystemProfilerFailed)
             .map(|out| out.stdout)?;
-        let text = str::from_utf8(&bytes).map_err(DeveloperToolsError::OutputWasInvalidUtf8)?;
+        let text = str::from_utf8(&bytes).map_err(Error::OutputInvalidUtf8)?;
         let components = VERSION_RE
             .captures_iter(text)
             .next()
             .map(|caps| {
-                debug_assert_eq!(caps.len(), 2);
+                assert_eq!(caps.len(), 3);
                 caps.iter()
                     .skip(1)
                     .map(|component| {
@@ -43,11 +65,11 @@ impl DeveloperTools {
                             .unwrap()
                             .as_str()
                             .parse::<u32>()
-                            .map_err(DeveloperToolsError::VersionComponentNotNumeric)
+                            .map_err(Error::VersionComponentNotNumeric)
                     })
                     .collect::<Result<Vec<_>, _>>()
             })
-            .ok_or(DeveloperToolsError::VersionNotMatched)??;
+            .ok_or(Error::VersionNotMatched)??;
         Ok(Self {
             version: (components[0], components[1]),
         })

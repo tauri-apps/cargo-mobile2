@@ -1,28 +1,6 @@
 use crate::util;
-use std::collections::BTreeMap;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Profile {
-    Debug,
-    Release,
-}
-
-impl Profile {
-    pub fn is_debug(self) -> bool {
-        self == Profile::Debug
-    }
-
-    pub fn is_release(self) -> bool {
-        self == Profile::Release
-    }
-
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Profile::Debug => "debug",
-            Profile::Release => "release",
-        }
-    }
-}
+use into_result::command::CommandResult;
+use std::{collections::BTreeMap, fmt};
 
 pub trait TargetTrait<'a>: Sized {
     const DEFAULT_KEY: &'static str;
@@ -32,7 +10,7 @@ pub trait TargetTrait<'a>: Sized {
     fn default_ref() -> &'a Self {
         Self::all()
             .get(Self::DEFAULT_KEY)
-            .expect("No target matched `DEFAULT_KEY`")
+            .expect("Developer error: no target matched `DEFAULT_KEY`")
     }
 
     fn for_name(name: &str) -> Option<&'a Self> {
@@ -46,8 +24,24 @@ pub trait TargetTrait<'a>: Sized {
     fn triple(&'a self) -> &'a str;
     fn arch(&'a self) -> &'a str;
 
-    fn rustup_add(&'a self) {
-        util::rustup_add(self.triple()).expect("Failed to add target via rustup");
+    fn rustup_add(&'a self) -> CommandResult<()> {
+        util::rustup_add(self.triple())
+    }
+}
+
+#[derive(Debug)]
+pub struct TargetInvalid {
+    name: String,
+    possible: Vec<String>,
+}
+
+impl fmt::Display for TargetInvalid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Target {:?} is invalid; the possible targets are {:?}",
+            self.name, self.possible,
+        )
     }
 }
 
@@ -55,56 +49,67 @@ pub fn get_targets<'a, Iter, I, T, U>(
     targets: Iter,
     // we use `dyn` so the type doesn't need to be known when this is `None`
     fallback: Option<(&'a dyn Fn(U) -> Option<&'a T>, U)>,
-) -> Option<Vec<&'a T>>
+) -> Result<Vec<&'a T>, TargetInvalid>
 where
     Iter: ExactSizeIterator<Item = &'a I>,
     I: AsRef<str> + 'a,
     T: TargetTrait<'a>,
 {
     let targets_empty = targets.len() == 0;
-    if !targets_empty {
-        Some(
-            targets
-                .map(|name| T::for_name(name.as_ref()).expect("Invalid target"))
-                .collect(),
-        )
-    } else {
-        fallback
-            .and_then(|(get_target, arg)| get_target(arg))
-            .or_else(|| {
-                log::info!("falling back on default target ({})", T::DEFAULT_KEY);
-                Some(T::default_ref())
+    Ok(if !targets_empty {
+        targets
+            .map(|name| {
+                T::for_name(name.as_ref()).ok_or_else(|| TargetInvalid {
+                    name: name.as_ref().to_owned(),
+                    possible: T::all().keys().map(|key| key.to_string()).collect(),
+                })
             })
-            .map(|target| vec![target])
-    }
+            .collect::<Result<_, _>>()?
+    } else {
+        let target = fallback
+            .and_then(|(get_target, arg)| get_target(arg))
+            .unwrap_or_else(|| {
+                log::info!("falling back on default target ({})", T::DEFAULT_KEY);
+                T::default_ref()
+            });
+        vec![target]
+    })
 }
 
-pub fn call_for_targets_with_fallback<'a, Iter, I, T, U, F>(
+pub fn call_for_targets_with_fallback<'a, Iter, I, T, U, E, F>(
     targets: Iter,
     fallback: &'a dyn Fn(U) -> Option<&'a T>,
     arg: U,
     f: F,
-) where
+) -> Result<Result<(), E>, TargetInvalid>
+where
     Iter: ExactSizeIterator<Item = &'a I>,
     I: AsRef<str> + 'a,
     T: TargetTrait<'a>,
-    F: Fn(&T),
+    F: Fn(&T) -> Result<(), E>,
 {
-    let targets = get_targets(targets, Some((fallback, arg))).expect("No valid targets specified");
-    for target in targets {
-        f(target);
-    }
+    get_targets(targets, Some((fallback, arg))).map(|targets| {
+        for target in targets {
+            f(target)?;
+        }
+        Ok(())
+    })
 }
 
-pub fn call_for_targets<'a, Iter, I, T, F>(targets: Iter, f: F)
+pub fn call_for_targets<'a, Iter, I, T, E, F>(
+    targets: Iter,
+    f: F,
+) -> Result<Result<(), E>, TargetInvalid>
 where
     Iter: ExactSizeIterator<Item = &'a I>,
     I: AsRef<str> + 'a,
     T: TargetTrait<'a> + 'a,
-    F: Fn(&T),
+    F: Fn(&T) -> Result<(), E>,
 {
-    let targets = get_targets::<_, _, _, ()>(targets, None).expect("No valid targets specified");
-    for target in targets {
-        f(target);
-    }
+    get_targets::<_, _, _, ()>(targets, None).map(|targets| {
+        for target in targets {
+            f(target)?;
+        }
+        Ok(())
+    })
 }

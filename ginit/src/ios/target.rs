@@ -2,29 +2,110 @@ use crate::{
     config::Config,
     env::Env,
     init::cargo::CargoTarget,
-    ios::system_profile::DeveloperTools,
-    opts::NoiseLevel,
-    target::{Profile, TargetTrait},
+    ios::system_profile::{self, DeveloperTools},
+    opts::{NoiseLevel, Profile},
+    target::TargetTrait,
     util::{self, pure_command::PureCommand},
 };
-use into_result::IntoResult as _;
-use std::{collections::BTreeMap, path::Path, process::Command};
+use into_result::{command::CommandError, IntoResult as _};
+use std::{collections::BTreeMap, fmt};
 
-fn ios_deploy(env: &Env) -> Command {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("ios-deploy/build/Release/ios-deploy");
-    if !path.exists() {
-        panic!(
-            "`ios-deploy` not found. Please run `cargo {} install-deps` and try again.",
-            crate::NAME,
-        );
-    }
-    PureCommand::new(path, env)
+#[derive(Debug)]
+pub enum VersionCheckError {
+    LookupFailed(system_profile::Error),
+    TooLow {
+        msg: &'static str,
+        you_have: (u32, u32),
+        you_need: (u32, u32),
+    },
 }
 
-#[derive(Clone, Copy, Debug)]
+impl fmt::Display for VersionCheckError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            VersionCheckError::LookupFailed(err) => {
+                write!(f, "Failed to lookup Xcode version: {}", err)
+            }
+            VersionCheckError::TooLow {
+                msg,
+                you_have,
+                you_need,
+            } => write!(
+                f,
+                "{} Xcode {}.{}; you have Xcode {}.{}.",
+                msg, you_need.0, you_need.1, you_have.0, you_have.1
+            ),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum CheckError {
+    VersionCheckFailed(VersionCheckError),
+    CargoCheckFailed(CommandError),
+}
+
+impl fmt::Display for CheckError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CheckError::VersionCheckFailed(err) => write!(f, "Xcode version check failed: {}", err),
+            CheckError::CargoCheckFailed(err) => write!(f, "Failed to run `cargo check`: {}", err),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum CompileLibError {
+    VersionCheckFailed(VersionCheckError),
+    CargoBuildFailed(CommandError),
+}
+
+impl fmt::Display for CompileLibError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CompileLibError::VersionCheckFailed(err) => {
+                write!(f, "Xcode version check failed: {}", err)
+            }
+            CompileLibError::CargoBuildFailed(err) => {
+                write!(f, "Failed to run `cargo build`: {}", err)
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct BuildError(CommandError);
+
+impl fmt::Display for BuildError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Failed to build via `xcodebuild`: {}", self.0)
+    }
+}
+
+#[derive(Debug)]
+pub enum ArchiveError {
+    ArchiveFailed(CommandError),
+    ExportFailed(CommandError),
+}
+
+impl fmt::Display for ArchiveError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ArchiveError::ArchiveFailed(err) => {
+                write!(f, "Failed to archive via `xcodebuild: {}", err)
+            }
+            ArchiveError::ExportFailed(err) => {
+                write!(f, "Failed to export archive via `xcodebuild: {}", err)
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Target<'a> {
     pub triple: &'a str,
     pub arch: &'a str,
+    alias: Option<&'a str>,
     min_xcode_version: Option<((u32, u32), &'static str)>,
 }
 
@@ -38,11 +119,13 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                 targets.insert("aarch64", Target {
                     triple: "aarch64-apple-ios",
                     arch: "arm64",
+                    alias: Some("arm64e"),
                     min_xcode_version: None,
                 });
                 targets.insert("x86_64", Target {
                     triple: "x86_64-apple-ios",
                     arch: "x86_64",
+                    alias: None,
                     // Simulator only supports Metal as of Xcode 11.0:
                     // https://developer.apple.com/documentation/metal/developing_metal_apps_that_run_in_simulator?language=objc
                     // While this doesn't matter if you aren't using Metal,
@@ -71,66 +154,93 @@ impl<'a> Target<'a> {
         Self {
             triple: "x86_64-apple-darwin",
             arch: "x86_64",
+            alias: None,
             min_xcode_version: None,
         }
+    }
+
+    pub fn is_macos(&self) -> bool {
+        *self == Self::macos()
+    }
+
+    pub fn for_arch(arch: &str) -> Option<&'a Self> {
+        Self::all()
+            .values()
+            .find(|target| target.arch == arch || target.alias == Some(arch))
     }
 
     pub fn generate_cargo_config(&self) -> CargoTarget {
         Default::default()
     }
 
-    fn min_xcode_version_satisfied(&self) -> Result<(), String> {
+    fn min_xcode_version_satisfied(&self) -> Result<(), VersionCheckError> {
         self.min_xcode_version
             .map(|(min_version, msg)| {
-                let tool_info = DeveloperTools::new().expect("Failed to get developer tool info");
+                let tool_info = DeveloperTools::new().map_err(VersionCheckError::LookupFailed)?;
                 let installed_version = tool_info.version;
                 if installed_version >= min_version {
                     Ok(())
                 } else {
-                    Err(format!(
-                        "{} Xcode {}.{}; you have Xcode {}.{}",
-                        msg, min_version.0, min_version.1, installed_version.0, installed_version.1
-                    ))
+                    Err(VersionCheckError::TooLow {
+                        msg,
+                        you_have: installed_version,
+                        you_need: min_version,
+                    })
                 }
             })
             .unwrap_or_else(|| Ok(()))
     }
 
-    fn cargo(&'a self, config: &'a Config, subcommand: &'a str) -> util::CargoCommand<'a> {
-        if let Err(msg) = self.min_xcode_version_satisfied() {
-            // panicking here is silly...
-            panic!("{}", msg);
-        }
-        util::CargoCommand::new(subcommand)
-            .with_package(Some(config.app_name()))
-            .with_manifest_path(config.manifest_path())
-            .with_target(Some(&self.triple))
-            .with_features(Some("metal"))
+    fn cargo(
+        &'a self,
+        config: &'a Config,
+        subcommand: &'a str,
+    ) -> Result<util::CargoCommand<'a>, VersionCheckError> {
+        self.min_xcode_version_satisfied().map(|()| {
+            util::CargoCommand::new(subcommand)
+                .with_package(Some(config.app_name()))
+                .with_manifest_path(Some(config.manifest_path()))
+                .with_target(Some(&self.triple))
+                .with_features(Some("metal"))
+                .with_no_default_features(!self.is_macos())
+        })
     }
 
-    pub fn check(&self, config: &Config, env: &Env, noise_level: NoiseLevel) {
+    pub fn check(
+        &self,
+        config: &Config,
+        env: &Env,
+        noise_level: NoiseLevel,
+    ) -> Result<(), CheckError> {
         self.cargo(config, "check")
+            .map_err(CheckError::VersionCheckFailed)?
             .with_verbose(noise_level.is_pedantic())
             .into_command(env)
             .status()
             .into_result()
-            .expect("Failed to run `cargo check`");
+            .map_err(CheckError::CargoCheckFailed)
     }
 
-    pub fn compile_lib(&self, config: &Config, noise_level: NoiseLevel, profile: Profile) {
+    pub fn compile_lib(
+        &self,
+        config: &Config,
+        noise_level: NoiseLevel,
+        profile: Profile,
+    ) -> Result<(), CompileLibError> {
         // NOTE: it's up to Xcode to pass the verbose flag here, so even when
         // using our build/run commands it won't get passed.
         // TODO: I don't undestand this comment
         self.cargo(config, "build")
+            .map_err(CompileLibError::VersionCheckFailed)?
             .with_verbose(noise_level.is_pedantic())
             .with_release(profile.is_release())
             .into_command_impure()
             .status()
             .into_result()
-            .expect("Failed to run `cargo build`");
+            .map_err(CompileLibError::CargoBuildFailed)
     }
 
-    pub fn build(&self, config: &Config, env: &Env, profile: Profile) {
+    pub fn build(&self, config: &Config, env: &Env, profile: Profile) -> Result<(), BuildError> {
         let configuration = profile.as_str();
         PureCommand::new("xcodebuild", env)
             .args(&["-scheme", &config.ios().scheme()])
@@ -141,10 +251,15 @@ impl<'a> Target<'a> {
             .arg("build")
             .status()
             .into_result()
-            .expect("Failed to run `xcodebuild`");
+            .map_err(BuildError)
     }
 
-    fn archive(&self, config: &Config, env: &Env, profile: Profile) {
+    pub(super) fn archive(
+        &self,
+        config: &Config,
+        env: &Env,
+        profile: Profile,
+    ) -> Result<(), ArchiveError> {
         let configuration = profile.as_str();
         let archive_path = config.ios().export_path().join(&config.ios().scheme());
         PureCommand::new("xcodebuild", env)
@@ -159,7 +274,7 @@ impl<'a> Target<'a> {
             .arg(&archive_path)
             .status()
             .into_result()
-            .expect("Failed to run `xcodebuild`");
+            .map_err(ArchiveError::ArchiveFailed)?;
         // Super fun discrepancy in expectation of `-archivePath` value
         let archive_path = config
             .ios()
@@ -175,37 +290,6 @@ impl<'a> Target<'a> {
             .arg(&config.ios().export_path())
             .status()
             .into_result()
-            .expect("Failed to run `xcodebuild`");
-    }
-
-    pub fn run(&self, config: &Config, env: &Env, profile: Profile) {
-        // TODO: These steps are run unconditionally, which is slooooooow
-        self.build(config, env, profile);
-        self.archive(config, env, profile);
-        PureCommand::new("unzip", env)
-            .arg("-o") // -o = always overwrite
-            .arg(&config.ios().ipa_path())
-            .arg("-d")
-            .arg(&config.ios().export_path())
-            .status()
-            .into_result()
-            .expect("Failed to run `unzip`");
-        // This dies if the device is locked, and gives you no time to react to
-        // that. `ios-deploy --detect` can apparently be used to check in
-        // advance, giving us an opportunity to promt. Though, it's much more
-        // relaxing to just turn off auto-lock under Display & Brightness.
-        ios_deploy(env)
-            .arg("--debug")
-            .arg("--bundle")
-            .arg(&config.ios().app_path())
-            // This tool can apparently install over wifi, but not debug over
-            // wifi... so if your device is connected over wifi (even if it's
-            // wired as well) and we're using the `--debug` flag, then
-            // launching will fail unless we also specify the `--no-wifi` flag
-            // to keep it from trying that.
-            .arg("--no-wifi")
-            .status()
-            .into_result()
-            .expect("Failed to run `ios-deploy`");
+            .map_err(ArchiveError::ExportFailed)
     }
 }

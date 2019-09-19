@@ -1,6 +1,6 @@
 use crate::config::{self, Config};
 use bicycle::{
-    handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContext},
+    handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderError},
     Bicycle, EscapeFn, HelperDef, JsonMap,
 };
 use std::{
@@ -15,12 +15,14 @@ fn path<'a>(helper: &'a Helper) -> &'a str {
         .unwrap_or("")
 }
 
-fn project_root<'a>(ctx: &'a Context) -> &'a str {
-    ctx.data()
-        .get("project_root")
-        .expect("project root missing from template data")
+fn project_root<'a>(ctx: &'a Context) -> Result<&'a str, RenderError> {
+    let project_root = ctx
+        .data()
+        .get("project-root")
+        .ok_or_else(|| RenderError::new("`project-root` missing from template data."))?;
+    project_root
         .as_str()
-        .expect("project root wasn't a string")
+        .ok_or_else(|| RenderError::new("`project-root` contained invalid UTF-8."))
 }
 
 fn prefix_path(
@@ -31,9 +33,13 @@ fn prefix_path(
     out: &mut dyn Output,
 ) -> HelperResult {
     out.write(
-        config::prefix_path(project_root(ctx), path(helper))
+        config::prefix_path(project_root(ctx)?, path(helper))
             .to_str()
-            .expect("either project root or path contained invalid utf-8"),
+            .ok_or_else(|| {
+                RenderError::new(
+                    "Either the `project-root` or the specified path contained invalid UTF-8.",
+                )
+            })?,
     )
     .map_err(Into::into)
 }
@@ -46,31 +52,37 @@ fn unprefix_path(
     out: &mut dyn Output,
 ) -> HelperResult {
     out.write(
-        config::unprefix_path(project_root(ctx), path(helper))
-            .expect("attempted to unprefix a path that wasn't in the project")
+        config::unprefix_path(project_root(ctx)?, path(helper))
+            .map_err(|_| {
+                RenderError::new("Attempted to unprefix a path that wasn't in the project.")
+            })?
             .to_str()
-            .expect("either project root or path contained invalid utf-8"),
+            .ok_or_else(|| {
+                RenderError::new(
+                    "Either the `project-root` or the specified path contained invalid UTF-8.",
+                )
+            })?,
     )
     .map_err(Into::into)
 }
 
-pub fn init_templating(config: Option<&Config>) -> Bicycle {
+pub fn init(config: Option<&Config>) -> Bicycle {
     Bicycle::new(
         EscapeFn::None,
         {
             let mut helpers = HashMap::<_, Box<dyn HelperDef>>::new();
             if config.is_some() {
                 // don't mix these up or very bad things will happen to all of us
-                helpers.insert("prefix_path", Box::new(prefix_path));
-                helpers.insert("unprefix_path", Box::new(unprefix_path));
+                helpers.insert("prefix-path", Box::new(prefix_path));
+                helpers.insert("unprefix-path", Box::new(unprefix_path));
             }
             helpers
         },
         {
             let mut map = JsonMap::default();
-            map.insert("tool_name", &*crate::NAME);
+            map.insert("tool-name", &*crate::NAME);
             if let Some(config) = config {
-                map.insert("project_root", config.project_root());
+                map.insert("project-root", config.project_root());
             }
             map
         },
@@ -97,7 +109,7 @@ pub fn template_pack(config: Option<&Config>, name: &str) -> Option<PathBuf> {
         path = try_path(config.project_root(), name);
         // then we check rust-lib
         if path.is_none() {
-            path = try_path(config.source_root().join("lib"), name);
+            path = try_path(config.app_root().join("rust-lib"), name);
         }
     }
     // and then we check our internal/bundled templates
