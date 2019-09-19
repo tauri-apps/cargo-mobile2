@@ -16,6 +16,7 @@ use crate::{
         prompt::{self, YesOrNo},
     },
 };
+use colored::*;
 use into_result::{command::CommandError, IntoResult as _};
 use std::{fmt, io, path::Path, process::Command};
 
@@ -79,12 +80,14 @@ pub fn init(
 ) -> Result<(), Error> {
     if let Some(proj) = migrate::LegacyProject::heuristic_detect(config) {
         println!(
+            "{}",
             r#"
 It looks like you're using the old project structure, which is now unsupported.
 The new project structure is super sleek, and ginit can migrate your project
 automatically! However, this can potentially fail. Be sure you have a backup of
 your project in case things explode. You've been warned! 💀
         "#
+            .bright_magenta(),
         );
         let response = prompt::yes_no(
             "I have a backup, and I'm ready to migrate",

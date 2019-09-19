@@ -18,8 +18,10 @@ impl RustLib<Legacy> {
     pub fn move_to_root(self, config: &Config) -> CommandResult<RustLib<Moved>> {
         let old = config.app_root().join("rust/lib");
         let new = config.app_root().join("rust-lib");
+        // We need to make sure the submod is initialized first!
+        util::git(&config.project_root(), &["submodule", "init"])?;
         util::git(
-            &config.app_root(),
+            &config.project_root(),
             &["mv".as_ref(), old.as_os_str(), new.as_os_str()],
         )?;
         Ok(RustLib {
