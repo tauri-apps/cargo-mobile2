@@ -1,16 +1,15 @@
-use super::{env::Env, ndk};
-use crate::{
-    config::Config,
-    init::cargo::CargoTarget,
+use crate::{config::Config, env::Env, ndk};
+use ginit_core::{
+    config::ConfigTrait,
     opts::{NoiseLevel, Profile},
-    target::TargetTrait,
+    target::{TargetCargoConfig, TargetTrait},
     util::{self, ln},
 };
 use into_result::{command::CommandError, IntoResult as _};
 use std::{collections::BTreeMap, fmt, fs, io, path::PathBuf, str};
 
 fn so_name(config: &Config) -> String {
-    format!("lib{}.so", config.app_name())
+    format!("lib{}.so", config.shared().app_name())
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -171,7 +170,7 @@ impl<'a> Target<'a> {
         &self,
         config: &Config,
         env: &Env,
-    ) -> Result<CargoTarget, ndk::MissingToolError> {
+    ) -> Result<TargetCargoConfig, ndk::MissingToolError> {
         let ar = env
             .ndk
             .binutil_path(ndk::Binutil::Ar, self.binutils_triple())?
@@ -183,11 +182,11 @@ impl<'a> Target<'a> {
             .compiler_path(
                 ndk::Compiler::Clang,
                 self.clang_triple(),
-                config.android().min_sdk_version(),
+                config.min_sdk_version(),
             )?
             .display()
             .to_string();
-        Ok(CargoTarget {
+        Ok(TargetCargoConfig {
             ar: Some(ar),
             linker: Some(linker),
             rustflags: vec![
@@ -206,11 +205,11 @@ impl<'a> Target<'a> {
         profile: Profile,
         mode: CargoMode,
     ) -> Result<(), CompileLibError> {
-        let min_sdk_version = config.android().min_sdk_version();
+        let min_sdk_version = config.min_sdk_version();
         util::CargoCommand::new(mode.as_str())
             .with_verbose(noise_level.is_pedantic())
-            .with_package(Some(config.app_name()))
-            .with_manifest_path(Some(config.manifest_path()))
+            .with_package(Some(config.shared().app_name()))
+            .with_manifest_path(Some(config.shared().manifest_path()))
             .with_target(Some(self.triple))
             .with_features(Some("vulkan")) // TODO: rust-lib plugin
             .with_no_default_features(true)
@@ -242,7 +241,6 @@ impl<'a> Target<'a> {
 
     pub(super) fn get_jnilibs_subdir(&self, config: &Config) -> PathBuf {
         config
-            .android()
             .project_path()
             .join(format!("app/src/main/jniLibs/{}", &self.abi))
     }
@@ -273,7 +271,7 @@ impl<'a> Target<'a> {
         self.make_jnilibs_subdir(config)
             .map_err(LibSymlinkError::JniLibsSubDirCreationFailed)?;
         let so_name = so_name(config);
-        let src = config.prefix_path(format!(
+        let src = config.shared().prefix_path(format!(
             "target/{}/{}/{}",
             &self.triple,
             profile.as_str(),

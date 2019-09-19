@@ -4,6 +4,36 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[derive(Debug)]
+pub enum UnprefixPathError {
+    PathNotPrefixed,
+}
+
+impl fmt::Display for UnprefixPathError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UnprefixPathError::PathNotPrefixed => write!(
+                f,
+                "Attempted to remove the project path prefix from a path that wasn't in the project."
+            ),
+        }
+    }
+}
+
+pub fn prefix_path(root: impl AsRef<Path>, path: impl AsRef<Path>) -> PathBuf {
+    root.as_ref().join(path)
+}
+
+pub fn unprefix_path(
+    root: impl AsRef<Path>,
+    path: impl AsRef<Path>,
+) -> Result<PathBuf, UnprefixPathError> {
+    path.as_ref()
+        .strip_prefix(root)
+        .map(|path| path.to_owned())
+        .map_err(|_| UnprefixPathError::PathNotPrefixed)
+}
+
 fn common_root(abs_src: &Path, abs_dest: &Path) -> PathBuf {
     let mut dest_root = abs_dest.to_owned();
     loop {

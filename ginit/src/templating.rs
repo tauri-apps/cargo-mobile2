@@ -1,7 +1,12 @@
-use crate::config::{self, Config};
-use bicycle::{
-    handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderError},
-    Bicycle, EscapeFn, HelperDef, JsonMap,
+use ginit_core::{
+    bicycle::{
+        handlebars::{
+            Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderError,
+        },
+        Bicycle, EscapeFn, HelperDef, JsonMap,
+    },
+    config::SharedConfig,
+    util,
 };
 use std::{
     collections::HashMap,
@@ -33,7 +38,7 @@ fn prefix_path(
     out: &mut dyn Output,
 ) -> HelperResult {
     out.write(
-        config::prefix_path(project_root(ctx)?, path(helper))
+        util::prefix_path(project_root(ctx)?, path(helper))
             .to_str()
             .ok_or_else(|| {
                 RenderError::new(
@@ -52,7 +57,7 @@ fn unprefix_path(
     out: &mut dyn Output,
 ) -> HelperResult {
     out.write(
-        config::unprefix_path(project_root(ctx)?, path(helper))
+        util::unprefix_path(project_root(ctx)?, path(helper))
             .map_err(|_| {
                 RenderError::new("Attempted to unprefix a path that wasn't in the project.")
             })?
@@ -66,7 +71,7 @@ fn unprefix_path(
     .map_err(Into::into)
 }
 
-pub fn init(config: Option<&Config>) -> Bicycle {
+pub fn init(config: Option<&SharedConfig>) -> Bicycle {
     Bicycle::new(
         EscapeFn::None,
         {
@@ -87,37 +92,4 @@ pub fn init(config: Option<&Config>) -> Bicycle {
             map
         },
     )
-}
-
-pub fn template_pack(config: Option<&Config>, name: &str) -> Option<PathBuf> {
-    fn try_path(root: impl AsRef<Path>, name: &str) -> Option<PathBuf> {
-        let path = root.as_ref().join("templates").join(name);
-        log::info!("checking for template pack \"{}\" at {:?}", name, path);
-        Some(path).filter(|path| {
-            if path.exists() {
-                log::info!("found template pack \"{}\" at {:?}", name, path);
-                true
-            } else {
-                false
-            }
-        })
-    }
-
-    let mut path = None;
-    if let Some(config) = config {
-        // first we check the user's project
-        path = try_path(config.project_root(), name);
-        // then we check rust-lib
-        if path.is_none() {
-            path = try_path(config.app_root().join("rust-lib"), name);
-        }
-    }
-    // and then we check our internal/bundled templates
-    if path.is_none() {
-        path = try_path(env!("CARGO_MANIFEST_DIR"), name);
-    }
-    if path.is_none() {
-        log::info!("template pack \"{}\" was never found", name);
-    }
-    path
 }

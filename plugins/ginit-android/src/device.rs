@@ -1,10 +1,11 @@
-use super::{
+use crate::{
     adb,
+    config::Config,
     env::Env,
     target::{BuildError, Target},
 };
-use crate::{
-    config::Config,
+use ginit_core::{
+    config::ConfigTrait,
     opts::{NoiseLevel, Profile},
     util::{self, pure_command::PureCommand},
 };
@@ -12,10 +13,10 @@ use into_result::{command::CommandError, IntoResult as _};
 use std::{fmt, io, process::Command};
 
 fn gradlew(config: &Config, env: &Env) -> Command {
-    let gradlew_path = config.android().project_path().join("gradlew");
+    let gradlew_path = config.project_path().join("gradlew");
     let mut command = PureCommand::new(&gradlew_path, env);
     command.arg("--project-dir");
-    command.arg(config.android().project_path());
+    command.arg(config.project_path());
     command
 }
 
@@ -146,7 +147,6 @@ impl<'a> Device<'a> {
 
     fn install_apk(&self, config: &Config, env: &Env) -> Result<(), ApkInstallError> {
         let apk_path = config
-            .android()
             .project_path()
             .join("app/build/outputs/apk/debug/app-debug.apk");
         self.adb(env)
@@ -177,8 +177,8 @@ impl<'a> Device<'a> {
             .map_err(RunError::ApkInstallFailed)?;
         let activity = format!(
             "{}.{}/android.app.NativeActivity",
-            config.reverse_domain(),
-            config.app_name(),
+            config.shared().reverse_domain(),
+            config.shared().app_name(),
         );
         self.adb(env)
             .args(&["shell", "am", "start", "-n", &activity])

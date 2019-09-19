@@ -1,4 +1,4 @@
-use crate::{android, config::Config, init::steps::Steps, ios, target::TargetTrait};
+use crate::{config::Config, init::steps::Steps, target::TargetTrait};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
@@ -7,35 +7,23 @@ use std::{
     io::{self, Write},
 };
 
-#[derive(Debug, Default, Deserialize, Serialize)]
-pub struct CargoTarget {
-    pub ar: Option<String>,
-    pub linker: Option<String>,
-    pub rustflags: Vec<String>,
-}
-
-impl CargoTarget {
-    fn is_empty(&self) -> bool {
-        self.ar.is_none() && self.linker.is_none() && self.rustflags.is_empty()
-    }
-}
-
 #[derive(Debug)]
 pub enum GenError {
-    AndroidEnvInvalid(android::env::Error),
-    AndroidGenFailed(android::ndk::MissingToolError),
+    // AndroidEnvInvalid(android::env::Error),
+// AndroidGenFailed(android::ndk::MissingToolError),
 }
 
 impl fmt::Display for GenError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            GenError::AndroidEnvInvalid(err) => {
-                write!(f, "Failed to initialize Android environment: {}", err)
-            }
-            GenError::AndroidGenFailed(err) => {
-                write!(f, "Failed to generate Android target config: {}", err)
-            }
-        }
+        // match self {
+        //     GenError::AndroidEnvInvalid(err) => {
+        //         write!(f, "Failed to initialize Android environment: {}", err)
+        //     }
+        //     GenError::AndroidGenFailed(err) => {
+        //         write!(f, "Failed to generate Android target config: {}", err)
+        //     }
+        // }
+        unimplemented!()
     }
 }
 
@@ -74,25 +62,25 @@ pub struct CargoConfig {
 impl CargoConfig {
     pub fn generate(config: &Config, steps: &Steps) -> Result<Self, GenError> {
         let mut target = BTreeMap::new();
-        if steps.contains(Steps::ANDROID) {
-            let env = android::env::Env::new().map_err(GenError::AndroidEnvInvalid)?;
-            for android_target in android::target::Target::all().values() {
-                target.insert(
-                    android_target.triple.to_owned(),
-                    android_target
-                        .generate_cargo_config(config, &env)
-                        .map_err(GenError::AndroidGenFailed)?,
-                );
-            }
-        }
-        if steps.contains(Steps::IOS) {
-            for ios_target in ios::target::Target::all().values() {
-                target.insert(
-                    ios_target.triple.to_owned(),
-                    ios_target.generate_cargo_config(),
-                );
-            }
-        }
+        // if steps.contains(Steps::ANDROID) {
+        //     let env = android::env::Env::new().map_err(GenError::AndroidEnvInvalid)?;
+        //     for android_target in android::target::Target::all().values() {
+        //         target.insert(
+        //             android_target.triple.to_owned(),
+        //             android_target
+        //                 .generate_cargo_config(config, &env)
+        //                 .map_err(GenError::AndroidGenFailed)?,
+        //         );
+        //     }
+        // }
+        // if steps.contains(Steps::IOS) {
+        //     for ios_target in ios::target::Target::all().values() {
+        //         target.insert(
+        //             ios_target.triple.to_owned(),
+        //             ios_target.generate_cargo_config(),
+        //         );
+        //     }
+        // }
         target.insert(
             "x86_64-apple-darwin".to_owned(),
             CargoTarget {
