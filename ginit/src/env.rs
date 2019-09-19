@@ -47,8 +47,6 @@ impl Env {
     }
 }
 
-// reminder to tomorrow fran: we need to impl display for Error
-
 impl ExplicitEnv for Env {
     fn explicit_env(&self) -> Vec<(&str, &std::ffi::OsStr)> {
         let mut env = vec![("HOME", self.home.as_ref()), ("PATH", self.path.as_ref())];

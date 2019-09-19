@@ -191,12 +191,9 @@ impl<'a> Target<'a> {
             ar: Some(ar),
             linker: Some(linker),
             rustflags: vec![
-                "-C".to_owned(),
-                "link-arg=-landroid".to_owned(),
-                "-C".to_owned(),
-                "link-arg=-llog".to_owned(),
-                "-C".to_owned(),
-                "link-arg=-lOpenSLES".to_owned(),
+                "-Clink-arg=-landroid".to_owned(),
+                "-Clink-arg=-llog".to_owned(),
+                "-Clink-arg=-lOpenSLES".to_owned(),
             ],
         })
     }

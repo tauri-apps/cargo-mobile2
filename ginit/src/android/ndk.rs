@@ -136,7 +136,7 @@ impl fmt::Display for Version {
 
 #[derive(Debug)]
 pub enum Error {
-    // link to docs/etc.
+    // TODO: link to docs/etc.
     NdkHomeNotSet(std::env::VarError),
     NdkHomeNotADir,
     VersionLookupFailed(VersionError),
@@ -163,7 +163,6 @@ impl fmt::Display for Error {
             }
             Error::VersionTooLow { you_have, you_need } => write!(
                 f,
-                // the minor version could be used to get a b suffix, too! - should make a version struct
                 "At least NDK {} is required (you currently have NDK {})",
                 you_need,
                 you_have,
@@ -255,7 +254,7 @@ impl Env {
     ) -> Result<PathBuf, MissingToolError> {
         let path = self
             .tool_dir()?
-            .join(format!("{}{:?}-{}", triple, min_api, compiler.as_str()));
+            .join(format!("{}{}-{}", triple, min_api, compiler.as_str()));
         if path.is_file() {
             Ok(path)
         } else {
