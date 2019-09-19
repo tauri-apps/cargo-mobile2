@@ -75,10 +75,10 @@ impl UserCode<Moved> {
             for line in lines {
                 let trimmed = line.trim();
                 if trimmed.starts_with("code_reload") {
-                    // Since we unconditionally add the `code_reload` feature,
+                    // Since we unconditionally add the `code-reload` feature,
                     // we have to remove it if it's already present.
                 } else if trimmed.starts_with("default") {
-                    new_lines.push(line.replace("[]", "[\"code_reload\", \"metal\"]"));
+                    new_lines.push(line.replace("[]", "[\"code-reload\", \"metal\"]"));
                 } else if trimmed.starts_with("rust-lib") {
                     new_lines.push(line.replace("../lib", "rust-lib"));
                 } else if trimmed.starts_with("build") {
@@ -86,7 +86,7 @@ impl UserCode<Moved> {
                 } else {
                     new_lines.push(line.to_owned());
                     if trimmed.starts_with("[features]") {
-                        new_lines.push("code_reload = [\"rust-lib/code_reload\"]".to_owned());
+                        new_lines.push("code-reload = [\"rust-lib/code-reload\"]".to_owned());
                     } else if trimmed.starts_with("edition") {
                         new_lines.push(format!("build = \"gen/build.rs\""));
                     } else if trimmed.starts_with("crate-type") {
