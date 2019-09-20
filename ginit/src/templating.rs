@@ -109,7 +109,7 @@ pub fn template_pack(config: Option<&Config>, name: &str) -> Option<PathBuf> {
         path = try_path(config.project_root(), name);
         // then we check rust-lib
         if path.is_none() {
-            path = try_path(config.app_root().join("rust-lib"), name);
+            path = try_path(config.project_root().join("rust-lib"), name);
         }
     }
     // and then we check our internal/bundled templates
