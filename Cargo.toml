@@ -4,3 +4,6 @@ members = [
     "ginit",
     "ginit-core",
 ]
+# We generate a test project on CI in this subdir, so this prevents the test
+# project from "believing" it's in the workspace.
+exclude = ["tmp"]
