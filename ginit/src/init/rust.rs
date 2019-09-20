@@ -19,13 +19,6 @@ pub enum Error {
         name: String,
         cause: io::Error,
     },
-    AppRootOutsideProject {
-        app_root: PathBuf,
-        project_root: PathBuf,
-    },
-    AppRootInvalidUtf8 {
-        app_root: PathBuf,
-    },
     GitSubmoduleAddFailed {
         name: String,
         cause: CommandError,
@@ -33,6 +26,14 @@ pub enum Error {
     GitSubmoduleInitFailed {
         name: String,
         cause: CommandError,
+    },
+    RustLibTooOld,
+    AppRootOutsideProject {
+        app_root: PathBuf,
+        project_root: PathBuf,
+    },
+    AppRootInvalidUtf8 {
+        app_root: PathBuf,
     },
 }
 
@@ -52,18 +53,21 @@ impl fmt::Display for Error {
                 "Failed to check \".gitmodules\" for submodule {:?}: {}",
                 name, cause,
             ),
-            Error::AppRootOutsideProject { app_root, project_root } => write!(
-                f,
-                "The app root ({:?}) is outside of the project root ({:?}), which is pretty darn invalid.",
-                app_root, project_root
-            ),
-            Error::AppRootInvalidUtf8 { app_root } => write!(f, "The app root ({:?}) contains invalid UTF-8.", app_root),
             Error::GitSubmoduleAddFailed { name, cause } => {
                 write!(f, "Failed to add submodule {:?}: {}", name, cause)
             }
             Error::GitSubmoduleInitFailed { name, cause } => {
                 write!(f, "Failed to init submodule {:?}: {}", name, cause)
             }
+            Error::RustLibTooOld => {
+                write!(f, "The `rust-lib` you have checked out is too old to work with the new project structure. Please update it and then run this again.")
+            }
+            Error::AppRootOutsideProject { app_root, project_root } => write!(
+                f,
+                "The app root ({:?}) is outside of the project root ({:?}), which is pretty darn invalid.",
+                app_root, project_root
+            ),
+            Error::AppRootInvalidUtf8 { app_root } => write!(f, "The app root ({:?}) contains invalid UTF-8.", app_root),
         }
     }
 }
@@ -142,6 +146,9 @@ pub fn hello_world(
         "git@bitbucket.org:brainium/rust_lib.git",
         "rust-lib",
     )?;
+    if !dest.join("rust-lib/templates/rust-lib-app").exists() {
+        return Err(Error::RustLibTooOld);
+    }
 
     let insert_data = |map: &mut bicycle::JsonMap| {
         config.insert_template_data(map);
