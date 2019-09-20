@@ -120,7 +120,7 @@ impl Config {
             })
             .unwrap_or_else(|| {
                 log::info!(
-                    "`global.app-root` not set; defaulting to {}",
+                    "`global.app-root` not set; defaulting to {:?}",
                     DEFAULT_APP_ROOT
                 );
                 Ok(DEFAULT_APP_ROOT.to_owned())

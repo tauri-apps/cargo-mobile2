@@ -102,7 +102,7 @@ impl Config {
                     }
                 }).unwrap_or_else(|| {
                     log::info!(
-                        "`ios.project-root` not set; defaulting to {}",
+                        "`ios.project-root` not set; defaulting to {:?}",
                         DEFAULT_PROJECT_ROOT
                     );
                     Ok(DEFAULT_PROJECT_ROOT.to_owned())

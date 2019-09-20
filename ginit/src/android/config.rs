@@ -1,11 +1,6 @@
 use crate::{config::SharedConfig, util};
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    fmt,
-    path::PathBuf,
-    rc::Rc,
-};
+use std::{collections::HashMap, fmt, path::PathBuf, rc::Rc};
 
 const DEFAULT_MIN_SDK_VERSION: u32 = 24;
 static DEFAULT_PROJECT_ROOT: &'static str = "gen/android";
@@ -91,7 +86,7 @@ impl Config {
             })
             .unwrap_or_else(|| {
                 log::info!(
-                    "`android.min-sdk-version` not set; defaulting to {}",
+                    "`android.min-sdk-version` not set; defaulting to {:?}",
                     DEFAULT_MIN_SDK_VERSION
                 );
                 DEFAULT_MIN_SDK_VERSION
@@ -119,7 +114,7 @@ impl Config {
             })
             .unwrap_or_else(|| {
                 log::info!(
-                    "`android.project-root` not set; defaulting to {}",
+                    "`android.project-root` not set; defaulting to {:?}",
                     DEFAULT_PROJECT_ROOT
                 );
                 Ok(DEFAULT_PROJECT_ROOT.to_owned())
