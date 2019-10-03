@@ -1,9 +1,9 @@
 use ginit_core::{
-    config::{ConfigTrait, SharedConfig},
+    config::{Config as CoreConfig, ConfigTrait},
     util,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt, path::PathBuf, rc::Rc};
+use std::{collections::HashMap, fmt, path::PathBuf};
 
 const DEFAULT_MIN_SDK_VERSION: u32 = 24;
 static DEFAULT_PROJECT_ROOT: &'static str = "gen/android";
@@ -69,7 +69,7 @@ pub struct Raw {
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
     #[serde(skip_serializing)]
-    shared: Rc<SharedConfig>,
+    shared: CoreConfig,
     min_sdk_version: u32,
     project_root: String,
 }
@@ -78,7 +78,8 @@ impl ConfigTrait for Config {
     type Raw = Raw;
     type Error = Error;
 
-    fn from_raw(shared: Rc<SharedConfig>, raw: Self::Raw) -> Result<Self, Self::Error> {
+    fn from_raw(shared: CoreConfig, raw: Option<Self::Raw>) -> Result<Self, Self::Error> {
+        let raw = raw.unwrap_or_default();
         if raw.targets.is_some() {
             log::warn!("`android.targets` specified in {}.toml - this config key is no longer needed, and will be ignored", ginit_core::NAME);
         }
@@ -103,7 +104,8 @@ impl ConfigTrait for Config {
                 if project_root == DEFAULT_PROJECT_ROOT {
                     log::warn!("`android.project-root` is set to the default value; you can remove it from your config");
                 }
-                if util::normalize_path(&project_root)
+                let prefixed = shared.project_root().join(&project_root);
+                if util::normalize_path(&prefixed)
                     .map_err(|cause| Error::ProjectRootInvalid(ProjectRootInvalid::NormalizationFailed {
                         android_project_root: project_root.clone(),
                         cause,
@@ -132,7 +134,7 @@ impl ConfigTrait for Config {
         })
     }
 
-    fn shared(&self) -> &SharedConfig {
+    fn shared(&self) -> &CoreConfig {
         &self.shared
     }
 }

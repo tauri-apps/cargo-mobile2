@@ -1,8 +1,11 @@
 #![forbid(unsafe_code)]
 
+pub mod cli;
 pub mod config;
 pub mod env;
+pub mod ipc;
 pub mod opts;
+pub mod protocol;
 pub mod target;
 pub mod templating;
 pub mod util;
@@ -16,22 +19,35 @@ use std::fmt::{Debug, Display};
 
 pub static NAME: &'static str = "ginit";
 
-pub trait Plugin: Debug {
+pub trait PluginTrait: Debug {
     const NAME: &'static str;
+    const DESCRIPTION: &'static str;
+
+    type Env: util::pure_command::ExplicitEnv;
 
     type Config: config::ConfigTrait;
-    type Env: util::pure_command::ExplicitEnv;
-    type InitError: Debug + Display;
+    fn update_config(&mut self, config: Self::Config);
 
-    fn init(
-        _config: &<Self as Plugin>::Config,
-        _bike: &bicycle::Bicycle,
-    ) -> Result<(), Self::InitError> {
+    fn cli(&mut self) -> Option<cli::Cli> {
+        None
+    }
+
+    type InitError: Debug + Display;
+    fn init(&mut self) -> Result<(), Self::InitError> {
+        Ok(())
+    }
+
+    type ExecError: Debug + Display;
+    fn exec(
+        &mut self,
+        _input: cli::CliInput,
+        _noise_level: opts::NoiseLevel,
+    ) -> Result<(), Self::ExecError> {
         Ok(())
     }
 }
 
-pub trait TargetPlugin<'a>: Plugin {
+pub trait TargetPluginTrait<'a>: PluginTrait {
     // type CargoConfigError: Debug + Display;
     type Target: target::TargetTrait<'a> + 'a;
 

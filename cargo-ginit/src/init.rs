@@ -1,14 +1,17 @@
 use crate::util::take_a_list;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ginit::{
-    config::Config,
-    init::{
-        init,
-        steps::{Steps, STEPS},
-        Error,
+    config::Umbrella,
+    core::{
+        config::Config,
+        // init::{
+        //     init,
+        //     steps::{Steps, STEPS},
+        //     Error,
+        // },
+        opts::{Clobbering, OpenIn},
+        templating,
     },
-    opts::{Clobbering, OpenIn},
-    templating,
 };
 
 pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
@@ -16,28 +19,28 @@ pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
         .about("Creates a new project in the current working directory")
         .arg_from_usage("--force 'Clobber files with no remorse'")
         .arg_from_usage("--open 'Open in VS Code'")
-        .arg(take_a_list(
-            Arg::with_name("only")
-                .long("only")
-                .help("Only do some steps")
-                .value_name("STEPS"),
-            STEPS,
-        ))
-        .arg(take_a_list(
-            Arg::with_name("skip")
-                .long("skip")
-                .help("Skip some steps")
-                .value_name("STEPS"),
-            STEPS,
-        ))
+    // .arg(take_a_list(
+    //     Arg::with_name("only")
+    //         .long("only")
+    //         .help("Only do some steps")
+    //         .value_name("STEPS"),
+    //     STEPS,
+    // ))
+    // .arg(take_a_list(
+    //     Arg::with_name("skip")
+    //         .long("skip")
+    //         .help("Skip some steps")
+    //         .value_name("STEPS"),
+    //     STEPS,
+    // ))
 }
 
 #[derive(Debug)]
 pub struct InitCommand {
     clobbering: Clobbering,
     open_in: OpenIn,
-    only: Option<Steps>,
-    skip: Option<Steps>,
+    // only: Option<Steps>,
+    // skip: Option<Steps>,
 }
 
 impl InitCommand {
@@ -52,32 +55,32 @@ impl InitCommand {
         } else {
             OpenIn::Nothing
         };
-        let only = matches
-            .args
-            .get("only")
-            .map(|only| Steps::from(only.vals.as_slice()));
-        let skip = matches
-            .args
-            .get("skip")
-            .map(|skip| Steps::from(skip.vals.as_slice()));
+        // let only = matches
+        //     .args
+        //     .get("only")
+        //     .map(|only| Steps::from(only.vals.as_slice()));
+        // let skip = matches
+        //     .args
+        //     .get("skip")
+        //     .map(|skip| Steps::from(skip.vals.as_slice()));
         Self {
             clobbering,
             open_in,
-            only,
-            skip,
+            // only,
+            // skip,
         }
     }
 
-    pub fn exec(self, config: &Config) -> Result<(), Error> {
-        let bike = templating::init(Some(config));
-        init(
-            config,
-            &bike,
-            self.clobbering,
-            self.open_in,
-            self.only,
-            self.skip,
-        )?;
+    pub fn exec(self, config: &Umbrella) -> Result<(), /*Error*/ String> {
+        let bike = templating::init(Some(config.shared()));
+        // init(
+        //     config.shared(),
+        //     &bike,
+        //     self.clobbering,
+        //     self.open_in,
+        //     self.only,
+        //     self.skip,
+        // )?;
         Ok(())
     }
 }

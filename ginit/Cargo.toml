@@ -13,3 +13,6 @@ ios = []
 [dependencies]
 ginit-android = { path = "../plugins/ginit-android", optional = true }
 ginit-core = { path = "../ginit-core" }
+log = "0.4.8"
+serde = { version = "1.0.101", features = ["derive"] }
+toml = "0.5.3"

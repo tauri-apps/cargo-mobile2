@@ -1,6 +1,9 @@
-use crate::{detect_device, util::{parse_profile, parse_targets, take_a_target_list}};
+use crate::{
+    detect_device,
+    util::{parse_profile, parse_targets, take_a_target_list},
+};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
-use ginit::{
+use ginit_core::{
     config::Config,
     env::{Env, Error as EnvError},
     ios::{

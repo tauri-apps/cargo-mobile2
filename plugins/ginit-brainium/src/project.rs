@@ -137,7 +137,7 @@ pub fn hello_world(
     bike: &bicycle::Bicycle,
     clobbering: Clobbering,
 ) -> Result<(), Error> {
-    let dest = config.project_root();
+    let dest = config.shared().project_root();
     git_init(&dest)?;
     submodule_init(
         config,
@@ -156,7 +156,7 @@ pub fn hello_world(
         map.insert("app-root", &app_root);
     };
     let actions = bicycle::traverse(
-        template_pack(Some(config), "rust-lib-app").ok_or_else(|| Error::MissingTemplatePack {
+        template_pack!(Some(config), "rust-lib-app").ok_or_else(|| Error::MissingTemplatePack {
             name: "rust-lib-app",
         })?,
         &dest,

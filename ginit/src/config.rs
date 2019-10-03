@@ -1,102 +1,47 @@
-pub mod app_name;
-pub mod global;
-mod shared;
-
-pub use self::shared::*;
-use crate::{
-    android::config::{
-        Config as AndroidConfig, Error as AndroidError, RawConfig as AndroidRawConfig,
-    },
-    ios::config::{Config as IosConfig, Error as IosError, RawConfig as IosRawConfig},
-};
 use serde::{Deserialize, Serialize};
 use std::{
-    fmt::{self, Debug, Display},
+    collections::HashMap,
+    fmt::{self, Display},
     fs::File,
     io::{self, Read},
-    ops::Deref,
     path::{Path, PathBuf},
-    rc::Rc,
 };
 
-// this will be renamed to `Config` once root config moves to `ginit`
-pub trait ConfigTrait: Debug + Display + Serialize {
-    type Raw: Deserialize + Serialize;
-    type Error: Debug + Display;
-
-    fn from_raw(shared: Rc<SharedConfig>, raw: Self::Raw) -> Result<Self, Self::Error>;
-
-    // fn insert_template_data(&self, map: &mut bicycle::JsonMap);
-}
-
 #[derive(Debug)]
-pub enum LoadError {
+pub enum Error {
     DiscoverFailed(io::Error),
     OpenFailed(io::Error),
     ReadFailed(io::Error),
     ParseFailed(toml::de::Error),
-    GlobalConfigInvalid(global::Error),
-    AndroidConfigInvalid(AndroidError),
-    IosConfigInvalid(IosError),
+    SharedConfigInvalid(ginit_core::config::Error),
 }
 
-impl fmt::Display for LoadError {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            LoadError::DiscoverFailed(err) => write!(
+            Self::DiscoverFailed(err) => write!(
                 f,
                 "Failed to canonicalize path while searching for project root: {}",
                 err
             ),
-            LoadError::OpenFailed(err) => write!(f, "Failed to open config file: {}", err),
-            LoadError::ReadFailed(err) => write!(f, "Failed to read config file: {}", err),
-            LoadError::ParseFailed(err) => write!(f, "Failed to parse config file: {}", err),
-            LoadError::GlobalConfigInvalid(err) => write!(f, "`global` config invalid: {}", err),
-            LoadError::AndroidConfigInvalid(err) => write!(f, "`android` config invalid: {}", err),
-            LoadError::IosConfigInvalid(err) => write!(f, "`ios` config invalid: {}", err),
+            Self::OpenFailed(err) => write!(f, "Failed to open config file: {}", err),
+            Self::ReadFailed(err) => write!(f, "Failed to read config file: {}", err),
+            Self::ParseFailed(err) => write!(f, "Failed to parse config file: {}", err),
+            Self::SharedConfigInvalid(err) => write!(f, "`ginit` config invalid: {}", err),
         }
     }
 }
 
-impl std::error::Error for LoadError {}
-
-/// All paths returned by `Config` methods are prefixed (absolute).
-/// Use [`Config::unprefix_path`] if you want to make a path relative to the project root.
-#[derive(Clone, Debug, Serialize)]
-pub struct Config {
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Umbrella {
+    shared: ginit_core::config::Config,
     #[serde(flatten)]
-    shared: Rc<SharedConfig>,
-    android: AndroidConfig,
-    ios: IosConfig,
+    plugins: HashMap<String, toml::Value>,
 }
 
-impl Deref for Config {
-    type Target = SharedConfig;
-
-    fn deref(&self) -> &Self::Target {
-        self.shared()
-    }
-}
-
-impl Config {
-    fn from_raw(project_root: PathBuf, raw_config: RawConfig) -> Result<Self, LoadError> {
-        let global = global::Config::from_raw(&project_root, raw_config.global)
-            .map_err(LoadError::GlobalConfigInvalid)?;
-        let shared = SharedConfig {
-            project_root,
-            global,
-        }
-        .into();
-        let android =
-            AndroidConfig::from_raw(Rc::clone(&shared), raw_config.android.unwrap_or_default())
-                .map_err(LoadError::AndroidConfigInvalid)?;
-        let ios = IosConfig::from_raw(Rc::clone(&shared), raw_config.ios)
-            .map_err(LoadError::IosConfigInvalid)?;
-        Ok(Self {
-            shared,
-            android,
-            ios,
-        })
+impl Umbrella {
+    pub fn file_name() -> String {
+        format!("{}.toml", ginit_core::NAME)
     }
 
     fn discover_root(cwd: impl AsRef<Path>) -> io::Result<Option<PathBuf>> {
@@ -116,41 +61,45 @@ impl Config {
         Ok(Some(path))
     }
 
-    pub fn load(cwd: impl AsRef<Path>) -> Result<Option<Self>, LoadError> {
-        if let Some(project_root) = Self::discover_root(cwd).map_err(LoadError::DiscoverFailed)? {
+    pub fn load(cwd: impl AsRef<Path>) -> Result<Option<Self>, Error> {
+        #[derive(Debug, Deserialize, Serialize)]
+        struct Raw {
+            ginit: ginit_core::config::Raw,
+            #[serde(flatten)]
+            plugins: HashMap<String, toml::Value>,
+        }
+        if let Some(project_root) = Self::discover_root(cwd).map_err(Error::DiscoverFailed)? {
             let path = project_root.join(&Self::file_name());
-            let mut file = File::open(&path).map_err(LoadError::OpenFailed)?;
+            let mut file = File::open(&path).map_err(Error::OpenFailed)?;
             let mut contents = Vec::new();
-            file.read_to_end(&mut contents)
-                .map_err(LoadError::ReadFailed)?;
-            let raw_config = toml::from_slice(&contents).map_err(LoadError::ParseFailed)?;
-            Ok(Some(Self::from_raw(project_root, raw_config)?))
+            file.read_to_end(&mut contents).map_err(Error::ReadFailed)?;
+            let raw = toml::from_slice::<Raw>(&contents).map_err(Error::ParseFailed)?;
+            Ok(Some(Self {
+                shared: ginit_core::config::Config::from_raw(project_root, raw.ginit)
+                    .map_err(Error::SharedConfigInvalid)?,
+                plugins: raw.plugins,
+            }))
         } else {
             Ok(None)
         }
     }
 
-    pub fn file_name() -> String {
-        format!("{}.toml", crate::NAME)
-    }
-
-    pub fn shared(&self) -> &Rc<SharedConfig> {
+    pub fn shared(&self) -> &ginit_core::config::Config {
         &self.shared
     }
 
-    pub fn android(&self) -> &AndroidConfig {
-        &self.android
+    pub fn plugin(&self, plugin_name: &str) -> Option<Vec<u8>> {
+        self.plugins.get(plugin_name).map(|value| {
+            toml::to_vec(&value)
+                .expect("Couldn't serialize the TOML data we deserialized, which is really weird")
+        })
     }
 
-    pub fn ios(&self) -> &IosConfig {
-        &self.ios
-    }
-
-    pub(crate) fn insert_template_data(&self, map: &mut bicycle::JsonMap) {
-        map.insert("config", &self);
-        map.insert("app-name", self.shared().app_name());
-        map.insert("app-name-snake", self.shared().app_name_snake());
-        map.insert("stylized-app-name", self.shared().stylized_app_name());
-        map.insert("reverse-domain", self.shared().reverse_domain());
-    }
+    // pub(crate) fn insert_template_data(&self, map: &mut bicycle::JsonMap) {
+    //     map.insert("config", &self);
+    //     map.insert("app-name", self.shared().app_name());
+    //     map.insert("app-name-snake", self.shared().app_name_snake());
+    //     map.insert("stylized-app-name", self.shared().stylized_app_name());
+    //     map.insert("reverse-domain", self.shared().reverse_domain());
+    // }
 }

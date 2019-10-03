@@ -1,7 +1,7 @@
 use crate::{config::Config, target::Target, Android};
 use ginit_core::{
-    config::ConfigTrait, exports::bicycle, target::TargetTrait as _, templating::template_pack,
-    util::ln, Plugin,
+    config::ConfigTrait, exports::bicycle, target::TargetTrait as _, template_pack, util::ln,
+    PluginTrait as _,
 };
 use std::{fmt, fs, path::PathBuf};
 
@@ -36,7 +36,7 @@ impl fmt::Display for Error {
 }
 
 pub fn generate(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
-    let src = template_pack(Some(config.shared()), "android-studio-project").ok_or_else(|| {
+    let src = template_pack!(Some(config.shared()), "android-studio-project").ok_or_else(|| {
         Error::MissingTemplatePack {
             name: "android-studio-project",
         }

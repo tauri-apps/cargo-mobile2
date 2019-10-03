@@ -1,6 +1,6 @@
 [package]
 name = "cargo-ginit"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Brainium Studios LLC"]
 edition = "2018"
 description = "Game dev productivity tools"
