@@ -103,8 +103,16 @@ pub struct PluginMap<State> {
 }
 
 impl<State> PluginMap<State> {
+    pub fn client(&self) -> &Rc<Client> {
+        &self.client
+    }
+
     pub fn get(&self, name: &str) -> Option<&PluginData<State>> {
         self.plugins.inner.get(name)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Plugin<State>> + Clone {
+        self.plugins.inner.values().map(|plugin| &plugin.plugin)
     }
 
     pub fn subcommands(&self) -> Vec<util::CliInfo<'_>> {

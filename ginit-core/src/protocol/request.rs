@@ -1,4 +1,4 @@
-use super::{ConfigError, PluginType, ResponseError, ResponseMsg, VERSION};
+use super::{ConfigError, Features, ResponseError, ResponseMsg, VERSION};
 use crate::{
     cli::CliInput,
     config::{Config, ConfigTrait},
@@ -27,7 +27,9 @@ pub enum RequestMsg {
         plugin_config: Option<Vec<u8>>,
     },
     Cli,
-    Init,
+    Init {
+        clobbering: opts::Clobbering,
+    },
     Exec {
         input: CliInput,
         noise_level: opts::NoiseLevel,
@@ -41,7 +43,7 @@ impl RequestMsg {
             Self::Goodbye => "Goodbye",
             Self::Config { .. } => "Config",
             Self::Cli => "Cli",
-            Self::Init => "Init",
+            Self::Init { .. } => "Init",
             Self::Exec { .. } => "Exec",
         }
     }
@@ -50,7 +52,7 @@ impl RequestMsg {
         match self {
             Self::Hello => Ok(ResponseMsg::Hello {
                 protocol_version: VERSION,
-                plugin_type: PluginType::Basic,
+                features: Features::BASIC,
                 description: P::DESCRIPTION.to_owned(),
             }),
             Self::Goodbye => Ok(ResponseMsg::Goodbye),
@@ -73,8 +75,8 @@ impl RequestMsg {
                 Ok(ResponseMsg::Config)
             }
             Self::Cli => Ok(ResponseMsg::Cli { cli: plugin.cli() }),
-            Self::Init => {
-                plugin.init().map_err(ResponseError::InitFailed)?;
+            Self::Init { clobbering } => {
+                plugin.init(clobbering).map_err(ResponseError::InitFailed)?;
                 Ok(ResponseMsg::Init)
             }
             Self::Exec { input, noise_level } => {

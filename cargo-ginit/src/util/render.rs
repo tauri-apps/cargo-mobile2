@@ -24,10 +24,10 @@ pub struct TargetInfoRef<'a, 'b> {
 
 #[derive(Debug)]
 pub struct CliInfo<'a> {
-    name: &'a str,
-    description: &'a str,
-    cli: &'a cli::Cli,
-    target_info: Option<TargetInfo<'a>>,
+    pub name: &'a str,
+    pub description: &'a str,
+    pub cli: &'a cli::Cli,
+    pub target_info: Option<TargetInfo<'a>>,
 }
 
 impl<'a> CliInfo<'a> {

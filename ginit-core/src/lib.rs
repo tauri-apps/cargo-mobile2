@@ -23,8 +23,6 @@ pub trait PluginTrait: Debug {
     const NAME: &'static str;
     const DESCRIPTION: &'static str;
 
-    type Env: util::pure_command::ExplicitEnv;
-
     type Config: config::ConfigTrait;
     fn update_config(&mut self, config: Self::Config);
 
@@ -33,7 +31,7 @@ pub trait PluginTrait: Debug {
     }
 
     type InitError: Debug + Display;
-    fn init(&mut self) -> Result<(), Self::InitError> {
+    fn init(&mut self, _clobbering: opts::Clobbering) -> Result<(), Self::InitError> {
         Ok(())
     }
 
@@ -50,14 +48,6 @@ pub trait PluginTrait: Debug {
 pub trait TargetPluginTrait<'a>: PluginTrait {
     // type CargoConfigError: Debug + Display;
     type Target: target::TargetTrait<'a> + 'a;
-
-    fn install_toolchains() -> into_result::command::CommandResult<()> {
-        use target::TargetTrait as _;
-        for target in Self::Target::all().values() {
-            util::rustup_add(target.triple())?;
-        }
-        Ok(())
-    }
 
     // fn cargo_config(
     //     config: &<Self as Plugin>::Config,

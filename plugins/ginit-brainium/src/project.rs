@@ -1,9 +1,15 @@
-use crate::{config::Config, opts::Clobbering, templating::template_pack, util};
-use into_result::command::CommandError;
+use crate::{config::Config, Brainium};
+use ginit_core::{
+    config::ConfigTrait as _,
+    exports::{bicycle, into_result::command::CommandError},
+    opts::Clobbering,
+    template_pack, util, PluginTrait as _,
+};
 use regex::Regex;
 use std::{
     ffi::OsStr,
-    fmt, io,
+    fmt::{self, Display},
+    io,
     path::{Path, PathBuf},
 };
 
@@ -37,7 +43,7 @@ pub enum Error {
     },
 }
 
-impl fmt::Display for Error {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::MissingTemplatePack { name } => {
@@ -105,14 +111,15 @@ pub fn submodule_init(
         })?;
     if !submodule_exists {
         let path = config
-            .unprefix_path(config.app_root())
+            .shared()
+            .unprefix_path(config.shared().app_root())
             .map_err(|_| Error::AppRootOutsideProject {
-                app_root: config.app_root(),
-                project_root: config.project_root().to_owned(),
+                app_root: config.shared().app_root(),
+                project_root: config.shared().project_root().to_owned(),
             })?
             .join(path.as_ref());
         let path_str = path.to_str().ok_or_else(|| Error::AppRootInvalidUtf8 {
-            app_root: config.app_root(),
+            app_root: config.shared().app_root(),
         })?;
         util::git(
             &root,
@@ -132,7 +139,7 @@ pub fn submodule_init(
     Ok(())
 }
 
-pub fn hello_world(
+pub fn generate(
     config: &Config,
     bike: &bicycle::Bicycle,
     clobbering: Clobbering,
@@ -151,13 +158,15 @@ pub fn hello_world(
     }
 
     let insert_data = |map: &mut bicycle::JsonMap| {
-        config.insert_template_data(map);
-        let app_root = config.app_root();
+        config.insert_template_data(Brainium::NAME, map);
+        let app_root = config.shared().app_root();
         map.insert("app-root", &app_root);
     };
     let actions = bicycle::traverse(
-        template_pack!(Some(config), "rust-lib-app").ok_or_else(|| Error::MissingTemplatePack {
-            name: "rust-lib-app",
+        template_pack!(Some(config.shared()), "rust-lib-app").ok_or_else(|| {
+            Error::MissingTemplatePack {
+                name: "rust-lib-app",
+            }
         })?,
         &dest,
         |path| bike.transform_path(path, insert_data),

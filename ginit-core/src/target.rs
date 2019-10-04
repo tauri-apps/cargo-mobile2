@@ -1,3 +1,4 @@
+use crate::util;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fmt};
 
@@ -23,6 +24,20 @@ pub trait TargetTrait<'a>: fmt::Debug + Sized {
     fn triple(&'a self) -> &'a str;
 
     fn arch(&'a self) -> &'a str;
+
+    fn install(&'a self) -> into_result::command::CommandResult<()> {
+        util::rustup_add(self.triple())
+    }
+
+    fn install_all() -> into_result::command::CommandResult<()>
+    where
+        Self: 'a,
+    {
+        for target in Self::all().values() {
+            target.install()?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]

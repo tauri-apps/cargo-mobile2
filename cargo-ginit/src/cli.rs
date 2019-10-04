@@ -14,7 +14,7 @@ use ginit::core::{
 };
 use std::fmt::Display;
 
-pub fn app<'a>(subcommands: &'a [util::CliInfo<'a>]) -> App<'a, 'a> {
+pub fn app<'a>(steps: &'a [&'a str], subcommands: &'a [util::CliInfo<'a>]) -> App<'a, 'a> {
     let mut app = App::new(NAME)
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .setting(AppSettings::VersionlessSubcommands)
@@ -27,7 +27,7 @@ pub fn app<'a>(subcommands: &'a [util::CliInfo<'a>]) -> App<'a, 'a> {
                 .multiple(true),
         )
         .arg(Arg::from_usage("--non-interactive 'Go with the flow'").global(true))
-        .subcommand(init::subcommand().display_order(0));
+        .subcommand(init::subcommand(steps).display_order(0));
     for (order, subcommand) in subcommands.iter().enumerate() {
         app = app.subcommand(subcommand.render().display_order(order + 1));
     }

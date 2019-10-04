@@ -3,7 +3,7 @@ use ginit_core::{
     cli::{Cli, CliInput},
     ipc::{self, Client},
     opts,
-    protocol::{PluginType, Request, RequestMsg, ResponseMsg, Version, VERSION},
+    protocol::{Features, Request, RequestMsg, ResponseMsg, Version, VERSION},
 };
 use std::{
     fmt::{self, Display},
@@ -73,7 +73,7 @@ pub enum Configured {}
 #[derive(Debug)]
 pub struct Plugin<State> {
     name: String,
-    plugin_type: PluginType,
+    features: Features,
     description: String,
     _marker: PhantomData<State>,
 }
@@ -94,7 +94,7 @@ impl<State> Plugin<State> {
     fn transition<NewState>(self) -> Plugin<NewState> {
         Plugin {
             name: self.name,
-            plugin_type: self.plugin_type,
+            features: self.features,
             description: self.description,
             _marker: PhantomData,
         }
@@ -140,14 +140,14 @@ impl Plugin<Unconfigured> {
         let name = name.into();
         if let ResponseMsg::Hello {
             protocol_version,
-            plugin_type,
+            features,
             description,
         } = send(client, Request::new(&name, RequestMsg::Hello))?
         {
             if protocol_version.0 == VERSION.0 {
                 Ok(Self {
                     name,
-                    plugin_type,
+                    features,
                     description,
                     _marker: PhantomData,
                 })
@@ -164,8 +164,8 @@ impl Plugin<Unconfigured> {
 }
 
 impl Plugin<Configured> {
-    pub fn init(&self, client: &Client) -> Result<(), Error> {
-        if let ResponseMsg::Init = send(client, self.request(RequestMsg::Init))? {
+    pub fn init(&self, client: &Client, clobbering: opts::Clobbering) -> Result<(), Error> {
+        if let ResponseMsg::Init = send(client, self.request(RequestMsg::Init { clobbering }))? {
             Ok(())
         } else {
             unreachable!()

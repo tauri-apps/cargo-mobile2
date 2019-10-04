@@ -1,11 +1,11 @@
 [package]
-name = "ginit"
+name = "ginit-brainium"
 version = "0.1.0"
 authors = ["Brainium Studios LLC"]
 edition = "2018"
 
 [dependencies]
-ginit-core = { path = "../ginit-core" }
-log = "0.4.8"
+ginit-core = { path = "../../ginit-core" }
+lazy_static = "1.4.0"
+regex = "1.3.1"
 serde = { version = "1.0.101", features = ["derive"] }
-toml = "0.5.3"

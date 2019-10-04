@@ -31,8 +31,13 @@ fn init_logging(noise_level: NoiseLevel) {
 fn inner(wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
     let mut plugins = PluginMap::new();
     plugins.load("android");
+    // plugins.load("brainium");
     let subcommands = plugins.subcommands();
-    let input = Input::parse(&plugins, app(&subcommands)).map_err(NonZeroExit::Clap)?;
+    let steps = subcommands
+        .iter()
+        .map(|subcommand| subcommand.name)
+        .collect::<Vec<_>>();
+    let input = Input::parse(&plugins, app(&steps, &subcommands)).map_err(NonZeroExit::Clap)?;
     init_logging(input.noise_level);
     let config = Umbrella::load(".").map_err(NonZeroExit::display)?.map_or_else(
         || {
@@ -60,11 +65,12 @@ fn inner(wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
     let plugins = plugins.configure(&config);
     let noise_level = input.noise_level;
     match input.command {
-        Command::Init(command) => command.exec(&config).map_err(NonZeroExit::display),
+        Command::Init(command) => command
+            .exec(&config, &plugins)
+            .map_err(NonZeroExit::display),
         Command::Plugin { plugin_name, input } => {
             // since clap will outright reject any subcommands that aren't
             // actually part of the CLI, this get should always succeed...
-            // TODO: noise level
             match input {
                 Some(Some(input)) => plugins
                     .get(&plugin_name)

@@ -20,8 +20,6 @@ impl PluginTrait for Android {
     const NAME: &'static str = "android";
     const DESCRIPTION: &'static str = "Tools for Android";
 
-    type Env = env::Env;
-
     type Config = config::Config;
     fn update_config(&mut self, config: Self::Config) {
         self.config = Some(config);
@@ -50,7 +48,7 @@ impl PluginTrait for Android {
     }
 
     type InitError = project::Error;
-    fn init(&mut self) -> Result<(), Self::InitError> {
+    fn init(&mut self, _clobbering: opts::Clobbering) -> Result<(), Self::InitError> {
         let config = self.config();
         let bike = templating::init(Some(config.shared()));
         project::generate(config, &bike)

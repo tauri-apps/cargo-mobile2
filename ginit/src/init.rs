@@ -1,141 +1,104 @@
-use self::{cargo::CargoConfig, steps::Steps};
 use crate::{
-    config::Config,
-    opts::{Clobbering, OpenIn},
-    target::TargetTrait as _,
-    util::{
-        self,
-        prompt::{self, YesOrNo},
-    },
+    config::Umbrella,
+    core::{exports::into_result::command::CommandError, ipc::Client, opts, util},
+    plugin::{Configured, Error as PluginError, Plugin},
+    steps::{Registry as StepRegistry, StepNotRegistered, Steps},
 };
-use colored::*;
-use into_result::{command::CommandError, IntoResult as _};
-use std::{fmt, io, path::Path, process::Command};
+use std::fmt::{self, Display};
 
 #[derive(Debug)]
 pub enum Error {
-    MigrationPromptFailed(io::Error),
-    MigrationFailed(migrate::Error),
-    CargoConfigGenFailed(cargo::GenError),
-    CargoConfigWriteFailed(cargo::WriteError),
+    // CargoConfigGenFailed(cargo::GenError),
+    // CargoConfigWriteFailed(cargo::WriteError),
     // HelloWorldGenFailed(rust::Error),
-    // AndroidRustupFailed(CommandError),
     // AndroidGenFailed(android::project::Error),
     // IosDepsFailed(IosDepsError),
-    // IosRustupFailed(CommandError),
     // IosGenFailed(ios::project::Error),
-    PluginFailed(Box<dyn fmt::Debug + fmt::Display>),
+    OnlyParseFailed(StepNotRegistered),
+    SkipParseFailed(StepNotRegistered),
+    StepNotRegistered(StepNotRegistered),
+    PluginFailed {
+        plugin_name: String,
+        cause: PluginError,
+    },
     OpenInEditorFailed(CommandError),
 }
 
-impl fmt::Display for Error {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::MigrationPromptFailed(err) => {
-                write!(f, "Failed to prompt for migration: {}", err)
-            }
-            Error::MigrationFailed(err) => write!(
-                f,
-                "Failed to migrate project - project state is now undefined! 💀: {}",
-                err
-            ),
-            Error::CargoConfigGenFailed(err) => {
-                write!(f, "Failed to generate \".cargo/config\": {}", err)
-            }
-            Error::CargoConfigWriteFailed(err) => {
-                write!(f, "Failed to write \".cargo/config\": {}", err)
-            }
+            // Error::CargoConfigGenFailed(err) => {
+            //     write!(f, "Failed to generate \".cargo/config\": {}", err)
+            // }
+            // Error::CargoConfigWriteFailed(err) => {
+            //     write!(f, "Failed to write \".cargo/config\": {}", err)
+            // }
             // Error::HelloWorldGenFailed(err) => {
             //     write!(f, "Failed to generate hello world project: {}", err)
-            // }
-            // Error::AndroidRustupFailed(err) => {
-            //     write!(f, "Failed to `rustup` Android toolchains: {}", err)
             // }
             // Error::AndroidGenFailed(err) => {
             //     write!(f, "Failed to generate Android project: {}", err)
             // }
             // Error::IosDepsFailed(err) => write!(f, "Failed to install iOS dependencies: {}", err),
-            // Error::IosRustupFailed(err) => write!(f, "Failed to `rustup` iOS toolchains: {}", err),
             // Error::IosGenFailed(err) => write!(f, "Failed to generate iOS project: {}", err),
-            Error::OpenInEditorFailed(err) => write!(f, "Failed to open project in editor (your project generated successfully though, so no worries): {}", err),
+            Error::OnlyParseFailed(err) => write!(f, "Failed to parse `only` step list: {}", err),
+            Error::SkipParseFailed(err) => write!(f, "Failed to parse `skip` step list: {}", err),
+            Error::StepNotRegistered(err) => write!(f, "{}", err),
+            Error::PluginFailed{
+                plugin_name,
+                cause,
+            } => write!(f, "Failed to init {:?} plugin: {}", plugin_name, cause),
+            Error::OpenInEditorFailed(err) => write!(f, "Failed to open project in editor (your project generated successfully though, so no worries!): {}", err),
         }
     }
 }
 
-// TODO: Don't redo things if no changes need to be made
-pub fn init(
-    config: &Config,
-    bike: &bicycle::Bicycle,
-    clobbering: Clobbering,
-    open: OpenIn,
-    only: Option<impl Into<Steps>>,
-    skip: Option<impl Into<Steps>>,
+pub fn init<'a>(
+    client: &Client,
+    plugins: impl Iterator<Item = &'a Plugin<Configured>> + Clone,
+    clobbering: opts::Clobbering,
+    open_in: opts::OpenIn,
+    only: Option<&[impl AsRef<str>]>,
+    skip: Option<&[impl AsRef<str>]>,
 ) -> Result<(), Error> {
-    if let Some(proj) = migrate::LegacyProject::heuristic_detect(config) {
-        println!(
-            "{}",
-            r#"
-It looks like you're using the old project structure, which is now unsupported.
-The new project structure is super sleek, and ginit can migrate your project
-automatically! However, this can potentially fail. Be sure you have a backup of
-your project in case things explode. You've been warned! 💀
-        "#
-            .bright_magenta(),
-        );
-        let response = prompt::yes_no(
-            "I have a backup, and I'm ready to migrate",
-            Some(YesOrNo::No),
-        )
-        .map_err(Error::MigrationPromptFailed)?;
-        match response {
-            Some(YesOrNo::Yes) => {
-                proj.migrate(config).map_err(Error::MigrationFailed)?;
-                println!("Migration successful! 🎉\n");
-            }
-            Some(YesOrNo::No) => {
-                println!("Maybe next time. Buh-bye!");
-                return Ok(());
-            }
-            None => {
-                println!("That was neither a Y nor an N! You're pretty silly.");
-                return Ok(());
-            }
+    let step_registry = {
+        let mut registry = StepRegistry::default();
+        for plugin in plugins.clone() {
+            registry.register(plugin.name());
         }
-    }
-    let steps = {
-        let only = only.map(Into::into).unwrap_or_else(|| Steps::all());
-        let skip = skip.map(Into::into).unwrap_or_else(|| Steps::empty());
-        only & !skip
+        registry
     };
-    if steps.contains(Steps::CARGO) {
-        CargoConfig::generate(config, &steps)
-            .map_err(Error::CargoConfigGenFailed)?
-            .write(&config)
-            .map_err(Error::CargoConfigWriteFailed)?;
-    }
-    // if steps.contains(Steps::HELLO_WORLD) {
-    //     rust::hello_world(config, bike, clobbering).map_err(Error::HelloWorldGenFailed)?;
+    let steps = {
+        let only = only
+            .map(|only| Steps::parse(&step_registry, only))
+            .unwrap_or_else(|| Ok(Steps::new_all_set(&step_registry)))
+            .map_err(Error::OnlyParseFailed)?;
+        let skip = skip
+            .map(|skip| Steps::parse(&step_registry, skip))
+            .unwrap_or_else(|| Ok(Steps::new_all_unset(&step_registry)))
+            .map_err(Error::SkipParseFailed)?;
+        Steps::from_bits(&step_registry, only.bits() & !skip.bits())
+    };
+    // if steps.is_set("cargo") {
+    //     CargoConfig::generate(config, &steps)
+    //         .map_err(Error::CargoConfigGenFailed)?
+    //         .write(&config)
+    //         .map_err(Error::CargoConfigWriteFailed)?;
     // }
-    if steps.contains(Steps::ANDROID) {
-        if steps.contains(Steps::TOOLCHAINS) {
-            for target in android::target::Target::all().values() {
-                target.rustup_add().map_err(Error::AndroidRustupFailed)?;
-            }
+    for plugin in plugins {
+        if steps
+            .is_set(plugin.name())
+            .map_err(Error::StepNotRegistered)?
+        {
+            plugin
+                .init(client, clobbering)
+                .map_err(|cause| Error::PluginFailed {
+                    plugin_name: plugin.name().to_owned(),
+                    cause,
+                })?;
         }
-        android::project::create(config, bike).map_err(Error::AndroidGenFailed)?;
     }
-    // if steps.contains(Steps::IOS) {
-    //     if steps.contains(Steps::DEPS) {
-    //         install_ios_deps(clobbering).map_err(Error::IosDepsFailed)?;
-    //     }
-    //     if steps.contains(Steps::TOOLCHAINS) {
-    //         for target in ios::target::Target::all().values() {
-    //             target.rustup_add().map_err(Error::IosRustupFailed)?;
-    //         }
-    //     }
-    //     ios::project::create(config, bike).map_err(Error::IosGenFailed)?;
-    // }
-    if let OpenIn::Editor = open {
+    if let opts::OpenIn::Editor = open_in {
         util::open_in_editor(".").map_err(Error::OpenInEditorFailed)?;
     }
     Ok(())

@@ -27,7 +27,7 @@ impl Response {
 pub enum ResponseMsg {
     Hello {
         protocol_version: Version,
-        plugin_type: PluginType,
+        features: Features,
         description: String,
     },
     Goodbye,
@@ -60,11 +60,12 @@ impl ResponseMsg {
     }
 }
 
-// TODO: use bitflags for this instead!
-#[derive(Debug, Deserialize, Serialize)]
-pub enum PluginType {
-    Basic,
-    Target,
+bitflags::bitflags! {
+    #[derive(Default, Deserialize, Serialize)]
+    pub struct Features: u32 {
+        const BASIC = 0b00000000;
+        const TARGET = 0b00000001;
+    }
 }
 
 #[derive(Debug)]

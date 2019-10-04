@@ -1,12 +1,13 @@
 use crate::{config::Config, target::Target, Android};
 use ginit_core::{
-    config::ConfigTrait, exports::bicycle, target::TargetTrait as _, template_pack, util::ln,
-    PluginTrait as _,
+    config::ConfigTrait, exports::bicycle, exports::into_result::command::CommandError,
+    target::TargetTrait as _, template_pack, util::ln, PluginTrait as _,
 };
 use std::{fmt, fs, path::PathBuf};
 
 #[derive(Debug)]
 pub enum Error {
+    RustupFailed(CommandError),
     MissingTemplatePack {
         name: &'static str,
     },
@@ -21,6 +22,7 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Error::RustupFailed(err) => write!(f, "Failed to `rustup` Android toolchains: {}", err),
             Error::MissingTemplatePack { name } => {
                 write!(f, "The {:?} template pack is missing.", name)
             }
@@ -36,6 +38,7 @@ impl fmt::Display for Error {
 }
 
 pub fn generate(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
+    Target::install_all().map_err(Error::RustupFailed)?;
     let src = template_pack!(Some(config.shared()), "android-studio-project").ok_or_else(|| {
         Error::MissingTemplatePack {
             name: "android-studio-project",
