@@ -121,7 +121,7 @@ impl Config {
         })
         .unwrap_or_else(|| {
             log::info!(
-                "`ginit.app-root` not set; defaulting to {}",
+                "`ginit.app-root` not set; defaulting to {:?}",
                 DEFAULT_APP_ROOT
             );
             Ok(DEFAULT_APP_ROOT.to_owned())
@@ -186,6 +186,7 @@ impl Config {
     }
 
     pub(crate) fn insert_template_data(&self, map: &mut bicycle::JsonMap) {
+        map.insert("shared", &self);
         map.insert("app-name", self.app_name());
         map.insert("app-name-snake", self.app_name_snake());
         map.insert("stylized-app-name", self.stylized_app_name());

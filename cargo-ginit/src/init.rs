@@ -75,7 +75,6 @@ impl InitCommand {
         plugins: &PluginMap<Configured>,
     ) -> Result<(), init::Error> {
         init::init(
-            plugins.client(),
             plugins.iter(),
             self.clobbering,
             self.open_in,

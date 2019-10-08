@@ -1,6 +1,13 @@
-use crate::{config::SharedConfig, util};
+use ginit_core::{
+    config::{Config as CoreConfig, ConfigTrait},
+    util,
+};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt, path::PathBuf, rc::Rc};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display},
+    path::PathBuf,
+};
 
 static DEFAULT_PROJECT_ROOT: &'static str = "gen/ios";
 
@@ -16,7 +23,7 @@ pub enum ProjectRootInvalid {
     },
 }
 
-impl fmt::Display for ProjectRootInvalid {
+impl Display for ProjectRootInvalid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NormalizationFailed {
@@ -41,6 +48,7 @@ impl fmt::Display for ProjectRootInvalid {
 
 #[derive(Debug)]
 pub enum Error {
+    DevelopmentTeamMissing,
     DevelopmentTeamEmpty,
     ProjectRootInvalid(ProjectRootInvalid),
 }
@@ -48,6 +56,7 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::DevelopmentTeamMissing => write!(f, "`ios.development-team` must be specified."),
             Self::DevelopmentTeamEmpty => write!(f, "`ios.development-team` is empty."),
             Self::ProjectRootInvalid(err) => write!(f, "`ios.project-root` invalid: {}", err),
         }
@@ -55,7 +64,7 @@ impl fmt::Display for Error {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct RawConfig {
+pub struct Raw {
     #[serde(alias = "development-team")]
     development_team: String,
     #[serde(alias = "project-root")]
@@ -67,20 +76,24 @@ pub struct RawConfig {
 #[derive(Clone, Debug, Serialize)]
 pub struct Config {
     #[serde(skip_serializing)]
-    shared: Rc<SharedConfig>,
+    shared: CoreConfig,
     development_team: String,
     project_root: String,
 }
 
-impl Config {
-    pub(crate) fn from_raw(shared: Rc<SharedConfig>, raw_config: RawConfig) -> Result<Self, Error> {
-        if raw_config.targets.is_some() {
-            log::warn!("`ios.targets` specified in {}.toml - this config key is no longer necessary, and is ignored", crate::NAME);
+impl ConfigTrait for Config {
+    type Raw = Raw;
+    type Error = Error;
+
+    fn from_raw(shared: CoreConfig, raw: Option<Self::Raw>) -> Result<Self, Self::Error> {
+        let raw = raw.ok_or_else(|| Error::DevelopmentTeamMissing)?;
+        if raw.targets.is_some() {
+            log::warn!("`ios.targets` specified in {}.toml - this config key is no longer necessary, and is ignored", ginit_core::NAME);
         }
-        if raw_config.development_team.is_empty() {
+        if raw.development_team.is_empty() {
             Err(Error::DevelopmentTeamEmpty)
         } else {
-            let project_root = raw_config
+            let project_root = raw
                 .project_root
                 .map(|project_root| {
                     if project_root == DEFAULT_PROJECT_ROOT {
@@ -109,12 +122,18 @@ impl Config {
                 })?;
             Ok(Self {
                 shared,
-                development_team: raw_config.development_team,
+                development_team: raw.development_team,
                 project_root,
             })
         }
     }
 
+    fn shared(&self) -> &CoreConfig {
+        &self.shared
+    }
+}
+
+impl Config {
     pub fn project_root(&self) -> PathBuf {
         self.shared.prefix_path(&self.project_root)
     }

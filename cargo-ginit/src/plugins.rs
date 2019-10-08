@@ -3,51 +3,27 @@ use ginit::{
     config::Umbrella,
     core::{
         cli::{Cli, CliInput},
-        exports::into_result::IntoResult as _,
-        ipc::Client,
+        exports::into_result::{command::CommandError, IntoResult as _},
+        ipc::{self, Client},
         opts,
     },
     plugin::{Configured, Error, Plugin, Unconfigured},
 };
 use std::{
     collections::HashMap,
+    fmt::{self, Display},
     path::Path,
     process::{Child, Command},
-    rc::Rc,
 };
 
 #[derive(Debug)]
-pub struct ProcHandle {
-    inner: Child,
-}
-
-impl Drop for ProcHandle {
-    fn drop(&mut self) {
-        if let Err(err) = self.inner.wait() {
-            eprintln!("{}", err);
-        }
-    }
-}
-
-impl From<Child> for ProcHandle {
-    fn from(inner: Child) -> Self {
-        Self { inner }
-    }
-}
-
-#[derive(Debug)]
 pub struct PluginData<State> {
-    client: Rc<Client>,
-    handle: ProcHandle,
+    handle: Child,
     plugin: Plugin<State>,
     cli: Option<Cli>,
 }
 
 impl<State> PluginData<State> {
-    pub fn shutdown(self) -> Result<(), Error> {
-        self.plugin.shutdown(&self.client)
-    }
-
     pub fn cli(&self) -> Option<&Cli> {
         self.cli.as_ref()
     }
@@ -56,85 +32,128 @@ impl<State> PluginData<State> {
         self.cli().map(|cli| util::CliInfo::new(&self.plugin, cli))
     }
 
-    pub fn configure(self, config: &Umbrella) -> Result<PluginData<Configured>, Error> {
-        let plugin = self.plugin.configure(&self.client, &config)?;
-        Ok(PluginData {
-            client: self.client,
-            handle: self.handle,
-            plugin,
-            cli: self.cli,
-        })
+    pub fn configure(self, config: &Umbrella) -> Result<PluginData<Configured>, (Error, Self)> {
+        match self.plugin.configure(&config) {
+            Ok(plugin) => Ok(PluginData {
+                handle: self.handle,
+                plugin,
+                cli: self.cli,
+            }),
+            Err((err, plugin)) => Err((
+                err,
+                PluginData {
+                    handle: self.handle,
+                    plugin,
+                    cli: self.cli,
+                },
+            )),
+        }
     }
 }
 
 impl PluginData<Configured> {
     pub fn exec(&self, input: CliInput, noise_level: opts::NoiseLevel) -> Result<(), Error> {
-        self.plugin.exec(&self.client, input, noise_level)
+        self.plugin.exec(input, noise_level)
     }
 }
 
 #[derive(Debug)]
-struct Plugins<State> {
-    inner: HashMap<String, PluginData<State>>,
+pub struct PluginGuard<State> {
+    inner: Option<PluginData<State>>,
 }
 
-impl<State> Drop for Plugins<State> {
+impl<State> Drop for PluginGuard<State> {
     fn drop(&mut self) {
-        for (_, plugin) in self.inner.drain() {
-            if let Err(err) = plugin.shutdown() {
+        if let Some(mut inner) = self.inner.take() {
+            if let Err(err) = inner.plugin.shutdown() {
+                eprintln!("{}", err);
+            }
+            if let Err(err) = inner.handle.wait() {
                 eprintln!("{}", err);
             }
         }
     }
 }
 
-impl<State> Plugins<State> {
-    fn new() -> Self {
+impl<State> From<PluginData<State>> for PluginGuard<State> {
+    fn from(plugin: PluginData<State>) -> Self {
         Self {
-            inner: Default::default(),
+            inner: Some(plugin),
         }
+    }
+}
+
+impl<State> PluginGuard<State> {
+    pub fn unwrap_take(mut self) -> PluginData<State> {
+        self.inner
+            .take()
+            .expect("Developer error: accessed an empty plugin guard")
+    }
+
+    pub fn unwrap_ref(&self) -> &PluginData<State> {
+        self.inner
+            .as_ref()
+            .expect("Developer error: accessed an empty plugin guard")
     }
 }
 
 #[derive(Debug)]
 pub struct PluginMap<State> {
-    client: Rc<Client>,
-    plugins: Plugins<State>,
+    plugins: HashMap<String, PluginGuard<State>>,
 }
 
 impl<State> PluginMap<State> {
-    pub fn client(&self) -> &Rc<Client> {
-        &self.client
-    }
-
     pub fn get(&self, name: &str) -> Option<&PluginData<State>> {
-        self.plugins.inner.get(name)
+        self.plugins.get(name).map(|guard| guard.unwrap_ref())
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Plugin<State>> + Clone {
-        self.plugins.inner.values().map(|plugin| &plugin.plugin)
+        self.plugins
+            .values()
+            .map(|guard| &guard.unwrap_ref().plugin)
     }
 
     pub fn subcommands(&self) -> Vec<util::CliInfo<'_>> {
         self.plugins
-            .inner
             .values()
-            .filter_map(|plugin| plugin.cli_info())
+            .filter_map(|guard| guard.unwrap_ref().cli_info())
             .collect()
     }
 
-    pub fn configure(mut self, config: &Umbrella) -> PluginMap<Configured> {
-        let plugins = Plugins {
-            inner: self
+    pub fn configure(mut self, config: &Umbrella) -> Result<PluginMap<Configured>, Error> {
+        Ok(PluginMap {
+            plugins: self
                 .plugins
-                .inner
                 .drain()
-                .map(|(name, plugin)| (name, plugin.configure(&config).expect("dang")))
-                .collect(),
-        };
-        PluginMap {
-            client: self.client,
-            plugins,
+                .map(|(name, guard)| {
+                    match guard.unwrap_take().configure(&config) {
+                        Ok(plugin) => Ok((name, plugin.into())),
+                        Err((err, plugin)) => {
+                            PluginGuard::from(plugin); // shutdown plugin
+                            Err(err)
+                        }
+                    }
+                })
+                .collect::<Result<_, _>>()?,
+        })
+    }
+}
+
+#[derive(Debug)]
+pub enum LoadError {
+    SpawnFailed(CommandError),
+    ClientFailed(ipc::nng::Error),
+    ConnectFailed(Error),
+    CliFailed(Error),
+}
+
+impl Display for LoadError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::SpawnFailed(err) => write!(f, "Failed to spawn plugin subprocess: {}", err),
+            Self::ClientFailed(err) => write!(f, "Failed to initialize client: {}", err),
+            Self::ConnectFailed(err) => write!(f, "Failed to initiate plugin connection: {}", err),
+            Self::CliFailed(err) => write!(f, "Failed to request plugin CLI info: {}", err),
         }
     }
 }
@@ -142,30 +161,31 @@ impl<State> PluginMap<State> {
 impl PluginMap<Unconfigured> {
     pub fn new() -> Self {
         Self {
-            client: Client::new().expect("uh-oh").into(),
-            plugins: Plugins::new(),
+            plugins: Default::default(),
         }
     }
 
-    pub fn load(&mut self, name: &str) {
+    pub fn load(&mut self, name: &str) -> Result<(), LoadError> {
         let path =
             Path::new(env!("CARGO_MANIFEST_DIR")).join(&format!("../target/debug/ginit-{}", name));
         let handle = Command::new(path)
             .spawn()
             .into_result()
-            .expect("darn")
+            .map_err(LoadError::SpawnFailed)?
             .into();
         std::thread::sleep_ms(100);
-        let plugin = Plugin::connect(&self.client, "android").expect("uh-oh!");
-        let cli = plugin.cli(&self.client).expect("uh-oh!!");
-        self.plugins.inner.insert(
+        let client = Client::new().map_err(LoadError::ClientFailed)?;
+        let plugin = Plugin::connect(client, name).map_err(LoadError::ConnectFailed)?;
+        let cli = plugin.cli().map_err(LoadError::CliFailed)?;
+        self.plugins.insert(
             name.to_owned(),
             PluginData {
-                client: Rc::clone(&self.client),
                 handle,
                 plugin,
                 cli,
-            },
+            }
+            .into(),
         );
+        Ok(())
     }
 }

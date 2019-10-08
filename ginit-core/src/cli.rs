@@ -73,6 +73,22 @@ pub enum Arg {
     Release,
 }
 
+impl Arg {
+    pub fn custom(name: impl Into<String>, required: bool, index: Option<u64>) -> Self {
+        Self::Custom {
+            name: name.into(),
+            required,
+            index,
+        }
+    }
+
+    pub fn from_usage(usage: impl Into<String>) -> Self {
+        Self::FromUsage {
+            usage: usage.into(),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TargetInfo {
     pub targets: Vec<String>,
@@ -103,6 +119,34 @@ pub struct CliInput {
 }
 
 impl CliInput {
+    pub fn get_named_value(&self, arg_name: impl AsRef<str>) -> Option<&str> {
+        let arg_name = arg_name.as_ref();
+        for arg in &self.args {
+            if let ArgInput::Custom { name, value, .. } | ArgInput::FromUsage { name, value, .. } =
+                arg
+            {
+                if name == arg_name {
+                    return value.as_ref().map(String::as_str);
+                }
+            }
+        }
+        None
+    }
+
+    pub fn get_named_presence(&self, arg_name: impl AsRef<str>) -> bool {
+        let arg_name = arg_name.as_ref();
+        for arg in &self.args {
+            if let ArgInput::Custom { name, present, .. }
+            | ArgInput::FromUsage { name, present, .. } = arg
+            {
+                if name == arg_name {
+                    return *present;
+                }
+            }
+        }
+        false
+    }
+
     pub fn targets(&self) -> Option<&[String]> {
         for arg in &self.args {
             if let ArgInput::TargetList { targets } = arg {

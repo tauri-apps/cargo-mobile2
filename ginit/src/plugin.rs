@@ -11,7 +11,7 @@ use std::{
 };
 
 #[derive(Debug)]
-pub enum Error {
+pub enum Cause {
     SendFailed(ipc::SendError),
     PluginFailed(String),
     ResponseMismatch {
@@ -24,42 +24,66 @@ pub enum Error {
     },
 }
 
+#[derive(Debug)]
+pub struct Error {
+    plugin_name: String,
+    cause: Cause,
+}
+
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::SendFailed(err) => write!(f, "Failed to send message to plugin: {}", err),
-            Self::PluginFailed(err) => write!(f, "Plugin failed to handle request: {}", err),
-            Self::ResponseMismatch { sent, received } => write!(
+        match &self.cause {
+            Cause::SendFailed(err) => write!(
                 f,
-                "Sent a request of type {:?}, but received a response of type {:?}.",
-                sent, received
+                "Failed to send message to plugin {:?}: {}",
+                self.plugin_name, err
             ),
-            Self::ProtocolMismatch {
+            Cause::PluginFailed(err) => write!(
+                f,
+                "Plugin {:?} failed to handle request: {}",
+                self.plugin_name, err
+            ),
+            Cause::ResponseMismatch { sent, received } => write!(
+                f,
+                "Sent a request of type {:?} to plugin {:?}, but received a response of type {:?}.",
+                sent, self.plugin_name, received
+            ),
+            Cause::ProtocolMismatch {
                 plugin_has,
                 we_have,
             } => write!(
                 f,
-                "Plugin uses protocol v{}.{}, which is incompatible with the current v{}.{}.",
-                plugin_has.0, plugin_has.1, we_have.0, we_have.1
+                "Plugin {:?} uses protocol v{}.{}, which is incompatible with the current v{}.{}.",
+                self.plugin_name, plugin_has.0, plugin_has.1, we_have.0, we_have.1
             ),
         }
     }
 }
 
 fn send(client: &Client, request: Request<'_>) -> Result<ResponseMsg, Error> {
+    let plugin_name = request.plugin_name;
     let request_ty = request.msg.ty();
     let response = client
         .send(request)
-        .map_err(Error::SendFailed)?
+        .map_err(|cause| Error {
+            plugin_name: plugin_name.to_owned(),
+            cause: Cause::SendFailed(cause),
+        })?
         .status
-        .map_err(Error::PluginFailed)?;
+        .map_err(|cause| Error {
+            plugin_name: plugin_name.to_owned(),
+            cause: Cause::PluginFailed(cause),
+        })?;
     let response_ty = response.ty();
     if response_ty == request_ty {
         Ok(response)
     } else {
-        Err(Error::ResponseMismatch {
-            sent: request_ty,
-            received: response_ty,
+        Err(Error {
+            plugin_name: plugin_name.to_owned(),
+            cause: Cause::ResponseMismatch {
+                sent: request_ty,
+                received: response_ty,
+            },
         })
     }
 }
@@ -72,6 +96,7 @@ pub enum Configured {}
 
 #[derive(Debug)]
 pub struct Plugin<State> {
+    client: Client,
     name: String,
     features: Features,
     description: String,
@@ -91,70 +116,74 @@ impl<State> Plugin<State> {
         Request::new(&self.name, msg)
     }
 
-    fn transition<NewState>(self) -> Plugin<NewState> {
-        Plugin {
-            name: self.name,
-            features: self.features,
-            description: self.description,
-            _marker: PhantomData,
+    fn transition<NewState, T, E>(
+        self,
+        result: Result<T, E>,
+    ) -> Result<Plugin<NewState>, (E, Self)> {
+        match result {
+            Ok(_) => Ok(Plugin {
+                client: self.client,
+                name: self.name,
+                features: self.features,
+                description: self.description,
+                _marker: PhantomData,
+            }),
+            Err(err) => Err((err, self)),
         }
     }
 
-    pub fn shutdown(self, client: &Client) -> Result<(), Error> {
-        if let ResponseMsg::Goodbye = send(client, self.request(RequestMsg::Goodbye))? {
+    pub fn shutdown(self) -> Result<(), Error> {
+        if let ResponseMsg::Goodbye = send(&self.client, self.request(RequestMsg::Goodbye))? {
             Ok(())
         } else {
             unreachable!()
         }
     }
 
-    pub fn cli(&self, client: &Client) -> Result<Option<Cli>, Error> {
-        if let ResponseMsg::Cli { cli } = send(client, self.request(RequestMsg::Cli))? {
+    pub fn cli(&self) -> Result<Option<Cli>, Error> {
+        if let ResponseMsg::Cli { cli } = send(&self.client, self.request(RequestMsg::Cli))? {
             Ok(cli)
         } else {
             unreachable!()
         }
     }
 
-    pub fn configure(
-        self,
-        client: &Client,
-        config: &config::Umbrella,
-    ) -> Result<Plugin<Configured>, Error> {
-        if let ResponseMsg::Config = send(
-            client,
+    pub fn configure(self, config: &config::Umbrella) -> Result<Plugin<Configured>, (Error, Self)> {
+        let result = send(
+            &self.client,
             self.request(RequestMsg::Config {
                 shared_config: config.shared().clone(),
                 plugin_config: config.plugin(&self.name),
             }),
-        )? {
-            Ok(self.transition())
-        } else {
-            unreachable!()
-        }
+        );
+        self.transition(result)
     }
 }
 
 impl Plugin<Unconfigured> {
-    pub fn connect(client: &Client, name: impl Into<String>) -> Result<Self, Error> {
+    pub fn connect(client: Client, name: impl Into<String>) -> Result<Self, Error> {
         let name = name.into();
         if let ResponseMsg::Hello {
             protocol_version,
             features,
             description,
-        } = send(client, Request::new(&name, RequestMsg::Hello))?
+        } = send(&client, Request::new(&name, RequestMsg::Hello))?
         {
             if protocol_version.0 == VERSION.0 {
                 Ok(Self {
+                    client,
                     name,
                     features,
                     description,
                     _marker: PhantomData,
                 })
             } else {
-                Err(Error::ProtocolMismatch {
-                    plugin_has: protocol_version,
-                    we_have: VERSION,
+                Err(Error {
+                    plugin_name: name.clone(),
+                    cause: Cause::ProtocolMismatch {
+                        plugin_has: protocol_version,
+                        we_have: VERSION,
+                    },
                 })
             }
         } else {
@@ -164,22 +193,19 @@ impl Plugin<Unconfigured> {
 }
 
 impl Plugin<Configured> {
-    pub fn init(&self, client: &Client, clobbering: opts::Clobbering) -> Result<(), Error> {
-        if let ResponseMsg::Init = send(client, self.request(RequestMsg::Init { clobbering }))? {
+    pub fn init(&self, clobbering: opts::Clobbering) -> Result<(), Error> {
+        if let ResponseMsg::Init =
+            send(&self.client, self.request(RequestMsg::Init { clobbering }))?
+        {
             Ok(())
         } else {
             unreachable!()
         }
     }
 
-    pub fn exec(
-        &self,
-        client: &Client,
-        input: CliInput,
-        noise_level: opts::NoiseLevel,
-    ) -> Result<(), Error> {
+    pub fn exec(&self, input: CliInput, noise_level: opts::NoiseLevel) -> Result<(), Error> {
         if let ResponseMsg::Exec = send(
-            client,
+            &self.client,
             self.request(RequestMsg::Exec { input, noise_level }),
         )? {
             Ok(())

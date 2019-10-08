@@ -1,3 +1,5 @@
+pub use nng;
+
 use crate::{
     protocol::{Request, RequestMsg, Response},
     PluginTrait,
@@ -18,10 +20,11 @@ pub fn address(plugin_name: &str) -> String {
 #[derive(Debug)]
 pub enum ListenError {
     SocketFailed(nng::Error),
+    ListenFailed { address: String, cause: nng::Error },
     ReceiveFailed(nng::Error),
     DeserializeFailed(bincode::Error),
-    WriteFailed(io::Error),
     SerializeFailed(bincode::Error),
+    WriteFailed(io::Error),
     SendFailed((nng::Message, nng::Error)),
 }
 
@@ -29,29 +32,39 @@ impl Display for ListenError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::SocketFailed(err) => write!(f, "Failed to open socket: {}", err),
+            Self::ListenFailed { address, cause } => {
+                write!(f, "Failed to listen at address {:?}: {}", address, cause)
+            }
             Self::ReceiveFailed(err) => write!(f, "Failed to receive request: {}", err),
             Self::DeserializeFailed(err) => write!(f, "Failed to deserialize request: {}", err),
-            Self::WriteFailed(err) => write!(f, "Failed to write message: {}", err),
             Self::SerializeFailed(err) => write!(f, "Failed to serialize response: {}", err),
+            Self::WriteFailed(err) => write!(f, "Failed to write message: {}", err),
             Self::SendFailed((msg, err)) => write!(f, "Failed to send response {:?}: {}", msg, err),
         }
     }
 }
 
-pub fn listen<P: PluginTrait>(plugin: &mut P) -> nng::Result<()> {
+pub fn listen<P: PluginTrait>(plugin: &mut P) -> Result<(), ListenError> {
     let address = address(P::NAME);
-    let server = nng::Socket::new(nng::Protocol::Rep0)?;
-    server.listen(&address)?;
+    let server = nng::Socket::new(nng::Protocol::Rep0).map_err(ListenError::SocketFailed)?;
+    server
+        .listen(&address)
+        .map_err(|cause| ListenError::ListenFailed {
+            address: address.to_owned(),
+            cause,
+        })?;
     log::info!("Listening at {}", address);
     loop {
-        let mut msg = server.recv()?;
-        let request = bincode::deserialize::<RequestMsg>(&msg).expect("handle me!");
+        let mut msg = server.recv().map_err(ListenError::ReceiveFailed)?;
+        let request =
+            bincode::deserialize::<RequestMsg>(&msg).map_err(ListenError::DeserializeFailed)?;
         log::info!("<< Received {:#?}", request);
         let response = Response::new(request.respond(plugin));
-        let serialized = bincode::serialize(&response).expect("handle me!");
+        let serialized = bincode::serialize(&response).map_err(ListenError::SerializeFailed)?;
         msg.clear();
-        msg.write_all(&serialized).expect("handle me!");
-        server.send(msg)?;
+        msg.write_all(&serialized)
+            .map_err(ListenError::WriteFailed)?;
+        server.send(msg).map_err(ListenError::SendFailed)?;
         log::info!(">> Sent {:#?}", response);
         if response.exit_requested() {
             server.close();

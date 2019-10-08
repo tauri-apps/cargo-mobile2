@@ -1,15 +1,16 @@
 use crate::{
-    adb,
     config::Config,
-    device::{Device, RunError, StacktraceError},
-    env::{Env, Error as EnvError},
-    target::{BuildError, CompileLibError, Target},
+    device::{Device, RunError},
+    ios_deploy,
+    target::{BuildError, CheckError, CompileLibError, Target},
 };
 use ginit_core::{
     cli::{ArgInput, CliInput},
+    env::{Env, Error as EnvError},
     opts::{NoiseLevel, Profile},
-    target::{call_for_targets, call_for_targets_with_fallback, TargetInvalid},
+    target::{call_for_targets, TargetInvalid},
     util::prompt,
+    // detect_device,
 };
 use std::{
     fmt::{self, Display},
@@ -20,15 +21,16 @@ use std::{
 pub enum Error {
     CommandInvalid(String),
     EnvInitFailed(EnvError),
-    DeviceDetectionFailed(adb::DeviceListError),
+    DeviceDetectionFailed(ios_deploy::DeviceListError),
     DevicePromptFailed(io::Error),
     NoDevicesDetected,
     TargetInvalid(TargetInvalid),
-    CheckFailed(CompileLibError),
+    CheckFailed(CheckError),
     BuildFailed(BuildError),
     RunFailed(RunError),
-    StacktraceFailed(StacktraceError),
-    ListFailed(adb::DeviceListError),
+    ListFailed(ios_deploy::DeviceListError),
+    ArchInvalid { arch: String },
+    CompileLibFailed(CompileLibError),
 }
 
 impl Display for Error {
@@ -37,21 +39,27 @@ impl Display for Error {
             Self::CommandInvalid(command) => write!(f, "Invalid command: {:?}", command),
             Self::EnvInitFailed(err) => write!(f, "{}", err),
             Self::DeviceDetectionFailed(err) => {
-                write!(f, "Failed to detect connected Android devices: {}", err)
+                write!(f, "Failed to detect connected iOS devices: {}", err)
             }
             Self::DevicePromptFailed(err) => write!(f, "Failed to prompt for device: {}", err),
-            Self::NoDevicesDetected => write!(f, "No connected Android devices detected."),
+            Self::NoDevicesDetected => write!(f, "No connected iOS devices detected."),
             Self::TargetInvalid(err) => write!(f, "Specified target was invalid: {}", err),
             Self::CheckFailed(err) => write!(f, "{}", err),
             Self::BuildFailed(err) => write!(f, "{}", err),
             Self::RunFailed(err) => write!(f, "{}", err),
-            Self::StacktraceFailed(err) => write!(f, "{}", err),
             Self::ListFailed(err) => write!(f, "{}", err),
+            Self::ArchInvalid { arch } => write!(f, "Specified arch was invalid: {}", arch),
+            Self::CompileLibFailed(err) => write!(f, "{}", err),
         }
     }
 }
 
 pub fn exec(config: &Config, input: CliInput, noise_level: NoiseLevel) -> Result<(), Error> {
+    // detect_device!(ios_deploy::device_list, iOS);
+    // fn detect_target_ok<'a>(env: &Env) -> Option<&'a Target<'a>> {
+    //     detect_device(env).map(|device| device.target()).ok()
+    // }
+
     let env = Env::new().map_err(Error::EnvInitFailed)?;
     match input.command.as_str() {
         "check" => {
@@ -77,23 +85,34 @@ pub fn exec(config: &Config, input: CliInput, noise_level: NoiseLevel) -> Result
                 // &env,
                 |target: &Target| {
                     target
-                        .build(config, &env, noise_level, profile)
+                        .build(config, &env, profile)
                         .map_err(Error::BuildFailed)
                 },
             )
         }
         .map_err(Error::TargetInvalid)?,
         // "run" => detect_device(&env)?
-        //     .run(config, &env, noise_level, profile)
+        //     .run(config, &env, profile)
         //     .map_err(Error::RunFailed),
-        // "st" => detect_device(&env)?
-        //     .stacktrace(config, &env)
-        //     .map_err(Error::StacktraceFailed),
-        "list" => adb::device_list(&env)
+        "list" => ios_deploy::device_list(&env)
             .map_err(Error::ListFailed)
             .map(|device_list| {
                 prompt::list_display_only(device_list.iter(), device_list.len());
             }),
+        "compile-lib" => {
+            let macos = input.get_named_presence("macos");
+            let arch = input.get_named_value("ARCH").unwrap();
+            let profile = input.profile().unwrap();
+            match macos {
+                true => Target::macos().compile_lib(config, noise_level, profile),
+                false => Target::for_arch(&arch)
+                    .ok_or_else(|| Error::ArchInvalid {
+                        arch: arch.to_owned(),
+                    })?
+                    .compile_lib(config, noise_level, profile),
+            }
+        }
+        .map_err(Error::CompileLibFailed),
         _ => Err(Error::CommandInvalid(input.command)),
     }
 }

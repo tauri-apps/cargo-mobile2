@@ -30,8 +30,9 @@ fn init_logging(noise_level: NoiseLevel) {
 
 fn inner(wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
     let mut plugins = PluginMap::new();
-    plugins.load("android");
-    // plugins.load("brainium");
+    plugins.load("android").map_err(NonZeroExit::display)?;
+    plugins.load("brainium").map_err(NonZeroExit::display)?;
+    plugins.load("ios").map_err(NonZeroExit::display)?;
     let subcommands = plugins.subcommands();
     let steps = subcommands
         .iter()
@@ -62,7 +63,7 @@ fn inner(wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
             Ok(config)
         },
     )?;
-    let plugins = plugins.configure(&config);
+    let plugins = plugins.configure(&config).map_err(NonZeroExit::display)?;
     let noise_level = input.noise_level;
     match input.command {
         Command::Init(command) => command

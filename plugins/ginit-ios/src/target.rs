@@ -1,13 +1,15 @@
 use crate::{
     config::Config,
+    system_profile::{self, DeveloperTools},
+};
+use ginit_core::{
+    config::ConfigTrait as _,
     env::Env,
-    init::cargo::CargoTarget,
-    ios::system_profile::{self, DeveloperTools},
+    exports::into_result::{command::CommandError, IntoResult as _},
     opts::{NoiseLevel, Profile},
-    target::TargetTrait,
+    target::{TargetCargoConfig, TargetTrait},
     util::{self, pure_command::PureCommand},
 };
-use into_result::{command::CommandError, IntoResult as _};
 use std::{collections::BTreeMap, fmt};
 
 #[derive(Debug)]
@@ -169,7 +171,7 @@ impl<'a> Target<'a> {
             .find(|target| target.arch == arch || target.alias == Some(arch))
     }
 
-    pub fn generate_cargo_config(&self) -> CargoTarget {
+    pub fn generate_cargo_config(&self) -> TargetCargoConfig {
         Default::default()
     }
 
@@ -198,8 +200,8 @@ impl<'a> Target<'a> {
     ) -> Result<util::CargoCommand<'a>, VersionCheckError> {
         self.min_xcode_version_satisfied().map(|()| {
             util::CargoCommand::new(subcommand)
-                .with_package(Some(config.app_name()))
-                .with_manifest_path(Some(config.manifest_path()))
+                .with_package(Some(config.shared().app_name()))
+                .with_manifest_path(Some(config.shared().manifest_path()))
                 .with_target(Some(&self.triple))
                 .with_features(Some("metal"))
                 .with_no_default_features(!self.is_macos())
@@ -243,9 +245,9 @@ impl<'a> Target<'a> {
     pub fn build(&self, config: &Config, env: &Env, profile: Profile) -> Result<(), BuildError> {
         let configuration = profile.as_str();
         PureCommand::new("xcodebuild", env)
-            .args(&["-scheme", &config.ios().scheme()])
+            .args(&["-scheme", &config.scheme()])
             .arg("-workspace")
-            .arg(&config.ios().workspace_path())
+            .arg(&config.workspace_path())
             .args(&["-configuration", configuration])
             .args(&["-arch", self.arch])
             .arg("build")
@@ -261,11 +263,11 @@ impl<'a> Target<'a> {
         profile: Profile,
     ) -> Result<(), ArchiveError> {
         let configuration = profile.as_str();
-        let archive_path = config.ios().export_path().join(&config.ios().scheme());
+        let archive_path = config.export_path().join(&config.scheme());
         PureCommand::new("xcodebuild", env)
-            .args(&["-scheme", &config.ios().scheme()])
+            .args(&["-scheme", &config.scheme()])
             .arg("-workspace")
-            .arg(&config.ios().workspace_path())
+            .arg(&config.workspace_path())
             .args(&["-sdk", "iphoneos"])
             .args(&["-configuration", configuration])
             .args(&["-arch", self.arch])
@@ -277,17 +279,16 @@ impl<'a> Target<'a> {
             .map_err(ArchiveError::ArchiveFailed)?;
         // Super fun discrepancy in expectation of `-archivePath` value
         let archive_path = config
-            .ios()
             .export_path()
-            .join(&format!("{}.xcarchive", config.ios().scheme()));
+            .join(&format!("{}.xcarchive", config.scheme()));
         PureCommand::new("xcodebuild", env)
             .arg("-exportArchive")
             .arg("-archivePath")
             .arg(&archive_path)
             .arg("-exportOptionsPlist")
-            .arg(&config.ios().export_plist_path())
+            .arg(&config.export_plist_path())
             .arg("-exportPath")
-            .arg(&config.ios().export_path())
+            .arg(&config.export_path())
             .status()
             .into_result()
             .map_err(ArchiveError::ExportFailed)

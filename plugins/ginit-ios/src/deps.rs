@@ -1,16 +1,10 @@
-use ginit_core::{
-    cargo::CargoConfig,
-    config::Config,
-    opts::{Clobbering, OpenIn},
-    steps::Steps,
-    target::TargetTrait as _,
-    util::{
-        self,
-        prompt::{self, YesOrNo},
-    },
-};
+use ginit_core::{opts::Clobbering, target::TargetTrait as _, util};
 use into_result::{command::CommandError, IntoResult as _};
-use std::{fmt, io, path::Path, process::Command};
+use std::{
+    fmt::{self, Display},
+    path::Path,
+    process::Command,
+};
 
 #[derive(Debug)]
 pub enum Error {
@@ -21,7 +15,7 @@ pub enum Error {
     IosDeployBuildFailed(CommandError),
 }
 
-impl fmt::Display for Error {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::XcodeGenPresenceCheckFailed(err) => {

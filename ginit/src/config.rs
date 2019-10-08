@@ -94,12 +94,4 @@ impl Umbrella {
                 .expect("Couldn't serialize the TOML data we deserialized, which is really weird")
         })
     }
-
-    // pub(crate) fn insert_template_data(&self, map: &mut bicycle::JsonMap) {
-    //     map.insert("config", &self);
-    //     map.insert("app-name", self.shared().app_name());
-    //     map.insert("app-name-snake", self.shared().app_name_snake());
-    //     map.insert("stylized-app-name", self.shared().stylized_app_name());
-    //     map.insert("reverse-domain", self.shared().reverse_domain());
-    // }
 }

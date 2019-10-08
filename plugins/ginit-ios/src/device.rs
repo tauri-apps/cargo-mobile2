@@ -1,9 +1,14 @@
-use super::{
+use crate::{
+    config::Config,
     ios_deploy,
     target::{ArchiveError, BuildError, Target},
 };
-use crate::{config::Config, env::Env, opts::Profile, util::pure_command::PureCommand};
-use into_result::{command::CommandError, IntoResult as _};
+use ginit_core::{
+    env::Env,
+    exports::into_result::{command::CommandError, IntoResult as _},
+    opts::Profile,
+    util::pure_command::PureCommand,
+};
 use std::fmt;
 
 #[derive(Debug)]
@@ -67,9 +72,9 @@ impl<'a> Device<'a> {
             .map_err(RunError::ArchiveFailed)?;
         PureCommand::new("unzip", env)
             .arg("-o") // -o = always overwrite
-            .arg(&config.ios().ipa_path())
+            .arg(&config.ipa_path())
             .arg("-d")
-            .arg(&config.ios().export_path())
+            .arg(&config.export_path())
             .status()
             .into_result()
             .map_err(RunError::UnzipFailed)?;
@@ -82,7 +87,7 @@ impl<'a> Device<'a> {
             .args(&["--id", &self.id])
             .arg("--debug")
             .arg("--bundle")
-            .arg(&config.ios().app_path())
+            .arg(&config.app_path())
             // This tool can apparently install over wifi, but not debug over
             // wifi... so if your device is connected over wifi (even if it's
             // wired as well) and we're using the `--debug` flag, then

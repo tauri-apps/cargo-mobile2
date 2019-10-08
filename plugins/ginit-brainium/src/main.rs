@@ -1,7 +1,7 @@
 mod config;
 mod project;
 
-use ginit_core::{cli::*, config::ConfigTrait as _, ipc, opts, templating, PluginTrait};
+use ginit_core::{config::ConfigTrait as _, ipc, opts, templating, PluginTrait};
 
 #[derive(Debug, Default)]
 pub struct Brainium {

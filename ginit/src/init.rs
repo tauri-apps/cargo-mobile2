@@ -1,6 +1,6 @@
 use crate::{
     config::Umbrella,
-    core::{exports::into_result::command::CommandError, ipc::Client, opts, util},
+    core::{exports::into_result::command::CommandError, opts, util},
     plugin::{Configured, Error as PluginError, Plugin},
     steps::{Registry as StepRegistry, StepNotRegistered, Steps},
 };
@@ -54,7 +54,6 @@ impl Display for Error {
 }
 
 pub fn init<'a>(
-    client: &Client,
     plugins: impl Iterator<Item = &'a Plugin<Configured>> + Clone,
     clobbering: opts::Clobbering,
     open_in: opts::OpenIn,
@@ -91,7 +90,7 @@ pub fn init<'a>(
             .map_err(Error::StepNotRegistered)?
         {
             plugin
-                .init(client, clobbering)
+                .init(clobbering)
                 .map_err(|cause| Error::PluginFailed {
                     plugin_name: plugin.name().to_owned(),
                     cause,

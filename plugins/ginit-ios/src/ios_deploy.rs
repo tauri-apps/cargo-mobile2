@@ -1,6 +1,9 @@
-use super::{device::Device, target::Target};
-use crate::{env::Env, util::pure_command::PureCommand};
-use into_result::{command::CommandError, IntoResult as _};
+use crate::{device::Device, target::Target};
+use ginit_core::{
+    env::Env,
+    exports::into_result::{command::CommandError, IntoResult as _},
+    util::pure_command::PureCommand,
+};
 use serde::Deserialize;
 use std::{
     collections::BTreeSet,
@@ -17,7 +20,7 @@ impl fmt::Display for Missing {
         write!(
             f,
             "`ios-deploy` not found. Please run `cargo {} init` and try again. If it still doesn't work after that, then this is a bug!",
-            crate::NAME
+            ginit_core::NAME
         )
     }
 }

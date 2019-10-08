@@ -1,9 +1,23 @@
-use crate::{config::Config, templating::template_pack, util::ln};
-use into_result::{command::CommandError, IntoResult as _};
-use std::{fmt, process::Command};
+use crate::{config::Config, target::Target, IOS};
+use ginit_core::{
+    config::ConfigTrait as _,
+    exports::{
+        bicycle,
+        into_result::{command::CommandError, IntoResult as _},
+    },
+    target::TargetTrait as _,
+    template_pack,
+    util::ln,
+    PluginTrait as _,
+};
+use std::{
+    fmt::{self, Display},
+    process::Command,
+};
 
 #[derive(Debug)]
 pub enum Error {
+    RustupFailed(CommandError),
     MissingTemplatePack { name: &'static str },
     TemplateProcessingFailed(bicycle::ProcessingError),
     AppSymlinkFailed(ln::Error),
@@ -13,52 +27,60 @@ pub enum Error {
     XcodegenFailed(CommandError),
 }
 
-impl fmt::Display for Error {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::MissingTemplatePack { name } => {
+            Self::RustupFailed(err) => write!(f, "Failed to `rustup` iOS toolchains: {}", err),
+            Self::MissingTemplatePack { name } => {
                 write!(f, "The {:?} template pack is missing.", name)
             }
-            Error::TemplateProcessingFailed(err) => {
-                write!(f, "Template processing failed: {}", err)
-            }
-            Error::AppSymlinkFailed(err) => write!(f, "App couldn't be symlinked: {}", err),
-            Error::LibSymlinkFailed(err) => write!(f, "rust-lib couldn't be symlinked: {}", err),
-            Error::ResourcesSymlinkFailed(err) => {
+            Self::TemplateProcessingFailed(err) => write!(f, "Template processing failed: {}", err),
+            Self::AppSymlinkFailed(err) => write!(f, "App couldn't be symlinked: {}", err),
+            Self::LibSymlinkFailed(err) => write!(f, "rust-lib couldn't be symlinked: {}", err),
+            Self::ResourcesSymlinkFailed(err) => {
                 write!(f, "Resources couldn't be symlinked: {}", err)
             }
-            Error::ScriptChmodFailed(err) => {
+            Self::ScriptChmodFailed(err) => {
                 write!(f, "Failed to `chmod` \"cargo-xcode.sh\": {}", err)
             }
-            Error::XcodegenFailed(err) => write!(f, "Failed to run `xcodegen`: {}", err),
+            Self::XcodegenFailed(err) => write!(f, "Failed to run `xcodegen`: {}", err),
         }
     }
 }
 
 // unprefixed app_root seems pretty dangerous!!
-pub fn create(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
-    let src =
-        template_pack(Some(config), "xcode-project").ok_or_else(|| Error::MissingTemplatePack {
+pub fn generate(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
+    Target::install_all().map_err(Error::RustupFailed)?;
+
+    let src = template_pack!(Some(config.shared()), "xcode-project").ok_or_else(|| {
+        Error::MissingTemplatePack {
             name: "xcode-project",
-        })?;
-    let dest = config.ios().project_root();
-    bike.process(src, &dest, |map| config.insert_template_data(map))
-        .map_err(Error::TemplateProcessingFailed)?;
+        }
+    })?;
+    let dest = config.project_root();
+    bike.process(src, &dest, |map| {
+        config.insert_template_data(IOS::NAME, map)
+    })
+    .map_err(Error::TemplateProcessingFailed)?;
 
     ln::force_symlink_relative(
-        config.app_root().join("src"),
+        config.shared().app_root().join("src"),
         &dest,
         ln::TargetStyle::Directory,
     )
     .map_err(Error::AppSymlinkFailed)?;
     ln::force_symlink_relative(
-        config.app_root().join("rust-lib"),
+        config.shared().app_root().join("rust-lib"),
         &dest,
         ln::TargetStyle::Directory,
     )
     .map_err(Error::LibSymlinkFailed)?;
-    ln::force_symlink_relative(config.asset_path(), &dest, ln::TargetStyle::Directory)
-        .map_err(Error::ResourcesSymlinkFailed)?;
+    ln::force_symlink_relative(
+        config.shared().asset_path(),
+        &dest,
+        ln::TargetStyle::Directory,
+    )
+    .map_err(Error::ResourcesSymlinkFailed)?;
 
     Command::new("chmod")
         .arg("+x")
