@@ -8,7 +8,8 @@ mod project;
 mod target;
 
 use ginit_core::{
-    cli::*, config::ConfigTrait as _, ipc, opts, templating, PluginTrait, TargetPluginTrait,
+    cli::*, config::ConfigTrait as _, ipc, opts, protocol::Features, templating, PluginTrait,
+    TargetPluginTrait,
 };
 
 #[derive(Debug, Default)]
@@ -19,6 +20,7 @@ pub struct Android {
 impl PluginTrait for Android {
     const NAME: &'static str = "android";
     const DESCRIPTION: &'static str = "Tools for Android";
+    const FEATURES: Features = Features::TARGET;
 
     type Config = config::Config;
     fn update_config(&mut self, config: Self::Config) {

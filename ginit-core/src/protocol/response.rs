@@ -1,4 +1,4 @@
-use super::Version;
+use super::{Features, Version};
 use crate::{cli::Cli, config::ConfigTrait, PluginTrait};
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
@@ -57,14 +57,6 @@ impl ResponseMsg {
         } else {
             false
         }
-    }
-}
-
-bitflags::bitflags! {
-    #[derive(Default, Deserialize, Serialize)]
-    pub struct Features: u32 {
-        const BASIC = 0b00000000;
-        const TARGET = 0b00000001;
     }
 }
 

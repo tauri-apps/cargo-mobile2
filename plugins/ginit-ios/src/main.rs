@@ -9,7 +9,8 @@ mod target;
 mod teams;
 
 use ginit_core::{
-    cli::*, config::ConfigTrait as _, ipc, opts, templating, PluginTrait, TargetPluginTrait,
+    cli::*, config::ConfigTrait as _, ipc, opts, protocol::Features, templating, PluginTrait,
+    TargetPluginTrait,
 };
 
 #[derive(Debug, Default)]
@@ -20,6 +21,7 @@ pub struct IOS {
 impl PluginTrait for IOS {
     const NAME: &'static str = "ios";
     const DESCRIPTION: &'static str = "Tools for iOS";
+    const FEATURES: Features = Features::TARGET;
 
     type Config = config::Config;
     fn update_config(&mut self, config: Self::Config) {

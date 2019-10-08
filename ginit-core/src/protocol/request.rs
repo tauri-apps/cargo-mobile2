@@ -1,4 +1,4 @@
-use super::{ConfigError, Features, ResponseError, ResponseMsg, VERSION};
+use super::{ConfigError, ResponseError, ResponseMsg, VERSION};
 use crate::{
     cli::CliInput,
     config::{Config, ConfigTrait},
@@ -52,7 +52,7 @@ impl RequestMsg {
         match self {
             Self::Hello => Ok(ResponseMsg::Hello {
                 protocol_version: VERSION,
-                features: Features::BASIC,
+                features: P::FEATURES,
                 description: P::DESCRIPTION.to_owned(),
             }),
             Self::Goodbye => Ok(ResponseMsg::Goodbye),

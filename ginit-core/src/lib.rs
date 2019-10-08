@@ -23,6 +23,7 @@ pub static NAME: &'static str = "ginit";
 pub trait PluginTrait: Debug {
     const NAME: &'static str;
     const DESCRIPTION: &'static str;
+    const FEATURES: protocol::Features;
 
     type Config: config::ConfigTrait;
     fn update_config(&mut self, config: Self::Config);

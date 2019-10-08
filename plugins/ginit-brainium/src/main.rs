@@ -1,7 +1,9 @@
 mod config;
 mod project;
 
-use ginit_core::{config::ConfigTrait as _, ipc, opts, templating, PluginTrait};
+use ginit_core::{
+    config::ConfigTrait as _, ipc, opts, protocol::Features, templating, PluginTrait,
+};
 
 #[derive(Debug, Default)]
 pub struct Brainium {
@@ -11,6 +13,7 @@ pub struct Brainium {
 impl PluginTrait for Brainium {
     const NAME: &'static str = "brainium";
     const DESCRIPTION: &'static str = "Brainium-specific shenanigans";
+    const FEATURES: Features = Features::BASIC;
 
     type Config = config::Config;
     fn update_config(&mut self, config: Self::Config) {
