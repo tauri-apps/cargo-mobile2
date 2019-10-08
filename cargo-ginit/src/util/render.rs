@@ -100,7 +100,6 @@ fn arg<'a>(arg: &'a cli::Arg, target_info: Option<TargetInfoRef<'a, 'a>>) -> Arg
                 unimplemented!()
             }
         }
-        cli::Arg::Device => unimplemented!(),
         cli::Arg::Release => Arg::from_usage("--release 'Build with release optimizations'"),
     }
 }

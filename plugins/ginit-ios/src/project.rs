@@ -1,10 +1,11 @@
-use crate::{config::Config, target::Target, IOS};
+use crate::{config::Config, deps, target::Target, IOS};
 use ginit_core::{
     config::ConfigTrait as _,
     exports::{
         bicycle,
         into_result::{command::CommandError, IntoResult as _},
     },
+    opts::Clobbering,
     target::TargetTrait as _,
     template_pack,
     util::ln,
@@ -18,6 +19,7 @@ use std::{
 #[derive(Debug)]
 pub enum Error {
     RustupFailed(CommandError),
+    DepsInstallFailed(deps::Error),
     MissingTemplatePack { name: &'static str },
     TemplateProcessingFailed(bicycle::ProcessingError),
     AppSymlinkFailed(ln::Error),
@@ -31,6 +33,7 @@ impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::RustupFailed(err) => write!(f, "Failed to `rustup` iOS toolchains: {}", err),
+            Self::DepsInstallFailed(err) => write!(f, "Failed to install dependencies: {}", err),
             Self::MissingTemplatePack { name } => {
                 write!(f, "The {:?} template pack is missing.", name)
             }
@@ -49,8 +52,14 @@ impl Display for Error {
 }
 
 // unprefixed app_root seems pretty dangerous!!
-pub fn generate(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
+pub fn generate(
+    config: &Config,
+    bike: &bicycle::Bicycle,
+    clobbering: Clobbering,
+) -> Result<(), Error> {
     Target::install_all().map_err(Error::RustupFailed)?;
+
+    deps::install(clobbering).map_err(Error::DepsInstallFailed)?;
 
     let src = template_pack!(Some(config.shared()), "xcode-project").ok_or_else(|| {
         Error::MissingTemplatePack {

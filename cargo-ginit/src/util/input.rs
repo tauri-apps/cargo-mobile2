@@ -32,9 +32,6 @@ pub fn parse(cli: &Cli, matches: ArgMatches<'_>) -> Option<CliInput> {
                     Arg::TargetList => ArgInput::TargetList {
                         targets: util::parse_targets(&subcommand.matches),
                     },
-                    Arg::Device => ArgInput::Device {
-                        device: unimplemented!(),
-                    },
                     Arg::Release => ArgInput::Release {
                         profile: util::parse_profile(&subcommand.matches),
                     },

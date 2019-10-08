@@ -57,10 +57,10 @@ impl PluginTrait for IOS {
     }
 
     type InitError = project::Error;
-    fn init(&mut self, _clobbering: opts::Clobbering) -> Result<(), Self::InitError> {
+    fn init(&mut self, clobbering: opts::Clobbering) -> Result<(), Self::InitError> {
         let config = self.config();
         let bike = templating::init(Some(config.shared()));
-        project::generate(config, &bike)
+        project::generate(config, &bike, clobbering)
     }
 
     type ExecError = exec::Error;

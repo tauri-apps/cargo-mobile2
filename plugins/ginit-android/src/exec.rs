@@ -6,23 +6,20 @@ use crate::{
     target::{BuildError, CompileLibError, Target},
 };
 use ginit_core::{
-    cli::{ArgInput, CliInput},
-    opts::{NoiseLevel, Profile},
-    target::{call_for_targets, call_for_targets_with_fallback, TargetInvalid},
+    cli::CliInput,
+    define_device_prompt,
+    device::PromptError,
+    opts::NoiseLevel,
+    target::{call_for_targets_with_fallback, TargetInvalid},
     util::prompt,
 };
-use std::{
-    fmt::{self, Display},
-    io,
-};
+use std::fmt::{self, Display};
 
 #[derive(Debug)]
 pub enum Error {
     CommandInvalid(String),
     EnvInitFailed(EnvError),
-    DeviceDetectionFailed(adb::DeviceListError),
-    DevicePromptFailed(io::Error),
-    NoDevicesDetected,
+    DevicePromptFailed(PromptError<adb::DeviceListError>),
     TargetInvalid(TargetInvalid),
     CheckFailed(CompileLibError),
     BuildFailed(BuildError),
@@ -36,11 +33,7 @@ impl Display for Error {
         match self {
             Self::CommandInvalid(command) => write!(f, "Invalid command: {:?}", command),
             Self::EnvInitFailed(err) => write!(f, "{}", err),
-            Self::DeviceDetectionFailed(err) => {
-                write!(f, "Failed to detect connected Android devices: {}", err)
-            }
-            Self::DevicePromptFailed(err) => write!(f, "Failed to prompt for device: {}", err),
-            Self::NoDevicesDetected => write!(f, "No connected Android devices detected."),
+            Self::DevicePromptFailed(err) => write!(f, "{}", err),
             Self::TargetInvalid(err) => write!(f, "Specified target was invalid: {}", err),
             Self::CheckFailed(err) => write!(f, "{}", err),
             Self::BuildFailed(err) => write!(f, "{}", err),
@@ -52,14 +45,19 @@ impl Display for Error {
 }
 
 pub fn exec(config: &Config, input: CliInput, noise_level: NoiseLevel) -> Result<(), Error> {
+    define_device_prompt!(adb::device_list, adb::DeviceListError, Android);
+    fn detect_target_ok<'a>(env: &Env) -> Option<&'a Target<'a>> {
+        device_prompt(env).map(|device| device.target()).ok()
+    }
+
     let env = Env::new().map_err(Error::EnvInitFailed)?;
     match input.command.as_str() {
         "check" => {
             let targets = input.targets().unwrap();
-            call_for_targets(
+            call_for_targets_with_fallback(
                 targets.iter(),
-                // &detect_target_ok,
-                // &env,
+                &detect_target_ok,
+                &env,
                 |target: &Target| {
                     target
                         .check(config, &env, noise_level)
@@ -71,10 +69,10 @@ pub fn exec(config: &Config, input: CliInput, noise_level: NoiseLevel) -> Result
         "build" => {
             let targets = input.targets().unwrap();
             let profile = input.profile().unwrap();
-            call_for_targets(
+            call_for_targets_with_fallback(
                 targets.iter(),
-                // &detect_target_ok,
-                // &env,
+                &detect_target_ok,
+                &env,
                 |target: &Target| {
                     target
                         .build(config, &env, noise_level, profile)
@@ -83,12 +81,17 @@ pub fn exec(config: &Config, input: CliInput, noise_level: NoiseLevel) -> Result
             )
         }
         .map_err(Error::TargetInvalid)?,
-        // "run" => detect_device(&env)?
-        //     .run(config, &env, noise_level, profile)
-        //     .map_err(Error::RunFailed),
-        // "st" => detect_device(&env)?
-        //     .stacktrace(config, &env)
-        //     .map_err(Error::StacktraceFailed),
+        "run" => {
+            let profile = input.profile().unwrap();
+            device_prompt(&env)
+                .map_err(Error::DevicePromptFailed)?
+                .run(config, &env, noise_level, profile)
+                .map_err(Error::RunFailed)
+        }
+        "st" => device_prompt(&env)
+            .map_err(Error::DevicePromptFailed)?
+            .stacktrace(config, &env)
+            .map_err(Error::StacktraceFailed),
         "list" => adb::device_list(&env)
             .map_err(Error::ListFailed)
             .map(|device_list| {

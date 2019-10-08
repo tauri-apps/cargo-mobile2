@@ -1,4 +1,4 @@
-use ginit_core::{opts::Clobbering, target::TargetTrait as _, util};
+use ginit_core::{opts::Clobbering, util};
 use into_result::{command::CommandError, IntoResult as _};
 use std::{
     fmt::{self, Display},

@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 pub struct Cli {
     pub commands: Vec<Command>,
     pub target_info: Option<TargetInfo>,
-    pub device_info: Option<DeviceInfo>,
 }
 
 impl Cli {
@@ -22,11 +21,6 @@ impl Cli {
         self.target_info = Some(TargetInfo::new::<P>());
         self
     }
-
-    // pub fn with_device_info<'a, P: TargetPluginTrait<'a>>(mut self) -> Self {
-    //     self.device_info = Some(DeviceInfo::new::<P>());
-    //     self
-    // }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -69,7 +63,6 @@ pub enum Arg {
         usage: String,
     },
     TargetList,
-    Device,
     Release,
 }
 
@@ -105,11 +98,6 @@ impl TargetInfo {
             default: <P::Target as TargetTrait>::DEFAULT_KEY.to_owned(),
         }
     }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct DeviceInfo {
-    pub devices: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -156,15 +144,6 @@ impl CliInput {
         None
     }
 
-    pub fn device(&self) -> Option<&str> {
-        for arg in &self.args {
-            if let ArgInput::Device { device } = arg {
-                return Some(&device);
-            }
-        }
-        None
-    }
-
     pub fn profile(&self) -> Option<opts::Profile> {
         for arg in &self.args {
             if let ArgInput::Release { profile } = arg {
@@ -189,9 +168,6 @@ pub enum ArgInput {
     },
     TargetList {
         targets: Vec<String>,
-    },
-    Device {
-        device: String,
     },
     Release {
         profile: opts::Profile,
