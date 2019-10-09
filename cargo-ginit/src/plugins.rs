@@ -3,8 +3,11 @@ use ginit::{
     config::Umbrella,
     core::{
         cli::{Cli, CliInput},
-        exports::into_result::{command::CommandError, IntoResult as _},
-        ipc::{self, Client},
+        exports::{
+            into_result::{command::CommandError, IntoResult as _},
+            nng,
+        },
+        ipc::Client,
         opts,
     },
     plugin::{Configured, Error, Plugin, Unconfigured},
@@ -142,7 +145,7 @@ impl<State> PluginMap<State> {
 #[derive(Debug)]
 pub enum LoadError {
     SpawnFailed(CommandError),
-    ClientFailed(ipc::nng::Error),
+    ClientFailed(nng::Error),
     ConnectFailed(Error),
     CliFailed(Error),
 }

@@ -1,4 +1,4 @@
-use crate::{config::Config, util};
+use crate::{config::Shared, util};
 use bicycle::{
     handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderError},
     Bicycle, EscapeFn, HelperDef, JsonMap,
@@ -66,7 +66,7 @@ fn unprefix_path(
     .map_err(Into::into)
 }
 
-pub fn init(config: Option<&Config>) -> Bicycle {
+pub fn init(config: Option<&Shared>) -> Bicycle {
     Bicycle::new(
         EscapeFn::None,
         {
@@ -90,7 +90,7 @@ pub fn init(config: Option<&Config>) -> Bicycle {
 }
 
 pub fn template_pack(
-    config: Option<&Config>,
+    config: Option<&Shared>,
     plugin_path: Option<&Path>,
     name: &str,
 ) -> Option<PathBuf> {

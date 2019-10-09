@@ -1,13 +1,15 @@
-mod config;
 mod project;
 
 use ginit_core::{
-    config::ConfigTrait as _, ipc, opts, protocol::Features, templating, PluginTrait,
+    config::{ConfigTrait as _, EmptyConfig},
+    ipc, opts,
+    protocol::Features,
+    templating, PluginTrait,
 };
 
 #[derive(Debug, Default)]
 pub struct Brainium {
-    config: Option<config::Config>,
+    config: Option<EmptyConfig>,
 }
 
 impl PluginTrait for Brainium {
@@ -15,7 +17,7 @@ impl PluginTrait for Brainium {
     const DESCRIPTION: &'static str = "Brainium-specific shenanigans";
     const FEATURES: Features = Features::BASIC;
 
-    type Config = config::Config;
+    type Config = EmptyConfig;
     fn update_config(&mut self, config: Self::Config) {
         self.config = Some(config);
     }

@@ -13,7 +13,9 @@ pub mod util;
 
 pub mod exports {
     pub use bicycle;
+    pub use colored;
     pub use into_result;
+    pub use nng;
 }
 
 use std::fmt::{Debug, Display};

@@ -1,3 +1,8 @@
+mod required;
+
+pub use self::required::*;
+
+use ginit_core::config::Shared;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -34,7 +39,7 @@ impl Display for Error {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Umbrella {
-    shared: ginit_core::config::Config,
+    shared: Shared,
     #[serde(flatten)]
     plugins: HashMap<String, toml::Value>,
 }
@@ -75,7 +80,7 @@ impl Umbrella {
             file.read_to_end(&mut contents).map_err(Error::ReadFailed)?;
             let raw = toml::from_slice::<Raw>(&contents).map_err(Error::ParseFailed)?;
             Ok(Some(Self {
-                shared: ginit_core::config::Config::from_raw(project_root, raw.ginit)
+                shared: Shared::from_raw(project_root, raw.ginit)
                     .map_err(Error::SharedConfigInvalid)?,
                 plugins: raw.plugins,
             }))
@@ -84,7 +89,7 @@ impl Umbrella {
         }
     }
 
-    pub fn shared(&self) -> &ginit_core::config::Config {
+    pub fn shared(&self) -> &Shared {
         &self.shared
     }
 

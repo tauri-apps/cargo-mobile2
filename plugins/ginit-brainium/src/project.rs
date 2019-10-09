@@ -1,9 +1,9 @@
-use crate::{config::Config, Brainium};
+use crate::Brainium;
 use ginit_core::{
     config::ConfigTrait as _,
     exports::{bicycle, into_result::command::CommandError},
     opts::Clobbering,
-    template_pack, util, PluginTrait as _,
+    template_pack, util, PluginTrait,
 };
 use regex::Regex;
 use std::{
@@ -98,7 +98,7 @@ pub fn submodule_exists(root: &Path, name: &str) -> io::Result<bool> {
 }
 
 pub fn submodule_init(
-    config: &Config,
+    config: &<Brainium as PluginTrait>::Config,
     root: &Path,
     name: &str,
     remote: &str,
@@ -140,7 +140,7 @@ pub fn submodule_init(
 }
 
 pub fn generate(
-    config: &Config,
+    config: &<Brainium as PluginTrait>::Config,
     bike: &bicycle::Bicycle,
     clobbering: Clobbering,
 ) -> Result<(), Error> {

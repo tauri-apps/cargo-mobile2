@@ -4,9 +4,9 @@ use crate::{
     util,
 };
 use clap::{App, AppSettings, Arg, SubCommand};
-use colored::*;
 use ginit::core::{
     cli,
+    exports::colored::*,
     // init::config_gen::{DefaultConfig, RequiredConfig},
     opts::{Interactivity, NoiseLevel},
     util::TextWrapper,

@@ -1,10 +1,11 @@
 mod cargo;
+mod common_email_providers;
 pub mod ln;
 mod path;
 pub mod prompt;
 pub mod pure_command;
 
-pub use self::{cargo::CargoCommand, path::*};
+pub use self::{cargo::CargoCommand, common_email_providers::COMMON_EMAIL_PROVIDERS, path::*};
 use into_result::{
     command::{CommandError, CommandResult},
     IntoResult as _,
@@ -13,7 +14,7 @@ use regex::Regex;
 use std::{
     env,
     ffi::OsStr,
-    fmt,
+    fmt::{self, Display},
     fs::File,
     io::{self, Read, Write},
     path::Path,
@@ -21,11 +22,20 @@ use std::{
 };
 
 #[derive(Debug)]
+pub enum Never {}
+
+impl Display for Never {
+    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        unreachable!()
+    }
+}
+
+#[derive(Debug)]
 pub enum InitTextWrapperError {
     HyphenationLoadFailed(hyphenation::load::Error),
 }
 
-impl fmt::Display for InitTextWrapperError {
+impl Display for InitTextWrapperError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             InitTextWrapperError::HyphenationLoadFailed(err) => write!(
@@ -49,7 +59,7 @@ pub fn init_text_wrapper() -> Result<TextWrapper, InitTextWrapperError> {
     ))
 }
 
-pub fn list_display(list: &[impl fmt::Display]) -> String {
+pub fn list_display(list: &[impl Display]) -> String {
     if list.len() == 1 {
         list[0].to_string()
     } else if list.len() == 2 {
@@ -103,7 +113,7 @@ where
     }
 }
 
-pub fn add_to_path(path: impl fmt::Display) -> String {
+pub fn add_to_path(path: impl Display) -> String {
     format!("{}:{}", path, env::var("PATH").unwrap())
 }
 
@@ -162,7 +172,7 @@ pub enum PipeError {
     PipeFailed(io::Error),
 }
 
-impl fmt::Display for PipeError {
+impl Display for PipeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             PipeError::TxCommandFailed(err) => write!(f, "Failed to run sending command: {}", err),

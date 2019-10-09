@@ -1,5 +1,8 @@
+mod default;
+mod required;
+
 use ginit_core::{
-    config::{Config as CoreConfig, ConfigTrait},
+    config::{ConfigTrait, Shared},
     util,
 };
 use serde::{Deserialize, Serialize};
@@ -53,7 +56,7 @@ pub enum Error {
     ProjectRootInvalid(ProjectRootInvalid),
 }
 
-impl fmt::Display for Error {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::DevelopmentTeamMissing => write!(f, "`ios.development-team` must be specified."),
@@ -76,16 +79,17 @@ pub struct Raw {
 #[derive(Clone, Debug, Serialize)]
 pub struct Config {
     #[serde(skip_serializing)]
-    shared: CoreConfig,
+    shared: Shared,
     development_team: String,
     project_root: String,
 }
 
 impl ConfigTrait for Config {
+    type DefaultConfig = default::DefaultConfig;
+
     type Raw = Raw;
     type Error = Error;
-
-    fn from_raw(shared: CoreConfig, raw: Option<Self::Raw>) -> Result<Self, Self::Error> {
+    fn from_raw(shared: Shared, raw: Option<Self::Raw>) -> Result<Self, Self::Error> {
         let raw = raw.ok_or_else(|| Error::DevelopmentTeamMissing)?;
         if raw.targets.is_some() {
             log::warn!("`ios.targets` specified in {}.toml - this config key is no longer necessary, and is ignored", ginit_core::NAME);
@@ -128,7 +132,7 @@ impl ConfigTrait for Config {
         }
     }
 
-    fn shared(&self) -> &CoreConfig {
+    fn shared(&self) -> &Shared {
         &self.shared
     }
 }

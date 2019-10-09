@@ -1,7 +1,7 @@
 use super::{ConfigError, ResponseError, ResponseMsg, VERSION};
 use crate::{
     cli::CliInput,
-    config::{Config, ConfigTrait},
+    config::{ConfigTrait, Shared},
     opts, PluginTrait,
 };
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,7 @@ pub enum RequestMsg {
     Hello,
     Goodbye,
     Config {
-        shared_config: Config,
+        shared_config: Shared,
         plugin_config: Option<Vec<u8>>,
     },
     Cli,

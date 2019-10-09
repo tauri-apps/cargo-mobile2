@@ -7,13 +7,11 @@ mod util;
 
 use self::{cli::*, plugins::PluginMap};
 use ginit::{
-    config::Umbrella,
+    config::{RequiredUmbrella, Umbrella},
     core::{
-        // init::config_gen::{DefaultConfig, RequiredConfig},
-        opts::NoiseLevel,
-        templating,
+        config::{DefaultConfigTrait, DefaultShared, RequiredConfigTrait, RequiredShared},
+        opts::{Interactivity, NoiseLevel},
         util::{init_text_wrapper, TextWrapper},
-        NAME,
     },
 };
 
@@ -43,16 +41,25 @@ fn inner(wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
     let config = Umbrella::load(".").map_err(NonZeroExit::display)?.map_or_else(
         || {
             // let old_bike = templating::init(None);
-            // let required_config = match input.interactivity {
-            //     Interactivity::Full => {
-            //         handle_error(&wrapper, RequiredConfig::interactive(&wrapper))
-            //     }
-            //     Interactivity::None => {
-            //         let defaults = handle_error(&wrapper, DefaultConfig::detect());
-            //         handle_error(&wrapper, defaults.upgrade())
-            //     }
-            // };
-            // handle_error(&wrapper, required_config.write(&old_bike, "."));
+            let required_config = match input.interactivity {
+                Interactivity::Full => {
+                    let shared= RequiredShared::prompt(&wrapper).map_err(NonZeroExit::display)?;
+                    let mut umbrella = RequiredUmbrella::new(shared);
+                    // for plugin in unimplemented!() {
+                    //     unimplemented!()
+                    // }
+                    umbrella
+                }
+                Interactivity::None => {
+                    let shared = DefaultShared::detect().map_err(NonZeroExit::display).and_then(|defaults| defaults.upgrade().map_err(NonZeroExit::display))?;
+                    let mut umbrella = RequiredUmbrella::new(shared);
+                    // for plugin in unimplemented!() {
+                    //     unimplemented!()
+                    // }
+                    umbrella
+                }
+            };
+            required_config.write(".").map_err(NonZeroExit::display)?;
             if let Some(config) = Umbrella::load(".").map_err(NonZeroExit::display)? {
                 Ok(config)
             } else {

@@ -1,5 +1,5 @@
 use ginit_core::{
-    config::{Config as CoreConfig, ConfigTrait},
+    config::{ConfigTrait, EmptyDefaultConfig, Shared},
     util,
 };
 use serde::{Deserialize, Serialize};
@@ -69,16 +69,17 @@ pub struct Raw {
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
     #[serde(skip_serializing)]
-    shared: CoreConfig,
+    shared: Shared,
     min_sdk_version: u32,
     project_root: String,
 }
 
 impl ConfigTrait for Config {
+    type DefaultConfig = EmptyDefaultConfig;
+
     type Raw = Raw;
     type Error = Error;
-
-    fn from_raw(shared: CoreConfig, raw: Option<Self::Raw>) -> Result<Self, Self::Error> {
+    fn from_raw(shared: Shared, raw: Option<Self::Raw>) -> Result<Self, Self::Error> {
         let raw = raw.unwrap_or_default();
         if raw.targets.is_some() {
             log::warn!("`android.targets` specified in {}.toml - this config key is no longer needed, and will be ignored", ginit_core::NAME);
@@ -134,7 +135,7 @@ impl ConfigTrait for Config {
         })
     }
 
-    fn shared(&self) -> &CoreConfig {
+    fn shared(&self) -> &Shared {
         &self.shared
     }
 }

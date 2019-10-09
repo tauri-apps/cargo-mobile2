@@ -1,8 +1,17 @@
-use super::{domain_blacklist::DOMAIN_BLACKLIST, RequiredConfig};
-use crate::{config::app_name, ios};
+use super::RequiredShared;
+use crate::{
+    config::{app_name, DefaultConfigTrait},
+    util::COMMON_EMAIL_PROVIDERS,
+};
 use heck::{KebabCase as _, TitleCase as _};
 use into_result::{command::CommandError, IntoResult as _};
-use std::{env, fmt, io, path::PathBuf, process::Command};
+use std::{
+    env,
+    fmt::{self, Display},
+    io,
+    path::PathBuf,
+    process::Command,
+};
 
 #[derive(Debug)]
 enum DefaultDomainError {
@@ -25,7 +34,9 @@ fn default_domain() -> Result<Option<String>, DefaultDomainError> {
         .last()
         .ok_or(DefaultDomainError::FailedToParseEmailAddr)?;
     Ok(
-        if !DOMAIN_BLACKLIST.contains(&domain) && publicsuffix::Domain::has_valid_syntax(&domain) {
+        if !COMMON_EMAIL_PROVIDERS.contains(&domain)
+            && publicsuffix::Domain::has_valid_syntax(&domain)
+        {
             Some(domain.to_owned())
         } else {
             None
@@ -34,22 +45,22 @@ fn default_domain() -> Result<Option<String>, DefaultDomainError> {
 }
 
 #[derive(Debug)]
-pub enum DetectionError {
+pub enum DetectError {
     CurrentDirFailed(io::Error),
     CurrentDirHasNoName(PathBuf),
     CurrentDirInvalidUtf8(PathBuf),
 }
 
-impl fmt::Display for DetectionError {
+impl Display for DetectError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DetectionError::CurrentDirFailed(err) => {
+            Self::CurrentDirFailed(err) => {
                 write!(f, "Failed to get current working directory: {}", err)
             }
-            DetectionError::CurrentDirHasNoName(cwd) => {
+            Self::CurrentDirHasNoName(cwd) => {
                 write!(f, "Current working directory has no name: {:?}", cwd)
             }
-            DetectionError::CurrentDirInvalidUtf8(cwd) => write!(
+            Self::CurrentDirInvalidUtf8(cwd) => write!(
                 f,
                 "Current working directory contained invalid UTF-8: {:?}",
                 cwd
@@ -60,41 +71,34 @@ impl fmt::Display for DetectionError {
 
 #[derive(Debug)]
 pub enum UpgradeError {
-    DeveloperTeamLookupFailed(ios::teams::Error),
     AppNameNotDetected,
-    DeveloperTeamsEmpty,
 }
 
-impl fmt::Display for UpgradeError {
+impl Display for UpgradeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            UpgradeError::DeveloperTeamLookupFailed(err) => {
-                write!(f, "Failed to find Apple developer teams: {}", err)
-            }
-            UpgradeError::AppNameNotDetected => write!(f, "No app name was detected."),
-            UpgradeError::DeveloperTeamsEmpty => {
-                write!(f, "No Apple developer teams were detected.")
-            }
+            Self::AppNameNotDetected => write!(f, "No app name was detected."),
         }
     }
 }
 
 #[derive(Debug)]
-pub struct DefaultConfig {
+pub struct DefaultShared {
     pub app_name: Option<String>,
     pub stylized_app_name: String,
     pub domain: String,
 }
 
-impl DefaultConfig {
-    pub fn detect() -> Result<Self, DetectionError> {
-        let cwd = env::current_dir().map_err(DetectionError::CurrentDirFailed)?;
+impl DefaultConfigTrait for DefaultShared {
+    type DetectError = DetectError;
+    fn detect() -> Result<Self, Self::DetectError> {
+        let cwd = env::current_dir().map_err(DetectError::CurrentDirFailed)?;
         let dir_name = cwd
             .file_name()
-            .ok_or_else(|| DetectionError::CurrentDirHasNoName(cwd.clone()))?;
+            .ok_or_else(|| DetectError::CurrentDirHasNoName(cwd.clone()))?;
         let dir_name_str = dir_name
             .to_str()
-            .ok_or_else(|| DetectionError::CurrentDirInvalidUtf8(cwd.clone()))?;
+            .ok_or_else(|| DetectError::CurrentDirInvalidUtf8(cwd.clone()))?;
         let app_name = app_name::transliterate(&dir_name_str.to_kebab_case());
         let stylized_app_name = dir_name_str.to_title_case();
         let domain = default_domain()
@@ -108,19 +112,15 @@ impl DefaultConfig {
         })
     }
 
-    pub fn upgrade(self) -> Result<RequiredConfig, UpgradeError> {
-        let development_teams = ios::teams::find_development_teams()
-            .map_err(UpgradeError::DeveloperTeamLookupFailed)?;
-        Ok(RequiredConfig {
+    type RequiredConfig = RequiredShared;
+    type UpgradeError = UpgradeError;
+    fn upgrade(self) -> Result<Self::RequiredConfig, Self::UpgradeError> {
+        Ok(RequiredShared {
             app_name: self
                 .app_name
                 .ok_or_else(|| UpgradeError::AppNameNotDetected)?,
             stylized_app_name: self.stylized_app_name,
             domain: self.domain,
-            development_team: development_teams
-                .get(0)
-                .map(|development_team| development_team.id.clone())
-                .ok_or_else(|| UpgradeError::DeveloperTeamsEmpty)?,
         })
     }
 }

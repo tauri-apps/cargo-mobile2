@@ -1,9 +1,14 @@
+mod default;
+mod required;
+
+pub use self::{default::*, required::*};
+
 use super::app_name;
 use crate::util;
 use heck::SnekCase as _;
 use serde::{Deserialize, Serialize};
 use std::{
-    fmt,
+    fmt::{self, Display},
     path::{Path, PathBuf},
 };
 
@@ -21,7 +26,7 @@ pub enum AppRootInvalid {
     },
 }
 
-impl fmt::Display for AppRootInvalid {
+impl Display for AppRootInvalid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NormalizationFailed { app_root, cause } => {
@@ -46,7 +51,7 @@ pub enum Error {
     AppRootInvalid(AppRootInvalid),
 }
 
-impl fmt::Display for Error {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::AppNameInvalid(err) => write!(f, "`ginit.app-name` invalid: {}", err),
@@ -77,7 +82,7 @@ pub struct Raw {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct Config {
+pub struct Shared {
     project_root: PathBuf,
     app_name: String,
     stylized_app_name: Option<String>,
@@ -85,7 +90,7 @@ pub struct Config {
     app_root: String,
 }
 
-impl Config {
+impl Shared {
     pub fn from_raw(project_root: PathBuf, raw_config: Raw) -> Result<Self, Error> {
         if raw_config.source_root.is_some() {
             log::warn!("`ginit.source_root` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
