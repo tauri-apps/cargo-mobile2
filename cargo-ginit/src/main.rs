@@ -2,17 +2,20 @@
 
 mod cli;
 mod init;
-mod plugins;
-mod util;
 
-use self::{cli::*, plugins::PluginMap};
+use self::cli::*;
 use ginit::{
-    config::{RequiredUmbrella, Umbrella},
+    config::RequiredUmbrella,
     core::{
-        config::{DefaultConfigTrait, DefaultShared, RequiredConfigTrait, RequiredShared},
+        config::{
+            shared::{DefaultShared, RequiredShared},
+            umbrella::Umbrella,
+            DefaultConfigTrait, RequiredConfigTrait,
+        },
         opts::{Interactivity, NoiseLevel},
-        util::{init_text_wrapper, TextWrapper},
+        util::{cli::NonZeroExit, TextWrapper},
     },
+    plugin::Map as PluginMap,
 };
 
 fn init_logging(noise_level: NoiseLevel) {
@@ -27,16 +30,15 @@ fn init_logging(noise_level: NoiseLevel) {
 }
 
 fn inner(wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
-    let mut plugins = PluginMap::new();
-    plugins.load("android").map_err(NonZeroExit::display)?;
-    plugins.load("brainium").map_err(NonZeroExit::display)?;
-    plugins.load("ios").map_err(NonZeroExit::display)?;
-    let subcommands = plugins.subcommands();
-    let steps = subcommands
+    let mut plugins = PluginMap::default();
+    plugins.add("android").map_err(NonZeroExit::display)?;
+    // plugins.add("brainium").map_err(NonZeroExit::display)?;
+    // plugins.add("ios").map_err(NonZeroExit::display)?;
+    let (steps, subcommands): (Vec<_>, Vec<_>) = plugins
         .iter()
-        .map(|subcommand| subcommand.name)
-        .collect::<Vec<_>>();
-    let input = Input::parse(&plugins, app(&steps, &subcommands)).map_err(NonZeroExit::Clap)?;
+        .map(|plugin| (plugin.name(), (plugin.name(), plugin.description())))
+        .unzip();
+    let input = Input::parse(app(&steps, subcommands.iter())).map_err(NonZeroExit::Clap)?;
     init_logging(input.noise_level);
     let config = Umbrella::load(".").map_err(NonZeroExit::display)?.map_or_else(
         || {
@@ -70,36 +72,23 @@ fn inner(wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
             Ok(config)
         },
     )?;
-    let plugins = plugins.configure(&config).map_err(NonZeroExit::display)?;
     let noise_level = input.noise_level;
+    let interactivity = input.interactivity;
     match input.command {
         Command::Init(command) => command
-            .exec(&config, &plugins)
+            .exec(&plugins, noise_level, interactivity)
             .map_err(NonZeroExit::display),
-        Command::Plugin { plugin_name, input } => {
-            // since clap will outright reject any subcommands that aren't
-            // actually part of the CLI, this get should always succeed...
-            match input {
-                Some(Some(input)) => plugins
-                    .get(&plugin_name)
-                    .unwrap()
-                    .exec(input, noise_level)
-                    .map_err(NonZeroExit::display),
-                Some(None) => unimplemented!(),
-                None => unimplemented!(),
-            }
-        }
+        Command::Plugin { name, args } => plugins
+            .get(&name)
+            .ok_or_else(|| {
+                NonZeroExit::display(format!("Subcommand {:?} didn't match any plugins.", name))
+            })?
+            .run(noise_level, interactivity, args)
+            .map_err(NonZeroExit::display)
+            .map(drop),
     }
 }
 
 fn main() {
-    let wrapper = match init_text_wrapper() {
-        Ok(wrapper) => wrapper,
-        Err(err) => {
-            NonZeroExit::display(format!("Failed to init text wrapper: {}", err)).do_the_thing(None)
-        }
-    };
-    if let Err(non_zero_exit) = inner(&wrapper) {
-        non_zero_exit.do_the_thing(Some(wrapper))
-    }
+    NonZeroExit::main(inner)
 }

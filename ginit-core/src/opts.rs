@@ -18,7 +18,7 @@ impl Clobbering {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Interactivity {
     Full,
     None,

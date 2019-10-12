@@ -1,5 +1,5 @@
 use ginit_core::{
-    config::{ConfigTrait, EmptyDefaultConfig, Shared},
+    config::{empty, shared::Shared, ConfigTrait},
     util,
 };
 use serde::{Deserialize, Serialize};
@@ -75,7 +75,7 @@ pub struct Config {
 }
 
 impl ConfigTrait for Config {
-    type DefaultConfig = EmptyDefaultConfig;
+    type DefaultConfig = empty::DefaultConfig;
 
     type Raw = Raw;
     type Error = Error;

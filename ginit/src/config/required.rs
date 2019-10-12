@@ -1,4 +1,4 @@
-use ginit_core::config::RequiredShared;
+use ginit_core::config::shared::RequiredShared;
 use serde::Serialize;
 use std::{
     collections::HashMap,

@@ -1,7 +1,7 @@
-use crate::{config::Config, target::Target, Android};
+use crate::{config::Config, target::Target};
 use ginit_core::{
     config::ConfigTrait, exports::bicycle, exports::into_result::command::CommandError,
-    target::TargetTrait as _, template_pack, util::ln, PluginTrait as _,
+    target::TargetTrait as _, template_pack, util::ln,
 };
 use std::{fmt, fs, path::PathBuf};
 
@@ -46,7 +46,7 @@ pub fn generate(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
     })?;
     let dest = config.project_path();
     bike.process(src, &dest, |map| {
-        config.insert_template_data(Android::NAME, map);
+        config.insert_template_data(crate::NAME, map);
         map.insert(
             "abi-list",
             Target::all()

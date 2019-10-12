@@ -5,6 +5,7 @@ authors = ["Brainium Studios LLC"]
 edition = "2018"
 
 [dependencies]
+clap = "2.33.0"
 ginit-core = { path = "../ginit-core" }
 log = "0.4.8"
 serde = { version = "1.0.101", features = ["derive"] }

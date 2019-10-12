@@ -1,8 +1,8 @@
 pub mod app_name;
-mod empty;
-mod shared;
+pub mod empty;
+pub mod shared;
+pub mod umbrella;
 
-pub use self::{empty::*, shared::*};
 use crate::util;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
@@ -12,9 +12,9 @@ pub trait ConfigTrait: Debug + Serialize + Sized {
 
     type Raw: for<'r> Deserialize<'r> + Serialize;
     type Error: Debug + Display;
-    fn from_raw(shared: Shared, raw: Option<Self::Raw>) -> Result<Self, Self::Error>;
+    fn from_raw(shared: shared::Shared, raw: Option<Self::Raw>) -> Result<Self, Self::Error>;
 
-    fn shared(&self) -> &Shared;
+    fn shared(&self) -> &shared::Shared;
 
     fn insert_template_data(&self, key: &str, map: &mut bicycle::JsonMap) {
         map.insert(key, self);

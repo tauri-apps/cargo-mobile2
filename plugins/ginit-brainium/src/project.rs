@@ -3,7 +3,7 @@ use ginit_core::{
     config::ConfigTrait as _,
     exports::{bicycle, into_result::command::CommandError},
     opts::Clobbering,
-    template_pack, util, PluginTrait,
+    template_pack, util,
 };
 use regex::Regex;
 use std::{

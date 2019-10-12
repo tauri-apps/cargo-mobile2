@@ -1,11 +1,11 @@
-use crate::{plugins::PluginMap, util::take_a_list};
-use clap::{App, Arg, ArgMatches, SubCommand};
 use ginit::{
-    config::Umbrella,
-    core::opts::{Clobbering, OpenIn},
+    core::{
+        exports::clap::{App, Arg, ArgMatches, SubCommand},
+        opts,
+        util::cli::take_a_list,
+    },
     init,
-    plugin::Configured,
-    steps::{Registry as StepRegistry, StepNotRegistered, Steps},
+    plugin::Map as PluginMap,
 };
 
 pub fn subcommand<'a, 'b>(steps: &'a [&'a str]) -> App<'a, 'b> {
@@ -31,8 +31,8 @@ pub fn subcommand<'a, 'b>(steps: &'a [&'a str]) -> App<'a, 'b> {
 
 #[derive(Debug)]
 pub struct InitCommand {
-    clobbering: Clobbering,
-    open_in: OpenIn,
+    clobbering: opts::Clobbering,
+    open_in: opts::OpenIn,
     only: Option<Vec<String>>,
     skip: Option<Vec<String>>,
 }
@@ -40,14 +40,14 @@ pub struct InitCommand {
 impl InitCommand {
     pub fn parse<'a>(matches: ArgMatches<'a>) -> Self {
         let clobbering = if matches.is_present("force") {
-            Clobbering::Allow
+            opts::Clobbering::Allow
         } else {
-            Clobbering::Forbid
+            opts::Clobbering::Forbid
         };
         let open_in = if matches.is_present("open") {
-            OpenIn::Editor
+            opts::OpenIn::Editor
         } else {
-            OpenIn::Nothing
+            opts::OpenIn::Nothing
         };
         let only = matches.args.get("only").map(|only| {
             only.vals
@@ -71,11 +71,14 @@ impl InitCommand {
 
     pub fn exec(
         self,
-        config: &Umbrella,
-        plugins: &PluginMap<Configured>,
+        plugins: &PluginMap,
+        noise_level: opts::NoiseLevel,
+        interactivity: opts::Interactivity,
     ) -> Result<(), init::Error> {
         init::init(
-            plugins.iter(),
+            plugins,
+            noise_level,
+            interactivity,
             self.clobbering,
             self.open_in,
             self.only.as_ref().map(|only| only.as_slice()),

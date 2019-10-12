@@ -1,4 +1,4 @@
-use crate::{config::Shared, util};
+use crate::{config::shared::Shared, util};
 use bicycle::{
     handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderError},
     Bicycle, EscapeFn, HelperDef, JsonMap,

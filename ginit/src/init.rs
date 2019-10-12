@@ -1,7 +1,6 @@
 use crate::{
-    config::Umbrella,
     core::{exports::into_result::command::CommandError, opts, util},
-    plugin::{Configured, Error as PluginError, Plugin},
+    plugin::{Map as PluginMap, RunError as PluginError},
     steps::{Registry as StepRegistry, StepNotRegistered, Steps},
 };
 use std::fmt::{self, Display};
@@ -54,7 +53,9 @@ impl Display for Error {
 }
 
 pub fn init<'a>(
-    plugins: impl Iterator<Item = &'a Plugin<Configured>> + Clone,
+    plugins: &PluginMap,
+    noise_level: opts::NoiseLevel,
+    interactivity: opts::Interactivity,
     clobbering: opts::Clobbering,
     open_in: opts::OpenIn,
     only: Option<&[impl AsRef<str>]>,
@@ -62,7 +63,7 @@ pub fn init<'a>(
 ) -> Result<(), Error> {
     let step_registry = {
         let mut registry = StepRegistry::default();
-        for plugin in plugins.clone() {
+        for plugin in plugins.iter() {
             registry.register(plugin.name());
         }
         registry
@@ -84,13 +85,20 @@ pub fn init<'a>(
     //         .write(&config)
     //         .map_err(Error::CargoConfigWriteFailed)?;
     // }
-    for plugin in plugins {
+    let args = {
+        let mut args = vec!["init"];
+        if let opts::Clobbering::Allow = clobbering {
+            args.push("--force");
+        }
+        args
+    };
+    for plugin in plugins.iter().filter(|plugin| plugin.supports("init")) {
         if steps
             .is_set(plugin.name())
             .map_err(Error::StepNotRegistered)?
         {
             plugin
-                .init(clobbering)
+                .run(noise_level, interactivity, &args)
                 .map_err(|cause| Error::PluginFailed {
                     plugin_name: plugin.name().to_owned(),
                     cause,

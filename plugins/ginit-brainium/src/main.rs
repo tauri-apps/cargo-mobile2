@@ -2,7 +2,7 @@ mod project;
 
 use ginit_core::{
     config::{ConfigTrait as _, EmptyConfig},
-    ipc, opts,
+    opts,
     protocol::Features,
     templating, PluginTrait,
 };

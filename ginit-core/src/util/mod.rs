@@ -1,4 +1,5 @@
 mod cargo;
+pub mod cli;
 mod common_email_providers;
 pub mod ln;
 mod path;
