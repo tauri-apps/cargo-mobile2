@@ -4,8 +4,8 @@ members = [
     "ginit",
     "ginit-core",
     "plugins/ginit-android",
-    # "plugins/ginit-brainium",
-    # "plugins/ginit-ios",
+    "plugins/ginit-brainium",
+    "plugins/ginit-ios",
 ]
 
 # We generate a test project on CI in this subdir, so this prevents the test

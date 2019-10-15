@@ -1,0 +1,3 @@
+name = "brainium"
+description = "Tools for Brainium"
+supports = ["init"]

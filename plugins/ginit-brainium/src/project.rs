@@ -1,6 +1,5 @@
-use crate::Brainium;
 use ginit_core::{
-    config::ConfigTrait as _,
+    config::{empty::Config, ConfigTrait as _},
     exports::{bicycle, into_result::command::CommandError},
     opts::Clobbering,
     template_pack, util,
@@ -98,7 +97,7 @@ pub fn submodule_exists(root: &Path, name: &str) -> io::Result<bool> {
 }
 
 pub fn submodule_init(
-    config: &<Brainium as PluginTrait>::Config,
+    config: &Config,
     root: &Path,
     name: &str,
     remote: &str,
@@ -140,7 +139,7 @@ pub fn submodule_init(
 }
 
 pub fn generate(
-    config: &<Brainium as PluginTrait>::Config,
+    config: &Config,
     bike: &bicycle::Bicycle,
     clobbering: Clobbering,
 ) -> Result<(), Error> {
@@ -158,7 +157,7 @@ pub fn generate(
     }
 
     let insert_data = |map: &mut bicycle::JsonMap| {
-        config.insert_template_data(Brainium::NAME, map);
+        config.insert_template_data(crate::NAME, map);
         let app_root = config.shared().app_root();
         map.insert("app-root", &app_root);
     };

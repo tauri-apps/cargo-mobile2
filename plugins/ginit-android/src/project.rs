@@ -1,9 +1,13 @@
 use crate::{config::Config, target::Target};
 use ginit_core::{
-    config::ConfigTrait, exports::bicycle, exports::into_result::command::CommandError,
+    config::ConfigTrait, exports::bicycle, exports::into_result::command::CommandError, opts,
     target::TargetTrait as _, template_pack, util::ln,
 };
-use std::{fmt, fs, path::PathBuf};
+use std::{
+    fmt::{self, Display},
+    fs,
+    path::PathBuf,
+};
 
 #[derive(Debug)]
 pub enum Error {
@@ -19,25 +23,27 @@ pub enum Error {
     AssetSymlinkFailed(ln::Error),
 }
 
-impl fmt::Display for Error {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::RustupFailed(err) => write!(f, "Failed to `rustup` Android toolchains: {}", err),
-            Error::MissingTemplatePack { name } => {
+            Self::RustupFailed(err) => write!(f, "Failed to `rustup` Android toolchains: {}", err),
+            Self::MissingTemplatePack { name } => {
                 write!(f, "The {:?} template pack is missing.", name)
             }
-            Error::TemplateProcessingFailed(err) => {
-                write!(f, "Template processing failed: {}", err)
-            }
-            Error::DirectoryCreationFailed { path, cause } => {
+            Self::TemplateProcessingFailed(err) => write!(f, "Template processing failed: {}", err),
+            Self::DirectoryCreationFailed { path, cause } => {
                 write!(f, "Failed to create directory at {:?}: {}", path, cause)
             }
-            Error::AssetSymlinkFailed(err) => write!(f, "Assets couldn't be symlinked: {}", err),
+            Self::AssetSymlinkFailed(err) => write!(f, "Assets couldn't be symlinked: {}", err),
         }
     }
 }
 
-pub fn generate(config: &Config, bike: &bicycle::Bicycle) -> Result<(), Error> {
+pub fn generate(
+    config: &Config,
+    bike: &bicycle::Bicycle,
+    _clobbering: opts::Clobbering,
+) -> Result<(), Error> {
     Target::install_all().map_err(Error::RustupFailed)?;
     let src = template_pack!(Some(config.shared()), "android-studio-project").ok_or_else(|| {
         Error::MissingTemplatePack {

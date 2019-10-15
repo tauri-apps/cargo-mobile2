@@ -1,26 +1,24 @@
 use ginit::{
     core::{
-        exports::clap::{App, Arg, ArgMatches, SubCommand},
+        exports::clap::{App, Arg, ArgMatches},
         opts,
-        util::cli::take_a_list,
+        util::cli,
     },
     init,
     plugin::Map as PluginMap,
 };
 
-pub fn subcommand<'a, 'b>(steps: &'a [&'a str]) -> App<'a, 'b> {
-    SubCommand::with_name("init")
-        .about("Creates a new project in the current working directory")
-        .arg_from_usage("--force 'Clobber files with no remorse'")
+pub fn app<'a, 'b>(steps: &'a [&'a str]) -> App<'a, 'b> {
+    cli::take_init_subcommand()
         .arg_from_usage("--open 'Open in VS Code'")
-        .arg(take_a_list(
+        .arg(cli::take_a_list(
             Arg::with_name("only")
                 .long("only")
                 .help("Only do some steps")
                 .value_name("STEPS"),
             steps,
         ))
-        .arg(take_a_list(
+        .arg(cli::take_a_list(
             Arg::with_name("skip")
                 .long("skip")
                 .help("Skip some steps")
@@ -30,20 +28,16 @@ pub fn subcommand<'a, 'b>(steps: &'a [&'a str]) -> App<'a, 'b> {
 }
 
 #[derive(Debug)]
-pub struct InitCommand {
+pub struct Command {
     clobbering: opts::Clobbering,
     open_in: opts::OpenIn,
     only: Option<Vec<String>>,
     skip: Option<Vec<String>>,
 }
 
-impl InitCommand {
-    pub fn parse<'a>(matches: ArgMatches<'a>) -> Self {
-        let clobbering = if matches.is_present("force") {
-            opts::Clobbering::Allow
-        } else {
-            opts::Clobbering::Forbid
-        };
+impl cli::CommandTrait for Command {
+    fn parse(matches: &ArgMatches<'_>) -> Self {
+        let clobbering = cli::parse_clobbering(&matches);
         let open_in = if matches.is_present("open") {
             opts::OpenIn::Editor
         } else {
@@ -68,21 +62,29 @@ impl InitCommand {
             skip,
         }
     }
+}
 
-    pub fn exec(
-        self,
-        plugins: &PluginMap,
-        noise_level: opts::NoiseLevel,
-        interactivity: opts::Interactivity,
-    ) -> Result<(), init::Error> {
-        init::init(
-            plugins,
-            noise_level,
-            interactivity,
-            self.clobbering,
-            self.open_in,
-            self.only.as_ref().map(|only| only.as_slice()),
-            self.skip.as_ref().map(|skip| skip.as_slice()),
-        )
-    }
+pub fn exec(
+    cli::Input {
+        noise_level,
+        interactivity,
+        command:
+            Command {
+                clobbering,
+                open_in,
+                only,
+                skip,
+            },
+    }: cli::Input<Command>,
+    plugins: &PluginMap,
+) -> Result<(), init::Error> {
+    init::init(
+        plugins,
+        noise_level,
+        interactivity,
+        clobbering,
+        open_in,
+        only.as_ref().map(|only| only.as_slice()),
+        skip.as_ref().map(|skip| skip.as_slice()),
+    )
 }

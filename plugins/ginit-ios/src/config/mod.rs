@@ -2,7 +2,7 @@ mod default;
 mod required;
 
 use ginit_core::{
-    config::{ConfigTrait, Shared},
+    config::{shared::Shared, ConfigTrait},
     util,
 };
 use serde::{Deserialize, Serialize};

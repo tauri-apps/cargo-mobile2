@@ -1,22 +1,72 @@
 #![forbid(unsafe_code)]
 
-mod cli;
 mod init;
 
-use self::cli::*;
 use ginit::{
     config::RequiredUmbrella,
     core::{
+        cli_app_custom_init,
         config::{
             shared::{DefaultShared, RequiredShared},
             umbrella::Umbrella,
             DefaultConfigTrait, RequiredConfigTrait,
         },
+        exports::clap::{App, AppSettings, ArgMatches, SubCommand},
         opts::{Interactivity, NoiseLevel},
-        util::{cli::NonZeroExit, TextWrapper},
+        util::{
+            cli::{self, NonZeroExit},
+            TextWrapper,
+        },
+        NAME,
     },
     plugin::Map as PluginMap,
 };
+
+fn app<'a>(
+    steps: &'a [&'a str],
+    subcommands: impl Iterator<Item = &'a (&'a str, &'a str)>,
+) -> App<'a, 'a> {
+    let mut app = cli_app_custom_init!(NAME, init::app(steps));
+    for (order, (name, description)) in subcommands.enumerate() {
+        app = app.subcommand(
+            SubCommand::with_name(name)
+                .setting(AppSettings::AllowExternalSubcommands)
+                .about(*description)
+                .display_order(order + 1),
+        );
+    }
+    app
+}
+
+#[derive(Debug)]
+enum Command {
+    Init(init::Command),
+    Plugin { name: String, args: Vec<String> },
+}
+
+impl cli::CommandTrait for Command {
+    fn parse(matches: &ArgMatches<'_>) -> Self {
+        let subcommand = matches.subcommand.as_ref().unwrap(); // clap makes sure we got a subcommand
+        match subcommand.name.as_str() {
+            "init" => Self::Init(init::Command::parse(&subcommand.matches)),
+            _ => Self::Plugin {
+                name: subcommand.name.to_owned(),
+                args: subcommand
+                    .matches
+                    .subcommand
+                    .as_ref()
+                    .and_then(|sub_subcommand| {
+                        sub_subcommand.matches.values_of("").map(|values| {
+                            let mut args = vec![sub_subcommand.name.to_owned()];
+                            args.extend(values.map(|arg| arg.to_owned()));
+                            args
+                        })
+                    })
+                    .unwrap_or_default(),
+            },
+        }
+    }
+}
 
 fn init_logging(noise_level: NoiseLevel) {
     use env_logger::{Builder, Env};
@@ -32,13 +82,14 @@ fn init_logging(noise_level: NoiseLevel) {
 fn inner(wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
     let mut plugins = PluginMap::default();
     plugins.add("android").map_err(NonZeroExit::display)?;
-    // plugins.add("brainium").map_err(NonZeroExit::display)?;
-    // plugins.add("ios").map_err(NonZeroExit::display)?;
+    plugins.add("brainium").map_err(NonZeroExit::display)?;
+    plugins.add("ios").map_err(NonZeroExit::display)?;
     let (steps, subcommands): (Vec<_>, Vec<_>) = plugins
         .iter()
         .map(|plugin| (plugin.name(), (plugin.name(), plugin.description())))
         .unzip();
-    let input = Input::parse(app(&steps, subcommands.iter())).map_err(NonZeroExit::Clap)?;
+    let input = cli::get_matches_and_parse(app(&steps, subcommands.iter()), NAME)
+        .map_err(NonZeroExit::Clap)?;
     init_logging(input.noise_level);
     let config = Umbrella::load(".").map_err(NonZeroExit::display)?.map_or_else(
         || {
@@ -72,18 +123,22 @@ fn inner(wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
             Ok(config)
         },
     )?;
-    let noise_level = input.noise_level;
-    let interactivity = input.interactivity;
     match input.command {
-        Command::Init(command) => command
-            .exec(&plugins, noise_level, interactivity)
-            .map_err(NonZeroExit::display),
+        Command::Init(command) => init::exec(
+            cli::Input {
+                noise_level: input.noise_level,
+                interactivity: input.interactivity,
+                command,
+            },
+            &plugins,
+        )
+        .map_err(NonZeroExit::display),
         Command::Plugin { name, args } => plugins
             .get(&name)
             .ok_or_else(|| {
                 NonZeroExit::display(format!("Subcommand {:?} didn't match any plugins.", name))
             })?
-            .run(noise_level, interactivity, args)
+            .run(input.noise_level, input.interactivity, args)
             .map_err(NonZeroExit::display)
             .map(drop),
     }

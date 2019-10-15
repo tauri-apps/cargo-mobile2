@@ -3,7 +3,7 @@ pub mod empty;
 pub mod shared;
 pub mod umbrella;
 
-use crate::util;
+use crate::{templating, util};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 
@@ -15,6 +15,10 @@ pub trait ConfigTrait: Debug + Serialize + Sized {
     fn from_raw(shared: shared::Shared, raw: Option<Self::Raw>) -> Result<Self, Self::Error>;
 
     fn shared(&self) -> &shared::Shared;
+
+    fn init_templating(&self) -> bicycle::Bicycle {
+        templating::init(Some(self.shared()))
+    }
 
     fn insert_template_data(&self, key: &str, map: &mut bicycle::JsonMap) {
         map.insert(key, self);

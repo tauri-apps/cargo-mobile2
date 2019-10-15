@@ -70,6 +70,23 @@ impl<C: ConfigTrait> PluginError<C> {
     }
 }
 
+#[derive(Debug)]
+pub enum LoadOrPluginError<C: ConfigTrait> {
+    LoadFailed(Error),
+    ConfigFileMissing,
+    PluginFailed(PluginError<C>),
+}
+
+impl<C: ConfigTrait> Display for LoadOrPluginError<C> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::LoadFailed(err) => write!(f, "{}", err),
+            Self::ConfigFileMissing => write!(f, "Failed to find {}!", Umbrella::file_name()),
+            Self::PluginFailed(err) => write!(f, "{}", err),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Umbrella {
     shared: Shared,
@@ -137,5 +154,17 @@ impl Umbrella {
                 .map_err(|err| PluginError::new(name, PluginErrorCause::ParseFailed(err)))?,
         )
         .map_err(|err| PluginError::new(name, PluginErrorCause::ConfigInvalid(err)))
+    }
+
+    pub fn load_plugin<C: ConfigTrait>(
+        cwd: impl AsRef<Path>,
+        name: &str,
+    ) -> Result<C, LoadOrPluginError<C>> {
+        let umbrella = Self::load(cwd)
+            .map_err(LoadOrPluginError::LoadFailed)?
+            .ok_or_else(|| LoadOrPluginError::ConfigFileMissing)?;
+        umbrella
+            .plugin(name)
+            .map_err(LoadOrPluginError::PluginFailed)
     }
 }

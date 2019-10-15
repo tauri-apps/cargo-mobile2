@@ -1,4 +1,4 @@
-use crate::{config::Config, deps, target::Target, IOS};
+use crate::{config::Config, deps, target::Target};
 use ginit_core::{
     config::ConfigTrait as _,
     exports::{
@@ -9,7 +9,6 @@ use ginit_core::{
     target::TargetTrait as _,
     template_pack,
     util::ln,
-    PluginTrait as _,
 };
 use std::{
     fmt::{self, Display},
@@ -68,7 +67,7 @@ pub fn generate(
     })?;
     let dest = config.project_root();
     bike.process(src, &dest, |map| {
-        config.insert_template_data(IOS::NAME, map)
+        config.insert_template_data(crate::NAME, map)
     })
     .map_err(Error::TemplateProcessingFailed)?;
 

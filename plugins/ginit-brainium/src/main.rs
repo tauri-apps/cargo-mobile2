@@ -1,43 +1,24 @@
 mod project;
 
 use ginit_core::{
-    config::{ConfigTrait as _, EmptyConfig},
-    opts,
-    protocol::Features,
-    templating, PluginTrait,
+    cli_app,
+    config::{umbrella::Umbrella, ConfigTrait as _},
+    util::{
+        cli::{self, InitOnly, NonZeroExit},
+        TextWrapper,
+    },
 };
 
-#[derive(Debug, Default)]
-pub struct Brainium {
-    config: Option<EmptyConfig>,
-}
+static NAME: &'static str = "brainium";
 
-impl PluginTrait for Brainium {
-    const NAME: &'static str = "brainium";
-    const DESCRIPTION: &'static str = "Brainium-specific shenanigans";
-    const FEATURES: Features = Features::BASIC;
-
-    type Config = EmptyConfig;
-    fn update_config(&mut self, config: Self::Config) {
-        self.config = Some(config);
-    }
-
-    type InitError = project::Error;
-    fn init(&mut self, clobbering: opts::Clobbering) -> Result<(), Self::InitError> {
-        let config = self.config();
-        let bike = templating::init(Some(config.shared()));
-        project::generate(config, &bike, clobbering)
-    }
-
-    type ExecError = String;
-}
-
-impl Brainium {
-    fn config(&self) -> &<Self as PluginTrait>::Config {
-        self.config.as_ref().unwrap()
-    }
+fn inner(_wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
+    let app = cli_app!(NAME);
+    let input = cli::get_matches_and_parse::<InitOnly>(app, NAME).map_err(NonZeroExit::Clap)?;
+    let config = Umbrella::load_plugin(".", NAME).map_err(NonZeroExit::display)?;
+    project::generate(&config, &config.init_templating(), input.command.clobbering)
+        .map_err(NonZeroExit::display)
 }
 
 fn main() {
-    ipc::listen(&mut Brainium::default()).expect("uh-oh");
+    NonZeroExit::main(inner)
 }
