@@ -9,3 +9,4 @@ description = "Game dev productivity tools"
 clap = "2.33.0"
 env_logger = "0.6.2"
 ginit = { path = "../ginit" }
+log = "0.4.8"

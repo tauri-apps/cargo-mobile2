@@ -7,12 +7,6 @@ use std::fmt::{self, Display};
 
 #[derive(Debug)]
 pub enum Error {
-    // CargoConfigGenFailed(cargo::GenError),
-    // CargoConfigWriteFailed(cargo::WriteError),
-    // HelloWorldGenFailed(rust::Error),
-    // AndroidGenFailed(android::project::Error),
-    // IosDepsFailed(IosDepsError),
-    // IosGenFailed(ios::project::Error),
     OnlyParseFailed(StepNotRegistered),
     SkipParseFailed(StepNotRegistered),
     StepNotRegistered(StepNotRegistered),
@@ -26,20 +20,6 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            // Error::CargoConfigGenFailed(err) => {
-            //     write!(f, "Failed to generate \".cargo/config\": {}", err)
-            // }
-            // Error::CargoConfigWriteFailed(err) => {
-            //     write!(f, "Failed to write \".cargo/config\": {}", err)
-            // }
-            // Error::HelloWorldGenFailed(err) => {
-            //     write!(f, "Failed to generate hello world project: {}", err)
-            // }
-            // Error::AndroidGenFailed(err) => {
-            //     write!(f, "Failed to generate Android project: {}", err)
-            // }
-            // Error::IosDepsFailed(err) => write!(f, "Failed to install iOS dependencies: {}", err),
-            // Error::IosGenFailed(err) => write!(f, "Failed to generate iOS project: {}", err),
             Error::OnlyParseFailed(err) => write!(f, "Failed to parse `only` step list: {}", err),
             Error::SkipParseFailed(err) => write!(f, "Failed to parse `skip` step list: {}", err),
             Error::StepNotRegistered(err) => write!(f, "{}", err),
@@ -79,12 +59,6 @@ pub fn init<'a>(
             .map_err(Error::SkipParseFailed)?;
         Steps::from_bits(&step_registry, only.bits() & !skip.bits())
     };
-    // if steps.is_set("cargo") {
-    //     CargoConfig::generate(config, &steps)
-    //         .map_err(Error::CargoConfigGenFailed)?
-    //         .write(&config)
-    //         .map_err(Error::CargoConfigWriteFailed)?;
-    // }
     let args = {
         let mut args = vec!["init"];
         if let opts::Clobbering::Allow = clobbering {

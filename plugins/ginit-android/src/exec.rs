@@ -19,7 +19,7 @@ use ginit_core::{
 use std::fmt::{self, Display};
 
 pub fn app<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
-    cli_app!(crate::NAME)
+    cli_app!()
         .subcommand(
             SubCommand::with_name("check")
                 .about("Checks if code compiles for target(s)")
@@ -139,7 +139,7 @@ pub fn exec(
     let env = Env::new().map_err(Error::EnvInitFailed)?;
     match command {
         Command::Init { clobbering } => {
-            project::generate(config, &config.init_templating(), clobbering)
+            project::generate(config, &env, &config.init_templating(), clobbering)
                 .map_err(Error::InitFailed)
         }
         Command::Check { targets } => call_for_targets_with_fallback(

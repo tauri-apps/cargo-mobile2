@@ -1,8 +1,9 @@
 use crate::{config::Config, env::Env, ndk};
 use ginit_core::{
+    cargo::DotCargoTarget,
     config::ConfigTrait,
     opts::{NoiseLevel, Profile},
-    target::{TargetCargoConfig, TargetTrait},
+    target::TargetTrait,
     util::{self, ln},
 };
 use into_result::{command::CommandError, IntoResult as _};
@@ -170,7 +171,7 @@ impl<'a> Target<'a> {
         &self,
         config: &Config,
         env: &Env,
-    ) -> Result<TargetCargoConfig, ndk::MissingToolError> {
+    ) -> Result<DotCargoTarget, ndk::MissingToolError> {
         let ar = env
             .ndk
             .binutil_path(ndk::Binutil::Ar, self.binutils_triple())?
@@ -186,7 +187,7 @@ impl<'a> Target<'a> {
             )?
             .display()
             .to_string();
-        Ok(TargetCargoConfig {
+        Ok(DotCargoTarget {
             ar: Some(ar),
             linker: Some(linker),
             rustflags: vec![

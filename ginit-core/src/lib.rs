@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+pub mod cargo;
 pub mod config;
 pub mod device;
 pub mod env;

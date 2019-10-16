@@ -55,12 +55,12 @@ impl cli::CommandTrait for Command {
                     .matches
                     .subcommand
                     .as_ref()
-                    .and_then(|sub_subcommand| {
-                        sub_subcommand.matches.values_of("").map(|values| {
-                            let mut args = vec![sub_subcommand.name.to_owned()];
+                    .map(|sub_subcommand| {
+                        let mut args = vec![sub_subcommand.name.to_owned()];
+                        if let Some(values) = sub_subcommand.matches.values_of("") {
                             args.extend(values.map(|arg| arg.to_owned()));
-                            args
-                        })
+                        }
+                        args
                     })
                     .unwrap_or_default(),
             },
@@ -91,6 +91,7 @@ fn inner(wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
     let input = cli::get_matches_and_parse(app(&steps, subcommands.iter()), NAME)
         .map_err(NonZeroExit::Clap)?;
     init_logging(input.noise_level);
+    log::info!("received input {:#?}", input);
     let config = Umbrella::load(".").map_err(NonZeroExit::display)?.map_or_else(
         || {
             // let old_bike = templating::init(None);

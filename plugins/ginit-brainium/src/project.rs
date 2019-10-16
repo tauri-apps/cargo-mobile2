@@ -1,4 +1,5 @@
 use ginit_core::{
+    cargo,
     config::{empty::Config, ConfigTrait as _},
     exports::{bicycle, into_result::command::CommandError},
     opts::Clobbering,
@@ -40,39 +41,43 @@ pub enum Error {
     AppRootInvalidUtf8 {
         app_root: PathBuf,
     },
+    DotCargoLoadFailed(cargo::LoadError),
+    DotCargoWriteFailed(cargo::WriteError),
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::MissingTemplatePack { name } => {
+            Self::MissingTemplatePack { name } => {
                 write!(f, "The {:?} template pack is missing.", name)
             }
-            Error::TemplateTraversalFailed(err) => write!(f, "Template traversal failed: {}", err),
-            Error::TemplateProcessingFailed(err) => {
+            Self::TemplateTraversalFailed(err) => write!(f, "Template traversal failed: {}", err),
+            Self::TemplateProcessingFailed(err) => {
                 write!(f, "Template processing failed: {}", err)
             }
-            Error::GitInitFailed(err) => write!(f, "Failed to initialize git: {}", err),
-            Error::GitSubmoduleStatusFailed { name, cause } => write!(
+            Self::GitInitFailed(err) => write!(f, "Failed to initialize git: {}", err),
+            Self::GitSubmoduleStatusFailed { name, cause } => write!(
                 f,
                 "Failed to check \".gitmodules\" for submodule {:?}: {}",
                 name, cause,
             ),
-            Error::GitSubmoduleAddFailed { name, cause } => {
+            Self::GitSubmoduleAddFailed { name, cause } => {
                 write!(f, "Failed to add submodule {:?}: {}", name, cause)
             }
-            Error::GitSubmoduleInitFailed { name, cause } => {
+            Self::GitSubmoduleInitFailed { name, cause } => {
                 write!(f, "Failed to init submodule {:?}: {}", name, cause)
             }
-            Error::RustLibTooOld => {
+            Self::RustLibTooOld => {
                 write!(f, "The `rust-lib` you have checked out is too old to work with the new project structure. Please update it and then run this again.")
             }
-            Error::AppRootOutsideProject { app_root, project_root } => write!(
+            Self::AppRootOutsideProject { app_root, project_root } => write!(
                 f,
                 "The app root ({:?}) is outside of the project root ({:?}), which is pretty darn invalid.",
                 app_root, project_root
             ),
-            Error::AppRootInvalidUtf8 { app_root } => write!(f, "The app root ({:?}) contains invalid UTF-8.", app_root),
+            Self::AppRootInvalidUtf8 { app_root } => write!(f, "The app root ({:?}) contains invalid UTF-8.", app_root),
+            Self::DotCargoLoadFailed(err) => write!(f, "Failed to load cargo config: {}", err),
+            Self::DotCargoWriteFailed(err) => write!(f, "Failed to write cargo config: {}", err),
         }
     }
 }
@@ -177,6 +182,29 @@ pub fn generate(
         .filter(|action| clobbering.is_allowed() || !action.dest().exists());
     bike.process_actions(actions, insert_data)
         .map_err(Error::TemplateProcessingFailed)?;
+
+    {
+        let mut dot_cargo =
+            cargo::DotCargo::load(config.shared()).map_err(Error::DotCargoLoadFailed)?;
+        dot_cargo.insert_target(
+            "x86_64-apple-darwin",
+            cargo::DotCargoTarget {
+                ar: None,
+                linker: None,
+                rustflags: vec![
+                    "-C".to_owned(),
+                    "target-cpu=native".to_owned(),
+                    // this makes sure we'll be able to change dylib IDs
+                    // (needed for dylib hot reloading)
+                    "-C".to_owned(),
+                    "link-arg=-headerpad_max_install_names".to_owned(),
+                ],
+            },
+        );
+        dot_cargo
+            .write(config.shared())
+            .map_err(Error::DotCargoWriteFailed)?;
+    }
 
     Ok(())
 }

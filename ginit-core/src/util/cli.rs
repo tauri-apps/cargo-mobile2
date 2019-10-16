@@ -9,9 +9,9 @@ use std::fmt::{Debug, Display};
 
 #[macro_export]
 macro_rules! cli_app {
-    ($name:expr) => {
+    () => {
         $crate::util::cli::barebones_app(
-            $name,
+            env!("CARGO_PKG_NAME"),
             env!("CARGO_PKG_VERSION"),
             env!("CARGO_PKG_AUTHORS"),
             env!("CARGO_PKG_DESCRIPTION"),

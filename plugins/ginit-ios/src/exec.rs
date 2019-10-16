@@ -18,7 +18,7 @@ use ginit_core::{
 use std::fmt::{self, Display};
 
 pub fn app<'a, 'b>(targets: &'a [&'a str]) -> App<'a, 'b> {
-    cli_app!(crate::NAME)
+    cli_app!()
         .subcommand(
             SubCommand::with_name("check")
                 .about("Checks if code compiles for target(s)")

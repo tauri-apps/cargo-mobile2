@@ -7,7 +7,7 @@ use ginit_core::{
     env::Env,
     exports::into_result::{command::CommandError, IntoResult as _},
     opts::{NoiseLevel, Profile},
-    target::{TargetCargoConfig, TargetTrait},
+    target::TargetTrait,
     util::{self, pure_command::PureCommand},
 };
 use std::{collections::BTreeMap, fmt};
@@ -169,10 +169,6 @@ impl<'a> Target<'a> {
         Self::all()
             .values()
             .find(|target| target.arch == arch || target.alias == Some(arch))
-    }
-
-    pub fn generate_cargo_config(&self) -> TargetCargoConfig {
-        Default::default()
     }
 
     fn min_xcode_version_satisfied(&self) -> Result<(), VersionCheckError> {

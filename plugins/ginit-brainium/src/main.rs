@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 mod project;
 
 use ginit_core::{
@@ -12,7 +14,7 @@ use ginit_core::{
 static NAME: &'static str = "brainium";
 
 fn inner(_wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
-    let app = cli_app!(NAME);
+    let app = cli_app!();
     let input = cli::get_matches_and_parse::<InitOnly>(app, NAME).map_err(NonZeroExit::Clap)?;
     let config = Umbrella::load_plugin(".", NAME).map_err(NonZeroExit::display)?;
     project::generate(&config, &config.init_templating(), input.command.clobbering)

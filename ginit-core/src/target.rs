@@ -1,6 +1,8 @@
 use crate::util;
-use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, fmt};
+use std::{
+    collections::BTreeMap,
+    fmt::{self, Display},
+};
 
 pub trait TargetTrait<'a>: fmt::Debug + Sized {
     const DEFAULT_KEY: &'static str;
@@ -40,26 +42,13 @@ pub trait TargetTrait<'a>: fmt::Debug + Sized {
     }
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
-pub struct TargetCargoConfig {
-    pub ar: Option<String>,
-    pub linker: Option<String>,
-    pub rustflags: Vec<String>,
-}
-
-impl TargetCargoConfig {
-    pub fn is_empty(&self) -> bool {
-        self.ar.is_none() && self.linker.is_none() && self.rustflags.is_empty()
-    }
-}
-
 #[derive(Debug)]
 pub struct TargetInvalid {
     name: String,
     possible: Vec<String>,
 }
 
-impl fmt::Display for TargetInvalid {
+impl Display for TargetInvalid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,

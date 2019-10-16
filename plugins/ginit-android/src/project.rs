@@ -1,7 +1,7 @@
-use crate::{config::Config, target::Target};
+use crate::{config::Config, env::Env, ndk, target::Target};
 use ginit_core::{
-    config::ConfigTrait, exports::bicycle, exports::into_result::command::CommandError, opts,
-    target::TargetTrait as _, template_pack, util::ln,
+    cargo, config::ConfigTrait, exports::bicycle, exports::into_result::command::CommandError,
+    opts, target::TargetTrait as _, template_pack, util::ln,
 };
 use std::{
     fmt::{self, Display},
@@ -21,6 +21,9 @@ pub enum Error {
         cause: std::io::Error,
     },
     AssetSymlinkFailed(ln::Error),
+    DotCargoLoadFailed(cargo::LoadError),
+    DotCargoGenFailed(ndk::MissingToolError),
+    DotCargoWriteFailed(cargo::WriteError),
 }
 
 impl Display for Error {
@@ -35,12 +38,16 @@ impl Display for Error {
                 write!(f, "Failed to create directory at {:?}: {}", path, cause)
             }
             Self::AssetSymlinkFailed(err) => write!(f, "Assets couldn't be symlinked: {}", err),
+            Self::DotCargoLoadFailed(err) => write!(f, "Failed to load cargo config: {}", err),
+            Self::DotCargoGenFailed(err) => write!(f, "Failed to generate cargo config: {}", err),
+            Self::DotCargoWriteFailed(err) => write!(f, "Failed to write cargo config: {}", err),
         }
     }
 }
 
 pub fn generate(
     config: &Config,
+    env: &Env,
     bike: &bicycle::Bicycle,
     _clobbering: opts::Clobbering,
 ) -> Result<(), Error> {
@@ -81,6 +88,22 @@ pub fn generate(
         ln::TargetStyle::Directory,
     )
     .map_err(Error::AssetSymlinkFailed)?;
+
+    {
+        let mut dot_cargo =
+            cargo::DotCargo::load(config.shared()).map_err(Error::DotCargoLoadFailed)?;
+        for target in Target::all().values() {
+            dot_cargo.insert_target(
+                target.triple.to_owned(),
+                target
+                    .generate_cargo_config(config, &env)
+                    .map_err(Error::DotCargoGenFailed)?,
+            );
+        }
+        dot_cargo
+            .write(config.shared())
+            .map_err(Error::DotCargoWriteFailed)?;
+    }
 
     Ok(())
 }

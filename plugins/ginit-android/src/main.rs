@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 mod adb;
 mod config;
 mod device;
