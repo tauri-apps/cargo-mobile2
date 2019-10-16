@@ -1,7 +1,6 @@
 use crate::{device::Device, env::Env, target::Target};
-use ginit_core::util::pure_command::PureCommand;
+use ginit_core::{regex, regex_multi_line, util::pure_command::PureCommand};
 use into_result::{command::CommandError, IntoResult as _};
-use regex::{Regex, RegexBuilder};
 use std::{collections::BTreeSet, fmt, process::Command, str};
 
 pub fn adb(env: &Env, serial_no: &str) -> Command {
@@ -74,16 +73,14 @@ impl fmt::Display for DeviceNameError {
 }
 
 pub fn device_name(env: &Env, serial_no: &str) -> Result<String, DeviceNameError> {
-    lazy_static::lazy_static! {
-        static ref NAME_RE: Regex = Regex::new(r#"\bname: (.*)"#).unwrap();
-    }
+    let name_re = regex!(r#"\bname: (.*)"#);
     let output = adb(env, serial_no)
         .args(&["shell", "dumpsys", "bluetooth_manager"])
         .output()
         .into_result()
         .map_err(DeviceNameError::DumpsysFailed)?;
     let raw = str::from_utf8(&output.stdout).map_err(DeviceNameError::InvalidUtf8)?;
-    NAME_RE
+    name_re
         .captures_iter(raw)
         .next()
         .map(|caps| {
@@ -121,16 +118,14 @@ impl fmt::Display for DeviceListError {
 }
 
 pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, DeviceListError> {
-    lazy_static::lazy_static! {
-        static ref SERIAL_RE: Regex = RegexBuilder::new(r#"^([\w\d]{6,20})	\b"#).multi_line(true).build().unwrap();
-    }
+    let serial_re = regex_multi_line!(r#"^([\w\d]{6,20})	\b"#);
     let output = PureCommand::new("adb", env)
         .args(&["devices"])
         .output()
         .into_result()
         .map_err(DeviceListError::DevicesFailed)?;
     let raw_list = str::from_utf8(&output.stdout).map_err(DeviceListError::InvalidUtf8)?;
-    SERIAL_RE
+    serial_re
         .captures_iter(raw_list)
         .map(|caps| {
             assert_eq!(caps.len(), 2);

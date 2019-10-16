@@ -3,9 +3,8 @@ use ginit_core::{
     config::{empty::Config, ConfigTrait as _},
     exports::{bicycle, into_result::command::CommandError},
     opts::Clobbering,
-    template_pack, util,
+    regex, template_pack, util,
 };
-use regex::Regex;
 use std::{
     ffi::OsStr,
     fmt::{self, Display},
@@ -90,14 +89,13 @@ pub fn git_init(root: &Path) -> Result<(), Error> {
 }
 
 pub fn submodule_exists(root: &Path, name: &str) -> io::Result<bool> {
-    lazy_static::lazy_static! {
-        static ref SUBMODULE_NAME_RE: Regex = Regex::new(r#"\[submodule "(.*)"\]"#).unwrap();
-    }
+    let submodule_name_re = regex!(r#"\[submodule "(.*)"\]"#);
     let path = root.join(".git/config");
     if !path.exists() {
         Ok(false)
     } else {
-        util::read_str(&path).map(|modules| util::has_match(&*SUBMODULE_NAME_RE, &modules, name))
+        util::read_string(&path)
+            .map(|modules| util::re::has_match(submodule_name_re, &modules, name))
     }
 }
 

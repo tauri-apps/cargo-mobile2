@@ -5,7 +5,10 @@ use crate::{
 use ginit_core::{
     config::ConfigTrait as _,
     env::Env,
-    exports::into_result::{command::CommandError, IntoResult as _},
+    exports::{
+        into_result::{command::CommandError, IntoResult as _},
+        once_cell::sync::OnceCell,
+    },
     opts::{NoiseLevel, Profile},
     target::TargetTrait,
     util::{self, pure_command::PureCommand},
@@ -115,16 +118,21 @@ impl<'a> TargetTrait<'a> for Target<'a> {
     const DEFAULT_KEY: &'static str = "aarch64";
 
     fn all() -> &'a BTreeMap<&'a str, Self> {
-        lazy_static::lazy_static! {
-            pub static ref TARGETS: BTreeMap<&'static str, Target<'static>> = {
-                let mut targets = BTreeMap::new();
-                targets.insert("aarch64", Target {
+        static TARGETS: OnceCell<BTreeMap<&'static str, Target<'static>>> = OnceCell::new();
+        TARGETS.get_or_init(|| {
+            let mut targets = BTreeMap::new();
+            targets.insert(
+                "aarch64",
+                Target {
                     triple: "aarch64-apple-ios",
                     arch: "arm64",
                     alias: Some("arm64e"),
                     min_xcode_version: None,
-                });
-                targets.insert("x86_64", Target {
+                },
+            );
+            targets.insert(
+                "x86_64",
+                Target {
                     triple: "x86_64-apple-ios",
                     arch: "x86_64",
                     alias: None,
@@ -134,11 +142,10 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                     // it should be fine to be opinionated about this given
                     // OpenGL's deprecation.
                     min_xcode_version: Some(((11, 0), "iOS Simulator doesn't support Metal until")),
-                });
-                targets
-            };
-        }
-        &*TARGETS
+                },
+            );
+            targets
+        })
     }
 
     fn triple(&'a self) -> &'a str {

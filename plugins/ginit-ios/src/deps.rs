@@ -1,5 +1,8 @@
-use ginit_core::{opts::Clobbering, util};
-use into_result::{command::CommandError, IntoResult as _};
+use ginit_core::{
+    exports::into_result::{command::CommandError, IntoResult as _},
+    opts::Clobbering,
+    util,
+};
 use std::{
     fmt::{self, Display},
     path::Path,

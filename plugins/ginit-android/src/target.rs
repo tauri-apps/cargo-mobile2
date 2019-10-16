@@ -2,6 +2,7 @@ use crate::{config::Config, env::Env, ndk};
 use ginit_core::{
     cargo::DotCargoTarget,
     config::ConfigTrait,
+    exports::once_cell::sync::OnceCell,
     opts::{NoiseLevel, Profile},
     target::TargetTrait,
     util::{self, ln},
@@ -108,41 +109,51 @@ impl<'a> TargetTrait<'a> for Target<'a> {
     const DEFAULT_KEY: &'static str = "aarch64";
 
     fn all() -> &'a BTreeMap<&'a str, Self> {
-        lazy_static::lazy_static! {
-            static ref TARGETS: BTreeMap<&'static str, Target<'static>> = {
-                let mut targets = BTreeMap::new();
-                targets.insert("aarch64", Target {
+        static TARGETS: OnceCell<BTreeMap<&'static str, Target<'static>>> = OnceCell::new();
+        TARGETS.get_or_init(|| {
+            let mut targets = BTreeMap::new();
+            targets.insert(
+                "aarch64",
+                Target {
                     triple: "aarch64-linux-android",
                     clang_triple_override: None,
                     binutils_triple_override: None,
                     abi: "arm64-v8a",
                     arch: "arm64",
-                });
-                targets.insert("armv7", Target {
+                },
+            );
+            targets.insert(
+                "armv7",
+                Target {
                     triple: "armv7-linux-androideabi",
                     clang_triple_override: Some("armv7a-linux-androideabi"),
                     binutils_triple_override: Some("arm-linux-androideabi"),
                     abi: "armeabi-v7a",
                     arch: "arm",
-                });
-                targets.insert("i686", Target {
+                },
+            );
+            targets.insert(
+                "i686",
+                Target {
                     triple: "i686-linux-android",
                     clang_triple_override: None,
                     binutils_triple_override: None,
                     abi: "x86",
                     arch: "x86",
-                });
-                targets.insert("x86_64", Target {
+                },
+            );
+            targets.insert(
+                "x86_64",
+                Target {
                     triple: "x86_64-linux-android",
                     clang_triple_override: None,
                     binutils_triple_override: None,
                     abi: "x86_64",
                     arch: "x86_64",
-                });
-                targets
-            };
-        }
-        &*TARGETS
+                },
+            );
+            targets
+        })
     }
 
     fn triple(&'a self) -> &'a str {

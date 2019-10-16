@@ -13,13 +13,13 @@ use ginit_core::{
     },
     exports::clap::{App, AppSettings, ArgMatches, SubCommand},
     opts::{Interactivity, NoiseLevel},
+    regex,
     util::{
         cli::{self, Input, NonZeroExit},
         TextWrapper,
     },
     NAME,
 };
-use regex::Regex;
 
 fn app<'a>(
     steps: &'a [&'a str],
@@ -70,11 +70,9 @@ impl cli::CommandTrait for Command {
 fn forward_help(result: clap::Result<Input<Command>>) -> Result<Input<Command>, NonZeroExit> {
     result.or_else(|err| match err.kind {
         clap::ErrorKind::HelpDisplayed => {
-            lazy_static::lazy_static! {
-                // TODO: this is silly...
-                static ref COMMAND_RE: Regex = Regex::new(r#"USAGE:\s+cargo-ginit (.*) \[FLAGS\]"#).unwrap();
-            }
-            if let Some(name) = COMMAND_RE.captures_iter(&err.message).next().map(|caps| {
+            // TODO: this is silly...
+            let command_re = regex!(r#"USAGE:\s+cargo-ginit (.*) \[FLAGS\]"#);
+            if let Some(name) = command_re.captures_iter(&err.message).next().map(|caps| {
                 assert_eq!(caps.len(), 2);
                 caps.get(1).unwrap().as_str().to_owned()
             }) {
@@ -90,7 +88,7 @@ fn forward_help(result: clap::Result<Input<Command>>) -> Result<Input<Command>, 
                 Err(NonZeroExit::Clap(err))
             }
         }
-        _ => Err(NonZeroExit::Clap(err))
+        _ => Err(NonZeroExit::Clap(err)),
     })
 }
 

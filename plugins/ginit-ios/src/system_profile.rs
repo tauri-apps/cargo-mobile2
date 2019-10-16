@@ -1,5 +1,7 @@
-use into_result::{command::CommandError, IntoResult as _};
-use regex::Regex;
+use ginit_core::{
+    exports::into_result::{command::CommandError, IntoResult as _},
+    regex,
+};
 use std::{fmt, process::Command, str};
 
 #[derive(Debug)]
@@ -40,9 +42,7 @@ pub struct DeveloperTools {
 
 impl DeveloperTools {
     pub fn new() -> Result<Self, Error> {
-        lazy_static::lazy_static! {
-            static ref VERSION_RE: Regex = Regex::new(r#"\bVersion: (\d+)\.(\d+)\b"#).unwrap();
-        }
+        let version_re = regex!(r#"\bVersion: (\d+)\.(\d+)\b"#);
         // The `-xml` flag can be used to get this info in plist format, but
         // there don't seem to be any high quality plist crates, and parsing
         // XML sucks, we'll be lazy for now.
@@ -53,7 +53,7 @@ impl DeveloperTools {
             .map_err(Error::SystemProfilerFailed)
             .map(|out| out.stdout)?;
         let text = str::from_utf8(&bytes).map_err(Error::OutputInvalidUtf8)?;
-        let components = VERSION_RE
+        let components = version_re
             .captures_iter(text)
             .next()
             .map(|caps| {

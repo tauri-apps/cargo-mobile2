@@ -1,4 +1,4 @@
-use into_result::{
+use ginit_core::exports::into_result::{
     command::{CommandError, CommandResult},
     IntoResult as _,
 };

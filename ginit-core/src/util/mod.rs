@@ -5,13 +5,13 @@ pub mod ln;
 mod path;
 pub mod prompt;
 pub mod pure_command;
+pub mod re;
 
 pub use self::{cargo::CargoCommand, common_email_providers::COMMON_EMAIL_PROVIDERS, path::*};
 use into_result::{
     command::{CommandError, CommandResult},
     IntoResult as _,
 };
-use regex::Regex;
 use std::{
     env,
     ffi::OsStr,
@@ -80,38 +80,11 @@ pub fn list_display(list: &[impl Display]) -> String {
     }
 }
 
-pub fn read_str(path: impl AsRef<OsStr>) -> io::Result<String> {
+pub fn read_string(path: impl AsRef<OsStr>) -> io::Result<String> {
     File::open(path.as_ref()).and_then(|mut file| {
         let mut buf = String::new();
         file.read_to_string(&mut buf).map(|_| buf)
     })
-}
-
-pub fn has_match(re: &Regex, body: &str, pattern: &str) -> bool {
-    re.captures(body)
-        .and_then(|caps| {
-            caps.iter()
-                .find(|cap| cap.map(|cap| cap.as_str() == pattern).unwrap_or_default())
-        })
-        .is_some()
-}
-
-// yay for bad string ergonomics
-// https://github.com/rust-lang/rust/issues/42671
-pub trait FriendlyContains<T>
-where
-    str: PartialEq<T>,
-{
-    fn friendly_contains(&self, value: &str) -> bool;
-}
-
-impl<T> FriendlyContains<T> for &[T]
-where
-    str: PartialEq<T>,
-{
-    fn friendly_contains(&self, value: &str) -> bool {
-        self.iter().any(|item| value == item)
-    }
 }
 
 pub fn add_to_path(path: impl Display) -> String {

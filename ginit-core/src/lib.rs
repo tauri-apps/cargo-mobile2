@@ -14,6 +14,8 @@ pub mod exports {
     pub use clap;
     pub use colored;
     pub use into_result;
+    pub use once_cell;
+    pub use regex;
 }
 
 pub static NAME: &'static str = "ginit";
