@@ -1,3 +1,0 @@
-name = "ios"
-description = "Tools for iOS"
-supports = ["init"]

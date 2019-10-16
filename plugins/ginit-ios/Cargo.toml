@@ -3,6 +3,10 @@ name = "ginit-ios"
 version = "0.1.0"
 authors = ["Brainium Studios LLC"]
 edition = "2018"
+description = "Tools for iOS"
+
+[package.metadata.ginit]
+supports = ["init"]
 
 [dependencies]
 colored = "1"

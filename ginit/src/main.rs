@@ -25,7 +25,7 @@ fn app<'a>(
     steps: &'a [&'a str],
     subcommands: impl Iterator<Item = &'a (&'a str, &'a str)>,
 ) -> App<'a, 'a> {
-    let mut app = cli_app_custom_init!(NAME, init::app(steps));
+    let mut app = cli_app_custom_init!(init::app(steps));
     for (order, (name, description)) in subcommands.enumerate() {
         app = app.subcommand(
             SubCommand::with_name(name)
