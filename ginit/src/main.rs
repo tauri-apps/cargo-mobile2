@@ -1,25 +1,23 @@
-#![forbid(unsafe_code)]
-
+mod config;
 mod init;
+mod plugin;
+mod steps;
 
-use ginit::{
-    config::RequiredUmbrella,
-    core::{
-        cli_app_custom_init,
-        config::{
-            shared::{DefaultShared, RequiredShared},
-            umbrella::Umbrella,
-            DefaultConfigTrait, RequiredConfigTrait,
-        },
-        exports::clap::{App, AppSettings, ArgMatches, SubCommand},
-        opts::{Interactivity, NoiseLevel},
-        util::{
-            cli::{self, NonZeroExit},
-            TextWrapper,
-        },
-        NAME,
+use crate::{config::RequiredUmbrella, plugin::Map as PluginMap};
+use ginit_core::{
+    cli_app_custom_init,
+    config::{
+        shared::{DefaultShared, RequiredShared},
+        umbrella::Umbrella,
+        DefaultConfigTrait, RequiredConfigTrait,
     },
-    plugin::Map as PluginMap,
+    exports::clap::{App, AppSettings, ArgMatches, SubCommand},
+    opts::{Interactivity, NoiseLevel},
+    util::{
+        cli::{self, NonZeroExit},
+        TextWrapper,
+    },
+    NAME,
 };
 
 fn app<'a>(

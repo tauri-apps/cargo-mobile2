@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "cargo-ginit",
     "ginit",
     "ginit-core",
     "plugins/ginit-android",
