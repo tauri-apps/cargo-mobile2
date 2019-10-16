@@ -41,6 +41,7 @@ pub fn barebones_app<'a, 'b>(
     init: Option<App<'a, 'b>>,
 ) -> App<'a, 'b> {
     let mut app = App::new(name)
+        .setting(AppSettings::ColoredHelp)
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .setting(AppSettings::VersionlessSubcommands)
         .version(version)

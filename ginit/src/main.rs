@@ -14,11 +14,12 @@ use ginit_core::{
     exports::clap::{App, AppSettings, ArgMatches, SubCommand},
     opts::{Interactivity, NoiseLevel},
     util::{
-        cli::{self, NonZeroExit},
+        cli::{self, Input, NonZeroExit},
         TextWrapper,
     },
     NAME,
 };
+use regex::Regex;
 
 fn app<'a>(
     steps: &'a [&'a str],
@@ -66,6 +67,33 @@ impl cli::CommandTrait for Command {
     }
 }
 
+fn forward_help(result: clap::Result<Input<Command>>) -> Result<Input<Command>, NonZeroExit> {
+    result.or_else(|err| match err.kind {
+        clap::ErrorKind::HelpDisplayed => {
+            lazy_static::lazy_static! {
+                // TODO: this is silly...
+                static ref COMMAND_RE: Regex = Regex::new(r#"USAGE:\s+cargo-ginit (.*) \[FLAGS\]"#).unwrap();
+            }
+            if let Some(name) = COMMAND_RE.captures_iter(&err.message).next().map(|caps| {
+                assert_eq!(caps.len(), 2);
+                caps.get(1).unwrap().as_str().to_owned()
+            }) {
+                Ok(Input {
+                    noise_level: Default::default(),
+                    interactivity: Default::default(),
+                    command: Command::Plugin {
+                        name,
+                        args: vec!["help".to_owned()],
+                    },
+                })
+            } else {
+                Err(NonZeroExit::Clap(err))
+            }
+        }
+        _ => Err(NonZeroExit::Clap(err))
+    })
+}
+
 fn init_logging(noise_level: NoiseLevel) {
     use env_logger::{Builder, Env};
     let default_level = match noise_level {
@@ -86,8 +114,10 @@ fn inner(wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
         .iter()
         .map(|plugin| (plugin.name(), (plugin.name(), plugin.description())))
         .unzip();
-    let input = cli::get_matches_and_parse(app(&steps, subcommands.iter()), NAME)
-        .map_err(NonZeroExit::Clap)?;
+    let input = forward_help(cli::get_matches_and_parse(
+        app(&steps, subcommands.iter()),
+        NAME,
+    ))?;
     init_logging(input.noise_level);
     log::info!("received input {:#?}", input);
     let config = Umbrella::load(".").map_err(NonZeroExit::display)?.map_or_else(
@@ -124,7 +154,7 @@ fn inner(wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
     )?;
     match input.command {
         Command::Init(command) => init::exec(
-            cli::Input {
+            Input {
                 noise_level: input.noise_level,
                 interactivity: input.interactivity,
                 command,

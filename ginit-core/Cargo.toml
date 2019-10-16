@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 bicycle = { git = "ssh://git@bitbucket.org/brainium/bicycle.git" }
-clap = "2.33.0"
+clap = { version = "2.33.0", features = ["color"] }
 colored = "1"
 deunicode = "1.0.0"
 heck = "0.3.1"
