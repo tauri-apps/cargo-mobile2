@@ -1,5 +1,6 @@
 pub mod app_name;
 pub mod empty;
+pub mod gen;
 pub mod shared;
 pub mod umbrella;
 
@@ -8,9 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 
 pub trait ConfigTrait: Debug + Serialize + Sized {
-    type DefaultConfig: DefaultConfigTrait;
-
-    type Raw: for<'r> Deserialize<'r> + Serialize;
+    type Raw: RawConfigTrait;
     type Error: Debug + Display;
     fn from_raw(shared: shared::Shared, raw: Option<Self::Raw>) -> Result<Self, Self::Error>;
 
@@ -26,16 +25,24 @@ pub trait ConfigTrait: Debug + Serialize + Sized {
     }
 }
 
-pub trait DefaultConfigTrait: Debug + Sized {
-    type DetectError: Debug + Display;
-    fn detect() -> Result<Self, Self::DetectError>;
+pub trait RawConfigTrait: Debug + for<'r> Deserialize<'r> + Serialize {
+    fn is_zst() -> bool {
+        std::mem::size_of::<Self>() == 0
+    }
 
-    type RequiredConfig: RequiredConfigTrait;
-    type UpgradeError: Debug + Display;
-    fn upgrade(self) -> Result<Self::RequiredConfig, Self::UpgradeError>;
+    type Detected: DetectedConfigTrait;
+
+    type FromDetectedError: Debug + Display;
+    fn from_detected(detected: Self::Detected) -> Result<Self, Self::FromDetectedError>;
+
+    type FromPromptError: Debug + Display;
+    fn from_prompt(
+        detected: Self::Detected,
+        wrapper: &util::TextWrapper,
+    ) -> Result<Self, Self::FromPromptError>;
 }
 
-pub trait RequiredConfigTrait: Debug + Serialize + Sized {
-    type PromptError: Debug + Display;
-    fn prompt(wrapper: &util::TextWrapper) -> Result<Self, Self::PromptError>;
+pub trait DetectedConfigTrait: Debug + Sized {
+    type Error: Debug + Display;
+    fn new() -> Result<Self, Self::Error>;
 }

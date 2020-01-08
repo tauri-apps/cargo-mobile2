@@ -1,6 +1,6 @@
-use super::RequiredShared;
+use super::Raw;
 use crate::{
-    config::{app_name, DefaultConfigTrait},
+    config::{app_name, DetectedConfigTrait},
     util::COMMON_EMAIL_PROVIDERS,
 };
 use heck::{KebabCase as _, TitleCase as _};
@@ -70,28 +70,15 @@ impl Display for DetectError {
 }
 
 #[derive(Debug)]
-pub enum UpgradeError {
-    AppNameNotDetected,
-}
-
-impl Display for UpgradeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::AppNameNotDetected => write!(f, "No app name was detected."),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct DefaultShared {
+pub struct Detected {
     pub app_name: Option<String>,
     pub stylized_app_name: String,
     pub domain: String,
 }
 
-impl DefaultConfigTrait for DefaultShared {
-    type DetectError = DetectError;
-    fn detect() -> Result<Self, Self::DetectError> {
+impl DetectedConfigTrait for Detected {
+    type Error = DetectError;
+    fn new() -> Result<Self, Self::Error> {
         let cwd = env::current_dir().map_err(DetectError::CurrentDirFailed)?;
         let dir_name = cwd
             .file_name()
@@ -109,18 +96,6 @@ impl DefaultConfigTrait for DefaultShared {
             app_name,
             stylized_app_name,
             domain,
-        })
-    }
-
-    type RequiredConfig = RequiredShared;
-    type UpgradeError = UpgradeError;
-    fn upgrade(self) -> Result<Self::RequiredConfig, Self::UpgradeError> {
-        Ok(RequiredShared {
-            app_name: self
-                .app_name
-                .ok_or_else(|| UpgradeError::AppNameNotDetected)?,
-            stylized_app_name: self.stylized_app_name,
-            domain: self.domain,
         })
     }
 }

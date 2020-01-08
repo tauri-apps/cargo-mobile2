@@ -1,23 +1,17 @@
-mod config;
+mod config_gen;
 mod init;
 mod plugin;
 mod steps;
 
-use crate::{config::RequiredUmbrella, plugin::Map as PluginMap};
+use crate::plugin::Map as PluginMap;
 use ginit_core::{
     cli_app_custom_init,
-    config::{
-        shared::{DefaultShared, RequiredShared},
-        umbrella::Umbrella,
-        DefaultConfigTrait, RequiredConfigTrait,
+    exports::{
+        clap::{App, AppSettings, ArgMatches, SubCommand},
+        once_cell_regex::regex,
     },
-    exports::clap::{App, AppSettings, ArgMatches, SubCommand},
-    opts::{Interactivity, NoiseLevel},
-    regex,
-    util::{
-        cli::{self, Input, NonZeroExit},
-        TextWrapper,
-    },
+    opts::NoiseLevel,
+    util::cli::{self, Input, NonZeroExit},
     NAME,
 };
 
@@ -103,74 +97,43 @@ fn init_logging(noise_level: NoiseLevel) {
     Builder::from_env(env).init();
 }
 
-fn inner(wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
-    let mut plugins = PluginMap::default();
-    plugins.add("android").map_err(NonZeroExit::display)?;
-    plugins.add("brainium").map_err(NonZeroExit::display)?;
-    plugins.add("ios").map_err(NonZeroExit::display)?;
-    let (steps, subcommands): (Vec<_>, Vec<_>) = plugins
-        .iter()
-        .map(|plugin| (plugin.name(), (plugin.name(), plugin.description())))
-        .unzip();
-    let input = forward_help(cli::get_matches_and_parse(
-        app(&steps, subcommands.iter()),
-        NAME,
-    ))?;
-    init_logging(input.noise_level);
-    log::info!("received input {:#?}", input);
-    let config = Umbrella::load(".").map_err(NonZeroExit::display)?.map_or_else(
-        || {
-            // let old_bike = templating::init(None);
-            let required_config = match input.interactivity {
-                Interactivity::Full => {
-                    let shared= RequiredShared::prompt(&wrapper).map_err(NonZeroExit::display)?;
-                    let mut umbrella = RequiredUmbrella::new(shared);
-                    // for plugin in unimplemented!() {
-                    //     unimplemented!()
-                    // }
-                    umbrella
-                }
-                Interactivity::None => {
-                    let shared = DefaultShared::detect().map_err(NonZeroExit::display).and_then(|defaults| defaults.upgrade().map_err(NonZeroExit::display))?;
-                    let mut umbrella = RequiredUmbrella::new(shared);
-                    // for plugin in unimplemented!() {
-                    //     unimplemented!()
-                    // }
-                    umbrella
-                }
-            };
-            required_config.write(".").map_err(NonZeroExit::display)?;
-            if let Some(config) = Umbrella::load(".").map_err(NonZeroExit::display)? {
-                Ok(config)
-            } else {
-                Err(NonZeroExit::display("Developer error: no config found even after doing a successful `interactive_config_gen`!"))
-            }
-        },
-        |config| {
-            Ok(config)
-        },
-    )?;
-    match input.command {
-        Command::Init(command) => init::exec(
-            Input {
-                noise_level: input.noise_level,
-                interactivity: input.interactivity,
-                command,
-            },
-            &plugins,
-        )
-        .map_err(NonZeroExit::display),
-        Command::Plugin { name, args } => plugins
-            .get(&name)
-            .ok_or_else(|| {
-                NonZeroExit::display(format!("Subcommand {:?} didn't match any plugins.", name))
-            })?
-            .run(input.noise_level, input.interactivity, args)
-            .map_err(NonZeroExit::display)
-            .map(drop),
-    }
-}
-
 fn main() {
-    NonZeroExit::main(inner)
+    NonZeroExit::main(|wrapper| {
+        let plugins = {
+            let mut plugins = PluginMap::default();
+            plugins.add("brainium").map_err(NonZeroExit::display)?;
+            plugins.add("android").map_err(NonZeroExit::display)?;
+            plugins.add("ios").map_err(NonZeroExit::display)?;
+            plugins
+        };
+        let (steps, subcommands): (Vec<_>, Vec<_>) = plugins
+            .iter()
+            .map(|plugin| (plugin.name(), (plugin.name(), plugin.description())))
+            .unzip();
+        let input = forward_help(cli::get_matches_and_parse(
+            app(&steps, subcommands.iter()),
+            NAME,
+        ))?;
+        init_logging(input.noise_level);
+        log::info!("received input {:#?}", input);
+        match input.command {
+            Command::Init(command) => init::exec(
+                Input {
+                    noise_level: input.noise_level,
+                    interactivity: input.interactivity,
+                    command,
+                },
+                &plugins,
+                wrapper,
+            )
+            .map_err(NonZeroExit::display),
+            Command::Plugin { name, args } => plugins
+                .get(&name)
+                .ok_or_else(|| {
+                    NonZeroExit::display(format!("Subcommand {:?} didn't match any plugins.", name))
+                })?
+                .run_and_wait(input.noise_level, input.interactivity, args)
+                .map_err(NonZeroExit::display),
+        }
+    })
 }

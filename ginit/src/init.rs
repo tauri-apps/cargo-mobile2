@@ -1,8 +1,10 @@
 use crate::{
+    config_gen,
     plugin::{Map as PluginMap, RunError as PluginError},
     steps::{Registry as StepRegistry, StepNotRegistered, Steps},
 };
 use ginit_core::{
+    config::umbrella::{self, Umbrella},
     exports::{
         clap::{App, Arg, ArgMatches},
         into_result::command::CommandError,
@@ -10,7 +12,10 @@ use ginit_core::{
     opts,
     util::{self, cli},
 };
-use std::fmt::{self, Display};
+use std::{
+    fmt::{self, Display},
+    io,
+};
 
 pub fn app<'a, 'b>(steps: &'a [&'a str]) -> App<'a, 'b> {
     cli::take_init_subcommand()
@@ -36,6 +41,10 @@ pub enum Error {
     OnlyParseFailed(StepNotRegistered),
     SkipParseFailed(StepNotRegistered),
     StepNotRegistered(StepNotRegistered),
+    ConfigLoadFailed(umbrella::Error),
+    RootDiscoveryFailed(io::Error),
+    RootNotFound,
+    ConfigGenFailed(config_gen::Error),
     PluginFailed {
         plugin_name: String,
         cause: PluginError,
@@ -49,6 +58,10 @@ impl Display for Error {
             Error::OnlyParseFailed(err) => write!(f, "Failed to parse `only` step list: {}", err),
             Error::SkipParseFailed(err) => write!(f, "Failed to parse `skip` step list: {}", err),
             Error::StepNotRegistered(err) => write!(f, "{}", err),
+            Error::ConfigLoadFailed(err) => write!(f, "{}", err),
+            Error::RootDiscoveryFailed(err) => write!(f, "Failed to discover project root: {}", err),
+            Error::RootNotFound => write!(f, "No project root was discovered."),
+            Error::ConfigGenFailed(err) => write!(f, "Failed to generate config: {}", err),
             Error::PluginFailed{
                 plugin_name,
                 cause,
@@ -108,6 +121,7 @@ pub fn exec(
             },
     }: cli::Input<Command>,
     plugins: &PluginMap,
+    wrapper: &util::TextWrapper,
 ) -> Result<(), Error> {
     let only = only.as_ref().map(|only| only.as_slice());
     let skip = skip.as_ref().map(|skip| skip.as_slice());
@@ -136,13 +150,24 @@ pub fn exec(
         }
         args
     };
+    if let None = Umbrella::load(".").map_err(Error::ConfigLoadFailed)? {
+        config_gen::gen_and_write(
+            clobbering,
+            noise_level,
+            interactivity,
+            ".",
+            &plugins,
+            wrapper,
+        )
+        .map_err(Error::ConfigGenFailed)?;
+    }
     for plugin in plugins.iter().filter(|plugin| plugin.supports("init")) {
         if steps
             .is_set(plugin.name())
             .map_err(Error::StepNotRegistered)?
         {
             plugin
-                .run(noise_level, interactivity, &args)
+                .run_and_wait(noise_level, interactivity, &args)
                 .map_err(|cause| Error::PluginFailed {
                     plugin_name: plugin.name().to_owned(),
                     cause,

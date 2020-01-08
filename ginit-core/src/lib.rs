@@ -14,8 +14,11 @@ pub mod exports {
     pub use clap;
     pub use colored;
     pub use into_result;
-    pub use once_cell;
-    pub use regex;
+    pub use once_cell_regex::{
+        self,
+        exports::{once_cell, regex},
+    };
+    pub use toml;
 }
 
 pub static NAME: &'static str = "ginit";

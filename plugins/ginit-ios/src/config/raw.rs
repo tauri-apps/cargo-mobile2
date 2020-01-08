@@ -1,7 +1,31 @@
 use crate::teams;
-use ginit_core::{config::RequiredConfigTrait, exports::colored::*, util};
-use serde::Serialize;
-use std::fmt::{self, Display};
+use ginit_core::{
+    config::{empty, RawConfigTrait},
+    exports::colored::*,
+    util,
+};
+use serde::{Deserialize, Serialize};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display},
+};
+
+#[derive(Debug)]
+pub enum DetectedError {
+    DeveloperTeamLookupFailed(teams::Error),
+    DeveloperTeamsEmpty,
+}
+
+impl Display for DetectedError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::DeveloperTeamLookupFailed(err) => {
+                write!(f, "Failed to find Apple developer teams: {}", err)
+            }
+            Self::DeveloperTeamsEmpty => write!(f, "No Apple developer teams were detected."),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum PromptError {
@@ -22,15 +46,37 @@ impl Display for PromptError {
     }
 }
 
-#[derive(Debug, Serialize)]
-pub struct RequiredConfig {
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Raw {
     #[serde(alias = "development-team")]
     pub development_team: String,
+    #[serde(alias = "project-root")]
+    pub project_root: Option<String>,
+    pub targets: Option<HashMap<String, HashMap<String, String>>>,
 }
 
-impl RequiredConfigTrait for RequiredConfig {
-    type PromptError = PromptError;
-    fn prompt(wrapper: &util::TextWrapper) -> Result<Self, Self::PromptError> {
+impl RawConfigTrait for Raw {
+    type Detected = empty::Detected;
+
+    type FromDetectedError = DetectedError;
+    fn from_detected(_detected: Self::Detected) -> Result<Self, Self::FromDetectedError> {
+        let development_teams =
+            teams::find_development_teams().map_err(DetectedError::DeveloperTeamLookupFailed)?;
+        Ok(Self {
+            development_team: development_teams
+                .get(0)
+                .map(|development_team| development_team.id.clone())
+                .ok_or_else(|| DetectedError::DeveloperTeamsEmpty)?,
+            project_root: None,
+            targets: None,
+        })
+    }
+
+    type FromPromptError = PromptError;
+    fn from_prompt(
+        _detected: Self::Detected,
+        wrapper: &util::TextWrapper,
+    ) -> Result<Self, Self::FromPromptError> {
         let development_team = {
             let development_teams =
                 teams::find_development_teams().map_err(PromptError::DeveloperTeamLookupFailed)?;
@@ -82,6 +128,10 @@ impl RequiredConfigTrait for RequiredConfig {
             }
             development_team.unwrap()
         };
-        Ok(Self { development_team })
+        Ok(Self {
+            development_team,
+            project_root: None,
+            targets: None,
+        })
     }
 }

@@ -1,8 +1,11 @@
-#![allow(unused_parens)]
+use rust_lib::{shader_macros::shader, *};
 
-#[allow(unused_imports)]
-use rust_lib::*;
+#[shader("./shaders/swizzle.frag")]
+frag! {
+    pub type SwizzleFrag {
+        type PipelineUniform = SwizzlePU;
+        type DrawUniform = SwizzleDU;
+    }
+}
 
-include! {concat!(env!("OUT_DIR"), "/shaders.rs")}
-
-pub type SwizzleShader = renderer::shader::ShaderPair<draw::shaders::DefaultVert, SwizzleFrag>;
+pub type SwizzleShader = shaders::CustomFrag<SwizzleFrag>;

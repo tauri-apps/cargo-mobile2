@@ -119,7 +119,8 @@ impl Umbrella {
     pub fn load(cwd: impl AsRef<Path>) -> Result<Option<Self>, Error> {
         #[derive(Debug, Deserialize, Serialize)]
         struct Raw {
-            ginit: shared::Raw,
+            #[serde(rename = "ginit")]
+            shared: shared::Raw,
             #[serde(flatten)]
             plugins: HashMap<String, toml::Value>,
         }
@@ -130,7 +131,7 @@ impl Umbrella {
             file.read_to_end(&mut contents).map_err(Error::ReadFailed)?;
             let raw = toml::from_slice::<Raw>(&contents).map_err(Error::ParseFailed)?;
             Ok(Some(Self {
-                shared: Shared::from_raw(project_root, raw.ginit)
+                shared: Shared::from_raw(project_root, raw.shared)
                     .map_err(Error::SharedConfigInvalid)?
                     .into(),
                 plugins: raw.plugins,
@@ -144,27 +145,26 @@ impl Umbrella {
         &self.shared
     }
 
-    pub fn plugin<C: ConfigTrait>(&self, name: &str) -> Result<C, PluginError<C>> {
+    fn extract_plugin<C: ConfigTrait>(mut self, name: &str) -> Result<C, PluginError<C>> {
         C::from_raw(
-            self.shared().clone(),
+            self.shared,
             self.plugins
-                .get(name)
-                .map(|plugin| plugin.clone().try_into())
+                .remove(name)
+                .map(|plugin| plugin.try_into())
                 .transpose()
                 .map_err(|err| PluginError::new(name, PluginErrorCause::ParseFailed(err)))?,
         )
         .map_err(|err| PluginError::new(name, PluginErrorCause::ConfigInvalid(err)))
     }
 
-    pub fn load_plugin<C: ConfigTrait>(
-        cwd: impl AsRef<Path>,
-        name: &str,
-    ) -> Result<C, LoadOrPluginError<C>> {
-        let umbrella = Self::load(cwd)
+    pub fn load_plugin<C: ConfigTrait>(name: &str) -> Result<Option<C>, LoadOrPluginError<C>> {
+        Self::load(".")
             .map_err(LoadOrPluginError::LoadFailed)?
-            .ok_or_else(|| LoadOrPluginError::ConfigFileMissing)?;
-        umbrella
-            .plugin(name)
-            .map_err(LoadOrPluginError::PluginFailed)
+            .map(|umbrella| {
+                umbrella
+                    .extract_plugin(name)
+                    .map_err(LoadOrPluginError::PluginFailed)
+            })
+            .transpose()
     }
 }

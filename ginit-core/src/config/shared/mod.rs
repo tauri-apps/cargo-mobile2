@@ -1,7 +1,7 @@
-mod default;
-mod required;
+mod detect;
+mod raw;
 
-pub use self::{default::*, required::*};
+pub use self::{detect::*, raw::*};
 
 use super::app_name;
 use crate::util;
@@ -66,21 +66,6 @@ impl Display for Error {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Raw {
-    #[serde(alias = "app-name")]
-    app_name: String,
-    #[serde(alias = "stylized-app-name")]
-    stylized_app_name: Option<String>,
-    domain: String,
-    #[serde(alias = "app-root")]
-    app_root: Option<String>,
-    // These aren't used anymore, and only kept in so we can emit warnings about them!
-    source_root: Option<String>,
-    manifest_path: Option<String>,
-    asset_path: Option<String>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Shared {
     project_root: PathBuf,
@@ -92,15 +77,6 @@ pub struct Shared {
 
 impl Shared {
     pub fn from_raw(project_root: PathBuf, raw_config: Raw) -> Result<Self, Error> {
-        if raw_config.source_root.is_some() {
-            log::warn!("`ginit.source_root` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
-        }
-        if raw_config.manifest_path.is_some() {
-            log::warn!("`ginit.manifest_path` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
-        }
-        if raw_config.asset_path.is_some() {
-            log::warn!("`ginit.asset_path` specified in {}.toml - this config key is no longer needed, and will be ignored", crate::NAME);
-        }
         let app_name = app_name::validate(raw_config.app_name).map_err(Error::AppNameInvalid)?;
         let stylized_app_name = raw_config.stylized_app_name;
         let domain = {

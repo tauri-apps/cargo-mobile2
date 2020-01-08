@@ -12,24 +12,20 @@ mod target;
 use ginit_core::{
     config::umbrella::Umbrella,
     target::TargetTrait as _,
-    util::{
-        cli::{self, NonZeroExit},
-        TextWrapper,
-    },
+    util::cli::{self, NonZeroExit},
 };
 
 static NAME: &'static str = "android";
 
-fn inner(_wrapper: &TextWrapper) -> Result<(), NonZeroExit> {
-    let targets = target::Target::all()
-        .keys()
-        .map(|key| *key)
-        .collect::<Vec<_>>();
-    let input = cli::get_matches_and_parse(exec::app(&targets), NAME).map_err(NonZeroExit::Clap)?;
-    let config = Umbrella::load_plugin(".", NAME).map_err(NonZeroExit::display)?;
-    exec::exec(input, &config).map_err(NonZeroExit::display)
-}
-
 fn main() {
-    NonZeroExit::main(inner)
+    NonZeroExit::main(|wrapper| {
+        let targets = target::Target::all()
+            .keys()
+            .map(|key| *key)
+            .collect::<Vec<_>>();
+        let input =
+            cli::get_matches_and_parse(exec::app(&targets), NAME).map_err(NonZeroExit::Clap)?;
+        let config = Umbrella::load_plugin(NAME).map_err(NonZeroExit::display)?;
+        exec::exec(input, config.as_ref(), wrapper).map_err(NonZeroExit::display)
+    })
 }

@@ -1,3 +1,3 @@
-# ginit (backend library)
+# `ginit-core`
 
-Note that it's not recommended to depend on this in an app; the main reason we expose this is for use in frontends.
+`ginit-core` doesn't know anything about plugins. It's intended to be used within plugins, and also to glue things together in frontends.

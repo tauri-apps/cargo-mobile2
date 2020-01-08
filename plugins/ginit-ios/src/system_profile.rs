@@ -1,6 +1,6 @@
-use ginit_core::{
-    exports::into_result::{command::CommandError, IntoResult as _},
-    regex,
+use ginit_core::exports::{
+    into_result::{command::CommandError, IntoResult as _},
+    once_cell_regex::regex,
 };
 use std::{fmt, process::Command, str};
 

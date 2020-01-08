@@ -1,19 +1,32 @@
-use super::default::{DefaultShared, DetectError};
+use super::detect::{DetectError, Detected};
 use crate::{
-    config::{app_name, DefaultConfigTrait as _, RequiredConfigTrait},
+    config::{app_name, DetectedConfigTrait as _, RawConfigTrait},
     util::{self, prompt},
 };
 use colored::*;
 use heck::TitleCase as _;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
     io,
 };
 
 #[derive(Debug)]
+pub enum UpgradeError {
+    AppNameNotDetected,
+}
+
+impl Display for UpgradeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::AppNameNotDetected => write!(f, "No app name was detected."),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum PromptError {
-    DefaultConfigDetectionFailed(DetectError),
+    DetectedConfigDetectionFailed(DetectError),
     AppNamePromptFailed(io::Error),
     StylizedAppNamePromptFailed(io::Error),
     DomainPromptFailed(io::Error),
@@ -22,7 +35,7 @@ pub enum PromptError {
 impl Display for PromptError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::DefaultConfigDetectionFailed(err) => {
+            Self::DetectedConfigDetectionFailed(err) => {
                 write!(f, "Failed to detect default config values: {}", err)
             }
             Self::AppNamePromptFailed(err) => write!(f, "Failed to prompt for app name: {}", err),
@@ -34,33 +47,53 @@ impl Display for PromptError {
     }
 }
 
-#[derive(Debug, Serialize)]
-pub struct RequiredShared {
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Raw {
+    #[serde(alias = "app-name")]
     pub app_name: String,
-    pub stylized_app_name: String,
+    #[serde(alias = "stylized-app-name")]
+    pub stylized_app_name: Option<String>,
     pub domain: String,
+    #[serde(alias = "app-root")]
+    pub app_root: Option<String>,
 }
 
-impl RequiredConfigTrait for RequiredShared {
-    type PromptError = PromptError;
-    fn prompt(wrapper: &util::TextWrapper) -> Result<Self, Self::PromptError> {
-        let defaults =
-            DefaultShared::detect().map_err(PromptError::DefaultConfigDetectionFailed)?;
-        let (app_name, default_stylized) = Self::prompt_app_name(wrapper, &defaults)?;
+impl RawConfigTrait for Raw {
+    type Detected = Detected;
+
+    type FromDetectedError = UpgradeError;
+    fn from_detected(detected: Self::Detected) -> Result<Self, Self::FromDetectedError> {
+        Ok(Self {
+            app_name: detected
+                .app_name
+                .ok_or_else(|| UpgradeError::AppNameNotDetected)?,
+            stylized_app_name: Some(detected.stylized_app_name),
+            domain: detected.domain,
+            app_root: None,
+        })
+    }
+
+    type FromPromptError = PromptError;
+    fn from_prompt(
+        detected: Self::Detected,
+        wrapper: &util::TextWrapper,
+    ) -> Result<Self, Self::FromPromptError> {
+        let (app_name, default_stylized) = Self::prompt_app_name(wrapper, &detected)?;
         let stylized_app_name = Self::prompt_stylized_app_name(&app_name, default_stylized)?;
-        let domain = Self::prompt_domain(wrapper, &defaults)?;
+        let domain = Self::prompt_domain(wrapper, &detected)?;
         Ok(Self {
             app_name,
-            stylized_app_name,
+            stylized_app_name: Some(stylized_app_name),
             domain,
+            app_root: Default::default(),
         })
     }
 }
 
-impl RequiredShared {
+impl Raw {
     fn prompt_app_name(
         wrapper: &util::TextWrapper,
-        defaults: &DefaultShared,
+        defaults: &Detected,
     ) -> Result<(String, Option<String>), PromptError> {
         let mut default_app_name = defaults.app_name.clone();
         let mut app_name = None;
@@ -113,7 +146,7 @@ impl RequiredShared {
 
     fn prompt_domain(
         wrapper: &util::TextWrapper,
-        defaults: &DefaultShared,
+        defaults: &Detected,
     ) -> Result<String, PromptError> {
         let mut domain = None;
         while let None = domain {

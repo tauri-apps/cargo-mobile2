@@ -1,5 +1,5 @@
 use ginit_core::{
-    config::{empty, shared::Shared, ConfigTrait},
+    config::{empty, shared::Shared, ConfigTrait, RawConfigTrait},
     util,
 };
 use serde::{Deserialize, Serialize};
@@ -65,6 +65,23 @@ pub struct Raw {
     targets: Option<HashMap<String, HashMap<String, String>>>,
 }
 
+impl RawConfigTrait for Raw {
+    type Detected = empty::Detected;
+
+    type FromDetectedError = util::Never;
+    fn from_detected(_detected: Self::Detected) -> Result<Self, Self::FromDetectedError> {
+        Ok(Self::default())
+    }
+
+    type FromPromptError = util::Never;
+    fn from_prompt(
+        _detected: Self::Detected,
+        _wrapper: &util::TextWrapper,
+    ) -> Result<Self, Self::FromPromptError> {
+        Ok(Self::default())
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
@@ -75,8 +92,6 @@ pub struct Config {
 }
 
 impl ConfigTrait for Config {
-    type DefaultConfig = empty::DefaultConfig;
-
     type Raw = Raw;
     type Error = Error;
     fn from_raw(shared: Shared, raw: Option<Self::Raw>) -> Result<Self, Self::Error> {

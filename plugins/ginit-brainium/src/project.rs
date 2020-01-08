@@ -1,9 +1,9 @@
 use ginit_core::{
     cargo,
     config::{empty::Config, ConfigTrait as _},
-    exports::{bicycle, into_result::command::CommandError},
+    exports::{bicycle, into_result::command::CommandError, once_cell_regex::regex},
     opts::Clobbering,
-    regex, template_pack, util,
+    template_pack, util,
 };
 use std::{
     ffi::OsStr,
@@ -94,7 +94,7 @@ pub fn submodule_exists(root: &Path, name: &str) -> io::Result<bool> {
     if !path.exists() {
         Ok(false)
     } else {
-        util::read_string(&path)
+        std::fs::read_to_string(&path)
             .map(|modules| util::re::has_match(submodule_name_re, &modules, name))
     }
 }
@@ -141,11 +141,7 @@ pub fn submodule_init(
     Ok(())
 }
 
-pub fn generate(
-    config: &Config,
-    bike: &bicycle::Bicycle,
-    clobbering: Clobbering,
-) -> Result<(), Error> {
+pub fn gen(config: &Config, bike: &bicycle::Bicycle, clobbering: Clobbering) -> Result<(), Error> {
     let dest = config.shared().project_root();
     git_init(&dest)?;
     submodule_init(

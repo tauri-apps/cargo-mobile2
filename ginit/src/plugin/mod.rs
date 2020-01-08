@@ -5,16 +5,18 @@ pub use map::Map;
 
 use self::manifest::Manifest;
 use ginit_core::{
-    exports::into_result::{command::CommandError, IntoResult as _},
+    exports::into_result::{
+        command::{CommandError, CommandResult},
+        IntoResult as _,
+    },
     opts,
 };
 use std::{
     ffi::OsStr,
     fmt::{self, Display},
-    fs::File,
-    io::{self, Read},
+    io,
     path::{Path, PathBuf},
-    process::{Child, Command},
+    process::{Child, Command, ExitStatus, Stdio},
 };
 
 #[derive(Debug)]
@@ -35,32 +37,46 @@ impl Display for NewError {
 #[derive(Debug)]
 pub enum RunError {
     SpawnFailed(CommandError),
+    WaitFailed(io::Error),
+    CommandFailed(CommandError),
 }
 
 impl Display for RunError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::SpawnFailed(err) => write!(f, "Failed to spawn process: {}", err),
+            Self::WaitFailed(err) => write!(f, "Failed to wait for exit status: {}", err),
+            Self::CommandFailed(err) => write!(f, "{}", err),
         }
     }
 }
 
 #[derive(Debug)]
+#[must_use = "proc handles must be `wait`ed on, or they won't stop"]
 pub struct ProcHandle {
-    inner: Child,
+    inner: Option<Child>,
 }
 
 impl Drop for ProcHandle {
     fn drop(&mut self) {
-        if let Err(err) = self.inner.wait() {
-            eprintln!("{}", err);
+        if self.inner.is_some() {
+            log::error!("proc handle dropped without being waited on");
         }
     }
 }
 
 impl From<Child> for ProcHandle {
     fn from(inner: Child) -> Self {
-        Self { inner }
+        Self { inner: Some(inner) }
+    }
+}
+
+impl ProcHandle {
+    pub fn wait(mut self) -> io::Result<ExitStatus> {
+        self.inner
+            .take()
+            .expect("developer error: `ProcHandle` vacant")
+            .wait()
     }
 }
 
@@ -101,33 +117,50 @@ impl Plugin {
             .any(|supported| supported.as_str() == feature.as_ref())
     }
 
-    pub fn run(
+    fn run(
         &self,
         noise_level: opts::NoiseLevel,
         interactivity: opts::Interactivity,
         args: impl IntoIterator<Item = impl AsRef<OsStr>>,
     ) -> Result<ProcHandle, RunError> {
-        let mut command = Command::new(&self.bin_path);
-        match noise_level {
-            opts::NoiseLevel::Polite => (),
-            opts::NoiseLevel::LoudAndProud => {
-                command.arg("-v");
+        let mut command = {
+            let mut command = Command::new(&self.bin_path);
+            command.stdin(Stdio::piped());
+            match noise_level {
+                opts::NoiseLevel::Polite => (),
+                opts::NoiseLevel::LoudAndProud => {
+                    command.arg("-v");
+                }
+                opts::NoiseLevel::FranklyQuitePedantic => {
+                    command.arg("-vv");
+                }
             }
-            opts::NoiseLevel::FranklyQuitePedantic => {
-                command.arg("-vv");
+            match interactivity {
+                opts::Interactivity::Full => (),
+                opts::Interactivity::None => {
+                    command.arg("--non-interactive");
+                }
             }
-        }
-        match interactivity {
-            opts::Interactivity::Full => (),
-            opts::Interactivity::None => {
-                command.arg("--non-interactive");
-            }
-        }
-        command.args(args);
-        command
+            command.args(args);
+            command
+        };
+        let handle = command
             .spawn()
             .into_result()
-            .map_err(RunError::SpawnFailed)
-            .map(Into::into)
+            .map_err(RunError::SpawnFailed)?;
+        Ok(handle.into())
+    }
+
+    pub fn run_and_wait(
+        &self,
+        noise_level: opts::NoiseLevel,
+        interactivity: opts::Interactivity,
+        args: impl IntoIterator<Item = impl AsRef<OsStr>>,
+    ) -> Result<(), RunError> {
+        self.run(noise_level, interactivity, args)?
+            .wait()
+            .map_err(RunError::WaitFailed)?
+            .into_result()
+            .map_err(RunError::CommandFailed)
     }
 }

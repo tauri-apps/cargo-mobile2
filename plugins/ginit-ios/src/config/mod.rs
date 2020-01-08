@@ -1,13 +1,12 @@
-mod default;
-mod required;
+pub mod raw;
 
+use self::raw::Raw;
 use ginit_core::{
     config::{shared::Shared, ConfigTrait},
     util,
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::{
-    collections::HashMap,
     fmt::{self, Display},
     path::PathBuf,
 };
@@ -66,15 +65,6 @@ impl Display for Error {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Raw {
-    #[serde(alias = "development-team")]
-    development_team: String,
-    #[serde(alias = "project-root")]
-    project_root: Option<String>,
-    targets: Option<HashMap<String, HashMap<String, String>>>,
-}
-
 #[serde(rename_all = "kebab-case")]
 #[derive(Clone, Debug, Serialize)]
 pub struct Config {
@@ -85,8 +75,6 @@ pub struct Config {
 }
 
 impl ConfigTrait for Config {
-    type DefaultConfig = default::DefaultConfig;
-
     type Raw = Raw;
     type Error = Error;
     fn from_raw(shared: Shared, raw: Option<Self::Raw>) -> Result<Self, Self::Error> {

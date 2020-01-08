@@ -1,9 +1,6 @@
-use super::{shared::Shared, ConfigTrait, DefaultConfigTrait, RequiredConfigTrait};
+use super::{shared::Shared, ConfigTrait, DetectedConfigTrait, RawConfigTrait};
 use crate::util;
 use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct Raw {}
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -13,8 +10,6 @@ pub struct Config {
 }
 
 impl ConfigTrait for Config {
-    type DefaultConfig = DefaultConfig;
-
     type Raw = Raw;
     type Error = util::Never;
     fn from_raw(shared: Shared, _raw: Option<Self::Raw>) -> Result<Self, Self::Error> {
@@ -26,28 +21,32 @@ impl ConfigTrait for Config {
     }
 }
 
-#[derive(Debug)]
-pub struct DefaultConfig;
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct Raw;
 
-impl DefaultConfigTrait for DefaultConfig {
-    type DetectError = util::Never;
-    fn detect() -> Result<Self, Self::DetectError> {
+impl RawConfigTrait for Raw {
+    type Detected = Detected;
+
+    type FromDetectedError = util::Never;
+    fn from_detected(_detected: Self::Detected) -> Result<Self, Self::FromDetectedError> {
         Ok(Self)
     }
 
-    type RequiredConfig = RequiredConfig;
-    type UpgradeError = util::Never;
-    fn upgrade(self) -> Result<Self::RequiredConfig, Self::UpgradeError> {
-        Ok(RequiredConfig)
+    type FromPromptError = util::Never;
+    fn from_prompt(
+        _detected: Self::Detected,
+        _wrapper: &util::TextWrapper,
+    ) -> Result<Self, Self::FromPromptError> {
+        Ok(Self)
     }
 }
 
-#[derive(Debug, Serialize)]
-pub struct RequiredConfig;
+#[derive(Debug)]
+pub struct Detected;
 
-impl RequiredConfigTrait for RequiredConfig {
-    type PromptError = util::Never;
-    fn prompt(_wrapper: &util::TextWrapper) -> Result<Self, Self::PromptError> {
+impl DetectedConfigTrait for Detected {
+    type Error = util::Never;
+    fn new() -> Result<Self, Self::Error> {
         Ok(Self)
     }
 }

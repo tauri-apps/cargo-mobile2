@@ -1,16 +1,17 @@
 mod shaders;
 
 use rust_lib::{
-    draw::{
-        colors,
-        shaders::{DefaultDraw, DefaultShader},
-        RectBuilder,
+    app::{self, app_env, entry_point, App, AppResource, DrawResource, TextureHandle},
+    draw::RectBuilder,
+    gal::{FontId, RenderNode, Scale, Text, Texture},
+    geometry::{
+        self,
+        chromatose::{colors, LinRgba},
+        pee::StarBuilder,
+        Mat4, Point, Rect, ScreenRect, ScreenSize, ScreenVec2, Size,
     },
-    app::{self, entry_point, app_env, App, AppResource, DrawResource, TextureHandle, Time},
-    geometry::{Mat4, Point, Rect, Size, Vec2},
     renderer::builders::*,
-    text,
-    window::{TouchPhase, TouchScreen},
+    window::{Touch, TouchPhase},
 };
 
 include!(concat!(env!("OUT_DIR"), "/managers.rs"));
@@ -29,52 +30,34 @@ impl App for Game {
     type UserEvent = ();
 
     fn new(init_resource: &mut AppResource<'_>) -> Self {
-        let size = init_resource.window.screen_surface_size().unwrap();
+        let size = init_resource.window.screen_surface_size();
         Self {
             assets: AssetManager::new(init_resource),
-            canvas: init_resource.create_blank_texture(
-                colors::INVISIBLE,
-                size.map(|value| value as u32),
-            ).expect("failed to create canvas texture"),
+            canvas: init_resource
+                .create_blank_texture(colors::INVISIBLE_SRGB, size)
+                .expect("failed to create canvas texture"),
             spot_count: 0,
             spots_touched: Default::default(),
         }
     }
 
-    fn time_changed(
-        &mut self,
-        _time: Time,
-        _time_resource: &mut AppResource<'_>,
-    ) {}
+    fn default_font(&self) -> FontId {
+        self.assets.fonts.ma_shan_zheng_regular()
+    }
 
-    fn draw(
-        &mut self,
-        draw_resource: &mut DrawResource<'_>,
-    ) -> CommandGroup {
-        let screen_rect = draw_resource.window.screen_surface_rect().unwrap();
-        let screen_size = screen_rect.size();
-        let proj = draw_resource.window.ortho();
-        Pass::swapchain(Some(colors::UNICORN_HAIR.to_linear()))
-            .with_pipeline::<DefaultShader>(
-                Pipeline::new(proj, ())
-                    .with_draw(self.draw_background(screen_rect))
-                    .with_draw(self.draw_canvas(screen_rect))
-                    .with_draw(self.draw_score(draw_resource))
-            )
-            .into_command_group()
-            .with_dependency(self.draw_spots_on_canvas(screen_size, proj))
+    fn default_text_scale(&self) -> Scale {
+        Scale::uniform(64.0)
     }
 
     fn handle_touch(
         &mut self,
-        touch: TouchScreen,
-        _time: std::time::Instant,
+        touch: Touch,
+        _time: rust_lib::app::TimePoint,
         touch_resource: &mut AppResource<'_>,
     ) {
-        if touch.phase == TouchPhase::Began
-        || touch.phase == TouchPhase::Moved {
-            let size = touch_resource.window.screen_surface_size().unwrap();
-            let rect = Rect::with_top_left(Point::zero(), size);
+        if touch.phase == TouchPhase::Began || touch.phase == TouchPhase::Moved {
+            let size = touch_resource.window.screen_surface_size();
+            let rect = Rect::with_top_left(Point::zero(), size.to_f32());
             if rect.contains(&touch.position) {
                 touch_resource.request_redraw();
                 self.spot_count = self.spot_count.saturating_add(1);
@@ -82,85 +65,97 @@ impl App for Game {
             }
         }
     }
+
+    fn draw(&mut self, draw_resource: &mut DrawResource<'_>) -> RenderNode {
+        let screen_rect = draw_resource.window.screen_surface_rect();
+        RenderNode::new()
+            .with_child(self.draw_background(screen_rect))
+            .with_child(self.draw_transparent_rects(screen_rect))
+            .with_child(self.draw_spots_on_canvas(screen_rect))
+            .with_child(self.draw_score(draw_resource))
+            .with_child(
+                RenderNode::poly_builder(
+                    StarBuilder::new(5)
+                        .with_center(screen_rect.bottom_right().map(|x| x as f32 - 50.0)),
+                )
+                .with_color(colors::MAGIC_PINK),
+            )
+    }
 }
 
 impl Game {
-    fn draw_background(
-        &mut self,
-        screen_rect: Rect,
-    ) -> DefaultDraw {
+    fn draw_background(&mut self, screen_rect: ScreenRect) -> impl Into<RenderNode> {
         let logo = self.assets.textures.logo();
         let bg_size = logo
             .size_f32()
-            .scaled_to_fill_and_fit(screen_rect.size());
-        RectBuilder::new(Rect::with_center(screen_rect.center(), bg_size))
-            .with_texture(**logo)
-            .into_draw()
-    }
-
-    fn draw_canvas(
-        &mut self,
-        screen_rect: Rect,
-    ) -> DefaultDraw {
-        RectBuilder::new(screen_rect)
-            .with_texture(*self.canvas)
-            .into_draw()
-    }
-
-    fn draw_score(
-        &self,
-        draw_resource: &mut DrawResource<'_>,
-    ) -> DefaultDraw {
-        let spot_count = self.spot_count.to_string();
-        let para = text::expand_and_parse(
-            "[0: %0] spot%1",
-            &text::subs! {
-                0 => &spot_count,
-                1 => if self.spot_count != 1 { "s" } else { "" },
-            },
-            text::Style::new(self.assets.fonts.fira_sans_regular(), 64., colors::BLACK),
-            &text::tags! {
-                0 => text::Style::new(
-                    self.assets.fonts.fira_sans_regular(),
-                    64.,
-                    colors::FUSCHIA,
-                ),
-            },
-        ).unwrap();
-        let point = draw_resource.window.screen_safe_surface_origin().unwrap() + Vec2::new(32., 32.);
-        draw_resource.draw_text(std::iter::once(
-            para.position(point).to_inner()
-        ))
-    }
-
-    fn draw_spots(
-        &mut self,
-        screen_size: Size,
-    ) -> impl Iterator<Item = DefaultDraw> + '_ {
-        let spot_size = {
-            let spot_radius = screen_size.width.min(screen_size.height) / 6.;
-            Size::new(spot_radius, spot_radius)
-        };
-        let spot_texture = self.assets.textures.spot();
-        self.spots_touched
-            .drain(..)
-            .map(move |spot| RectBuilder::new(Rect::with_center(spot, spot_size))
-                .with_texture(**spot_texture)
-                .into_draw()
+            .scaled_to_fill_and_fit(screen_rect.size().to_f32());
+        RenderNode::rect_builder(screen_rect.to_f32())
+            .with_color(colors::UNICORN_HAIR)
+            .with_child(
+                RenderNode::rect_builder(Rect::with_center(screen_rect.center().to_f32(), bg_size))
+                    .with_texture(**logo),
             )
     }
 
-    fn draw_spots_on_canvas(
-        &mut self,
-        screen_size: Size,
-        proj: Mat4,
-    ) -> Pass {
-        Pass::texture(*self.canvas, None)
-            .with_pipeline::<shaders::SwizzleShader>(Pipeline::from_draws(
-                proj,
-                (),
-                self.draw_spots(screen_size).collect(),
-            ))
+    fn draw_transparent_rects(&mut self, screen_rect: ScreenRect) -> impl Into<RenderNode> {
+        let scalar_size = screen_rect.width().min(screen_rect.height()) / 7;
+        let rect_size = ScreenSize::square(scalar_size);
+        let tl_rect = ScreenRect::with_top_left(Default::default(), rect_size);
+        let br_rect = ScreenRect::with_top_left(tl_rect.center(), rect_size);
+        let target_size =
+            ScreenRect::from_points(tl_rect.top_left(), br_rect.bottom_right()).size();
+        let two_rects = RenderNode::rect_builder(tl_rect.to_f32())
+            .with_color(colors::RED)
+            .with_child(RenderNode::rect_builder(br_rect.to_f32()).with_color(colors::BLUE));
+        RenderNode::rect_builder(
+            ScreenRect::with_center(screen_rect.center(), target_size).to_f32(),
+        )
+        .with_texture(Texture::render_texture(two_rects).with_size(target_size))
+        .with_color(LinRgba::new(0.5, 0.5, 0.5, 0.5))
+    }
+
+    fn draw_score(&self, draw_resource: &mut DrawResource<'_>) -> impl Into<RenderNode> {
+        let offset = ScreenVec2::new(0, 32);
+        let pos = draw_resource.window.screen_safe_surface_rect().top_center() + offset;
+        RenderNode::text_builder(pos.to_f32())
+            .with_text(Text::new(self.spot_count.to_string()).with_color(colors::FUCHSIA_SRGB))
+            .with_text(if self.spot_count != 1 {
+                " spots (汉语)"
+            } else {
+                " spot (汉语)"
+            })
+            .with_bounds(draw_resource.window.screen_safe_surface_size().to_f32())
+            .with_align_top_center()
+    }
+
+    fn draw_spots(&mut self, screen_size: ScreenSize) -> RenderNode {
+        let proj = geometry::ortho(screen_size);
+        let spot_size = {
+            let spot_radius = screen_size.width.min(screen_size.height) as f32 / 6.;
+            Size::new(spot_radius, spot_radius)
+        };
+        let spot_texture = self.assets.textures.spot();
+        let mut pipeline_scene =
+            PipelineScene::<shaders::SwizzleShader>::new((proj.into(), ()).into());
+        self.spots_touched.drain(..).for_each(|spot| {
+            RectBuilder::<Mat4, ()>::new(Rect::with_center(spot, spot_size))
+                .with_texture(**spot_texture)
+                .add_to_scene(&mut pipeline_scene);
+        });
+        RenderNode::from_scene(pipeline_scene)
+    }
+
+    fn draw_spots_on_canvas(&mut self, screen_rect: ScreenRect) -> impl Into<RenderNode> {
+        let spots = RenderNode::new().with_child(self.draw_spots(screen_rect.size()));
+        RenderNode::rect_builder(Rect::with_center(
+            screen_rect.center().to_f32(),
+            screen_rect.size().to_f32(),
+        ))
+        .with_texture(
+            Texture::render_texture(spots)
+                .with_target(*self.canvas)
+                .with_clear(None),
+        )
     }
 }
 

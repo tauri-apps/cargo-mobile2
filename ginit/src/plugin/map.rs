@@ -1,9 +1,8 @@
 use super::{NewError, Plugin};
-use std::collections::HashMap;
 
 #[derive(Debug, Default)]
 pub struct Map {
-    plugins: HashMap<String, Plugin>,
+    plugins: indexmap::IndexMap<String, Plugin>,
 }
 
 impl Map {

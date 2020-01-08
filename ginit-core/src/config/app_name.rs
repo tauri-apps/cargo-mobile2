@@ -93,7 +93,7 @@ fn char_naughty(c: char) -> bool {
     !c.is_ascii_lowercase() && !c.is_ascii_digit() && c != '_' && c != '-'
 }
 
-fn drop_naughty_chars(s: &str) -> String {
+fn strip_naughty_chars(s: &str) -> String {
     s.chars().filter(|c| char_allowed(*c)).collect()
 }
 
@@ -151,7 +151,7 @@ pub fn validate<T: Deref<Target = str>>(app_name: T) -> Result<T, Invalid> {
         }) => {
             assert!(suggested.is_none());
             *suggested =
-                validate_non_recursive(drop_naughty_chars(&normalize_case(&app_name))).ok();
+                validate_non_recursive(strip_naughty_chars(&normalize_case(&app_name))).ok();
         }
         Err(Invalid::NotAscii {
             app_name,

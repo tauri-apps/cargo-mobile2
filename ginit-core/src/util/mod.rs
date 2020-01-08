@@ -22,14 +22,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-#[derive(Debug)]
-pub enum Never {}
-
-impl Display for Never {
-    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        unreachable!()
-    }
-}
+pub type Never = std::convert::Infallible;
 
 #[derive(Debug)]
 pub enum InitTextWrapperError {
@@ -39,7 +32,7 @@ pub enum InitTextWrapperError {
 impl Display for InitTextWrapperError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            InitTextWrapperError::HyphenationLoadFailed(err) => write!(
+            Self::HyphenationLoadFailed(err) => write!(
                 f,
                 "Failed to load hyphenation standard for \"en-US\": {}",
                 err
@@ -78,13 +71,6 @@ pub fn list_display(list: &[impl Display]) -> String {
         }
         display
     }
-}
-
-pub fn read_string(path: impl AsRef<OsStr>) -> io::Result<String> {
-    File::open(path.as_ref()).and_then(|mut file| {
-        let mut buf = String::new();
-        file.read_to_string(&mut buf).map(|_| buf)
-    })
 }
 
 pub fn add_to_path(path: impl Display) -> String {

@@ -48,9 +48,10 @@ pub fn barebones_app<'a, 'b>(
         .author(author)
         .about(about)
         .arg(take_noise_level())
-        .arg(take_interactivity());
+        .arg(take_interactivity())
+        .subcommand(take_config_gen_subcommand().display_order(0));
     if let Some(init) = init {
-        app = app.subcommand(init.display_order(0));
+        app = app.subcommand(init.display_order(1));
     }
     app
 }
@@ -63,6 +64,10 @@ pub fn take_noise_level<'a, 'b>() -> Arg<'a, 'b> {
 
 pub fn take_interactivity<'a, 'b>() -> Arg<'a, 'b> {
     Arg::from_usage("--non-interactive 'Go with the flow'").global(true)
+}
+
+pub fn take_config_gen_subcommand<'a, 'b>() -> App<'a, 'b> {
+    SubCommand::with_name("config-gen").about("Generate configuration")
 }
 
 pub fn take_init_subcommand<'a, 'b>() -> App<'a, 'b> {
@@ -101,16 +106,6 @@ pub fn get_matches_and_parse<C: CommandTrait>(
     name: &str,
 ) -> clap::Result<Input<C>> {
     get_matches(app, name).map(|matches| Input::parse(&matches))
-}
-
-pub fn parse_barebones_app(matches: &ArgMatches<'_>) -> opts::Clobbering {
-    let subcommand = matches.subcommand.as_ref().unwrap(); // clap makes sure we got a subcommand
-    match subcommand.name.as_str() {
-        "init" => parse_clobbering(&subcommand.matches),
-        _ => panic!(
-            "Called `parse_barebones_app` on an app which had subcommands other than \"init\"!"
-        ), // ...and this is the only possible subcommand
-    }
 }
 
 pub fn parse_noise_level(matches: &ArgMatches<'_>) -> opts::NoiseLevel {
@@ -174,20 +169,24 @@ pub trait CommandTrait: Debug {
 }
 
 #[derive(Debug)]
-pub struct InitOnly {
-    pub clobbering: opts::Clobbering,
+pub enum Barebones {
+    ConfigGen,
+    Init { clobbering: opts::Clobbering },
 }
 
-impl CommandTrait for InitOnly {
+impl CommandTrait for Barebones {
     fn parse(matches: &ArgMatches<'_>) -> Self {
         let subcommand = matches.subcommand.as_ref().unwrap(); // clap makes sure we got a subcommand
-        let clobbering = match subcommand.name.as_str() {
-            "init" => parse_clobbering(&subcommand.matches),
+        match subcommand.name.as_str() {
+            // and these are the only possible subcommands, assuming this is used correctly
+            "config-gen" => Self::ConfigGen,
+            "init" => Self::Init {
+                clobbering: parse_clobbering(&subcommand.matches),
+            },
             _ => panic!(
-                "Used `InitOnly::parse` on an app which had subcommands other than \"init\"!"
-            ), // ...and this is the only possible subcommand
-        };
-        Self { clobbering }
+                "Used `Barebones::parse` on an app which had subcommands other than \"config-gen\" and \"init\"!"
+            ),
+        }
     }
 }
 

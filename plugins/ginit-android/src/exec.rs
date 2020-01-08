@@ -1,6 +1,6 @@
 use crate::{
     adb,
-    config::Config,
+    config::{Config, Raw},
     device::{Device, RunError, StacktraceError},
     env::{Env, Error as EnvError},
     project,
@@ -8,13 +8,13 @@ use crate::{
 };
 use ginit_core::{
     cli_app,
-    config::ConfigTrait as _,
+    config::{self, ConfigTrait as _},
     define_device_prompt,
     device::PromptError,
     exports::clap::{App, ArgMatches, SubCommand},
     opts,
     target::{call_for_targets_with_fallback, TargetInvalid},
-    util::{cli, prompt},
+    util::{self, cli, prompt},
 };
 use std::fmt::{self, Display};
 
@@ -56,6 +56,8 @@ pub enum Error {
     EnvInitFailed(EnvError),
     DevicePromptFailed(PromptError<adb::DeviceListError>),
     TargetInvalid(TargetInvalid),
+    ConfigGenFailed(config::gen::Error<Raw>),
+    ConfigRequired,
     InitFailed(project::Error),
     CheckFailed(CompileLibError),
     BuildFailed(BuildError),
@@ -70,6 +72,11 @@ impl Display for Error {
             Self::EnvInitFailed(err) => write!(f, "{}", err),
             Self::DevicePromptFailed(err) => write!(f, "{}", err),
             Self::TargetInvalid(err) => write!(f, "Specified target was invalid: {}", err),
+            Self::ConfigGenFailed(err) => write!(f, "Failed to generate config: {}", err),
+            Self::ConfigRequired => write!(
+                f,
+                "Plugin is unconfigured, but configuration is required for this command."
+            ),
             Self::InitFailed(err) => write!(f, "{}", err),
             Self::CheckFailed(err) => write!(f, "{}", err),
             Self::BuildFailed(err) => write!(f, "{}", err),
@@ -82,6 +89,7 @@ impl Display for Error {
 
 #[derive(Debug)]
 pub enum Command {
+    ConfigGen,
     Init {
         clobbering: opts::Clobbering,
     },
@@ -103,6 +111,7 @@ impl cli::CommandTrait for Command {
     fn parse(matches: &ArgMatches<'_>) -> Self {
         let subcommand = matches.subcommand.as_ref().unwrap(); // clap makes sure we got a subcommand
         match subcommand.name.as_str() {
+            "config-gen" => Self::ConfigGen,
             "init" => Self::Init {
                 clobbering: cli::parse_clobbering(&subcommand.matches),
             },
@@ -129,49 +138,67 @@ pub fn exec(
         interactivity,
         command,
     }: cli::Input<Command>,
-    config: &Config,
+    config: Option<&Config>,
+    wrapper: &util::TextWrapper,
 ) -> Result<(), Error> {
     define_device_prompt!(adb::device_list, adb::DeviceListError, Android);
     fn detect_target_ok<'a>(env: &Env) -> Option<&'a Target<'a>> {
         device_prompt(env).map(|device| device.target()).ok()
     }
 
+    fn with_config(
+        config: Option<&Config>,
+        f: impl FnOnce(&Config) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        f(config.ok_or_else(|| Error::ConfigRequired)?)
+    }
+
     let env = Env::new().map_err(Error::EnvInitFailed)?;
     match command {
-        Command::Init { clobbering } => {
+        Command::ConfigGen => config::gen::detect_or_prompt(interactivity, wrapper, crate::NAME)
+            .map_err(Error::ConfigGenFailed),
+        Command::Init { clobbering } => with_config(config, |config| {
             project::generate(config, &env, &config.init_templating(), clobbering)
                 .map_err(Error::InitFailed)
-        }
-        Command::Check { targets } => call_for_targets_with_fallback(
-            targets.iter(),
-            &detect_target_ok,
-            &env,
-            |target: &Target| {
-                target
-                    .check(config, &env, noise_level)
-                    .map_err(Error::CheckFailed)
-            },
-        )
-        .map_err(Error::TargetInvalid)?,
-        Command::Build { targets, profile } => call_for_targets_with_fallback(
-            targets.iter(),
-            &detect_target_ok,
-            &env,
-            |target: &Target| {
-                target
-                    .build(config, &env, noise_level, profile)
-                    .map_err(Error::BuildFailed)
-            },
-        )
-        .map_err(Error::TargetInvalid)?,
-        Command::Run { profile } => device_prompt(&env)
-            .map_err(Error::DevicePromptFailed)?
-            .run(config, &env, noise_level, profile)
-            .map_err(Error::RunFailed),
-        Command::Stacktrace => device_prompt(&env)
-            .map_err(Error::DevicePromptFailed)?
-            .stacktrace(config, &env)
-            .map_err(Error::StacktraceFailed),
+        }),
+        Command::Check { targets } => with_config(config, |config| {
+            call_for_targets_with_fallback(
+                targets.iter(),
+                &detect_target_ok,
+                &env,
+                |target: &Target| {
+                    target
+                        .check(config, &env, noise_level)
+                        .map_err(Error::CheckFailed)
+                },
+            )
+            .map_err(Error::TargetInvalid)?
+        }),
+        Command::Build { targets, profile } => with_config(config, |config| {
+            call_for_targets_with_fallback(
+                targets.iter(),
+                &detect_target_ok,
+                &env,
+                |target: &Target| {
+                    target
+                        .build(config, &env, noise_level, profile)
+                        .map_err(Error::BuildFailed)
+                },
+            )
+            .map_err(Error::TargetInvalid)?
+        }),
+        Command::Run { profile } => with_config(config, |config| {
+            device_prompt(&env)
+                .map_err(Error::DevicePromptFailed)?
+                .run(config, &env, noise_level, profile)
+                .map_err(Error::RunFailed)
+        }),
+        Command::Stacktrace => with_config(config, |config| {
+            device_prompt(&env)
+                .map_err(Error::DevicePromptFailed)?
+                .stacktrace(config, &env)
+                .map_err(Error::StacktraceFailed)
+        }),
         Command::List => adb::device_list(&env)
             .map_err(Error::ListFailed)
             .map(|device_list| {
