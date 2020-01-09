@@ -1,13 +1,21 @@
-use crate::util;
+use crate::{exports::once_cell::sync::OnceCell, util};
 use std::{
     collections::BTreeMap,
-    fmt::{self, Display},
+    fmt::{self, Debug, Display},
 };
 
-pub trait TargetTrait<'a>: fmt::Debug + Sized {
+pub trait TargetTrait<'a>: Debug + Sized {
     const DEFAULT_KEY: &'static str;
 
     fn all() -> &'a BTreeMap<&'a str, Self>;
+
+    fn name_list() -> &'static [&'a str]
+    where
+        Self: 'static,
+    {
+        static INSTANCE: OnceCell<Vec<&str>> = OnceCell::new();
+        INSTANCE.get_or_init(|| Self::all().keys().map(|key| *key).collect::<Vec<_>>())
+    }
 
     fn default_ref() -> &'a Self {
         Self::all()

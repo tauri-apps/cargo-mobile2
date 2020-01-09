@@ -8,7 +8,7 @@ use ginit_core::{
     opts::Profile,
     util::pure_command::PureCommand,
 };
-use std::fmt;
+use std::fmt::{self, Display};
 
 #[derive(Debug)]
 pub enum RunError {
@@ -18,15 +18,13 @@ pub enum RunError {
     DeployFailed(CommandError),
 }
 
-impl fmt::Display for RunError {
+impl Display for RunError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RunError::BuildFailed(err) => write!(f, "Failed to build app: {}", err),
-            RunError::ArchiveFailed(err) => write!(f, "Failed to archive app: {}", err),
-            RunError::UnzipFailed(err) => write!(f, "Failed to unzip archive: {}", err),
-            RunError::DeployFailed(err) => {
-                write!(f, "Failed to deploy app via `ios-deploy`: {}", err)
-            }
+            Self::BuildFailed(err) => write!(f, "Failed to build app: {}", err),
+            Self::ArchiveFailed(err) => write!(f, "Failed to archive app: {}", err),
+            Self::UnzipFailed(err) => write!(f, "Failed to unzip archive: {}", err),
+            Self::DeployFailed(err) => write!(f, "Failed to deploy app via `ios-deploy`: {}", err),
         }
     }
 }

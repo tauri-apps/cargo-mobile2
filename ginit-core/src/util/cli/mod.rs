@@ -1,9 +1,11 @@
+pub mod mixins;
+
 use crate::{
     opts,
     target::TargetTrait,
     util::{init_text_wrapper, TextWrapper},
 };
-use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches, SubCommand};
 use colored::*;
 use std::fmt::{Debug, Display};
 
@@ -41,9 +43,7 @@ pub fn barebones_app<'a, 'b>(
     init: Option<App<'a, 'b>>,
 ) -> App<'a, 'b> {
     let mut app = App::new(name)
-        .setting(AppSettings::ColoredHelp)
-        .setting(AppSettings::SubcommandRequiredElseHelp)
-        .setting(AppSettings::VersionlessSubcommands)
+        .settings(mixins::SETTINGS)
         .version(version)
         .author(author)
         .about(about)
@@ -86,19 +86,21 @@ pub fn take_a_target_list<'a, 'b, T: TargetTrait<'a>>(targets: &'a [&'a str]) ->
     take_a_list(Arg::with_name("TARGETS"), targets).default_value(T::DEFAULT_KEY)
 }
 
+pub fn get_args(name: impl AsRef<str>) -> Vec<String> {
+    let mut args: Vec<String> = std::env::args().collect();
+    // Running this as a cargo subcommand gives us our name as an argument,
+    // so let's just discard that...
+    if args.get(1).map(String::as_str) == Some(name.as_ref()) {
+        args.remove(1);
+    }
+    args
+}
+
 pub fn get_matches<'a, 'b>(
     app: App<'a, 'b>,
     name: impl AsRef<str>,
 ) -> clap::Result<ArgMatches<'a>> {
-    app.get_matches_from_safe({
-        let mut args: Vec<String> = std::env::args().collect();
-        // Running this as a cargo subcommand gives us our name as an argument,
-        // so let's just discard that...
-        if args.get(1).map(String::as_str) == Some(name.as_ref()) {
-            args.remove(1);
-        }
-        args
-    })
+    app.get_matches_from_safe(get_args(name))
 }
 
 pub fn get_matches_and_parse<C: CommandTrait>(
@@ -108,28 +110,40 @@ pub fn get_matches_and_parse<C: CommandTrait>(
     get_matches(app, name).map(|matches| Input::parse(&matches))
 }
 
-pub fn parse_noise_level(matches: &ArgMatches<'_>) -> opts::NoiseLevel {
-    match matches.occurrences_of("verbose") {
+pub fn noise_level_from_occurrences(occurrences: u64) -> opts::NoiseLevel {
+    match occurrences {
         0 => opts::NoiseLevel::Polite,
         1 => opts::NoiseLevel::LoudAndProud,
         _ => opts::NoiseLevel::FranklyQuitePedantic,
     }
 }
 
-pub fn parse_interactivity(matches: &ArgMatches<'_>) -> opts::Interactivity {
-    if matches.is_present("non-interactive") {
+pub fn parse_noise_level(matches: &ArgMatches<'_>) -> opts::NoiseLevel {
+    noise_level_from_occurrences(matches.occurrences_of("verbose"))
+}
+
+pub fn interactivity_from_presence(present: bool) -> opts::Interactivity {
+    if present {
         opts::Interactivity::None
     } else {
         opts::Interactivity::Full
     }
 }
 
-pub fn parse_clobbering(matches: &ArgMatches<'_>) -> opts::Clobbering {
-    if matches.is_present("force") {
+pub fn parse_interactivity(matches: &ArgMatches<'_>) -> opts::Interactivity {
+    interactivity_from_presence(matches.is_present("non-interactive"))
+}
+
+pub fn clobbering_from_presence(present: bool) -> opts::Clobbering {
+    if present {
         opts::Clobbering::Allow
     } else {
         opts::Clobbering::Forbid
     }
+}
+
+pub fn parse_clobbering(matches: &ArgMatches<'_>) -> opts::Clobbering {
+    clobbering_from_presence(matches.is_present("force"))
 }
 
 pub fn parse_targets(matches: &ArgMatches<'_>) -> Vec<String> {
@@ -139,12 +153,16 @@ pub fn parse_targets(matches: &ArgMatches<'_>) -> Vec<String> {
         .unwrap_or_default()
 }
 
-pub fn parse_profile(matches: &ArgMatches<'_>) -> opts::Profile {
-    if matches.is_present("release") {
+pub fn profile_from_presence(present: bool) -> opts::Profile {
+    if present {
         opts::Profile::Release
     } else {
         opts::Profile::Debug
     }
+}
+
+pub fn parse_profile(matches: &ArgMatches<'_>) -> opts::Profile {
+    profile_from_presence(matches.is_present("release"))
 }
 
 #[derive(Debug)]
