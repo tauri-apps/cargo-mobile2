@@ -2,6 +2,7 @@
 members = [
     "ginit",
     "ginit-core",
+    "ginit-macros",
     "plugins/ginit-android",
     "plugins/ginit-brainium",
     "plugins/ginit-ios",

@@ -1,5 +1,7 @@
 pub mod mixins;
 
+pub use ginit_macros::main;
+
 use crate::{
     config::{umbrella::Umbrella, ConfigTrait},
     opts,

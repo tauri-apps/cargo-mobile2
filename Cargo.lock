@@ -332,6 +332,7 @@ dependencies = [
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "colored 1.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "deunicode 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ginit-macros 0.1.0",
  "heck 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyphenation 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "into-result 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -356,6 +357,15 @@ dependencies = [
  "serde 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.40 (registry+https://github.com/rust-lang/crates.io-index)",
  "structopt 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "ginit-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

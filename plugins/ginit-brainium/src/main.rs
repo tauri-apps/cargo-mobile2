@@ -6,13 +6,14 @@ use ginit_core::{
     config::{self, empty, ConfigTrait as _},
     util::{
         self,
-        cli::{self, mixins, NonZeroExit},
+        cli::{self, mixins},
     },
 };
 use structopt::StructOpt;
 
 static NAME: &'static str = "brainium";
 
+#[cli::main(NAME)]
 #[derive(Debug, StructOpt)]
 #[structopt(settings = mixins::SETTINGS)]
 pub struct Input {
@@ -51,8 +52,4 @@ impl cli::Exec for Input {
             }
         }
     }
-}
-
-fn main() {
-    NonZeroExit::exec::<Input>(NAME)
 }
