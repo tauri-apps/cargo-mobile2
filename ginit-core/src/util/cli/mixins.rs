@@ -4,6 +4,7 @@ use structopt::StructOpt;
 
 pub static SETTINGS: &'static [AppSettings] = &[
     AppSettings::ColoredHelp,
+    AppSettings::DeriveDisplayOrder,
     AppSettings::SubcommandRequiredElseHelp,
     AppSettings::VersionlessSubcommands,
 ];
@@ -46,4 +47,18 @@ pub struct Profile {
         parse(from_flag = super::profile_from_presence),
     )]
     pub profile: opts::Profile,
+}
+
+#[derive(Debug, StructOpt)]
+pub enum Barebones {
+    #[structopt(name = "config-gen", about = "Generate configuration")]
+    ConfigGen,
+    #[structopt(
+        name = "init",
+        about = "Creates a new project in the current working directory"
+    )]
+    Init {
+        #[structopt(flatten)]
+        clobbering: Clobbering,
+    },
 }

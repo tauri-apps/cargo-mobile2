@@ -52,6 +52,10 @@ pub fn init_text_wrapper() -> Result<TextWrapper, InitTextWrapperError> {
     ))
 }
 
+pub fn display(d: impl Display) -> String {
+    format!("{}", d)
+}
+
 pub fn list_display(list: &[impl Display]) -> String {
     if list.len() == 1 {
         list[0].to_string()

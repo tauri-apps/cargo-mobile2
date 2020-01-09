@@ -321,6 +321,7 @@ version = "0.1.0"
 dependencies = [
  "ginit-core 0.1.0",
  "serde 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",
+ "structopt 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

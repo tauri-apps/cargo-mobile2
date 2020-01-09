@@ -11,3 +11,4 @@ supports = ["init"]
 [dependencies]
 ginit-core = { path = "../../ginit-core" }
 serde = { version = "1.0.101", features = ["derive"] }
+structopt = "0.3.7"

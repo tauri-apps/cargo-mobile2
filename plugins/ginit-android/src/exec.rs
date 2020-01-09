@@ -11,7 +11,11 @@ use ginit_core::{
     define_device_prompt,
     device::PromptError,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
-    util::{self, cli::mixins, prompt},
+    util::{
+        self,
+        cli::{self, mixins},
+        prompt,
+    },
 };
 use std::fmt::{self, Display};
 use structopt::StructOpt;
@@ -96,18 +100,25 @@ impl Display for Error {
     }
 }
 
-impl Input {
-    pub fn exec(self, config: Option<&Config>, wrapper: &util::TextWrapper) -> Result<(), Error> {
+impl cli::Exec for Input {
+    type Config = Config;
+    type Error = Error;
+
+    fn exec(
+        self,
+        config: Option<Self::Config>,
+        wrapper: &util::TextWrapper,
+    ) -> Result<(), Self::Error> {
         define_device_prompt!(adb::device_list, adb::DeviceListError, Android);
         fn detect_target_ok<'a>(env: &Env) -> Option<&'a Target<'a>> {
             device_prompt(env).map(|device| device.target()).ok()
         }
 
         fn with_config(
-            config: Option<&Config>,
+            config: Option<Config>,
             f: impl FnOnce(&Config) -> Result<(), Error>,
         ) -> Result<(), Error> {
-            f(config.ok_or_else(|| Error::ConfigRequired)?)
+            f(config.as_ref().ok_or_else(|| Error::ConfigRequired)?)
         }
 
         let Self {

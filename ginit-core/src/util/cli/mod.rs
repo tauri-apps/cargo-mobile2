@@ -1,13 +1,15 @@
 pub mod mixins;
 
 use crate::{
+    config::{umbrella::Umbrella, ConfigTrait},
     opts,
     target::TargetTrait,
-    util::{init_text_wrapper, TextWrapper},
+    util::{self, init_text_wrapper, TextWrapper},
 };
 use clap::{App, Arg, ArgMatches, SubCommand};
 use colored::*;
 use std::fmt::{Debug, Display};
+use structopt::StructOpt;
 
 #[macro_export]
 macro_rules! cli_app {
@@ -208,6 +210,13 @@ impl CommandTrait for Barebones {
     }
 }
 
+pub trait Exec: Debug + StructOpt {
+    type Config: ConfigTrait;
+    type Error: Debug + Display;
+
+    fn exec(self, config: Option<Self::Config>, wrapper: &TextWrapper) -> Result<(), Self::Error>;
+}
+
 #[derive(Debug)]
 pub enum NonZeroExit {
     Display(String),
@@ -216,7 +225,7 @@ pub enum NonZeroExit {
 
 impl NonZeroExit {
     pub fn display(err: impl Display) -> Self {
-        Self::Display(format!("{}", err))
+        Self::Display(util::display(err))
     }
 
     pub fn do_the_thing(self, wrapper: Option<TextWrapper>) -> ! {
@@ -246,5 +255,13 @@ impl NonZeroExit {
         if let Err(non_zero_exit) = inner(&wrapper) {
             non_zero_exit.do_the_thing(Some(wrapper))
         }
+    }
+
+    pub fn exec<E: Exec>(name: &str) {
+        Self::main(|wrapper| {
+            let input = E::from_iter_safe(get_args(name)).map_err(Self::Clap)?;
+            let config = Umbrella::load_plugin(name).map_err(Self::display)?;
+            input.exec(config, wrapper).map_err(Self::display)
+        })
     }
 }
