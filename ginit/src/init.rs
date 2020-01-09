@@ -12,10 +12,7 @@ use ginit_core::{
     opts,
     util::{self, cli},
 };
-use std::{
-    fmt::{self, Display},
-    io,
-};
+use std::fmt::{self, Display};
 
 pub fn app<'a, 'b>(steps: &'a [&'a str]) -> App<'a, 'b> {
     cli::take_init_subcommand()
@@ -42,8 +39,6 @@ pub enum Error {
     SkipParseFailed(StepNotRegistered),
     StepNotRegistered(StepNotRegistered),
     ConfigLoadFailed(umbrella::Error),
-    RootDiscoveryFailed(io::Error),
-    RootNotFound,
     ConfigGenFailed(config_gen::Error),
     PluginFailed {
         plugin_name: String,
@@ -59,8 +54,6 @@ impl Display for Error {
             Error::SkipParseFailed(err) => write!(f, "Failed to parse `skip` step list: {}", err),
             Error::StepNotRegistered(err) => write!(f, "{}", err),
             Error::ConfigLoadFailed(err) => write!(f, "{}", err),
-            Error::RootDiscoveryFailed(err) => write!(f, "Failed to discover project root: {}", err),
-            Error::RootNotFound => write!(f, "No project root was discovered."),
             Error::ConfigGenFailed(err) => write!(f, "Failed to generate config: {}", err),
             Error::PluginFailed{
                 plugin_name,

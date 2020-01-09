@@ -5,38 +5,10 @@ use ginit_core::{
     util::pure_command::PureCommand,
 };
 use serde::Deserialize;
-use std::{
-    collections::BTreeSet,
-    fmt,
-    path::Path,
-    process::{Command, Stdio},
-};
-
-#[derive(Debug)]
-pub struct Missing;
-
-impl fmt::Display for Missing {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "`ios-deploy` not found. Please run `cargo {} init` and try again. If it still doesn't work after that, then this is a bug!",
-            ginit_core::NAME
-        )
-    }
-}
-
-pub fn ios_deploy(env: &Env) -> Result<Command, Missing> {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("ios-deploy/build/Release/ios-deploy");
-    if path.exists() {
-        Ok(PureCommand::new(path, env))
-    } else {
-        Err(Missing)
-    }
-}
+use std::{collections::BTreeSet, fmt, process::Stdio};
 
 #[derive(Debug)]
 pub enum DeviceListError {
-    IosDeployMissing(Missing),
     DetectionFailed(CommandError),
     KillFailed(std::io::Error),
     OutputFailed(std::io::Error),
@@ -48,7 +20,6 @@ pub enum DeviceListError {
 impl fmt::Display for DeviceListError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DeviceListError::IosDeployMissing(err) => write!(f, "{}", err),
             DeviceListError::DetectionFailed(err) => write!(
                 f,
                 "Failed to request device list from `ios-deploy`: {}",
@@ -90,8 +61,7 @@ pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListErro
         #[serde(rename = "Device")]
         device: DeviceInfo,
     }
-    let mut handle = ios_deploy(env)
-        .map_err(DeviceListError::IosDeployMissing)?
+    let mut handle = PureCommand::new("ios-deploy", env)
         .args(&["--detect", "--json", "--no-wifi", "--unbuffered"])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

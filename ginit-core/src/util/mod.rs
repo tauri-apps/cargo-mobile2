@@ -16,8 +16,7 @@ use std::{
     env,
     ffi::OsStr,
     fmt::{self, Display},
-    fs::File,
-    io::{self, Read, Write},
+    io::{self, Write},
     path::Path,
     process::{Command, Stdio},
 };

@@ -5,10 +5,7 @@ pub use map::Map;
 
 use self::manifest::Manifest;
 use ginit_core::{
-    exports::into_result::{
-        command::{CommandError, CommandResult},
-        IntoResult as _,
-    },
+    exports::into_result::{command::CommandError, IntoResult as _},
     opts,
 };
 use std::{

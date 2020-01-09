@@ -1,4 +1,3 @@
-use super::Raw;
 use crate::{
     config::{app_name, DetectedConfigTrait},
     util::COMMON_EMAIL_PROVIDERS,

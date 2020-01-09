@@ -3,7 +3,6 @@ mod writer;
 use crate::plugin::{Map as PluginMap, RunError};
 use ginit_core::{
     config::{shared, DetectedConfigTrait as _, RawConfigTrait as _},
-    exports::into_result::command::CommandError,
     opts, util,
 };
 use std::{

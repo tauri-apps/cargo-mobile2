@@ -1,9 +1,11 @@
 use crate::{device::Device, env::Env, target::Target};
 use ginit_core::{
-    exports::once_cell_regex::{regex, regex_multi_line},
+    exports::{
+        into_result::{command::CommandError, IntoResult as _},
+        once_cell_regex::{regex, regex_multi_line},
+    },
     util::pure_command::PureCommand,
 };
-use into_result::{command::CommandError, IntoResult as _};
 use std::{collections::BTreeSet, fmt, process::Command, str};
 
 pub fn adb(env: &Env, serial_no: &str) -> Command {

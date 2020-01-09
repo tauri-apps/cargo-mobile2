@@ -6,10 +6,10 @@ use crate::{
 };
 use ginit_core::{
     config::ConfigTrait,
+    exports::into_result::{command::CommandError, IntoResult as _},
     opts::{NoiseLevel, Profile},
     util::{self, pure_command::PureCommand},
 };
-use into_result::{command::CommandError, IntoResult as _};
 use std::{fmt, io, process::Command};
 
 fn gradlew(config: &Config, env: &Env) -> Command {

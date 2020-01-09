@@ -2,12 +2,14 @@ use crate::{config::Config, env::Env, ndk};
 use ginit_core::{
     cargo::DotCargoTarget,
     config::ConfigTrait,
-    exports::once_cell::sync::OnceCell,
+    exports::{
+        into_result::{command::CommandError, IntoResult as _},
+        once_cell::sync::OnceCell,
+    },
     opts::{NoiseLevel, Profile},
     target::TargetTrait,
     util::{self, ln},
 };
-use into_result::{command::CommandError, IntoResult as _};
 use std::{collections::BTreeMap, fmt, fs, io, path::PathBuf, str};
 
 fn so_name(config: &Config) -> String {

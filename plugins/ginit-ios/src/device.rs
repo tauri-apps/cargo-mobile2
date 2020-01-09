@@ -1,6 +1,5 @@
 use crate::{
     config::Config,
-    ios_deploy,
     target::{ArchiveError, BuildError, Target},
 };
 use ginit_core::{
@@ -16,7 +15,6 @@ pub enum RunError {
     BuildFailed(BuildError),
     ArchiveFailed(ArchiveError),
     UnzipFailed(CommandError),
-    IosDeployMissing(ios_deploy::Missing),
     DeployFailed(CommandError),
 }
 
@@ -26,7 +24,6 @@ impl fmt::Display for RunError {
             RunError::BuildFailed(err) => write!(f, "Failed to build app: {}", err),
             RunError::ArchiveFailed(err) => write!(f, "Failed to archive app: {}", err),
             RunError::UnzipFailed(err) => write!(f, "Failed to unzip archive: {}", err),
-            RunError::IosDeployMissing(err) => write!(f, "{}", err),
             RunError::DeployFailed(err) => {
                 write!(f, "Failed to deploy app via `ios-deploy`: {}", err)
             }
@@ -82,8 +79,7 @@ impl<'a> Device<'a> {
         // that. `ios-deploy --detect` can apparently be used to check in
         // advance, giving us an opportunity to promt. Though, it's much more
         // relaxing to just turn off auto-lock under Display & Brightness.
-        ios_deploy::ios_deploy(env)
-            .map_err(RunError::IosDeployMissing)?
+        PureCommand::new("ios-deploy", env)
             .args(&["--id", &self.id])
             .arg("--debug")
             .arg("--bundle")

@@ -9,12 +9,9 @@ description = "Tools for Android"
 supports = ["init"]
 
 [dependencies]
-colored = "1"
 ginit-core = { path = "../../ginit-core" }
-into-result = "0.1.1"
 java-properties = "1.2.0"
-log = "0.4"
-serde = { version = "1", features = ["derive", "rc"] }
+log = "0.4.8"
+serde = { version = "1.0.101", features = ["derive", "rc"] }
 serde_json = "1.0.40"
-textwrap = { version = "0.11.0", features = ["hyphenation", "term_size"] }
 

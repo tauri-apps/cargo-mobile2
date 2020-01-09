@@ -1,6 +1,6 @@
 use super::detect::{DetectError, Detected};
 use crate::{
-    config::{app_name, DetectedConfigTrait as _, RawConfigTrait},
+    config::{app_name, RawConfigTrait},
     util::{self, prompt},
 };
 use colored::*;
