@@ -10,23 +10,21 @@ mod system_profile;
 mod target;
 mod teams;
 
+use self::exec::Input;
 use ginit_core::{
     config::umbrella::Umbrella,
-    target::TargetTrait as _,
     util::cli::{self, NonZeroExit},
 };
+use structopt::StructOpt as _;
 
 static NAME: &'static str = "ios";
 
 fn main() {
     NonZeroExit::main(|wrapper| {
-        let targets = target::Target::all()
-            .keys()
-            .map(|key| *key)
-            .collect::<Vec<_>>();
-        let input =
-            cli::get_matches_and_parse(exec::app(&targets), NAME).map_err(NonZeroExit::Clap)?;
+        let input = Input::from_iter_safe(cli::get_args(NAME)).map_err(NonZeroExit::Clap)?;
         let config = Umbrella::load_plugin(NAME).map_err(NonZeroExit::display)?;
-        exec::exec(input, config.as_ref(), wrapper).map_err(NonZeroExit::display)
+        input
+            .exec(config.as_ref(), wrapper)
+            .map_err(NonZeroExit::display)
     })
 }

@@ -42,7 +42,7 @@ pub struct Clobbering {
 pub struct Profile {
     #[structopt(
         long = "release",
-        about = "Compile with optimizations",
+        about = "Build with release optimizations",
         parse(from_flag = super::profile_from_presence),
     )]
     pub profile: opts::Profile,

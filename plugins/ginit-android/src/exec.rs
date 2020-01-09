@@ -49,7 +49,7 @@ pub enum Command {
         #[structopt(flatten)]
         profile: mixins::Profile,
     },
-    #[structopt(name = "run", about = "Deploys APK to device")]
+    #[structopt(name = "run", about = "Deploys APK to connected device")]
     Run {
         #[structopt(flatten)]
         profile: mixins::Profile,
