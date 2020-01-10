@@ -122,6 +122,12 @@ impl Plugin {
     ) -> Result<ProcHandle, RunError> {
         let mut command = {
             let mut command = Command::new(&self.bin_path);
+            if let Ok(backtrace) = std::env::var("RUST_BACKTRACE") {
+                command.env("RUST_BACKTRACE", backtrace);
+            }
+            if let Ok(log) = std::env::var("RUST_LOG") {
+                command.env("RUST_LOG", log);
+            }
             command.stdin(Stdio::piped());
             match noise_level {
                 opts::NoiseLevel::Polite => (),

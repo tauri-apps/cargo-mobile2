@@ -19,7 +19,7 @@ pub static SETTINGS: &'static [AppSettings] = &[
     AppSettings::VersionlessSubcommands,
 ];
 
-#[derive(Debug, StructOpt)]
+#[derive(Clone, Copy, Debug, StructOpt)]
 pub struct GlobalFlags {
     #[structopt(
         short = "v",
@@ -39,7 +39,7 @@ pub struct GlobalFlags {
     pub interactivity: opts::Interactivity,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Clone, Copy, Debug, StructOpt)]
 pub struct Clobbering {
     #[structopt(
         long = "force",
@@ -49,7 +49,7 @@ pub struct Clobbering {
     pub clobbering: opts::Clobbering,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Clone, Copy, Debug, StructOpt)]
 pub struct Profile {
     #[structopt(
         long = "release",
@@ -59,7 +59,7 @@ pub struct Profile {
     pub profile: opts::Profile,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Clone, Copy, Debug, StructOpt)]
 pub enum Barebones {
     #[structopt(name = "config-gen", about = "Generate configuration", setting = AppSettings::Hidden)]
     ConfigGen,
@@ -119,7 +119,20 @@ pub trait Exec: Debug + StructOpt {
     type Config: ConfigTrait;
     type Error: Debug + Display;
 
+    fn global_flags(&self) -> GlobalFlags;
+
     fn exec(self, config: Option<Self::Config>, wrapper: &TextWrapper) -> Result<(), Self::Error>;
+}
+
+pub fn init_logging(noise_level: opts::NoiseLevel) {
+    use env_logger::{Builder, Env};
+    let default_level = match noise_level {
+        opts::NoiseLevel::Polite => "warn",
+        opts::NoiseLevel::LoudAndProud => "ginit=info",
+        opts::NoiseLevel::FranklyQuitePedantic => "info",
+    };
+    let env = Env::default().default_filter_or(default_level);
+    Builder::from_env(env).init();
 }
 
 #[derive(Debug)]
@@ -165,6 +178,7 @@ impl NonZeroExit {
     pub fn exec<E: Exec>(name: &str) {
         Self::main(|wrapper| {
             let input = E::from_iter_safe(get_args(name)).map_err(Self::Clap)?;
+            init_logging(input.global_flags().noise_level);
             let config = Umbrella::load_plugin(name).map_err(Self::display)?;
             input.exec(config, wrapper).map_err(Self::display)
         })

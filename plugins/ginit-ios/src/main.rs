@@ -125,6 +125,10 @@ impl cli::Exec for Input {
     type Config = Config;
     type Error = Error;
 
+    fn global_flags(&self) -> cli::GlobalFlags {
+        self.flags
+    }
+
     fn exec(
         self,
         config: Option<Self::Config>,

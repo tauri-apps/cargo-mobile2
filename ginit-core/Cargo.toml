@@ -8,6 +8,7 @@ edition = "2018"
 bicycle = { git = "ssh://git@bitbucket.org/brainium/bicycle.git" }
 colored = "1.8.0"
 deunicode = "1.0.0"
+env_logger = "0.7.1"
 ginit-macros = { path = "../ginit-macros" }
 heck = "0.3.1"
 hyphenation = "0.7.1"

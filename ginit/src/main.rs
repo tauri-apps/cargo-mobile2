@@ -110,17 +110,6 @@ fn forward_help(result: clap::Result<Input>) -> Result<Input, NonZeroExit> {
     })
 }
 
-fn init_logging(noise_level: opts::NoiseLevel) {
-    use env_logger::{Builder, Env};
-    let default_level = match noise_level {
-        opts::NoiseLevel::Polite => "warn",
-        opts::NoiseLevel::LoudAndProud => "ginit=info",
-        opts::NoiseLevel::FranklyQuitePedantic => "info",
-    };
-    let env = Env::default().default_filter_or(default_level);
-    Builder::from_env(env).init();
-}
-
 fn main() {
     NonZeroExit::main(|wrapper| {
         let plugins = {
@@ -139,7 +128,7 @@ fn main() {
                 .get_matches_from_safe(cli::get_args(NAME))
                 .map(Input::parse),
         )?;
-        init_logging(input.noise_level);
+        cli::init_logging(input.noise_level);
         log::info!("received input {:#?}", input);
         match input.command {
             Command::Init(command) => init::exec(

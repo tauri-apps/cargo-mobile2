@@ -24,6 +24,10 @@ impl cli::Exec for Input {
     type Config = empty::Config;
     type Error = String;
 
+    fn global_flags(&self) -> cli::GlobalFlags {
+        self.flags
+    }
+
     fn exec(
         self,
         config: Option<Self::Config>,
