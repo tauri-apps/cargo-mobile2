@@ -49,7 +49,14 @@ impl Input {
     fn parse(matches: ArgMatches<'_>) -> Self {
         Self {
             noise_level: cli::noise_level_from_occurrences(matches.occurrences_of("verbose")),
-            interactivity: cli::interactivity_from_presence(matches.is_present("non-interactive")),
+            interactivity: if std::env::var("CI").ok().filter(|s| s == "true").is_some() {
+                log::info!(
+                    "env var `CI` is set to `true`; automatically running in non-interactive mode"
+                );
+                opts::Interactivity::None
+            } else {
+                cli::interactivity_from_presence(matches.is_present("non-interactive"))
+            },
             command: Command::parse(matches),
         }
     }
