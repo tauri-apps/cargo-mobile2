@@ -346,7 +346,6 @@ dependencies = [
  "env_logger 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ginit-macros 0.1.0",
  "heck 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyphenation 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "into-result 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "once-cell-regex 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",

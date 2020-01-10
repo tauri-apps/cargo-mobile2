@@ -164,12 +164,7 @@ impl NonZeroExit {
     }
 
     pub fn main(inner: impl FnOnce(&TextWrapper) -> Result<(), Self>) {
-        let wrapper = match init_text_wrapper() {
-            Ok(wrapper) => wrapper,
-            Err(err) => {
-                Self::display(format!("Failed to init text wrapper: {}", err)).do_the_thing(None)
-            }
-        };
+        let wrapper = init_text_wrapper();
         if let Err(non_zero_exit) = inner(&wrapper) {
             non_zero_exit.do_the_thing(Some(wrapper))
         }

@@ -10,7 +10,6 @@ name = "cargo-ginit"
 path = "src/main.rs"
 
 [dependencies]
-directories = "2.0.2"
 env_logger = "0.6.2"
 ginit-core = { path = "../ginit-core" }
 indexmap = "1.3.0"

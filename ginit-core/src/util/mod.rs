@@ -23,33 +23,10 @@ use std::{
 
 pub type Never = std::convert::Infallible;
 
-#[derive(Debug)]
-pub enum InitTextWrapperError {
-    HyphenationLoadFailed(hyphenation::load::Error),
-}
+pub type TextWrapper = textwrap::Wrapper<'static, textwrap::NoHyphenation>;
 
-impl Display for InitTextWrapperError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::HyphenationLoadFailed(err) => write!(
-                f,
-                "Failed to load hyphenation standard for \"en-US\": {}",
-                err
-            ),
-        }
-    }
-}
-
-pub type TextWrapper = textwrap::Wrapper<'static, hyphenation::Standard>;
-
-pub fn init_text_wrapper() -> Result<TextWrapper, InitTextWrapperError> {
-    use hyphenation::Load as _;
-    let dictionary = hyphenation::Standard::from_embedded(hyphenation::Language::EnglishUS)
-        .map_err(InitTextWrapperError::HyphenationLoadFailed)?;
-    Ok(TextWrapper::with_splitter(
-        textwrap::termwidth(),
-        dictionary,
-    ))
+pub fn init_text_wrapper() -> TextWrapper {
+    TextWrapper::with_splitter(textwrap::termwidth(), textwrap::NoHyphenation)
 }
 
 pub fn display(d: impl Display) -> String {

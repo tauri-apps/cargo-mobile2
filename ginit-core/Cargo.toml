@@ -11,7 +11,6 @@ deunicode = "1.0.0"
 env_logger = "0.7.1"
 ginit-macros = { path = "../ginit-macros" }
 heck = "0.3.1"
-hyphenation = "0.7.1"
 into-result = "0.1.1"
 log = "0.4.8"
 once-cell-regex = "0.1.0"
