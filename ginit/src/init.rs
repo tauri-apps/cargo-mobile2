@@ -5,26 +5,32 @@ use crate::{
 };
 use ginit_core::{
     config::umbrella::{self, Umbrella},
-    exports::{
-        clap::{App, Arg, ArgMatches},
-        into_result::command::CommandError,
-    },
+    exports::into_result::command::CommandError,
     opts,
     util::{self, cli},
 };
 use std::fmt::{self, Display};
+use structopt::clap::{App, Arg, ArgMatches, SubCommand};
+
+fn take_a_list<'a, 'b>(arg: Arg<'a, 'b>, values: &'a [&'a str]) -> Arg<'a, 'b> {
+    arg.possible_values(values)
+        .multiple(true)
+        .value_delimiter(" ")
+}
 
 pub fn app<'a, 'b>(steps: &'a [&'a str]) -> App<'a, 'b> {
-    cli::take_init_subcommand()
+    SubCommand::with_name("init")
+        .about("Creates a new project in the current working directory")
+        .arg_from_usage("--force 'Clobber files with no remorse'")
         .arg_from_usage("--open 'Open in VS Code'")
-        .arg(cli::take_a_list(
+        .arg(take_a_list(
             Arg::with_name("only")
                 .long("only")
                 .help("Only do some steps")
                 .value_name("STEPS"),
             steps,
         ))
-        .arg(cli::take_a_list(
+        .arg(take_a_list(
             Arg::with_name("skip")
                 .long("skip")
                 .help("Skip some steps")
@@ -72,9 +78,9 @@ pub struct Command {
     skip: Option<Vec<String>>,
 }
 
-impl cli::CommandTrait for Command {
-    fn parse(matches: &ArgMatches<'_>) -> Self {
-        let clobbering = cli::parse_clobbering(&matches);
+impl Command {
+    pub fn parse(matches: &ArgMatches<'_>) -> Self {
+        let clobbering = cli::clobbering_from_presence(matches.is_present("force"));
         let open_in = if matches.is_present("open") {
             opts::OpenIn::Editor
         } else {
@@ -102,17 +108,14 @@ impl cli::CommandTrait for Command {
 }
 
 pub fn exec(
-    cli::Input {
-        noise_level,
-        interactivity,
-        command:
-            Command {
-                clobbering,
-                open_in,
-                only,
-                skip,
-            },
-    }: cli::Input<Command>,
+    noise_level: opts::NoiseLevel,
+    interactivity: opts::Interactivity,
+    Command {
+        clobbering,
+        open_in,
+        only,
+        skip,
+    }: Command,
     plugins: &PluginMap,
     wrapper: &util::TextWrapper,
 ) -> Result<(), Error> {

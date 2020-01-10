@@ -5,30 +5,54 @@ mod steps;
 
 use crate::plugin::Map as PluginMap;
 use ginit_core::{
-    cli_app_custom_init,
-    exports::{
-        clap::{App, AppSettings, ArgMatches, SubCommand},
-        once_cell_regex::regex,
-    },
-    opts::NoiseLevel,
-    util::cli::{self, Input, NonZeroExit},
+    exports::once_cell_regex::regex,
+    opts,
+    util::cli::{self, NonZeroExit},
     NAME,
 };
+use structopt::clap::{self, App, AppSettings, Arg, ArgMatches, SubCommand};
 
 fn app<'a>(
     steps: &'a [&'a str],
     subcommands: impl Iterator<Item = &'a (&'a str, &'a str)>,
 ) -> App<'a, 'a> {
-    let mut app = cli_app_custom_init!(init::app(steps));
-    for (order, (name, description)) in subcommands.enumerate() {
+    let mut app = App::new(env!("CARGO_PKG_NAME"))
+        .version(env!("CARGO_PKG_VERSION"))
+        .author(env!("CARGO_PKG_AUTHORS"))
+        .about(env!("CARGO_PKG_DESCRIPTION"))
+        .settings(cli::SETTINGS)
+        .arg(
+            Arg::from_usage("-v, --verbose 'Make life louder'")
+                .global(true)
+                .multiple(true),
+        )
+        .arg(Arg::from_usage("--non-interactive 'Go with the flow'").global(true))
+        .subcommand(init::app(steps));
+    for (name, description) in subcommands {
         app = app.subcommand(
             SubCommand::with_name(name)
                 .setting(AppSettings::AllowExternalSubcommands)
-                .about(*description)
-                .display_order(order + 1),
+                .about(*description),
         );
     }
     app
+}
+
+#[derive(Debug)]
+struct Input {
+    noise_level: opts::NoiseLevel,
+    interactivity: opts::Interactivity,
+    command: Command,
+}
+
+impl Input {
+    fn parse(matches: ArgMatches<'_>) -> Self {
+        Self {
+            noise_level: cli::noise_level_from_occurrences(matches.occurrences_of("verbose")),
+            interactivity: cli::interactivity_from_presence(matches.is_present("non-interactive")),
+            command: Command::parse(matches),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -37,8 +61,8 @@ enum Command {
     Plugin { name: String, args: Vec<String> },
 }
 
-impl cli::CommandTrait for Command {
-    fn parse(matches: &ArgMatches<'_>) -> Self {
+impl Command {
+    fn parse(matches: ArgMatches<'_>) -> Self {
         let subcommand = matches.subcommand.as_ref().unwrap(); // clap makes sure we got a subcommand
         match subcommand.name.as_str() {
             "init" => Self::Init(init::Command::parse(&subcommand.matches)),
@@ -61,7 +85,7 @@ impl cli::CommandTrait for Command {
     }
 }
 
-fn forward_help(result: clap::Result<Input<Command>>) -> Result<Input<Command>, NonZeroExit> {
+fn forward_help(result: clap::Result<Input>) -> Result<Input, NonZeroExit> {
     result.or_else(|err| match err.kind {
         clap::ErrorKind::HelpDisplayed => {
             // TODO: this is silly...
@@ -86,12 +110,12 @@ fn forward_help(result: clap::Result<Input<Command>>) -> Result<Input<Command>, 
     })
 }
 
-fn init_logging(noise_level: NoiseLevel) {
+fn init_logging(noise_level: opts::NoiseLevel) {
     use env_logger::{Builder, Env};
     let default_level = match noise_level {
-        NoiseLevel::Polite => "warn",
-        NoiseLevel::LoudAndProud => "ginit=info",
-        NoiseLevel::FranklyQuitePedantic => "info",
+        opts::NoiseLevel::Polite => "warn",
+        opts::NoiseLevel::LoudAndProud => "ginit=info",
+        opts::NoiseLevel::FranklyQuitePedantic => "info",
     };
     let env = Env::default().default_filter_or(default_level);
     Builder::from_env(env).init();
@@ -110,19 +134,18 @@ fn main() {
             .iter()
             .map(|plugin| (plugin.name(), (plugin.name(), plugin.description())))
             .unzip();
-        let input = forward_help(cli::get_matches_and_parse(
-            app(&steps, subcommands.iter()),
-            NAME,
-        ))?;
+        let input = forward_help(
+            app(&steps, subcommands.iter())
+                .get_matches_from_safe(cli::get_args(NAME))
+                .map(Input::parse),
+        )?;
         init_logging(input.noise_level);
         log::info!("received input {:#?}", input);
         match input.command {
             Command::Init(command) => init::exec(
-                Input {
-                    noise_level: input.noise_level,
-                    interactivity: input.interactivity,
-                    command,
-                },
+                input.noise_level,
+                input.interactivity,
+                command,
                 &plugins,
                 wrapper,
             )

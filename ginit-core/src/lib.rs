@@ -11,7 +11,6 @@ pub mod util;
 
 pub mod exports {
     pub use bicycle;
-    pub use clap;
     pub use colored;
     pub use into_result;
     pub use once_cell_regex::{

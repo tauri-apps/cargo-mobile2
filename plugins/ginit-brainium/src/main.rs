@@ -4,10 +4,7 @@ mod project;
 
 use ginit_core::{
     config::{self, empty, ConfigTrait as _},
-    util::{
-        self,
-        cli::{self, mixins},
-    },
+    util::{self, cli},
 };
 use structopt::StructOpt;
 
@@ -15,12 +12,12 @@ static NAME: &'static str = "brainium";
 
 #[cli::main(NAME)]
 #[derive(Debug, StructOpt)]
-#[structopt(settings = mixins::SETTINGS)]
+#[structopt(settings = cli::SETTINGS)]
 pub struct Input {
     #[structopt(flatten)]
-    flags: mixins::GlobalFlags,
+    flags: cli::GlobalFlags,
     #[structopt(subcommand)]
-    command: mixins::Barebones,
+    command: cli::Barebones,
 }
 
 impl cli::Exec for Input {
@@ -33,16 +30,16 @@ impl cli::Exec for Input {
         wrapper: &util::TextWrapper,
     ) -> Result<(), Self::Error> {
         let Self {
-            flags: mixins::GlobalFlags { interactivity, .. },
+            flags: cli::GlobalFlags { interactivity, .. },
             command,
         } = self;
         match command {
-            mixins::Barebones::ConfigGen => {
+            cli::Barebones::ConfigGen => {
                 config::gen::detect_or_prompt::<empty::Raw>(interactivity, wrapper, NAME)
                     .map_err(util::display)
             }
-            mixins::Barebones::Init {
-                clobbering: mixins::Clobbering { clobbering },
+            cli::Barebones::Init {
+                clobbering: cli::Clobbering { clobbering },
             } => {
                 let config = config.as_ref().ok_or_else(|| {
                     "Plugin is unconfigured, but configuration is required for this command."

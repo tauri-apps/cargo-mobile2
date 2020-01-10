@@ -49,6 +49,7 @@ impl Compiler {
 #[derive(Clone, Copy, Debug)]
 pub enum Binutil {
     Ar,
+    #[allow(dead_code)]
     Ld,
 }
 

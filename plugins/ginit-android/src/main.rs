@@ -19,30 +19,26 @@ use ginit_core::{
     define_device_prompt,
     device::PromptError,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
-    util::{
-        self,
-        cli::{self, mixins},
-        prompt,
-    },
+    util::{self, cli, prompt},
 };
 use std::fmt::{self, Display};
-use structopt::StructOpt;
+use structopt::{clap::AppSettings, StructOpt};
 
 static NAME: &'static str = "android";
 
 #[cli::main(NAME)]
 #[derive(Debug, StructOpt)]
-#[structopt(settings = mixins::SETTINGS)]
+#[structopt(settings = cli::SETTINGS)]
 pub struct Input {
     #[structopt(flatten)]
-    flags: mixins::GlobalFlags,
+    flags: cli::GlobalFlags,
     #[structopt(subcommand)]
     command: Command,
 }
 
 #[derive(Debug, StructOpt)]
 pub enum Command {
-    #[structopt(name = "config-gen", about = "Generate configuration")]
+    #[structopt(name = "config-gen", about = "Generate configuration", setting = AppSettings::Hidden)]
     ConfigGen,
     #[structopt(
         name = "init",
@@ -50,7 +46,7 @@ pub enum Command {
     )]
     Init {
         #[structopt(flatten)]
-        clobbering: mixins::Clobbering,
+        clobbering: cli::Clobbering,
     },
     #[structopt(name = "check", about = "Checks if code compiles for target(s)")]
     Check {
@@ -62,12 +58,12 @@ pub enum Command {
         #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = Target::name_list())]
         targets: Vec<String>,
         #[structopt(flatten)]
-        profile: mixins::Profile,
+        profile: cli::Profile,
     },
     #[structopt(name = "run", about = "Deploys APK to connected device")]
     Run {
         #[structopt(flatten)]
-        profile: mixins::Profile,
+        profile: cli::Profile,
     },
     #[structopt(name = "st", about = "Displays a detailed stacktrace for a device")]
     Stacktrace,
@@ -134,7 +130,7 @@ impl cli::Exec for Input {
 
         let Self {
             flags:
-                mixins::GlobalFlags {
+                cli::GlobalFlags {
                     noise_level,
                     interactivity,
                 },
@@ -145,7 +141,7 @@ impl cli::Exec for Input {
             Command::ConfigGen => config_gen::detect_or_prompt(interactivity, wrapper, crate::NAME)
                 .map_err(Error::ConfigGenFailed),
             Command::Init {
-                clobbering: mixins::Clobbering { clobbering },
+                clobbering: cli::Clobbering { clobbering },
             } => with_config(config, |config| {
                 project::generate(config, &env, &config.init_templating(), clobbering)
                     .map_err(Error::InitFailed)
@@ -165,7 +161,7 @@ impl cli::Exec for Input {
             }),
             Command::Build {
                 targets,
-                profile: mixins::Profile { profile },
+                profile: cli::Profile { profile },
             } => with_config(config, |config| {
                 call_for_targets_with_fallback(
                     targets.iter(),
@@ -180,7 +176,7 @@ impl cli::Exec for Input {
                 .map_err(Error::TargetInvalid)?
             }),
             Command::Run {
-                profile: mixins::Profile { profile },
+                profile: cli::Profile { profile },
             } => with_config(config, |config| {
                 device_prompt(&env)
                     .map_err(Error::DevicePromptFailed)?
