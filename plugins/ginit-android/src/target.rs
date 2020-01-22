@@ -13,7 +13,7 @@ use ginit_core::{
 use std::{collections::BTreeMap, fmt, fs, io, path::PathBuf, str};
 
 fn so_name(config: &Config) -> String {
-    format!("lib{}.so", config.shared().app_name())
+    format!("lib{}.so", config.shared().app_name_snake())
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -178,7 +178,7 @@ impl<'a> Device<'a> {
         let activity = format!(
             "{}.{}/android.app.NativeActivity",
             config.shared().reverse_domain(),
-            config.shared().app_name(),
+            config.shared().app_name_snake(),
         );
         self.adb(env)
             .args(&["shell", "am", "start", "-n", &activity])
