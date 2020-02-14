@@ -22,7 +22,7 @@ pub fn app<'a, 'b>(steps: &'a [&'a str]) -> App<'a, 'b> {
     SubCommand::with_name("init")
         .about("Creates a new project in the current working directory")
         .arg_from_usage("--force 'Clobber files with no remorse'")
-        .arg_from_usage("--open 'Open in VS Code'")
+        .arg_from_usage("--open 'Open in default code editor'")
         .arg(take_a_list(
             Arg::with_name("only")
                 .long("only")

@@ -12,6 +12,12 @@ use structopt::{
     StructOpt,
 };
 
+pub static GLOBAL_SETTINGS: &'static [AppSettings] = &[
+    AppSettings::ColoredHelp,
+    AppSettings::DeriveDisplayOrder,
+    AppSettings::VersionlessSubcommands,
+];
+
 pub static SETTINGS: &'static [AppSettings] = &[
     AppSettings::ColoredHelp,
     AppSettings::DeriveDisplayOrder,

@@ -5,9 +5,11 @@ mod steps;
 
 use crate::plugin::Map as PluginMap;
 use ginit_core::{
-    exports::once_cell_regex::regex,
     opts,
-    util::cli::{self, NonZeroExit},
+    util::{
+        self,
+        cli::{self, NonZeroExit},
+    },
     NAME,
 };
 use structopt::clap::{self, App, AppSettings, Arg, ArgMatches, SubCommand};
@@ -21,14 +23,16 @@ fn app<'a>(
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
-        .global_settings(cli::SETTINGS)
+        .global_settings(cli::GLOBAL_SETTINGS)
+        .settings(cli::SETTINGS)
         .arg(
             Arg::from_usage("-v, --verbose 'Make life louder'")
                 .global(true)
                 .multiple(true),
         )
         .arg(Arg::from_usage("--non-interactive 'Go with the flow'").global(true))
-        .subcommand(init::app(steps));
+        .subcommand(init::app(steps))
+        .subcommand(SubCommand::with_name("open").about("Open in default code editor"));
     for (name, description) in subcommands {
         app = app.subcommand(
             SubCommand::with_name(name)
@@ -66,6 +70,7 @@ impl Input {
 #[derive(Debug)]
 enum Command {
     Init(init::Command),
+    Open,
     Plugin { name: String, args: Vec<String> },
 }
 
@@ -74,6 +79,7 @@ impl Command {
         let subcommand = matches.subcommand.as_ref().unwrap(); // clap makes sure we got a subcommand
         match subcommand.name.as_str() {
             "init" => Self::Init(init::Command::parse(&subcommand.matches)),
+            "open" => Self::Open,
             _ => Self::Plugin {
                 name: subcommand.name.to_owned(),
                 args: subcommand
@@ -93,25 +99,24 @@ impl Command {
     }
 }
 
-fn forward_help(result: clap::Result<Input>, plugins: &PluginMap) -> Result<Input, NonZeroExit> {
-    result.or_else(|err| match err.kind {
+fn forward_help<'a>(
+    result: Result<Input, (clap::Error, impl Iterator<Item = &'a String>, &PluginMap)>,
+) -> Result<Input, NonZeroExit> {
+    result.or_else(|(err, args, plugins)| match err.kind {
         clap::ErrorKind::HelpDisplayed => {
-            // TODO: this is silly...
-            let command_re = regex!(r#"USAGE:\s+cargo-ginit (.*) \[FLAGS\]"#);
-            if let Some(name) = command_re
-                .captures_iter(&err.message)
-                .next()
-                .map(|caps| {
-                    assert_eq!(caps.len(), 2);
-                    caps.get(1).unwrap().as_str().to_owned()
-                })
+            if let Some(name) = args
+                // Skip the binary path
+                .skip(1)
+                // Get the first thing that's not a flag
+                .find(|arg| !arg.starts_with("-"))
+                // We only proceed if it's a plugin
                 .filter(|name| plugins.get(name).is_some())
             {
                 Ok(Input {
                     noise_level: Default::default(),
                     interactivity: Default::default(),
                     command: Command::Plugin {
-                        name,
+                        name: name.to_owned(),
                         args: vec!["help".to_owned()],
                     },
                 })
@@ -136,14 +141,15 @@ fn main() {
             .iter()
             .map(|plugin| (plugin.name(), (plugin.name(), plugin.description())))
             .unzip();
+        let args = cli::get_args(NAME);
         let input = forward_help(
             app(&steps, subcommands.iter())
-                .get_matches_from_safe(cli::get_args(NAME))
-                .map(Input::parse),
-            &plugins,
+                .get_matches_from_safe(&args)
+                .map(Input::parse)
+                .map_err(|err| (err, args.iter(), &plugins)),
         )?;
         cli::init_logging(input.noise_level);
-        log::info!("received input {:#?}", input);
+        log::info!("received input: {:#?}", input);
         match input.command {
             Command::Init(command) => init::exec(
                 input.noise_level,
@@ -153,6 +159,7 @@ fn main() {
                 wrapper,
             )
             .map_err(NonZeroExit::display),
+            Command::Open => util::open_in_editor(".").map_err(NonZeroExit::display),
             Command::Plugin { name, args } => plugins
                 .get(&name)
                 .ok_or_else(|| {
