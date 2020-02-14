@@ -19,6 +19,7 @@ use ginit_core::{
     define_device_prompt,
     device::PromptError,
     env::{Env, Error as EnvError},
+    exports::into_result::command::CommandError,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
     util::{self, cli, prompt},
 };
@@ -49,6 +50,8 @@ pub enum Command {
         #[structopt(flatten)]
         clobbering: cli::Clobbering,
     },
+    #[structopt(name = "open", about = "Open project in Xcode")]
+    Open,
     #[structopt(name = "check", about = "Checks if code compiles for target(s)")]
     Check {
         #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = Target::name_list())]
@@ -91,6 +94,7 @@ pub enum Error {
     ConfigGenFailed(config_gen::Error<Raw>),
     ConfigRequired,
     InitFailed(project::Error),
+    OpenFailed(CommandError),
     CheckFailed(CheckError),
     BuildFailed(BuildError),
     RunFailed(RunError),
@@ -111,6 +115,7 @@ impl Display for Error {
                 "Plugin is unconfigured, but configuration is required for this command."
             ),
             Self::InitFailed(err) => write!(f, "{}", err),
+            Self::OpenFailed(err) => write!(f, "Failed to open project in Xcode: {}", err),
             Self::CheckFailed(err) => write!(f, "{}", err),
             Self::BuildFailed(err) => write!(f, "{}", err),
             Self::RunFailed(err) => write!(f, "{}", err),
@@ -163,6 +168,9 @@ impl cli::Exec for Input {
             } => with_config(config, |config| {
                 project::generate(config, &config.init_templating(), clobbering)
                     .map_err(Error::InitFailed)
+            }),
+            Command::Open => with_config(config, |config| {
+                util::open_in_program("Xcode", config.project_path()).map_err(Error::OpenFailed)
             }),
             Command::Check { targets } => with_config(config, |config| {
                 call_for_targets_with_fallback(

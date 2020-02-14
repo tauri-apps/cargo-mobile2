@@ -11,38 +11,38 @@ use std::{
     path::PathBuf,
 };
 
-static DEFAULT_PROJECT_ROOT: &'static str = "gen/ios";
+static DEFAULT_PROJECT_PATH: &'static str = "gen/ios";
 
 #[derive(Debug)]
-pub enum ProjectRootInvalid {
+pub enum ProjectPathInvalid {
     NormalizationFailed {
-        ios_project_root: String,
+        ios_project_path: String,
         cause: util::NormalizationError,
     },
     OutsideOfProject {
-        ios_project_root: String,
-        project_root: PathBuf,
+        ios_project_path: String,
+        project_path: PathBuf,
     },
 }
 
-impl Display for ProjectRootInvalid {
+impl Display for ProjectPathInvalid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NormalizationFailed {
-                ios_project_root,
+                ios_project_path,
                 cause,
             } => write!(
                 f,
                 "{:?} couldn't be normalized: {}",
-                ios_project_root, cause
+                ios_project_path, cause
             ),
             Self::OutsideOfProject {
-                ios_project_root,
-                project_root,
+                ios_project_path,
+                project_path,
             } => write!(
                 f,
                 "{:?} is outside of the project root ({:?}).",
-                ios_project_root, project_root,
+                ios_project_path, project_path,
             ),
         }
     }
@@ -52,7 +52,7 @@ impl Display for ProjectRootInvalid {
 pub enum Error {
     DevelopmentTeamMissing,
     DevelopmentTeamEmpty,
-    ProjectRootInvalid(ProjectRootInvalid),
+    ProjectPathInvalid(ProjectPathInvalid),
 }
 
 impl Display for Error {
@@ -60,7 +60,7 @@ impl Display for Error {
         match self {
             Self::DevelopmentTeamMissing => write!(f, "`ios.development-team` must be specified."),
             Self::DevelopmentTeamEmpty => write!(f, "`ios.development-team` is empty."),
-            Self::ProjectRootInvalid(err) => write!(f, "`ios.project-root` invalid: {}", err),
+            Self::ProjectPathInvalid(err) => write!(f, "`ios.project-path` invalid: {}", err),
         }
     }
 }
@@ -71,7 +71,7 @@ pub struct Config {
     #[serde(skip_serializing)]
     shared: Shared,
     development_team: String,
-    project_root: String,
+    project_path: String,
 }
 
 impl ConfigTrait for Config {
@@ -85,37 +85,37 @@ impl ConfigTrait for Config {
         if raw.development_team.is_empty() {
             Err(Error::DevelopmentTeamEmpty)
         } else {
-            let project_root = raw
-                .project_root
-                .map(|project_root| {
-                    if project_root == DEFAULT_PROJECT_ROOT {
-                        log::warn!("`ios.project-root` is set to the default value; you can remove it from your config");
+            let project_path = raw
+                .project_path
+                .map(|project_path| {
+                    if project_path == DEFAULT_PROJECT_PATH {
+                        log::warn!("`ios.project-path` is set to the default value; you can remove it from your config");
                     }
-                    if util::normalize_path(&project_root)
-                        .map_err(|cause| Error::ProjectRootInvalid(ProjectRootInvalid::NormalizationFailed {
-                            ios_project_root: project_root.clone(),
+                    if util::normalize_path(&project_path)
+                        .map_err(|cause| Error::ProjectPathInvalid(ProjectPathInvalid::NormalizationFailed {
+                            ios_project_path: project_path.clone(),
                             cause,
                         }))?
                         .starts_with(shared.project_root())
                     {
-                        Ok(project_root)
+                        Ok(project_path)
                     } else {
-                        Err(Error::ProjectRootInvalid(ProjectRootInvalid::OutsideOfProject {
-                            ios_project_root: project_root,
-                            project_root: shared.project_root().to_owned(),
+                        Err(Error::ProjectPathInvalid(ProjectPathInvalid::OutsideOfProject {
+                            ios_project_path: project_path,
+                            project_path: shared.project_root().to_owned(),
                         }))
                     }
                 }).unwrap_or_else(|| {
                     log::info!(
-                        "`ios.project-root` not set; defaulting to {}",
-                        DEFAULT_PROJECT_ROOT
+                        "`ios.project-path` not set; defaulting to {}",
+                        DEFAULT_PROJECT_PATH
                     );
-                    Ok(DEFAULT_PROJECT_ROOT.to_owned())
+                    Ok(DEFAULT_PROJECT_PATH.to_owned())
                 })?;
             Ok(Self {
                 shared,
                 development_team: raw.development_team,
-                project_root,
+                project_path,
             })
         }
     }
@@ -126,23 +126,23 @@ impl ConfigTrait for Config {
 }
 
 impl Config {
-    pub fn project_root(&self) -> PathBuf {
-        self.shared.prefix_path(&self.project_root)
+    pub fn project_path(&self) -> PathBuf {
+        self.shared.prefix_path(&self.project_path)
     }
 
     pub fn workspace_path(&self) -> PathBuf {
-        self.project_root().join(format!(
+        self.project_path().join(format!(
             "{}.xcodeproj/project.xcworkspace/",
             self.shared.app_name()
         ))
     }
 
     pub fn export_path(&self) -> PathBuf {
-        self.project_root().join("build")
+        self.project_path().join("build")
     }
 
     pub fn export_plist_path(&self) -> PathBuf {
-        self.project_root().join("ExportOptions.plist")
+        self.project_path().join("ExportOptions.plist")
     }
 
     pub fn ipa_path(&self) -> PathBuf {

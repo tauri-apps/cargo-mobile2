@@ -50,8 +50,8 @@ impl Display for PromptError {
 pub struct Raw {
     #[serde(alias = "development-team")]
     pub development_team: String,
-    #[serde(alias = "project-root")]
-    pub project_root: Option<String>,
+    #[serde(alias = "project-path")]
+    pub project_path: Option<String>,
     pub targets: Option<HashMap<String, HashMap<String, String>>>,
 }
 
@@ -67,7 +67,7 @@ impl RawConfigTrait for Raw {
                 .get(0)
                 .map(|development_team| development_team.id.clone())
                 .ok_or_else(|| DetectedError::DeveloperTeamsEmpty)?,
-            project_root: None,
+            project_path: None,
             targets: None,
         })
     }
@@ -130,7 +130,7 @@ impl RawConfigTrait for Raw {
         };
         Ok(Self {
             development_team,
-            project_root: None,
+            project_path: None,
             targets: None,
         })
     }

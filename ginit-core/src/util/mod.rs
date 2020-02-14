@@ -92,17 +92,27 @@ pub fn rustup_add(triple: &str) -> CommandResult<()> {
 }
 
 #[cfg(target_os = "macos")]
-pub fn open_in_editor(path: impl AsRef<OsStr>) -> CommandResult<()> {
+pub fn open_in_program(program: impl AsRef<str>, arg: impl AsRef<OsStr>) -> CommandResult<()> {
     Command::new("open")
-        .args(&["-a", "Visual Studio Code"])
-        .arg(path.as_ref())
+        .args(&["-a", program.as_ref()])
+        .arg(arg.as_ref())
         .status()
         .into_result()
 }
 
 #[cfg(not(target_os = "macos"))]
-pub fn open_in_editor(_path: impl AsRef<Path>) -> CommandResult<()> {
-    unimplemented!()
+pub fn open_in_program(_program: impl AsRef<str>, _arg: impl AsRef<OsStr>) -> CommandResult<()> {
+    todo!()
+}
+
+#[cfg(target_os = "macos")]
+pub fn open_in_editor(path: impl AsRef<OsStr>) -> CommandResult<()> {
+    open_in_program("Visual Studio Code", path)
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn open_in_editor(_path: impl AsRef<OsStr>) -> CommandResult<()> {
+    open_in_program("Visual Studio Code", path)
 }
 
 #[derive(Debug)]

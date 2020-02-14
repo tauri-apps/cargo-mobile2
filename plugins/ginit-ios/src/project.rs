@@ -65,7 +65,7 @@ pub fn generate(
             name: "xcode-project",
         }
     })?;
-    let dest = config.project_root();
+    let dest = config.project_path();
     bike.process(src, &dest, |map| {
         config.insert_template_data(crate::NAME, map)
     })
