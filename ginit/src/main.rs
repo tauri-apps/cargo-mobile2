@@ -20,7 +20,7 @@ fn app<'a>(
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
-        .settings(cli::SETTINGS)
+        .global_settings(cli::SETTINGS)
         .arg(
             Arg::from_usage("-v, --verbose 'Make life louder'")
                 .global(true)
@@ -92,15 +92,20 @@ impl Command {
     }
 }
 
-fn forward_help(result: clap::Result<Input>) -> Result<Input, NonZeroExit> {
+fn forward_help(result: clap::Result<Input>, plugins: &PluginMap) -> Result<Input, NonZeroExit> {
     result.or_else(|err| match err.kind {
         clap::ErrorKind::HelpDisplayed => {
             // TODO: this is silly...
             let command_re = regex!(r#"USAGE:\s+cargo-ginit (.*) \[FLAGS\]"#);
-            if let Some(name) = command_re.captures_iter(&err.message).next().map(|caps| {
-                assert_eq!(caps.len(), 2);
-                caps.get(1).unwrap().as_str().to_owned()
-            }) {
+            if let Some(name) = command_re
+                .captures_iter(&err.message)
+                .next()
+                .map(|caps| {
+                    assert_eq!(caps.len(), 2);
+                    caps.get(1).unwrap().as_str().to_owned()
+                })
+                .filter(|name| plugins.get(name).is_some())
+            {
                 Ok(Input {
                     noise_level: Default::default(),
                     interactivity: Default::default(),
@@ -134,6 +139,7 @@ fn main() {
             app(&steps, subcommands.iter())
                 .get_matches_from_safe(cli::get_args(NAME))
                 .map(Input::parse),
+            &plugins,
         )?;
         cli::init_logging(input.noise_level);
         log::info!("received input {:#?}", input);
