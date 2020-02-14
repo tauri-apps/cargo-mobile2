@@ -1,6 +1,8 @@
 use crate::{config::shared::Shared, util};
 use bicycle::{
-    handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderError},
+    handlebars::{
+        self, Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderError,
+    },
     Bicycle, EscapeFn, HelperDef, JsonMap,
 };
 use std::{
@@ -8,11 +10,22 @@ use std::{
     path::{Path, PathBuf},
 };
 
-fn path<'a>(helper: &'a Helper) -> &'a str {
+fn get_str<'a>(helper: &'a Helper) -> &'a str {
     helper
         .param(0)
         .and_then(|v| v.value().as_str())
         .unwrap_or("")
+}
+
+fn html_escape(
+    helper: &Helper,
+    _: &Handlebars,
+    _ctx: &Context,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    out.write(&handlebars::html_escape(get_str(helper)))
+        .map_err(Into::into)
 }
 
 fn project_root<'a>(ctx: &'a Context) -> Result<&'a str, RenderError> {
@@ -33,7 +46,7 @@ fn prefix_path(
     out: &mut dyn Output,
 ) -> HelperResult {
     out.write(
-        util::prefix_path(project_root(ctx)?, path(helper))
+        util::prefix_path(project_root(ctx)?, get_str(helper))
             .to_str()
             .ok_or_else(|| {
                 RenderError::new(
@@ -52,7 +65,7 @@ fn unprefix_path(
     out: &mut dyn Output,
 ) -> HelperResult {
     out.write(
-        util::unprefix_path(project_root(ctx)?, path(helper))
+        util::unprefix_path(project_root(ctx)?, get_str(helper))
             .map_err(|_| {
                 RenderError::new("Attempted to unprefix a path that wasn't in the project.")
             })?
@@ -71,6 +84,7 @@ pub fn init(config: Option<&Shared>) -> Bicycle {
         EscapeFn::None,
         {
             let mut helpers = HashMap::<_, Box<dyn HelperDef>>::new();
+            helpers.insert("html-escape", Box::new(html_escape));
             if config.is_some() {
                 // don't mix these up or very bad things will happen to all of us
                 helpers.insert("prefix-path", Box::new(prefix_path));
