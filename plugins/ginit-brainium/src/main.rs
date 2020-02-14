@@ -12,7 +12,7 @@ static NAME: &'static str = "brainium";
 
 #[cli::main(NAME)]
 #[derive(Debug, StructOpt)]
-#[structopt(settings = cli::SETTINGS)]
+#[structopt(bin_name = cli::bin_name(NAME), settings = cli::SETTINGS)]
 pub struct Input {
     #[structopt(flatten)]
     flags: cli::GlobalFlags,

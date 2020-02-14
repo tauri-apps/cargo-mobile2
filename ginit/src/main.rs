@@ -17,6 +17,7 @@ fn app<'a>(
     subcommands: impl Iterator<Item = &'a (&'a str, &'a str)>,
 ) -> App<'a, 'a> {
     let mut app = App::new(env!("CARGO_PKG_NAME"))
+        .bin_name("cargo ginit")
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(env!("CARGO_PKG_DESCRIPTION"))

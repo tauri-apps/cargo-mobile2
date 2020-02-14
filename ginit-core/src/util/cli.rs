@@ -19,6 +19,10 @@ pub static SETTINGS: &'static [AppSettings] = &[
     AppSettings::VersionlessSubcommands,
 ];
 
+pub fn bin_name(name: &str) -> String {
+    format!("cargo {} {}", crate::NAME, name)
+}
+
 #[derive(Clone, Copy, Debug, StructOpt)]
 pub struct GlobalFlags {
     #[structopt(
