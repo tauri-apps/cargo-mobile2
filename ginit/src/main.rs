@@ -93,7 +93,8 @@ impl Command {
                         }
                         args
                     })
-                    .unwrap_or_default(),
+                    .filter(|args| !args.is_empty())
+                    .unwrap_or_else(|| vec!["help".to_owned()]),
             },
         }
     }
