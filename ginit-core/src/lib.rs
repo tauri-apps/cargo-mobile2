@@ -12,12 +12,14 @@ pub mod util;
 pub mod exports {
     pub use bicycle;
     pub use colored;
-    pub use into_result;
+    pub use ginit_os::exports::into_result;
     pub use once_cell_regex::{
         self,
         exports::{once_cell, regex},
     };
     pub use toml;
 }
+
+pub use ginit_os as os;
 
 pub static NAME: &'static str = "ginit";

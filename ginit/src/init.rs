@@ -5,7 +5,6 @@ use crate::{
 };
 use ginit_core::{
     config::umbrella::{self, Umbrella},
-    exports::into_result::command::CommandError,
     opts,
     util::{self, cli},
 };
@@ -50,7 +49,7 @@ pub enum Error {
         plugin_name: String,
         cause: PluginError,
     },
-    OpenInEditorFailed(CommandError),
+    OpenInEditorFailed(util::OpenInEditorError),
 }
 
 impl Display for Error {

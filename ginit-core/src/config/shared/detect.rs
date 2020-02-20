@@ -1,9 +1,9 @@
 use crate::{
     config::{app_name, DetectedConfigTrait},
+    exports::into_result::{command::CommandError, IntoResult as _},
     util::COMMON_EMAIL_PROVIDERS,
 };
 use heck::{KebabCase as _, TitleCase as _};
-use into_result::{command::CommandError, IntoResult as _};
 use std::{
     env,
     fmt::{self, Display},

@@ -19,6 +19,7 @@ use ginit_core::{
     define_device_prompt,
     device::PromptError,
     exports::into_result::command::CommandError,
+    os,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
     util::{self, cli, prompt},
 };
@@ -156,7 +157,7 @@ impl cli::Exec for Input {
                     .map_err(Error::InitFailed)
             }),
             Command::Open => with_config(config, |config| {
-                util::open_in_program("Android Studio", config.project_path())
+                os::open_file_with("Android Studio", config.project_path())
                     .map_err(Error::OpenFailed)
             }),
             Command::Check { targets } => with_config(config, |config| {

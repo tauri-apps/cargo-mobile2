@@ -20,6 +20,7 @@ use ginit_core::{
     device::PromptError,
     env::{Env, Error as EnvError},
     exports::into_result::command::CommandError,
+    os,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
     util::{self, cli, prompt},
 };
@@ -170,7 +171,7 @@ impl cli::Exec for Input {
                     .map_err(Error::InitFailed)
             }),
             Command::Open => with_config(config, |config| {
-                util::open_in_program("Xcode", config.project_path()).map_err(Error::OpenFailed)
+                os::open_file_with("Xcode", config.project_path()).map_err(Error::OpenFailed)
             }),
             Command::Check { targets } => with_config(config, |config| {
                 call_for_targets_with_fallback(

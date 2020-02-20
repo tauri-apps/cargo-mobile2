@@ -8,9 +8,12 @@ pub mod pure_command;
 pub mod re;
 
 pub use self::{cargo::CargoCommand, common_email_providers::COMMON_EMAIL_PROVIDERS, path::*};
-use into_result::{
-    command::{CommandError, CommandResult},
-    IntoResult as _,
+use crate::{
+    exports::into_result::{
+        command::{CommandError, CommandResult},
+        IntoResult as _,
+    },
+    os,
 };
 use std::{
     env,
@@ -91,28 +94,27 @@ pub fn rustup_add(triple: &str) -> CommandResult<()> {
         .into_result()
 }
 
-#[cfg(target_os = "macos")]
-pub fn open_in_program(program: impl AsRef<str>, arg: impl AsRef<OsStr>) -> CommandResult<()> {
-    Command::new("open")
-        .args(&["-a", program.as_ref()])
-        .arg(arg.as_ref())
-        .status()
-        .into_result()
+#[derive(Debug)]
+pub enum OpenInEditorError {
+    DetectFailed(os::DetectEditorError),
+    OpenFailed(os::OpenFileError),
 }
 
-#[cfg(not(target_os = "macos"))]
-pub fn open_in_program(_program: impl AsRef<str>, _arg: impl AsRef<OsStr>) -> CommandResult<()> {
-    todo!()
+impl Display for OpenInEditorError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::DetectFailed(err) => write!(f, "Failed to detect editor: {}", err),
+            Self::OpenFailed(err) => write!(f, "Failed to open path in edtior: {}", err),
+        }
+    }
 }
 
-#[cfg(target_os = "macos")]
-pub fn open_in_editor(path: impl AsRef<OsStr>) -> CommandResult<()> {
-    open_in_program("Visual Studio Code", path)
-}
-
-#[cfg(not(target_os = "macos"))]
-pub fn open_in_editor(_path: impl AsRef<OsStr>) -> CommandResult<()> {
-    open_in_program("Visual Studio Code", path)
+pub fn open_in_editor(path: impl AsRef<Path>) -> Result<(), OpenInEditorError> {
+    let path = path.as_ref();
+    os::Application::detect_editor()
+        .map_err(OpenInEditorError::DetectFailed)?
+        .open_file(path)
+        .map_err(OpenInEditorError::OpenFailed)
 }
 
 #[derive(Debug)]

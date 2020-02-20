@@ -1,6 +1,6 @@
-use into_result::{command::CommandError, IntoResult as _};
+use crate::exports::into_result::{command::CommandError, IntoResult as _};
 use std::{
-    fmt,
+    fmt::{self, Display},
     path::{Path, PathBuf},
     process::Command,
 };
@@ -11,11 +11,11 @@ pub enum LinkType {
     Symbolic,
 }
 
-impl fmt::Display for LinkType {
+impl Display for LinkType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            LinkType::Hard => write!(f, "hard"),
-            LinkType::Symbolic => write!(f, "symbolic"),
+            Self::Hard => write!(f, "hard"),
+            Self::Symbolic => write!(f, "symbolic"),
         }
     }
 }
@@ -27,12 +27,12 @@ pub enum Clobber {
     FileOrDirectory,
 }
 
-impl fmt::Display for Clobber {
+impl Display for Clobber {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Clobber::Never => write!(f, "clobbering disabled"),
-            Clobber::FileOnly => write!(f, "file clobbering enabled"),
-            Clobber::FileOrDirectory => write!(f, "file and directory clobbering enabled"),
+            Self::Never => write!(f, "clobbering disabled"),
+            Self::FileOnly => write!(f, "file clobbering enabled"),
+            Self::FileOrDirectory => write!(f, "file and directory clobbering enabled"),
         }
     }
 }
@@ -43,11 +43,11 @@ pub enum TargetStyle {
     Directory,
 }
 
-impl fmt::Display for TargetStyle {
+impl Display for TargetStyle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TargetStyle::File => write!(f, "file"),
-            TargetStyle::Directory => write!(f, "directory"),
+            Self::File => write!(f, "file"),
+            Self::Directory => write!(f, "directory"),
         }
     }
 }
@@ -58,13 +58,13 @@ pub enum ErrorCause {
     CommandFailed(CommandError),
 }
 
-impl fmt::Display for ErrorCause {
+impl Display for ErrorCause {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ErrorCause::MissingFileName => {
+            Self::MissingFileName => {
                 write!(f, "Neither the source nor target contained a file name.",)
             }
-            ErrorCause::CommandFailed(err) => write!(f, "`ln` command failed: {}", err),
+            Self::CommandFailed(err) => write!(f, "`ln` command failed: {}", err),
         }
     }
 }
@@ -79,7 +79,7 @@ pub struct Error {
     cause: ErrorCause,
 }
 
-impl fmt::Display for Error {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,

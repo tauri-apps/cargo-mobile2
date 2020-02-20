@@ -1,0 +1,14 @@
+[package]
+name = "ginit-os"
+version = "0.1.0"
+authors = ["Francesca Plebani <francesca@brainiumstudios.com>"]
+edition = "2018"
+
+[dependencies]
+into-result = "0.1.1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+cocoa = "0.20.0"
+core-foundation = "0.7.0"
+objc = "0.2.7"
+objc_id = "0.1.1"
