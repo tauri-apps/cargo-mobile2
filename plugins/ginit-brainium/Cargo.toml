@@ -5,9 +5,6 @@ authors = ["Brainium Studios LLC"]
 edition = "2018"
 description = "Tools for Brainium"
 
-[package.metadata.ginit]
-supports = ["init"]
-
 [dependencies]
 ginit-core = { path = "../../ginit-core" }
 serde = { version = "1.0.101", features = ["derive"] }

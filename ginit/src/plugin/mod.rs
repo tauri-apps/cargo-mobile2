@@ -107,13 +107,6 @@ impl Plugin {
         &self.manifest.description
     }
 
-    pub fn supports(&self, feature: impl AsRef<str>) -> bool {
-        self.manifest
-            .supports
-            .iter()
-            .any(|supported| supported.as_str() == feature.as_ref())
-    }
-
     fn run(
         &self,
         noise_level: opts::NoiseLevel,

@@ -5,9 +5,6 @@ authors = ["Brainium Studios LLC"]
 edition = "2018"
 description = "Tools for Android"
 
-[package.metadata.ginit]
-supports = ["init"]
-
 [dependencies]
 ginit-core = { path = "../../ginit-core" }
 java-properties = "1.2.0"

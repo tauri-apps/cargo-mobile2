@@ -156,7 +156,7 @@ pub fn exec(
         )
         .map_err(Error::ConfigGenFailed)?;
     }
-    for plugin in plugins.iter().filter(|plugin| plugin.supports("init")) {
+    for plugin in plugins.iter() {
         if steps
             .is_set(plugin.name())
             .map_err(Error::StepNotRegistered)?

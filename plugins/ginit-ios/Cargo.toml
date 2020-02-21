@@ -5,9 +5,6 @@ authors = ["Brainium Studios LLC"]
 edition = "2018"
 description = "Tools for iOS"
 
-[package.metadata.ginit]
-supports = ["init"]
-
 [dependencies]
 ginit-core = { path = "../../ginit-core" }
 log = "0.4.8"

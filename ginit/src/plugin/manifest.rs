@@ -14,7 +14,6 @@ pub enum Cause {
     OpenFailed(io::Error),
     ReadFailed(io::Error),
     ParseFailed(toml::de::Error),
-    MetadataMissing,
     MetadataInvalid(toml::de::Error),
 }
 
@@ -37,11 +36,6 @@ impl Display for Error {
             Cause::ParseFailed(err) => {
                 write!(f, "Failed to parse manifest at {:?}: {}", self.path, err)
             }
-            Cause::MetadataMissing => write!(
-                f,
-                "`package.metadata.ginit` section missing from manifest at {:?}.",
-                self.path,
-            ),
             Cause::MetadataInvalid(err) => write!(
                 f,
                 "Failed to parse `package.metadata.ginit` at {:?}: {}",
@@ -64,7 +58,6 @@ impl Error {
 pub struct Manifest {
     pub name: String,
     pub description: String,
-    pub supports: Vec<String>,
 }
 
 impl Manifest {
@@ -78,12 +71,13 @@ impl Manifest {
         struct Package {
             name: String,
             description: String,
-            metadata: HashMap<String, toml::Value>,
+            metadata: Option<HashMap<String, toml::Value>>,
         }
 
         #[derive(Debug, Deserialize, Serialize)]
         struct Metadata {
-            supports: Vec<String>,
+            name: Option<String>,
+            description: Option<String>,
         }
 
         let path = path.as_ref();
@@ -95,24 +89,42 @@ impl Manifest {
             let mut raw = Vec::new();
             file.read_to_end(&mut raw)
                 .map_err(|err| Error::new(path, Cause::ReadFailed(err)))?;
-            let cargo = toml::from_slice::<CargoToml>(&raw)
-                .map_err(|err| Error::new(path, Cause::ParseFailed(err)))?;
-            let metadata = cargo
-                .package
-                .metadata
-                .get("ginit")
-                .ok_or_else(|| Error::new(path, Cause::MetadataMissing))
-                .and_then(|metadata| {
-                    metadata
-                        .clone()
-                        .try_into::<Metadata>()
-                        .map_err(|err| Error::new(path, Cause::MetadataInvalid(err)))
-                })?;
-            let CargoToml {
-                package: Package {
-                    name, description, ..
-                },
-            } = cargo;
+            let (name, description) = {
+                let cargo = toml::from_slice::<CargoToml>(&raw)
+                    .map_err(|err| Error::new(path, Cause::ParseFailed(err)))?;
+                let metadata = cargo
+                    .package
+                    .metadata
+                    .and_then(|metadata| {
+                        metadata.get("ginit").map(|metadata| {
+                            metadata
+                                .clone()
+                                .try_into::<Metadata>()
+                                .map_err(|err| Error::new(path, Cause::MetadataInvalid(err)))
+                        })
+                    })
+                    .transpose()?;
+                let CargoToml {
+                    package:
+                        Package {
+                            name: pkg_name,
+                            description: pkg_description,
+                            ..
+                        },
+                } = cargo;
+                if let Some(Metadata {
+                    name: meta_name,
+                    description: meta_description,
+                }) = metadata
+                {
+                    (
+                        meta_name.unwrap_or_else(|| pkg_name),
+                        meta_description.unwrap_or_else(|| pkg_description),
+                    )
+                } else {
+                    (pkg_name, pkg_description)
+                }
+            };
             Ok(Self {
                 name: if name.starts_with("ginit-") {
                     name.replace("ginit-", "")
@@ -120,7 +132,6 @@ impl Manifest {
                     name
                 },
                 description,
-                supports: metadata.supports,
             })
         }
     }
