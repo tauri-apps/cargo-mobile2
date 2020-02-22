@@ -1,4 +1,5 @@
-use super::{NewError, Plugin};
+use super::{LoadError, Plugin};
+use ginit_core::config::shared::Shared;
 
 #[derive(Debug, Default)]
 pub struct Map {
@@ -6,11 +7,18 @@ pub struct Map {
 }
 
 impl Map {
-    pub fn add(&mut self, name: impl AsRef<str>) -> Result<(), NewError> {
-        let name = name.as_ref();
-        Plugin::new(name).map(|plugin| {
-            self.plugins.insert(name.to_owned(), plugin);
-        })
+    pub fn from_iter(plugins: impl Iterator<Item = impl Into<String>>) -> Result<Self, LoadError> {
+        plugins
+            .map(|name| {
+                let name = name.into();
+                Plugin::new(&name).map(|plugin| (name, plugin))
+            })
+            .collect::<Result<_, _>>()
+            .map(|plugins| Self { plugins })
+    }
+
+    pub fn from_shared(shared: &Shared) -> Result<Self, LoadError> {
+        Self::from_iter(shared.plugins().into_iter())
     }
 
     pub fn get(&self, name: impl AsRef<str>) -> Option<&Plugin> {

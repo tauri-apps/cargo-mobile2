@@ -73,6 +73,7 @@ pub struct Detected {
     pub app_name: Option<String>,
     pub stylized_app_name: String,
     pub domain: String,
+    pub plugins: Vec<String>,
 }
 
 impl DetectedConfigTrait for Detected {
@@ -95,6 +96,12 @@ impl DetectedConfigTrait for Detected {
             app_name,
             stylized_app_name,
             domain,
+            // TODO: not this
+            plugins: vec![
+                "brainium".to_owned(),
+                "android".to_owned(),
+                "ios".to_owned(),
+            ],
         })
     }
 }

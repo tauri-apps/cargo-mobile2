@@ -5,6 +5,7 @@ mod steps;
 
 use crate::plugin::Map as PluginMap;
 use ginit_core::{
+    config::umbrella::Umbrella,
     opts,
     util::{
         self,
@@ -25,6 +26,7 @@ fn app<'a>(
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .global_settings(cli::GLOBAL_SETTINGS)
         .settings(cli::SETTINGS)
+        .setting(AppSettings::AllowExternalSubcommands)
         .arg(
             Arg::from_usage("-v, --verbose 'Make life louder'")
                 .global(true)
@@ -131,13 +133,12 @@ fn forward_help<'a>(
 
 fn main() {
     NonZeroExit::main(|wrapper| {
-        let plugins = {
-            let mut plugins = PluginMap::default();
-            plugins.add("brainium").map_err(NonZeroExit::display)?;
-            plugins.add("android").map_err(NonZeroExit::display)?;
-            plugins.add("ios").map_err(NonZeroExit::display)?;
-            plugins
-        };
+        let plugins = Umbrella::load(".")
+            .map_err(NonZeroExit::display)?
+            .map(|umbrella| PluginMap::from_shared(umbrella.shared()))
+            .transpose()
+            .map_err(NonZeroExit::display)?
+            .unwrap_or_default();
         let (steps, subcommands): (Vec<_>, Vec<_>) = plugins
             .iter()
             .map(|plugin| (plugin.name(), (plugin.name(), plugin.description())))
@@ -152,14 +153,10 @@ fn main() {
         cli::init_logging(input.noise_level);
         log::info!("received input: {:#?}", input);
         match input.command {
-            Command::Init(command) => init::exec(
-                input.noise_level,
-                input.interactivity,
-                command,
-                &plugins,
-                wrapper,
-            )
-            .map_err(NonZeroExit::display),
+            Command::Init(command) => {
+                init::exec(input.noise_level, input.interactivity, command, wrapper)
+                    .map_err(NonZeroExit::display)
+            }
             Command::Open => util::open_in_editor(".").map_err(NonZeroExit::display),
             Command::Plugin { name, args } => plugins
                 .get(&name)

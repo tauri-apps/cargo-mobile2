@@ -13,37 +13,67 @@ use std::{
     fmt::{self, Display},
     io,
     path::{Path, PathBuf},
-    process::{Child, Command},
+    process::{Child, Command, ExitStatus},
 };
 
 #[derive(Debug)]
-pub enum NewError {
+pub enum LoadErrorCause {
     BinMissing { tried: PathBuf },
     ManifestFailed(manifest::Error),
 }
 
-impl Display for NewError {
+#[derive(Debug)]
+pub struct LoadError {
+    plugin_name: String,
+    cause: LoadErrorCause,
+}
+
+impl Display for LoadError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::BinMissing { tried } => write!(f, "Binary not found: tried {:?}", tried),
-            Self::ManifestFailed(err) => write!(f, "{}", err),
+        match &self.cause {
+            LoadErrorCause::BinMissing { tried } => write!(
+                f,
+                "Binary not found for plugin {:?}: tried {:?}",
+                self.plugin_name, tried
+            ),
+            LoadErrorCause::ManifestFailed(err) => write!(
+                f,
+                "Failed to load manifest for plugin {:?}: {}",
+                self.plugin_name, err
+            ),
         }
     }
 }
 
 #[derive(Debug)]
-pub enum RunError {
+pub enum RunErrorCause {
     SpawnFailed(CommandError),
     WaitFailed(io::Error),
     CommandFailed(CommandError),
 }
 
+#[derive(Debug)]
+pub struct RunError {
+    plugin_name: String,
+    cause: RunErrorCause,
+}
+
 impl Display for RunError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::SpawnFailed(err) => write!(f, "Failed to spawn process: {}", err),
-            Self::WaitFailed(err) => write!(f, "Failed to wait for exit status: {}", err),
-            Self::CommandFailed(err) => write!(f, "{}", err),
+        match &self.cause {
+            RunErrorCause::SpawnFailed(err) => write!(
+                f,
+                "Failed to spawn process for plugin {:?}: {}",
+                self.plugin_name, err
+            ),
+            RunErrorCause::WaitFailed(err) => write!(
+                f,
+                "Failed to wait for exit status for plugin {:?}: {}",
+                self.plugin_name, err
+            ),
+            RunErrorCause::CommandFailed(err) => {
+                write!(f, "Plugin {:?} failed: {}", self.plugin_name, err)
+            }
         }
     }
 }
@@ -69,14 +99,11 @@ impl From<Child> for ProcHandle {
 }
 
 impl ProcHandle {
-    pub fn wait(mut self) -> Result<(), RunError> {
+    pub fn wait(mut self) -> io::Result<ExitStatus> {
         self.inner
             .take()
             .expect("developer error: `ProcHandle` vacant")
             .wait()
-            .map_err(RunError::WaitFailed)?
-            .into_result()
-            .map_err(RunError::CommandFailed)
     }
 }
 
@@ -87,17 +114,23 @@ pub struct Plugin {
 }
 
 impl Plugin {
-    pub fn new(name: impl AsRef<str>) -> Result<Self, NewError> {
+    pub fn new(name: impl AsRef<str>) -> Result<Self, LoadError> {
         let name = name.as_ref();
         let manifest = Manifest::load(
             Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join(&format!("../plugins/ginit-{}/Cargo.toml", name)),
         )
-        .map_err(NewError::ManifestFailed)?;
+        .map_err(|cause| LoadError {
+            plugin_name: name.to_owned(),
+            cause: LoadErrorCause::ManifestFailed(cause),
+        })?;
         let bin_path =
             Path::new(env!("CARGO_MANIFEST_DIR")).join(&format!("../target/debug/ginit-{}", name));
         if !bin_path.is_file() {
-            return Err(NewError::BinMissing { tried: bin_path });
+            return Err(LoadError {
+                plugin_name: name.to_owned(),
+                cause: LoadErrorCause::BinMissing { tried: bin_path },
+            });
         }
         Ok(Self { manifest, bin_path })
     }
@@ -152,7 +185,10 @@ impl Plugin {
             .spawn()
             .into_result()
             .map(ProcHandle::from)
-            .map_err(RunError::SpawnFailed)
+            .map_err(|cause| RunError {
+                plugin_name: self.name().to_owned(),
+                cause: RunErrorCause::SpawnFailed(cause),
+            })
     }
 
     pub fn run_and_wait(
@@ -161,6 +197,16 @@ impl Plugin {
         interactivity: opts::Interactivity,
         args: impl IntoIterator<Item = impl AsRef<OsStr>>,
     ) -> Result<(), RunError> {
-        self.run(noise_level, interactivity, args)?.wait()
+        self.run(noise_level, interactivity, args)?
+            .wait()
+            .map_err(|cause| RunError {
+                plugin_name: self.name().to_owned(),
+                cause: RunErrorCause::WaitFailed(cause),
+            })?
+            .into_result()
+            .map_err(|cause| RunError {
+                plugin_name: self.name().to_owned(),
+                cause: RunErrorCause::CommandFailed(cause),
+            })
     }
 }

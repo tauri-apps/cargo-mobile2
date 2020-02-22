@@ -1,6 +1,6 @@
 mod writer;
 
-use crate::plugin::{Map as PluginMap, RunError};
+use crate::plugin::{self, Map as PluginMap, RunError};
 use ginit_core::{
     config::{shared, DetectedConfigTrait as _, RawConfigTrait as _},
     opts, util,
@@ -15,7 +15,8 @@ pub enum Error {
     SharedDetectionFailed(shared::DetectError),
     SharedPromptFailed(shared::PromptError),
     SharedUpgradeFailed(shared::UpgradeError),
-    LoadFailed(writer::LoadError),
+    PluginLoadFailed(plugin::LoadError),
+    ConfigLoadFailed(writer::LoadError),
     GenFailed {
         plugin_name: String,
         cause: RunError,
@@ -35,7 +36,8 @@ impl Display for Error {
             Self::SharedUpgradeFailed(err) => {
                 write!(f, "Failed to upgrade detected shared config: {}", err)
             }
-            Self::LoadFailed(err) => write!(f, "Failed to load existing config: {}", err),
+            Self::PluginLoadFailed(err) => write!(f, "Failed to load plugin: {}", err),
+            Self::ConfigLoadFailed(err) => write!(f, "Failed to load existing config: {}", err),
             Self::GenFailed { plugin_name, cause } => write!(
                 f,
                 "Failed to run `config-gen` command for plugin {:?}: {}",
@@ -51,9 +53,8 @@ pub fn gen_and_write(
     noise_level: opts::NoiseLevel,
     interactivity: opts::Interactivity,
     project_root: impl AsRef<Path>,
-    plugins: &PluginMap,
     wrapper: &util::TextWrapper,
-) -> Result<(), Error> {
+) -> Result<PluginMap, Error> {
     let shared = {
         let detected = shared::Detected::new().map_err(Error::SharedDetectionFailed)?;
         match interactivity {
@@ -66,8 +67,10 @@ pub fn gen_and_write(
         }?
     };
     let project_root = project_root.as_ref();
+    let plugins = PluginMap::from_iter(shared.plugins.clone().unwrap_or_default().into_iter())
+        .map_err(Error::PluginLoadFailed)?;
     let writer = writer::Writer::load_existing(clobbering, project_root, shared)
-        .map_err(Error::LoadFailed)?;
+        .map_err(Error::ConfigLoadFailed)?;
     for plugin in plugins.iter() {
         plugin
             .run_and_wait(noise_level, interactivity, &["config-gen"])
@@ -79,5 +82,5 @@ pub fn gen_and_write(
     writer
         .link_and_write(project_root)
         .map_err(Error::WriteFailed)?;
-    Ok(())
+    Ok(plugins)
 }

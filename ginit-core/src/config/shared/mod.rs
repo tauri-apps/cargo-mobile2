@@ -73,6 +73,7 @@ pub struct Shared {
     stylized_app_name: Option<String>,
     domain: String,
     app_root: String,
+    plugins: Vec<String>,
 }
 
 impl Shared {
@@ -107,12 +108,14 @@ impl Shared {
             );
             Ok(DEFAULT_APP_ROOT.to_owned())
         })?;
+        let plugins = raw_config.plugins.unwrap_or_default();
         Ok(Self {
             project_root,
             app_name,
             stylized_app_name,
             domain,
             app_root,
+            plugins,
         })
     }
 
@@ -164,6 +167,10 @@ impl Shared {
 
     pub fn asset_path(&self) -> PathBuf {
         self.app_root().join("res")
+    }
+
+    pub fn plugins(&self) -> &[String] {
+        &self.plugins
     }
 
     pub(crate) fn insert_template_data(&self, map: &mut bicycle::JsonMap) {

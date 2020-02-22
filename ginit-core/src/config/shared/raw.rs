@@ -56,6 +56,7 @@ pub struct Raw {
     pub domain: String,
     #[serde(alias = "app-root")]
     pub app_root: Option<String>,
+    pub plugins: Option<Vec<String>>,
 }
 
 impl RawConfigTrait for Raw {
@@ -70,6 +71,7 @@ impl RawConfigTrait for Raw {
             stylized_app_name: Some(detected.stylized_app_name),
             domain: detected.domain,
             app_root: None,
+            plugins: Some(detected.plugins),
         })
     }
 
@@ -85,7 +87,8 @@ impl RawConfigTrait for Raw {
             app_name,
             stylized_app_name: Some(stylized_app_name),
             domain,
-            app_root: Default::default(),
+            app_root: None,
+            plugins: Some(detected.plugins),
         })
     }
 }
