@@ -13,7 +13,7 @@ use std::{
     fmt::{self, Display},
     io,
     path::{Path, PathBuf},
-    process::{Child, Command, ExitStatus, Stdio},
+    process::{Child, Command},
 };
 
 #[derive(Debug)]
@@ -69,11 +69,14 @@ impl From<Child> for ProcHandle {
 }
 
 impl ProcHandle {
-    pub fn wait(mut self) -> io::Result<ExitStatus> {
+    pub fn wait(mut self) -> Result<(), RunError> {
         self.inner
             .take()
             .expect("developer error: `ProcHandle` vacant")
             .wait()
+            .map_err(RunError::WaitFailed)?
+            .into_result()
+            .map_err(RunError::CommandFailed)
     }
 }
 
@@ -107,44 +110,49 @@ impl Plugin {
         &self.manifest.description
     }
 
-    fn run(
+    fn command(
+        &self,
+        noise_level: opts::NoiseLevel,
+        interactivity: opts::Interactivity,
+        args: impl IntoIterator<Item = impl AsRef<OsStr>>,
+    ) -> Command {
+        let mut command = Command::new(&self.bin_path);
+        if let Ok(backtrace) = std::env::var("RUST_BACKTRACE") {
+            command.env("RUST_BACKTRACE", backtrace);
+        }
+        if let Ok(log) = std::env::var("RUST_LOG") {
+            command.env("RUST_LOG", log);
+        }
+        match noise_level {
+            opts::NoiseLevel::Polite => (),
+            opts::NoiseLevel::LoudAndProud => {
+                command.arg("-v");
+            }
+            opts::NoiseLevel::FranklyQuitePedantic => {
+                command.arg("-vv");
+            }
+        }
+        match interactivity {
+            opts::Interactivity::Full => (),
+            opts::Interactivity::None => {
+                command.arg("--non-interactive");
+            }
+        }
+        command.args(args);
+        command
+    }
+
+    pub fn run(
         &self,
         noise_level: opts::NoiseLevel,
         interactivity: opts::Interactivity,
         args: impl IntoIterator<Item = impl AsRef<OsStr>>,
     ) -> Result<ProcHandle, RunError> {
-        let mut command = {
-            let mut command = Command::new(&self.bin_path);
-            if let Ok(backtrace) = std::env::var("RUST_BACKTRACE") {
-                command.env("RUST_BACKTRACE", backtrace);
-            }
-            if let Ok(log) = std::env::var("RUST_LOG") {
-                command.env("RUST_LOG", log);
-            }
-            command.stdin(Stdio::piped());
-            match noise_level {
-                opts::NoiseLevel::Polite => (),
-                opts::NoiseLevel::LoudAndProud => {
-                    command.arg("-v");
-                }
-                opts::NoiseLevel::FranklyQuitePedantic => {
-                    command.arg("-vv");
-                }
-            }
-            match interactivity {
-                opts::Interactivity::Full => (),
-                opts::Interactivity::None => {
-                    command.arg("--non-interactive");
-                }
-            }
-            command.args(args);
-            command
-        };
-        let handle = command
+        self.command(noise_level, interactivity, args)
             .spawn()
             .into_result()
-            .map_err(RunError::SpawnFailed)?;
-        Ok(handle.into())
+            .map(ProcHandle::from)
+            .map_err(RunError::SpawnFailed)
     }
 
     pub fn run_and_wait(
@@ -153,10 +161,6 @@ impl Plugin {
         interactivity: opts::Interactivity,
         args: impl IntoIterator<Item = impl AsRef<OsStr>>,
     ) -> Result<(), RunError> {
-        self.run(noise_level, interactivity, args)?
-            .wait()
-            .map_err(RunError::WaitFailed)?
-            .into_result()
-            .map_err(RunError::CommandFailed)
+        self.run(noise_level, interactivity, args)?.wait()
     }
 }

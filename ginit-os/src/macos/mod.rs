@@ -60,7 +60,6 @@ impl Application {
             let mut err: CFErrorRef = ptr::null_mut();
             let out_url =
                 ffi::LSCopyDefaultApplicationURLForContentType(uti, ffi::kLSRolesEditor, &mut err);
-            // Release err
             if out_url.is_null() {
                 Err(TCFType::wrap_under_create_rule(err))
             } else {
