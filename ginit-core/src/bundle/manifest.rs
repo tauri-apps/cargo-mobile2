@@ -1,17 +1,15 @@
-use ginit_core::exports::toml;
+use crate::exports::toml;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::{self, Display},
-    fs::File,
-    io::{self, Read},
+    fs, io,
     path::{Path, PathBuf},
 };
 
 #[derive(Debug)]
 pub enum Cause {
     Missing,
-    OpenFailed(io::Error),
     ReadFailed(io::Error),
     ParseFailed(toml::de::Error),
     MetadataInvalid(toml::de::Error),
@@ -27,9 +25,6 @@ impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.cause {
             Cause::Missing => write!(f, "Manifest not found: tried {:?}", self.path),
-            Cause::OpenFailed(err) => {
-                write!(f, "Failed to open manifest at {:?}: {}", self.path, err)
-            }
             Cause::ReadFailed(err) => {
                 write!(f, "Failed to read manifest at {:?}: {}", self.path, err)
             }
@@ -54,14 +49,25 @@ impl Error {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Manifest {
-    pub name: String,
-    pub description: String,
+    name: String,
+    version: String,
+    description: String,
 }
 
 impl Manifest {
-    pub fn load(path: impl AsRef<Path>) -> Result<Self, Error> {
+    pub fn load_from_bundle(
+        bundle: &super::Bundle,
+        plugin: impl AsRef<str>,
+    ) -> Result<Self, Error> {
+        let path = bundle.plugin_manifest_path(plugin);
+        let raw =
+            fs::read(&path).map_err(|cause| Error::new(path.clone(), Cause::ReadFailed(cause)))?;
+        toml::from_slice::<Self>(&raw).map_err(|cause| Error::new(path, Cause::ParseFailed(cause)))
+    }
+
+    pub fn load_from_cargo_toml(path: impl AsRef<Path>) -> Result<Self, Error> {
         #[derive(Debug, Deserialize, Serialize)]
         struct CargoToml {
             package: Package,
@@ -70,6 +76,7 @@ impl Manifest {
         #[derive(Debug, Deserialize, Serialize)]
         struct Package {
             name: String,
+            version: String,
             description: String,
             metadata: Option<HashMap<String, toml::Value>>,
         }
@@ -84,12 +91,8 @@ impl Manifest {
         if !path.is_file() {
             Err(Error::new(path, Cause::Missing))
         } else {
-            let mut file =
-                File::open(path).map_err(|err| Error::new(path, Cause::OpenFailed(err)))?;
-            let mut raw = Vec::new();
-            file.read_to_end(&mut raw)
-                .map_err(|err| Error::new(path, Cause::ReadFailed(err)))?;
-            let (name, description) = {
+            let raw = fs::read(path).map_err(|err| Error::new(path, Cause::ReadFailed(err)))?;
+            let (name, version, description) = {
                 let cargo = toml::from_slice::<CargoToml>(&raw)
                     .map_err(|err| Error::new(path, Cause::ParseFailed(err)))?;
                 let metadata = cargo
@@ -108,6 +111,7 @@ impl Manifest {
                     package:
                         Package {
                             name: pkg_name,
+                            version: pkg_version,
                             description: pkg_description,
                             ..
                         },
@@ -119,20 +123,38 @@ impl Manifest {
                 {
                     (
                         meta_name.unwrap_or_else(|| pkg_name),
+                        pkg_version,
                         meta_description.unwrap_or_else(|| pkg_description),
                     )
                 } else {
-                    (pkg_name, pkg_description)
+                    (pkg_name, pkg_version, pkg_description)
                 }
             };
             Ok(Self {
-                name: if name.starts_with("ginit-") {
-                    name.replace("ginit-", "")
-                } else {
-                    name
-                },
+                name,
+                version,
                 description,
             })
         }
+    }
+
+    pub fn full_name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn short_name(&self) -> String {
+        if self.name.starts_with("ginit-") {
+            self.name.replace("ginit-", "")
+        } else {
+            self.name.clone()
+        }
+    }
+
+    pub fn version(&self) -> &str {
+        &self.version
+    }
+
+    pub fn description(&self) -> &str {
+        &self.description
     }
 }

@@ -78,7 +78,7 @@ impl Display for WriteError {
 }
 
 pub fn temp_subdir() -> PathBuf {
-    std::env::temp_dir().join("com.brainiumstudios.ginit/plugin-configs")
+    util::temp_dir().join("plugin-configs")
 }
 
 pub fn temp_path(name: &str) -> PathBuf {

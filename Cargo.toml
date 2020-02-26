@@ -1,7 +1,9 @@
 [workspace]
 members = [
     "ginit",
+    "ginit-bundle",
     "ginit-core",
+    "ginit-install",
     "ginit-macros",
     "ginit-os",
     "plugins/ginit-android",

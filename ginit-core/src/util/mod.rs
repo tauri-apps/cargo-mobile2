@@ -20,7 +20,7 @@ use std::{
     ffi::OsStr,
     fmt::{self, Display},
     io::{self, Write},
-    path::Path,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
 };
 
@@ -54,6 +54,10 @@ pub fn list_display(list: &[impl Display]) -> String {
         }
         display
     }
+}
+
+pub fn temp_dir() -> PathBuf {
+    std::env::temp_dir().join("com.brainiumstudios.ginit")
 }
 
 pub fn add_to_path(path: impl Display) -> String {

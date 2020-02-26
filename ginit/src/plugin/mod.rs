@@ -1,10 +1,9 @@
-mod manifest;
 mod map;
 
 pub use map::Map;
 
-use self::manifest::Manifest;
 use ginit_core::{
+    bundle::manifest::{self, Manifest},
     exports::into_result::{command::CommandError, IntoResult as _},
     opts,
 };
@@ -111,12 +110,13 @@ impl ProcHandle {
 pub struct Plugin {
     bin_path: PathBuf,
     manifest: Manifest,
+    short_name: String,
 }
 
 impl Plugin {
     pub fn new(name: impl AsRef<str>) -> Result<Self, LoadError> {
         let name = name.as_ref();
-        let manifest = Manifest::load(
+        let manifest = Manifest::load_from_cargo_toml(
             Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join(&format!("../plugins/ginit-{}/Cargo.toml", name)),
         )
@@ -132,15 +132,20 @@ impl Plugin {
                 cause: LoadErrorCause::BinMissing { tried: bin_path },
             });
         }
-        Ok(Self { manifest, bin_path })
+        let short_name = manifest.short_name();
+        Ok(Self {
+            manifest,
+            bin_path,
+            short_name,
+        })
     }
 
     pub fn name(&self) -> &str {
-        &self.manifest.name
+        &self.short_name
     }
 
     pub fn description(&self) -> &str {
-        &self.manifest.description
+        self.manifest.description()
     }
 
     fn command(

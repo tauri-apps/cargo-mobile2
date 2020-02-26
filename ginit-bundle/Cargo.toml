@@ -1,0 +1,14 @@
+[package]
+name = "ginit-bundle"
+version = "0.1.0"
+authors = ["Francesca Plebani <francesca@brainiumstudios.com>"]
+edition = "2018"
+
+[dependencies]
+ginit-core = { path = "../ginit-core" }
+log = "0.4.8"
+structopt = "0.3.7"
+
+[build-dependencies]
+serde = { version = "1.0.101", features = ["derive"] }
+toml = "0.5.5"

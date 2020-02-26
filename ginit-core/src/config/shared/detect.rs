@@ -1,4 +1,9 @@
 use crate::{
+    bundle::{
+        self,
+        global_config::{self, GlobalConfig},
+        Bundle,
+    },
     config::{app_name, DetectedConfigTrait},
     exports::into_result::{command::CommandError, IntoResult as _},
     util::COMMON_EMAIL_PROVIDERS,
@@ -48,6 +53,8 @@ pub enum DetectError {
     CurrentDirFailed(io::Error),
     CurrentDirHasNoName(PathBuf),
     CurrentDirInvalidUtf8(PathBuf),
+    NoHomeDir(bundle::NoHomeDir),
+    GlobalConfigFailed(global_config::Error),
 }
 
 impl Display for DetectError {
@@ -64,6 +71,8 @@ impl Display for DetectError {
                 "Current working directory contained invalid UTF-8: {:?}",
                 cwd
             ),
+            Self::NoHomeDir(err) => write!(f, "Failed to find bundle: {}", err),
+            Self::GlobalConfigFailed(err) => write!(f, "Failed to load global config: {}", err),
         }
     }
 }
@@ -92,16 +101,17 @@ impl DetectedConfigTrait for Detected {
             .ok()
             .and_then(std::convert::identity)
             .unwrap_or_else(|| "example.com".to_owned());
+        let plugins = {
+            let bundle = Bundle::new().map_err(DetectError::NoHomeDir)?;
+            let global_conf =
+                GlobalConfig::load(&bundle).map_err(DetectError::GlobalConfigFailed)?;
+            global_conf.default_plugins.clone()
+        };
         Ok(Self {
             app_name,
             stylized_app_name,
             domain,
-            // TODO: not this
-            plugins: vec![
-                "brainium".to_owned(),
-                "android".to_owned(),
-                "ios".to_owned(),
-            ],
+            plugins,
         })
     }
 }

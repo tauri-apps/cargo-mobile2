@@ -168,6 +168,7 @@ pub fn gen(config: &Config, bike: &bicycle::Bicycle, clobbering: Clobbering) -> 
         })?,
         &dest,
         |path| bike.transform_path(path, insert_data),
+        bicycle::DEFAULT_TEMPLATE_EXT,
     )
     .map_err(Error::TemplateTraversalFailed)?;
     // Prevent clobbering
