@@ -34,7 +34,7 @@ pub enum Error {
         dest: PathBuf,
         cause: io::Error,
     },
-    ManifestSerializationFailed {
+    ManifestSerializeFailed {
         package: String,
         cause: toml::ser::Error,
     },
@@ -93,7 +93,7 @@ impl Display for Error {
                 "Failed to copy binary for package {:?} from {:?} to {:?}: {}",
                 package, src, dest, cause
             ),
-            Self::ManifestSerializationFailed { package, cause } => write!(
+            Self::ManifestSerializeFailed { package, cause } => write!(
                 f,
                 "Failed to serialize manifest for package {:?}: {}",
                 package, cause
@@ -170,7 +170,7 @@ impl Package {
         }
     }
 
-    fn bundle_name(&self, profile: opts::Profile) -> String {
+    pub fn bundle_name(&self, profile: opts::Profile) -> String {
         let (name, version) = match self {
             Self::Ginit | Self::BundledPlugin(_) => (ginit_core::NAME, VERSION),
             Self::Plugin(plugin) => (self.as_str(), plugin.manifest.version()),
@@ -228,7 +228,7 @@ impl Package {
                 .bundle_base(bundle_root, profile)
                 .join(format!("{}.toml", plugin.manifest.full_name()));
             let ser = toml::to_string_pretty(&plugin.manifest).map_err(|cause| {
-                Error::ManifestSerializationFailed {
+                Error::ManifestSerializeFailed {
                     package: self.as_str().to_owned(),
                     cause,
                 }
@@ -251,7 +251,7 @@ impl Package {
                 ],
             };
             let ser = toml::to_string_pretty(&global_config).map_err(|cause| {
-                Error::ManifestSerializationFailed {
+                Error::ManifestSerializeFailed {
                     package: self.as_str().to_owned(),
                     cause,
                 }
@@ -297,11 +297,11 @@ impl Package {
         manifest_root: &Path,
         bundle_root: &Path,
         profile: opts::Profile,
-    ) -> Result<(), Error> {
+    ) -> Result<PathBuf, Error> {
         let bundle_base = self.bundle_base(bundle_root, profile);
         fs::create_dir_all(&bundle_base).map_err(|cause| Error::BundleDirCreationFailed {
             package: self.as_str().to_owned(),
-            tried: bundle_base,
+            tried: bundle_base.clone(),
             cause,
         })?;
         self.build_bin(manifest_root, profile)?;
@@ -333,6 +333,6 @@ impl Package {
                 package.bundle(manifest_root, bundle_root, profile)?;
             }
         }
-        Ok(())
+        Ok(bundle_base)
     }
 }

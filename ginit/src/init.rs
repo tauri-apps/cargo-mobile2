@@ -53,14 +53,14 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::ConfigLoadFailed(err) => write!(f, "{}", err),
-            Error::ConfigGenFailed(err) => write!(f, "Failed to generate config: {}", err),
-            Error::PluginLoadFailed(err) => write!(f, "Failed to load plugin: {}", err),
-            Error::OnlyParseFailed(err) => write!(f, "Failed to parse `only` step list: {}", err),
-            Error::SkipParseFailed(err) => write!(f, "Failed to parse `skip` step list: {}", err),
-            Error::StepNotRegistered(err) => write!(f, "{}", err),
-            Error::PluginInitFailed(err) => write!(f, "Failed to init plugin: {}", err),
-            Error::OpenInEditorFailed(err) => write!(f, "Failed to open project in editor (your project generated successfully though, so no worries!): {}", err),
+            Self::ConfigLoadFailed(err) => write!(f, "{}", err),
+            Self::ConfigGenFailed(err) => write!(f, "Failed to generate config: {}", err),
+            Self::PluginLoadFailed(err) => write!(f, "Failed to load plugin: {}", err),
+            Self::OnlyParseFailed(err) => write!(f, "Failed to parse `only` step list: {}", err),
+            Self::SkipParseFailed(err) => write!(f, "Failed to parse `skip` step list: {}", err),
+            Self::StepNotRegistered(err) => write!(f, "{}", err),
+            Self::PluginInitFailed(err) => write!(f, "Failed to init plugin: {}", err),
+            Self::OpenInEditorFailed(err) => write!(f, "Failed to open project in editor (your project generated successfully though, so no worries!): {}", err),
         }
     }
 }

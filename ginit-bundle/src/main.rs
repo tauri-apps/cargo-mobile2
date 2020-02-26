@@ -1,3 +1,4 @@
+mod archive;
 mod package;
 mod plugin;
 
@@ -20,6 +21,7 @@ enum Error {
     CurrentDirFailed(io::Error),
     PluginLoadFailed(manifest::Error),
     BundleFailed(package::Error),
+    ArchiveFailed(archive::Error),
 }
 
 impl Display for Error {
@@ -29,14 +31,19 @@ impl Display for Error {
                 write!(f, "Failed to get current working directory: {}", err)
             }
             Self::PluginLoadFailed(err) => write!(f, "Failed to read plugin manifest: {}", err),
-            Self::BundleFailed(err) => write!(f, "{}", err),
+            Self::BundleFailed(err) => write!(f, "Failed to create bundle: {}", err),
+            Self::ArchiveFailed(err) => write!(f, "Failed to archive bundle: {}", err),
         }
     }
 }
 
 #[cli::main(env!("CARGO_PKG_NAME"))]
 #[derive(Debug, StructOpt)]
-#[structopt(settings = cli::GLOBAL_SETTINGS)]
+#[structopt(
+    author = env!("CARGO_PKG_AUTHORS"),
+    about = env!("CARGO_PKG_DESCRIPTION"),
+    settings = cli::GLOBAL_SETTINGS,
+)]
 struct Input {
     #[structopt(flatten)]
     flags: cli::GlobalFlags,
@@ -91,20 +98,30 @@ impl cli::Exec for Input {
         log::info!("using manifest root {:?}", manifest_root);
         log::info!("using bundle root {:?}", bundle_root);
 
-        let is_ginit = true;
-        if is_ginit {
+        let is_ginit = manifest_root.join("ginit").exists()
+            && manifest_root.join("ginit-bundle").exists()
+            && manifest_root.join("ginit-core").exists()
+            && manifest_root.join("ginit-install").exists()
+            && manifest_root.join("ginit-macros").exists()
+            && manifest_root.join("ginit-os").exists();
+        let package = if is_ginit {
             log::info!("detected that package is ginit");
             Package::Ginit
         } else {
             log::info!("detected that package is a plugin");
             let plugin = Plugin::load(&manifest_root).map_err(Error::PluginLoadFailed)?;
             Package::Plugin(plugin)
-        }
-        .bundle(&manifest_root, &bundle_root, profile)
-        .map_err(Error::BundleFailed)?;
+        };
+
+        let bundle_path = package
+            .bundle(&manifest_root, &bundle_root, profile)
+            .map_err(Error::BundleFailed)?;
+        println!("Created bundle successfully! {}", bundle_path.display());
 
         if zip {
-            todo!()
+            let zip_path =
+                archive::zip(&bundle_root, &bundle_path).map_err(Error::ArchiveFailed)?;
+            println!("Archived bundle successfully! {}", zip_path.display());
         }
 
         Ok(())

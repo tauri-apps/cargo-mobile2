@@ -14,3 +14,7 @@ members = [
 # We generate a test project on CI in this subdir, so this prevents the test
 # project from "believing" it's in the workspace.
 exclude = ["tmp"]
+
+[profile.dev.package.zip]
+opt-level = 3
+
