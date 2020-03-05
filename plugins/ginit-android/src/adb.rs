@@ -78,7 +78,7 @@ impl fmt::Display for DeviceNameError {
 }
 
 pub fn device_name(env: &Env, serial_no: &str) -> Result<String, DeviceNameError> {
-    let name_re = regex!(r#"\bname: (.*)"#);
+    let name_re = regex!(r"\bname: (?P<name>.*)");
     let output = adb(env, serial_no)
         .args(&["shell", "dumpsys", "bluetooth_manager"])
         .output()
@@ -86,12 +86,8 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, DeviceNameError
         .map_err(DeviceNameError::DumpsysFailed)?;
     let raw = str::from_utf8(&output.stdout).map_err(DeviceNameError::InvalidUtf8)?;
     name_re
-        .captures_iter(raw)
-        .next()
-        .map(|caps| {
-            assert_eq!(caps.len(), 2);
-            caps.get(1).unwrap().as_str().to_owned()
-        })
+        .captures(raw)
+        .map(|caps| caps["name"].to_owned())
         .ok_or_else(|| DeviceNameError::NotMatched)
 }
 
@@ -123,7 +119,7 @@ impl fmt::Display for DeviceListError {
 }
 
 pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, DeviceListError> {
-    let serial_re = regex_multi_line!(r#"^([\w\d]{6,20})	\b"#);
+    let serial_re = regex_multi_line!(r"^([\w\d]{6,20})	\b");
     let output = PureCommand::new("adb", env)
         .args(&["devices"])
         .output()

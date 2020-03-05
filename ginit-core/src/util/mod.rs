@@ -5,7 +5,6 @@ pub mod ln;
 mod path;
 pub mod prompt;
 pub mod pure_command;
-pub mod re;
 
 pub use self::{cargo::CargoCommand, common_email_providers::COMMON_EMAIL_PROVIDERS, path::*};
 use crate::{

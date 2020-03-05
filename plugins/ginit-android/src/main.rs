@@ -6,6 +6,7 @@ mod device;
 mod env;
 mod ndk;
 mod project;
+mod service_call;
 mod target;
 
 use self::{

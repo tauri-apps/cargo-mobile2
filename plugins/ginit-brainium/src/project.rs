@@ -1,14 +1,14 @@
 use ginit_core::{
     cargo,
     config::{empty::Config, ConfigTrait as _},
-    exports::{bicycle, into_result::command::CommandError, once_cell_regex::regex},
+    exports::{bicycle, into_result::command::CommandError},
     opts::Clobbering,
     template_pack, util,
 };
 use std::{
     ffi::OsStr,
     fmt::{self, Display},
-    io,
+    fs, io,
     path::{Path, PathBuf},
 };
 
@@ -89,13 +89,12 @@ pub fn git_init(root: &Path) -> Result<(), Error> {
 }
 
 pub fn submodule_exists(root: &Path, name: &str) -> io::Result<bool> {
-    let submodule_name_re = regex!(r#"\[submodule "(.*)"\]"#);
     let path = root.join(".git/config");
-    if !path.exists() {
-        Ok(false)
+    if path.exists() {
+        fs::read_to_string(&path)
+            .map(|modules| modules.contains(&format!("[submodule {:?}]", name)))
     } else {
-        std::fs::read_to_string(&path)
-            .map(|modules| util::re::has_match(submodule_name_re, &modules, name))
+        Ok(false)
     }
 }
 
