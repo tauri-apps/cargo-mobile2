@@ -2,7 +2,7 @@ use crate::{device::Device, target::Target};
 use ginit_core::{
     env::Env,
     exports::into_result::{command::CommandError, IntoResult as _},
-    util::pure_command::PureCommand,
+    util::PureCommand,
 };
 use serde::Deserialize;
 use std::{collections::BTreeSet, fmt, process::Stdio};

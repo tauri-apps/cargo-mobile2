@@ -1,4 +1,4 @@
-use crate::util::pure_command::ExplicitEnv;
+use crate::util::ExplicitEnv;
 use std::fmt;
 
 #[derive(Debug)]

@@ -1,11 +1,11 @@
 use crate::{
-    bundle::{
-        self,
-        global_config::{self, GlobalConfig},
-        Bundle,
-    },
     config::{app_name, DetectedConfigTrait},
     exports::into_result::{command::CommandError, IntoResult as _},
+    storage::{
+        self,
+        global_config::{self, GlobalConfig},
+        Storage,
+    },
     util::COMMON_EMAIL_PROVIDERS,
 };
 use heck::{KebabCase as _, TitleCase as _};
@@ -53,7 +53,7 @@ pub enum DetectError {
     CurrentDirFailed(io::Error),
     CurrentDirHasNoName(PathBuf),
     CurrentDirInvalidUtf8(PathBuf),
-    NoHomeDir(bundle::NoHomeDir),
+    NoHomeDir(storage::NoHomeDir),
     GlobalConfigFailed(global_config::Error),
 }
 
@@ -71,7 +71,7 @@ impl Display for DetectError {
                 "Current working directory contained invalid UTF-8: {:?}",
                 cwd
             ),
-            Self::NoHomeDir(err) => write!(f, "Failed to find bundle: {}", err),
+            Self::NoHomeDir(err) => write!(f, "Failed to find storage: {}", err),
             Self::GlobalConfigFailed(err) => write!(f, "Failed to load global config: {}", err),
         }
     }
@@ -102,9 +102,9 @@ impl DetectedConfigTrait for Detected {
             .and_then(std::convert::identity)
             .unwrap_or_else(|| "example.com".to_owned());
         let plugins = {
-            let bundle = Bundle::new().map_err(DetectError::NoHomeDir)?;
+            let storage = Storage::new().map_err(DetectError::NoHomeDir)?;
             let global_conf =
-                GlobalConfig::load(&bundle).map_err(DetectError::GlobalConfigFailed)?;
+                GlobalConfig::load(&storage).map_err(DetectError::GlobalConfigFailed)?;
             global_conf.default_plugins.clone()
         };
         Ok(Self {

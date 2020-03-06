@@ -6,18 +6,25 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::{self, Display},
-    fs::File,
-    io::{self, Read},
+    fs, io,
     path::{Path, PathBuf},
 };
 
 #[derive(Debug)]
 pub enum Error {
     DiscoverFailed(io::Error),
-    OpenFailed(io::Error),
-    ReadFailed(io::Error),
-    ParseFailed(toml::de::Error),
-    SharedConfigInvalid(shared::Error),
+    ReadFailed {
+        path: PathBuf,
+        cause: io::Error,
+    },
+    ParseFailed {
+        path: PathBuf,
+        cause: toml::de::Error,
+    },
+    SharedConfigInvalid {
+        path: PathBuf,
+        cause: shared::Error,
+    },
 }
 
 impl Display for Error {
@@ -28,10 +35,15 @@ impl Display for Error {
                 "Failed to canonicalize path while searching for project root: {}",
                 err
             ),
-            Self::OpenFailed(err) => write!(f, "Failed to open config file: {}", err),
-            Self::ReadFailed(err) => write!(f, "Failed to read config file: {}", err),
-            Self::ParseFailed(err) => write!(f, "Failed to parse config file: {}", err),
-            Self::SharedConfigInvalid(err) => write!(f, "`ginit` config invalid: {}", err),
+            Self::ReadFailed { path, cause } => {
+                write!(f, "Failed to read config file at {:?}: {}", path, cause)
+            }
+            Self::ParseFailed { path, cause } => {
+                write!(f, "Failed to parse config file at {:?}: {}", path, cause)
+            }
+            Self::SharedConfigInvalid { path, cause } => {
+                write!(f, "`ginit` config invalid in {:?}: {}", path, cause)
+            }
         }
     }
 }
@@ -102,6 +114,7 @@ impl Umbrella {
     pub fn discover_root(cwd: impl AsRef<Path>) -> io::Result<Option<PathBuf>> {
         let file_name = Self::file_name();
         let mut path = cwd.as_ref().canonicalize()?.join(&file_name);
+        // TODO: fold
         while !path.exists() {
             if let Some(parent) = path.parent().and_then(Path::parent) {
                 path = parent.join(&file_name);
@@ -126,13 +139,17 @@ impl Umbrella {
         }
         if let Some(project_root) = Self::discover_root(cwd).map_err(Error::DiscoverFailed)? {
             let path = project_root.join(&Self::file_name());
-            let mut file = File::open(&path).map_err(Error::OpenFailed)?;
-            let mut contents = Vec::new();
-            file.read_to_end(&mut contents).map_err(Error::ReadFailed)?;
-            let raw = toml::from_slice::<Raw>(&contents).map_err(Error::ParseFailed)?;
+            let bytes = fs::read(&path).map_err(|cause| Error::ReadFailed {
+                path: path.clone(),
+                cause,
+            })?;
+            let raw = toml::from_slice::<Raw>(&bytes).map_err(|cause| Error::ParseFailed {
+                path: path.clone(),
+                cause,
+            })?;
             Ok(Some(Self {
                 shared: Shared::from_raw(project_root, raw.shared)
-                    .map_err(Error::SharedConfigInvalid)?
+                    .map_err(|cause| Error::SharedConfigInvalid { path, cause })?
                     .into(),
                 plugins: raw.plugins,
             }))

@@ -6,7 +6,6 @@ mod device;
 mod env;
 mod ndk;
 mod project;
-mod service_call;
 mod target;
 
 use self::{
@@ -79,7 +78,7 @@ pub enum Command {
 #[derive(Debug)]
 pub enum Error {
     EnvInitFailed(EnvError),
-    DevicePromptFailed(PromptError<adb::DeviceListError>),
+    DevicePromptFailed(PromptError<adb::device_list::Error>),
     TargetInvalid(TargetInvalid),
     ConfigGenFailed(config_gen::Error<Raw>),
     ConfigRequired,
@@ -89,7 +88,7 @@ pub enum Error {
     BuildFailed(BuildError),
     RunFailed(RunError),
     StacktraceFailed(StacktraceError),
-    ListFailed(adb::DeviceListError),
+    ListFailed(adb::device_list::Error),
 }
 
 impl Display for Error {
@@ -127,7 +126,7 @@ impl cli::Exec for Input {
         config: Option<Self::Config>,
         wrapper: &util::TextWrapper,
     ) -> Result<(), Self::Error> {
-        define_device_prompt!(adb::device_list, adb::DeviceListError, Android);
+        define_device_prompt!(adb::device_list, adb::device_list::Error, Android);
         fn detect_target_ok<'a>(env: &Env) -> Option<&'a Target<'a>> {
             device_prompt(env).map(|device| device.target()).ok()
         }

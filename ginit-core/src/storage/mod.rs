@@ -17,11 +17,11 @@ impl Display for NoHomeDir {
 }
 
 #[derive(Debug)]
-pub struct Bundle {
+pub struct Storage {
     path: PathBuf,
 }
 
-impl Bundle {
+impl Storage {
     pub fn new() -> Result<Self, NoHomeDir> {
         dirs::home_dir()
             .map(|home| Self {
@@ -36,10 +36,6 @@ impl Bundle {
 
     pub fn global_config_path(&self) -> PathBuf {
         self.path.join("global-config.toml")
-    }
-
-    pub fn templates_dir(&self) -> PathBuf {
-        self.path.join("templates")
     }
 
     pub fn plugins_dir(&self) -> PathBuf {
@@ -63,5 +59,9 @@ impl Bundle {
 
     pub fn plugin_templates_dir(&self, plugin: impl AsRef<str>) -> PathBuf {
         self.plugin_dir(plugin).join("templates")
+    }
+
+    pub fn plugin_data_dir(&self, plugin: impl AsRef<str>) -> PathBuf {
+        self.plugin_dir(plugin).join("data")
     }
 }

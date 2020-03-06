@@ -3,9 +3,9 @@ mod map;
 pub use map::Map;
 
 use ginit_core::{
-    bundle::manifest::{self, Manifest},
     exports::into_result::{command::CommandError, IntoResult as _},
     opts,
+    storage::manifest::{self, Manifest},
 };
 use std::{
     ffi::OsStr,

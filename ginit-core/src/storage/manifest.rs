@@ -57,11 +57,11 @@ pub struct Manifest {
 }
 
 impl Manifest {
-    pub fn load_from_bundle(
-        bundle: &super::Bundle,
+    pub fn load_from_storage(
+        storage: &super::Storage,
         plugin: impl AsRef<str>,
     ) -> Result<Self, Error> {
-        let path = bundle.plugin_manifest_path(plugin);
+        let path = storage.plugin_manifest_path(plugin);
         let raw =
             fs::read(&path).map_err(|cause| Error::new(path.clone(), Cause::ReadFailed(cause)))?;
         toml::from_slice::<Self>(&raw).map_err(|cause| Error::new(path, Cause::ParseFailed(cause)))

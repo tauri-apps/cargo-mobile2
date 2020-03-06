@@ -1,11 +1,11 @@
 #![forbid(unsafe_code)]
 
-pub mod bundle;
 pub mod cargo;
 pub mod config;
 pub mod device;
 pub mod env;
 pub mod opts;
+pub mod storage;
 pub mod target;
 pub mod templating;
 pub mod util;

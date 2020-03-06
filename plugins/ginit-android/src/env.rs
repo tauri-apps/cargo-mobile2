@@ -1,7 +1,7 @@
 use crate::ndk;
 use ginit_core::{
     env::{Env as CoreEnv, Error as CoreError},
-    util::pure_command::ExplicitEnv,
+    util::ExplicitEnv,
 };
 use std::{fmt, path::PathBuf};
 

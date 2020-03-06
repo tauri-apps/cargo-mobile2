@@ -4,8 +4,7 @@ use crate::{
 };
 use std::{
     fmt::{self, Display},
-    fs::File,
-    io::{self, Write},
+    fs, io,
     path::PathBuf,
 };
 
@@ -89,20 +88,12 @@ fn write_temp(name: &str, bytes: Vec<u8>) -> Result<(), WriteError> {
     let path = temp_path(name);
     {
         let parent = path.parent().unwrap();
-        std::fs::create_dir_all(parent).map_err(|cause| WriteError::DirectoryCreationFailed {
+        fs::create_dir_all(parent).map_err(|cause| WriteError::DirectoryCreationFailed {
             path: parent.to_owned(),
             cause,
         })?;
     }
     log::info!("creating temp config file at {:?}", path);
-    let mut file = File::create(&path).map_err(|cause| WriteError::CreateFailed {
-        path: path.clone(),
-        cause,
-    })?;
-    file.write_all(&bytes)
-        .map_err(|cause| WriteError::WriteFailed {
-            path: path.clone(),
-            cause,
-        })?;
+    fs::write(&path, bytes).map_err(|cause| WriteError::WriteFailed { path, cause })?;
     Ok(())
 }

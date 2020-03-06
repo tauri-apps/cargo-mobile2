@@ -3,60 +3,64 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
     fmt::{self, Display},
-    fs::{self, File},
-    io::{self, Read, Write},
+    fs, io,
     path::PathBuf,
 };
 
 #[derive(Debug)]
 pub enum LoadError {
-    DirCreationFailed(io::Error),
-    OpenFailed(io::Error),
-    ReadFailed(io::Error),
-    DeserializationFailed(toml::de::Error),
+    DirCreationFailed {
+        path: PathBuf,
+        cause: io::Error,
+    },
+    ReadFailed {
+        path: PathBuf,
+        cause: io::Error,
+    },
+    DeserializeFailed {
+        path: PathBuf,
+        cause: toml::de::Error,
+    },
 }
 
 impl Display for LoadError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::DirCreationFailed(err) => {
-                write!(f, "Failed to create \".cargo\" directory: {}", err)
+            Self::DirCreationFailed { path, cause } => write!(
+                f,
+                "Failed to create \".cargo\" directory at {:?}: {}",
+                path, cause
+            ),
+            Self::ReadFailed { path, cause } => {
+                write!(f, "Failed to read cargo config from {:?}: {}", path, cause)
             }
-            Self::OpenFailed(err) => {
-                write!(f, "Failed to open \".cargo/config\" for reading: {}", err)
-            }
-            Self::ReadFailed(err) => {
-                write!(f, "Failed to read config from \".cargo/config\": {}", err)
-            }
-            Self::DeserializationFailed(err) => {
-                write!(f, "Failed to deserialize cargo config: {}", err)
-            }
+            Self::DeserializeFailed { path, cause } => write!(
+                f,
+                "Failed to deserialize cargo config at {:?}: {}",
+                path, cause
+            ),
         }
     }
 }
 
 #[derive(Debug)]
 pub enum WriteError {
-    SerializationFailed(toml::ser::Error),
-    DirCreationFailed(io::Error),
-    CreateFailed(io::Error),
-    WriteFailed(io::Error),
+    SerializeFailed(toml::ser::Error),
+    DirCreationFailed { path: PathBuf, cause: io::Error },
+    WriteFailed { path: PathBuf, cause: io::Error },
 }
 
 impl Display for WriteError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::SerializationFailed(err) => {
-                write!(f, "Failed to serialize cargo config: {}", err)
-            }
-            Self::DirCreationFailed(err) => {
-                write!(f, "Failed to create \".cargo\" directory: {}", err)
-            }
-            Self::CreateFailed(err) => {
-                write!(f, "Failed to open \".cargo/config\" for writing: {}", err)
-            }
-            Self::WriteFailed(err) => {
-                write!(f, "Failed to write config to \".cargo/config\": {}", err)
+            Self::SerializeFailed(err) => write!(f, "Failed to serialize cargo config: {}", err),
+            Self::DirCreationFailed { path, cause } => write!(
+                f,
+                "Failed to create \".cargo\" directory at {:?}: {}",
+                path, cause
+            ),
+            Self::WriteFailed { path, cause } => {
+                write!(f, "Failed to write cargo config to {:?}: {}", path, cause)
             }
         }
     }
@@ -81,18 +85,22 @@ pub struct DotCargo {
 }
 
 impl DotCargo {
-    fn create_dir_and_get_path(shared: &Shared) -> io::Result<PathBuf> {
+    fn create_dir_and_get_path(shared: &Shared) -> Result<PathBuf, (PathBuf, io::Error)> {
         let dir = shared.prefix_path(".cargo");
-        fs::create_dir_all(&dir).map(|()| dir.join("config"))
+        fs::create_dir_all(&dir)
+            .map(|()| dir.join("config"))
+            .map_err(|cause| (dir, cause))
     }
 
     pub fn load(shared: &Shared) -> Result<Self, LoadError> {
-        let path = Self::create_dir_and_get_path(shared).map_err(LoadError::DirCreationFailed)?;
+        let path = Self::create_dir_and_get_path(shared)
+            .map_err(|(path, cause)| LoadError::DirCreationFailed { path, cause })?;
         if path.is_file() {
-            let mut file = File::open(path).map_err(LoadError::OpenFailed)?;
-            let mut raw = Vec::new();
-            file.read_to_end(&mut raw).map_err(LoadError::ReadFailed)?;
-            toml::from_slice(&raw).map_err(LoadError::DeserializationFailed)
+            let bytes = fs::read(&path).map_err(|cause| LoadError::ReadFailed {
+                path: path.clone(),
+                cause,
+            })?;
+            toml::from_slice(&bytes).map_err(|cause| LoadError::DeserializeFailed { path, cause })
         } else {
             Ok(Self {
                 target: Default::default(),
@@ -108,10 +116,9 @@ impl DotCargo {
     }
 
     pub fn write(&self, shared: &Shared) -> Result<(), WriteError> {
-        let serialized = toml::to_string_pretty(self).map_err(WriteError::SerializationFailed)?;
-        let path = Self::create_dir_and_get_path(shared).map_err(WriteError::DirCreationFailed)?;
-        let mut file = File::create(path).map_err(WriteError::CreateFailed)?;
-        file.write_all(serialized.as_bytes())
-            .map_err(WriteError::WriteFailed)
+        let path = Self::create_dir_and_get_path(shared)
+            .map_err(|(path, cause)| WriteError::DirCreationFailed { path, cause })?;
+        let ser = toml::to_string_pretty(self).map_err(WriteError::SerializeFailed)?;
+        fs::write(&path, ser).map_err(|cause| WriteError::WriteFailed { path, cause })
     }
 }

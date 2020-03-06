@@ -7,14 +7,12 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::{self, Debug, Display},
-    fs::{self, File},
-    io::{self, Read, Write},
+    fs, io,
     path::{Path, PathBuf},
 };
 
 #[derive(Debug)]
 pub enum LoadError {
-    OpenFailed { path: PathBuf, cause: io::Error },
     ReadFailed { path: PathBuf, cause: io::Error },
     DeserializationFailed(toml::de::Error),
 }
@@ -22,9 +20,6 @@ pub enum LoadError {
 impl Display for LoadError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::OpenFailed { path, cause } => {
-                write!(f, "Failed to open config file {:?}: {}", path, cause)
-            }
             Self::ReadFailed { path, cause } => {
                 write!(f, "Failed to read config file {:?}: {}", path, cause)
             }
@@ -104,7 +99,6 @@ impl Display for LinkError {
 #[derive(Debug)]
 pub enum WriteError {
     SerializationFailed(toml::ser::Error),
-    CreateFailed { path: PathBuf, cause: io::Error },
     WriteFailed { path: PathBuf, cause: io::Error },
 }
 
@@ -112,11 +106,8 @@ impl Display for WriteError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::SerializationFailed(err) => write!(f, "Failed to serialize config: {:?}", err),
-            Self::CreateFailed { path, cause } => {
-                write!(f, "Failed to create config file {:?}: {}", path, cause)
-            }
             Self::WriteFailed { path, cause } => {
-                write!(f, "Failed to write to config file {:?}: {}", path, cause)
+                write!(f, "Failed to write config file {:?}: {}", path, cause)
             }
         }
     }
@@ -162,18 +153,11 @@ impl Writer {
                 .is_file()
                 .into_option()
                 .map(|()| {
-                    let mut raw = Vec::new();
-                    File::open(&path)
-                        .map_err(|cause| LoadError::OpenFailed {
-                            path: path.clone(),
-                            cause,
-                        })?
-                        .read_to_end(&mut raw)
-                        .map_err(|cause| LoadError::ReadFailed {
-                            path: path.clone(),
-                            cause,
-                        })?;
-                    toml::from_slice::<Self>(&raw)
+                    let bytes = fs::read(&path).map_err(|cause| LoadError::ReadFailed {
+                        path: path.clone(),
+                        cause,
+                    })?;
+                    toml::from_slice::<Self>(&bytes)
                         .map_err(LoadError::DeserializationFailed)
                         .map(|Self { plugins, .. }| plugins)
                 })
@@ -234,17 +218,7 @@ impl Writer {
     fn write(self, project_root: impl AsRef<Path>) -> Result<(), WriteError> {
         let serialized = toml::to_vec(&self).map_err(WriteError::SerializationFailed)?;
         let path = Self::path(project_root);
-        File::create(&path)
-            .map_err(|cause| WriteError::CreateFailed {
-                path: path.clone(),
-                cause,
-            })?
-            .write(&serialized)
-            .map_err(|cause| WriteError::WriteFailed {
-                path: path.clone(),
-                cause,
-            })?;
-        Ok(())
+        fs::write(&path, serialized).map_err(|cause| WriteError::WriteFailed { path, cause })
     }
 
     pub fn link_and_write(

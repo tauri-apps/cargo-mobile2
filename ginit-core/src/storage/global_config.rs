@@ -37,8 +37,8 @@ pub struct GlobalConfig {
 }
 
 impl GlobalConfig {
-    pub fn load(bundle: &super::Bundle) -> Result<Self, Error> {
-        let path = bundle.global_config_path();
+    pub fn load(storage: &super::Storage) -> Result<Self, Error> {
+        let path = storage.global_config_path();
         fs::read(&path)
             .map_err(|cause| Error::ReadFailed {
                 tried: path.clone(),

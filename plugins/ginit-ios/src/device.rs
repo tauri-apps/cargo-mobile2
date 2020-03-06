@@ -6,7 +6,7 @@ use ginit_core::{
     env::Env,
     exports::into_result::{command::CommandError, IntoResult as _},
     opts::Profile,
-    util::pure_command::PureCommand,
+    util::PureCommand,
 };
 use std::fmt::{self, Display};
 

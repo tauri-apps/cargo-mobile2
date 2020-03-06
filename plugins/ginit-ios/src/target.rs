@@ -11,7 +11,7 @@ use ginit_core::{
     },
     opts::{NoiseLevel, Profile},
     target::TargetTrait,
-    util::{self, pure_command::PureCommand},
+    util::{self, PureCommand},
 };
 use std::{collections::BTreeMap, fmt};
 

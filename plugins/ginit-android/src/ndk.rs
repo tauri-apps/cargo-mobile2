@@ -1,5 +1,5 @@
 use std::{
-    fmt,
+    fmt::{self, Display},
     fs::File,
     io,
     num::ParseIntError,
@@ -80,33 +80,49 @@ impl fmt::Display for MissingToolError {
 
 #[derive(Debug)]
 pub enum VersionError {
-    FailedToOpenSourceProps(io::Error),
-    FailedToParseSourceProps(java_properties::PropertiesError),
-    VersionMissingFromSourceProps,
-    VersionComponentNotNumerical(ParseIntError),
-    VersionHadTooFewComponents,
+    OpenFailed {
+        path: PathBuf,
+        cause: io::Error,
+    },
+    ParseFailed {
+        path: PathBuf,
+        cause: java_properties::PropertiesError,
+    },
+    VersionMissing {
+        path: PathBuf,
+    },
+    ComponentNotNumerical {
+        path: PathBuf,
+        component: String,
+        cause: ParseIntError,
+    },
+    TooFewComponents {
+        path: PathBuf,
+        version: String,
+    },
 }
 
-impl fmt::Display for VersionError {
+impl Display for VersionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            VersionError::FailedToOpenSourceProps(err) => {
-                write!(f, "Failed to open \"source.properties\": {}", err)
+            Self::OpenFailed{path,cause} => {
+                write!(f, "Failed to open {:?}: {}", path,cause)
             }
-            VersionError::FailedToParseSourceProps(err) => {
-                write!(f, "Failed to parse \"source.properties\": {}", err)
+            Self::ParseFailed{path,cause} => {
+                write!(f, "Failed to parse {:?}: {}", path,cause)
             }
-            VersionError::VersionMissingFromSourceProps => {
-                write!(f, "No version number was present in \"source.properties\".")
+            Self::VersionMissing{path} =>{
+                write!(f, "No version number was present in {:?}.", path)
             }
-            VersionError::VersionComponentNotNumerical(err) => write!(
+            Self::ComponentNotNumerical{path,component,cause} => write!(
                 f,
-                "The version contained something that wasn't a valid number: {}",
-                err
+                "Properties at {:?} contained a version component {:?} that wasn't a valid number: {}",
+                path,component,cause
             ),
-            VersionError::VersionHadTooFewComponents => write!(
+            Self::TooFewComponents{path,version} => write!(
                 f,
-                "The version number didn't have as many components as expected."
+                "Version {:?} in properties file {:?} didn't have as many components as expected.",
+                path,version
             ),
         }
     }
@@ -206,12 +222,18 @@ impl Env {
     }
 
     pub fn version(&self) -> Result<Version, VersionError> {
-        let file = File::open(self.ndk_home.join("source.properties"))
-            .map_err(VersionError::FailedToOpenSourceProps)?;
-        let props = java_properties::read(file).map_err(VersionError::FailedToParseSourceProps)?;
+        let path = self.ndk_home.join("source.properties");
+        let file = File::open(&path).map_err(|cause| VersionError::OpenFailed {
+            path: path.clone(),
+            cause,
+        })?;
+        let props = java_properties::read(file).map_err(|cause| VersionError::ParseFailed {
+            path: path.clone(),
+            cause,
+        })?;
         let revision = props
             .get("Pkg.Revision")
-            .ok_or(VersionError::VersionMissingFromSourceProps)?;
+            .ok_or_else(|| VersionError::VersionMissing { path: path.clone() })?;
         // The possible revision formats can be found in the comments of
         // `$NDK_HOME/build/cmake/android.toolchain.cmake` - only the last component
         // can be non-numerical, which we're not using anyway. If that changes,
@@ -219,16 +241,26 @@ impl Env {
         let components = revision
             .split('.')
             .take(2)
-            .map(|component| component.parse::<u32>())
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(VersionError::VersionComponentNotNumerical)?;
+            .map(|component| {
+                component
+                    .parse::<u32>()
+                    .map_err(|cause| VersionError::ComponentNotNumerical {
+                        path: path.clone(),
+                        component: component.to_owned(),
+                        cause,
+                    })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         if components.len() == 2 {
             Ok(Version {
                 major: components[0],
                 minor: components[1],
             })
         } else {
-            Err(VersionError::VersionHadTooFewComponents)
+            Err(VersionError::TooFewComponents {
+                path,
+                version: revision.to_owned(),
+            })
         }
     }
 

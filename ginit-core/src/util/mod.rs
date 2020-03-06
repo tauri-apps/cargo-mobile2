@@ -4,9 +4,14 @@ mod common_email_providers;
 pub mod ln;
 mod path;
 pub mod prompt;
-pub mod pure_command;
+mod pure_command;
 
-pub use self::{cargo::CargoCommand, common_email_providers::COMMON_EMAIL_PROVIDERS, path::*};
+pub use self::{
+    cargo::CargoCommand,
+    common_email_providers::COMMON_EMAIL_PROVIDERS,
+    path::*,
+    pure_command::{ExplicitEnv, PureCommand},
+};
 use crate::{
     exports::into_result::{
         command::{CommandError, CommandResult},

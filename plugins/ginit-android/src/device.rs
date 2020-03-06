@@ -8,7 +8,7 @@ use ginit_core::{
     config::ConfigTrait,
     exports::into_result::{command::CommandError, IntoResult as _},
     opts::{NoiseLevel, Profile},
-    util::{self, pure_command::PureCommand},
+    util::{self, PureCommand},
 };
 use std::{fmt, io, process::Command};
 
