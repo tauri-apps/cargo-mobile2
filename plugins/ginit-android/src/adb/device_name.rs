@@ -1,9 +1,6 @@
 use super::adb;
 use crate::env::Env;
-use ginit_core::exports::{
-    into_result::{command::CommandError, IntoResult as _},
-    once_cell_regex::regex,
-};
+use ginit_core::exports::once_cell_regex::regex;
 use std::{
     fmt::{self, Display},
     str,
@@ -11,7 +8,7 @@ use std::{
 
 #[derive(Debug)]
 pub enum Error {
-    DumpsysFailed(CommandError),
+    DumpsysFailed(super::RunCheckedError),
     InvalidUtf8(str::Utf8Error),
     NotMatched,
 }
@@ -32,11 +29,9 @@ impl Display for Error {
 
 pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
     let name_re = regex!(r"\bname: (?P<name>.*)");
-    let output = adb(env, serial_no)
-        .args(&["shell", "dumpsys", "bluetooth_manager"])
-        .output()
-        .into_result()
-        .map_err(Error::DumpsysFailed)?;
+    let output =
+        super::run_checked(adb(env, serial_no).args(&["shell", "dumpsys", "bluetooth_manager"]))
+            .map_err(Error::DumpsysFailed)?;
     let raw = str::from_utf8(&output.stdout).map_err(Error::InvalidUtf8)?;
     name_re
         .captures(raw)

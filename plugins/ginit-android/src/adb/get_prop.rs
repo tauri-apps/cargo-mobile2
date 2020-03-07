@@ -1,6 +1,5 @@
 use super::adb;
 use crate::env::Env;
-use ginit_core::exports::into_result::{command::CommandError, IntoResult as _};
 use std::{
     fmt::{self, Display},
     str,
@@ -8,8 +7,14 @@ use std::{
 
 #[derive(Debug)]
 pub enum Error {
-    LookupFailed { prop: String, cause: CommandError },
-    InvalidUtf8 { prop: String, cause: str::Utf8Error },
+    LookupFailed {
+        prop: String,
+        cause: super::RunCheckedError,
+    },
+    InvalidUtf8 {
+        prop: String,
+        cause: str::Utf8Error,
+    },
 }
 
 impl Display for Error {
@@ -26,17 +31,15 @@ impl Display for Error {
 }
 
 pub fn get_prop(env: &Env, serial_no: &str, prop: &str) -> Result<String, Error> {
-    let output = adb(env, serial_no)
-        .args(&["shell", "getprop", prop])
-        .output()
-        .into_result()
+    let output = super::run_checked(adb(env, serial_no).args(&["shell", "getprop", prop]))
         .map_err(|cause| Error::LookupFailed {
             prop: prop.to_owned(),
             cause,
         })?;
-    let raw = str::from_utf8(&output.stdout).map_err(|cause| Error::InvalidUtf8 {
-        prop: prop.to_owned(),
-        cause,
-    })?;
-    Ok(raw.trim().to_owned())
+    str::from_utf8(&output.stdout)
+        .map_err(|cause| Error::InvalidUtf8 {
+            prop: prop.to_owned(),
+            cause,
+        })
+        .map(|raw| raw.trim().to_owned())
 }

@@ -1,12 +1,6 @@
 use super::{device_name, get_prop};
 use crate::{device::Device, env::Env, target::Target};
-use ginit_core::{
-    exports::{
-        into_result::{command::CommandError, IntoResult as _},
-        once_cell_regex::regex_multi_line,
-    },
-    util::PureCommand,
-};
+use ginit_core::{exports::once_cell_regex::regex_multi_line, util::PureCommand};
 use std::{
     collections::BTreeSet,
     fmt::{self, Display},
@@ -15,7 +9,7 @@ use std::{
 
 #[derive(Debug)]
 pub enum Error {
-    DevicesFailed(CommandError),
+    DevicesFailed(super::RunCheckedError),
     InvalidUtf8(str::Utf8Error),
     NameFailed(device_name::Error),
     ModelFailed(get_prop::Error),
@@ -38,10 +32,7 @@ impl Display for Error {
 
 pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, Error> {
     let serial_re = regex_multi_line!(r"^([\w\d]{6,20})	\b");
-    let output = PureCommand::new("adb", env)
-        .args(&["devices"])
-        .output()
-        .into_result()
+    let output = super::run_checked(PureCommand::new("adb", env).args(&["devices"]))
         .map_err(Error::DevicesFailed)?;
     let raw_list = str::from_utf8(&output.stdout).map_err(Error::InvalidUtf8)?;
     serial_re
