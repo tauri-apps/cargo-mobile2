@@ -16,3 +16,6 @@ indexmap = "1.3.0"
 log = "0.4.8"
 serde = { version = "1.0.101", features = ["derive"] }
 structopt = "0.3.7"
+
+[build-dependencies]
+ginit-core = { path = "../ginit-core" }
