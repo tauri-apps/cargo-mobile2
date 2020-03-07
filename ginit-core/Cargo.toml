@@ -9,6 +9,7 @@ bicycle = { git = "ssh://git@bitbucket.org/brainium/bicycle.git" }
 colored = "1.8.0"
 deunicode = "1.0.0"
 dirs = "2.0.2"
+english-numbers = "0.3.3"
 env_logger = "0.7.1"
 ginit-macros = { path = "../ginit-macros" }
 ginit-os = { path = "../ginit-os" }

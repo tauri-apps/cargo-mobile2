@@ -4,7 +4,7 @@ pub mod manifest;
 use crate::os;
 use std::{
     fmt::{self, Display},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 #[derive(Debug)]
@@ -28,6 +28,10 @@ impl Storage {
                 path: home.join(format!(".{}", crate::NAME)),
             })
             .ok_or(NoHomeDir)
+    }
+
+    pub fn path(&self) -> &Path {
+        &self.path
     }
 
     pub fn bin_path(&self) -> PathBuf {

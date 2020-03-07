@@ -31,8 +31,9 @@ impl Display for Error {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct GlobalConfig {
-    #[serde(alias = "default-plugins")]
+    #[serde(alias = "default_plugins")]
     pub default_plugins: Vec<String>,
 }
 
