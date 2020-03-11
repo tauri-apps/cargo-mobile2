@@ -1,5 +1,5 @@
-use crate::util::pure_command::{ExplicitEnv, PureCommand};
-use std::{path::PathBuf, process::Command};
+use crate::{env::ExplicitEnv, exports::bossy};
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub struct CargoCommand<'a> {
@@ -62,37 +62,37 @@ impl<'a> CargoCommand<'a> {
         self
     }
 
-    fn into_command_inner(self, mut command: Command) -> Command {
-        command.arg(self.subcommand);
+    fn into_command_inner(self, mut command: bossy::Command) -> bossy::Command {
+        command.add_arg(self.subcommand);
         if self.verbose {
-            command.arg("-vv");
+            command.add_arg("-vv");
         }
         if let Some(package) = self.package {
-            command.args(&["--package", package]);
+            command.add_args(&["--package", package]);
         }
         if let Some(manifest_path) = self.manifest_path {
-            command.arg("--manifest-path").arg(manifest_path);
+            command.add_arg("--manifest-path").add_arg(manifest_path);
         }
         if let Some(target) = self.target {
-            command.args(&["--target", target]);
+            command.add_args(&["--target", target]);
         }
         if let Some(features) = self.features {
-            command.args(&["--features", features]);
+            command.add_args(&["--features", features]);
         }
         if self.no_default_features {
-            command.arg("--no-default-features");
+            command.add_arg("--no-default-features");
         }
         if self.release {
-            command.arg("--release");
+            command.add_arg("--release");
         }
         command
     }
 
-    pub fn into_command_impure(self) -> Command {
-        self.into_command_inner(Command::new("cargo"))
+    pub fn into_command_impure(self) -> bossy::Command {
+        self.into_command_inner(bossy::Command::impure("cargo"))
     }
 
-    pub fn into_command(self, env: &impl ExplicitEnv) -> Command {
-        self.into_command_inner(PureCommand::new("cargo", env))
+    pub fn into_command_pure(self, env: &impl ExplicitEnv) -> bossy::Command {
+        self.into_command_inner(bossy::Command::pure("cargo").with_env_vars(env.explicit_env()))
     }
 }

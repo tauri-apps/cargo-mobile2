@@ -1,31 +1,25 @@
 use crate::{config::Config, deps, target::Target};
 use ginit_core::{
     config::ConfigTrait as _,
-    exports::{
-        bicycle,
-        into_result::{command::CommandError, IntoResult as _},
-    },
+    exports::{bicycle, bossy},
     opts::Clobbering,
     target::TargetTrait as _,
     template_pack,
     util::ln,
 };
-use std::{
-    fmt::{self, Display},
-    process::Command,
-};
+use std::fmt::{self, Display};
 
 #[derive(Debug)]
 pub enum Error {
-    RustupFailed(CommandError),
+    RustupFailed(bossy::Error),
     DepsInstallFailed(deps::Error),
     MissingTemplatePack { name: &'static str },
     TemplateProcessingFailed(bicycle::ProcessingError),
     AppSymlinkFailed(ln::Error),
     LibSymlinkFailed(ln::Error),
     ResourcesSymlinkFailed(ln::Error),
-    ScriptChmodFailed(CommandError),
-    XcodegenFailed(CommandError),
+    ScriptChmodFailed(bossy::Error),
+    XcodegenFailed(bossy::Error),
 }
 
 impl Display for Error {
@@ -90,19 +84,17 @@ pub fn generate(
     )
     .map_err(Error::ResourcesSymlinkFailed)?;
 
-    Command::new("chmod")
-        .arg("+x")
-        .arg(dest.join("cargo-xcode.sh"))
-        .status()
-        .into_result()
+    bossy::Command::impure("chmod")
+        .with_arg("+x")
+        .with_arg(dest.join("cargo-xcode.sh"))
+        .run_and_wait()
         .map_err(Error::ScriptChmodFailed)?;
     // Note that Xcode doesn't always reload the project nicely; reopening is
     // often necessary.
-    Command::new("xcodegen")
-        .args(&["generate", "--spec"])
-        .arg(dest.join("project.yml"))
-        .status()
-        .into_result()
+    bossy::Command::impure("xcodegen")
+        .with_args(&["generate", "--spec"])
+        .with_arg(dest.join("project.yml"))
+        .run_and_wait()
         .map_err(Error::XcodegenFailed)?;
     Ok(())
 }

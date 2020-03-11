@@ -1,7 +1,12 @@
 use crate::{config::Config, env::Env, ndk, target::Target};
 use ginit_core::{
-    cargo, config::ConfigTrait, exports::bicycle, exports::into_result::command::CommandError,
-    opts, target::TargetTrait as _, template_pack, util::ln,
+    cargo,
+    config::ConfigTrait,
+    exports::{bicycle, bossy},
+    opts,
+    target::TargetTrait as _,
+    template_pack,
+    util::ln,
 };
 use std::{
     fmt::{self, Display},
@@ -11,7 +16,7 @@ use std::{
 
 #[derive(Debug)]
 pub enum Error {
-    RustupFailed(CommandError),
+    RustupFailed(bossy::Error),
     MissingTemplatePack {
         name: &'static str,
     },

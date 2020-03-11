@@ -1,6 +1,6 @@
 use ginit_core::{
     config::{gen, shared, umbrella::Umbrella},
-    exports::{into_result::IntoResult as _, toml},
+    exports::toml,
     opts,
 };
 use serde::{Deserialize, Serialize};
@@ -149,19 +149,20 @@ impl Writer {
         let path = Self::path(project_root);
         // To avoid erasing sections, we first load in the existing config.
         let plugins = {
-            let plugins = path
-                .is_file()
-                .into_option()
-                .map(|()| {
-                    let bytes = fs::read(&path).map_err(|cause| LoadError::ReadFailed {
-                        path: path.clone(),
-                        cause,
-                    })?;
+            let plugins = if path.is_file() {
+                let bytes = fs::read(&path).map_err(|cause| LoadError::ReadFailed {
+                    path: path.clone(),
+                    cause,
+                })?;
+                Some(
                     toml::from_slice::<Self>(&bytes)
                         .map_err(LoadError::DeserializationFailed)
-                        .map(|Self { plugins, .. }| plugins)
-                })
-                .transpose();
+                        .map(|Self { plugins, .. }| plugins),
+                )
+            } else {
+                None
+            }
+            .transpose();
             match clobbering {
                 opts::Clobbering::Forbid => plugins?,
                 // If clobbering is allowed, then we proceed even if we failed

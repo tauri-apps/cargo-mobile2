@@ -1,7 +1,7 @@
 use ginit_core::{
     cargo,
     config::{empty::Config, ConfigTrait as _},
-    exports::{bicycle, into_result::command::CommandError},
+    exports::{bicycle, bossy},
     opts::Clobbering,
     template_pack, util,
 };
@@ -19,18 +19,18 @@ pub enum Error {
     },
     TemplateTraversalFailed(bicycle::TraversalError),
     TemplateProcessingFailed(bicycle::ProcessingError),
-    GitInitFailed(CommandError),
+    GitInitFailed(bossy::Error),
     GitSubmoduleStatusFailed {
         name: String,
         cause: io::Error,
     },
     GitSubmoduleAddFailed {
         name: String,
-        cause: CommandError,
+        cause: bossy::Error,
     },
     GitSubmoduleInitFailed {
         name: String,
-        cause: CommandError,
+        cause: bossy::Error,
     },
     RustLibTooOld,
     AppRootOutsideProject {

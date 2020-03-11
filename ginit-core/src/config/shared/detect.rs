@@ -1,6 +1,6 @@
 use crate::{
     config::{app_name, DetectedConfigTrait},
-    exports::into_result::{command::CommandError, IntoResult as _},
+    exports::bossy,
     storage::{
         self,
         global_config::{self, GlobalConfig},
@@ -14,24 +14,23 @@ use std::{
     fmt::{self, Display},
     io,
     path::PathBuf,
-    process::Command,
 };
 
 #[derive(Debug)]
 enum DefaultDomainError {
-    FailedToGetGitEmailAddr(CommandError),
+    FailedToGetGitEmailAddr(bossy::Error),
     EmailAddrInvalidUtf8(std::str::Utf8Error),
     FailedToParseEmailAddr,
 }
 
 fn default_domain() -> Result<Option<String>, DefaultDomainError> {
-    let bytes = Command::new("git")
-        .args(&["config", "user.email"])
-        .output()
-        .into_result()
-        .map_err(DefaultDomainError::FailedToGetGitEmailAddr)
-        .map(|output| output.stdout)?;
-    let email = std::str::from_utf8(&bytes).map_err(DefaultDomainError::EmailAddrInvalidUtf8)?;
+    let output = bossy::Command::impure("git")
+        .with_args(&["config", "user.email"])
+        .run_and_wait_for_output()
+        .map_err(DefaultDomainError::FailedToGetGitEmailAddr)?;
+    let email = output
+        .stdout_str()
+        .map_err(DefaultDomainError::EmailAddrInvalidUtf8)?;
     let domain = email
         .trim()
         .split('@')
@@ -87,6 +86,7 @@ pub struct Detected {
 
 impl DetectedConfigTrait for Detected {
     type Error = DetectError;
+
     fn new() -> Result<Self, Self::Error> {
         let cwd = env::current_dir().map_err(DetectError::CurrentDirFailed)?;
         let dir_name = cwd

@@ -1,16 +1,12 @@
-use ginit_core::exports::{
-    into_result::{command::CommandError, IntoResult as _},
-    once_cell_regex::regex,
-};
+use ginit_core::exports::{bossy, once_cell_regex::regex};
 use std::{
     fmt::{self, Display},
-    process::Command,
     str,
 };
 
 #[derive(Debug)]
 pub enum Error {
-    SystemProfilerFailed(CommandError),
+    SystemProfilerFailed(bossy::Error),
     OutputInvalidUtf8(str::Utf8Error),
     VersionNotMatched {
         data: String,
@@ -28,23 +24,23 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::SystemProfilerFailed(err) => write!(f, "`system_profiler` call failed: {}", err),
-            Error::OutputInvalidUtf8(err) => write!(
+            Self::SystemProfilerFailed(err) => write!(f, "`system_profiler` call failed: {}", err),
+            Self::OutputInvalidUtf8(err) => write!(
                 f,
                 "`system_profiler` output contained invalid UTF-8: {}",
                 err
             ),
-            Error::VersionNotMatched { data } => write!(
+            Self::VersionNotMatched { data } => write!(
                 f,
                 "No version number was found within the `SPDeveloperToolsDataType` data: {:?}",
                 data
             ),
-            Error::MajorVersionInvalid { major, cause } => write!(
+            Self::MajorVersionInvalid { major, cause } => write!(
                 f,
                 "The major version {:?} wasn't a valid number: {}",
                 major, cause
             ),
-            Error::MinorVersionInvalid { minor, cause } => write!(
+            Self::MinorVersionInvalid { minor, cause } => write!(
                 f,
                 "The minor version {:?} wasn't a valid number: {}",
                 minor, cause
@@ -65,13 +61,11 @@ impl DeveloperTools {
         // The `-xml` flag can be used to get this info in plist format, but
         // there don't seem to be any high quality plist crates, and parsing
         // XML sucks, we'll be lazy for now.
-        let bytes = Command::new("system_profiler")
-            .arg("SPDeveloperToolsDataType")
-            .output()
-            .into_result()
-            .map_err(Error::SystemProfilerFailed)
-            .map(|out| out.stdout)?;
-        let text = str::from_utf8(&bytes).map_err(Error::OutputInvalidUtf8)?;
+        let output = bossy::Command::impure("system_profiler")
+            .with_arg("SPDeveloperToolsDataType")
+            .run_and_wait_for_output()
+            .map_err(Error::SystemProfilerFailed)?;
+        let text = output.stdout_str().map_err(Error::OutputInvalidUtf8)?;
         let caps = version_re
             .captures(text)
             .ok_or_else(|| Error::VersionNotMatched {

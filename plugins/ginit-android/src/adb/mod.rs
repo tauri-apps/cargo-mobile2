@@ -5,27 +5,23 @@ pub mod get_prop;
 pub use self::{device_list::device_list, device_name::device_name, get_prop::get_prop};
 
 use crate::env::Env;
-use ginit_core::{
-    exports::into_result::{command::CommandError, IntoResult as _},
-    util::PureCommand,
-};
+use ginit_core::{env::ExplicitEnv as _, exports::bossy};
 use std::{
     fmt::{self, Display},
-    process::{Command, Output},
     str,
 };
 
-pub fn adb(env: &Env, serial_no: &str) -> Command {
-    let mut command = PureCommand::new("adb", env);
-    command.args(&["-s", serial_no]);
-    command
+pub fn adb(env: &Env, serial_no: &str) -> bossy::Command {
+    bossy::Command::pure("adb")
+        .with_env_vars(env.explicit_env())
+        .with_args(&["-s", serial_no])
 }
 
 #[derive(Debug)]
 pub enum RunCheckedError {
     InvalidUtf8(str::Utf8Error),
     Unauthorized,
-    CommandFailed(CommandError),
+    CommandFailed(bossy::Error),
 }
 
 impl Display for RunCheckedError {
@@ -40,13 +36,18 @@ impl Display for RunCheckedError {
     }
 }
 
-fn run_checked(command: &mut Command) -> Result<Output, RunCheckedError> {
-    let result = command.output();
-    if let Ok(output) = &result {
-        let err = str::from_utf8(&output.stderr).map_err(RunCheckedError::InvalidUtf8)?;
-        if err.contains("error: device unauthorized") {
-            return Err(RunCheckedError::Unauthorized);
+fn run_checked(command: &mut bossy::Command) -> Result<bossy::Output, RunCheckedError> {
+    let result = command.run_and_wait_for_output();
+    if let Err(err) = &result {
+        if let Some(stderr) = err
+            .stderr_str()
+            .transpose()
+            .map_err(RunCheckedError::InvalidUtf8)?
+        {
+            if stderr.contains("error: device unauthorized") {
+                return Err(RunCheckedError::Unauthorized);
+            }
         }
     }
-    result.into_result().map_err(RunCheckedError::CommandFailed)
+    result.map_err(RunCheckedError::CommandFailed)
 }

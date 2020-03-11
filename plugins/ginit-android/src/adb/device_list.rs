@@ -1,6 +1,9 @@
 use super::{device_name, get_prop};
 use crate::{device::Device, env::Env, target::Target};
-use ginit_core::{exports::once_cell_regex::regex_multi_line, util::PureCommand};
+use ginit_core::{
+    env::ExplicitEnv as _,
+    exports::{bossy, once_cell_regex::regex_multi_line},
+};
 use std::{
     collections::BTreeSet,
     fmt::{self, Display},
@@ -32,9 +35,13 @@ impl Display for Error {
 
 pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, Error> {
     let serial_re = regex_multi_line!(r"^([\w\d]{6,20})	\b");
-    let output = super::run_checked(PureCommand::new("adb", env).args(&["devices"]))
-        .map_err(Error::DevicesFailed)?;
-    let raw_list = str::from_utf8(&output.stdout).map_err(Error::InvalidUtf8)?;
+    let output = super::run_checked(
+        &mut bossy::Command::pure("adb")
+            .with_env_vars(env.explicit_env())
+            .with_args(&["devices"]),
+    )
+    .map_err(Error::DevicesFailed)?;
+    let raw_list = output.stdout_str().map_err(Error::InvalidUtf8)?;
     serial_re
         .captures_iter(raw_list)
         .map(|caps| {

@@ -1,5 +1,11 @@
-use crate::util::ExplicitEnv;
-use std::fmt;
+use std::{
+    ffi::OsStr,
+    fmt::{self, Debug, Display},
+};
+
+pub trait ExplicitEnv: Debug {
+    fn explicit_env(&self) -> Vec<(&str, &OsStr)>;
+}
 
 #[derive(Debug)]
 pub enum Error {
@@ -7,15 +13,15 @@ pub enum Error {
     PathNotSet(std::env::VarError),
 }
 
-impl fmt::Display for Error {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::HomeNotSet(err) => write!(
+            Self::HomeNotSet(err) => write!(
                 f,
                 "The `HOME` environment variable isn't set, which is pretty weird: {}",
                 err
             ),
-            Error::PathNotSet(err) => write!(
+            Self::PathNotSet(err) => write!(
                 f,
                 "The `PATH` environment variable isn't set, which is super weird: {}",
                 err

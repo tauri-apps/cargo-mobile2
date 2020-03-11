@@ -29,10 +29,13 @@ impl Display for Error {
 
 pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
     let name_re = regex!(r"\bname: (?P<name>.*)");
-    let output =
-        super::run_checked(adb(env, serial_no).args(&["shell", "dumpsys", "bluetooth_manager"]))
-            .map_err(Error::DumpsysFailed)?;
-    let raw = str::from_utf8(&output.stdout).map_err(Error::InvalidUtf8)?;
+    let output = super::run_checked(&mut adb(env, serial_no).with_args(&[
+        "shell",
+        "dumpsys",
+        "bluetooth_manager",
+    ]))
+    .map_err(Error::DumpsysFailed)?;
+    let raw = output.stdout_str().map_err(Error::InvalidUtf8)?;
     name_re
         .captures(raw)
         .map(|caps| caps["name"].to_owned())

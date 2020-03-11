@@ -4,16 +4,16 @@ use crate::{
 };
 use ginit_core::{
     config::ConfigTrait as _,
-    env::Env,
-    exports::{
-        into_result::{command::CommandError, IntoResult as _},
-        once_cell::sync::OnceCell,
-    },
+    env::{Env, ExplicitEnv as _},
+    exports::{bossy, once_cell::sync::OnceCell},
     opts::{NoiseLevel, Profile},
     target::TargetTrait,
-    util::{self, PureCommand},
+    util,
 };
-use std::{collections::BTreeMap, fmt};
+use std::{
+    collections::BTreeMap,
+    fmt::{self, Display},
+};
 
 #[derive(Debug)]
 pub enum VersionCheckError {
@@ -47,14 +47,14 @@ impl fmt::Display for VersionCheckError {
 #[derive(Debug)]
 pub enum CheckError {
     VersionCheckFailed(VersionCheckError),
-    CargoCheckFailed(CommandError),
+    CargoCheckFailed(bossy::Error),
 }
 
-impl fmt::Display for CheckError {
+impl Display for CheckError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            CheckError::VersionCheckFailed(err) => write!(f, "Xcode version check failed: {}", err),
-            CheckError::CargoCheckFailed(err) => write!(f, "Failed to run `cargo check`: {}", err),
+            Self::VersionCheckFailed(err) => write!(f, "Xcode version check failed: {}", err),
+            Self::CargoCheckFailed(err) => write!(f, "Failed to run `cargo check`: {}", err),
         }
     }
 }
@@ -62,26 +62,22 @@ impl fmt::Display for CheckError {
 #[derive(Debug)]
 pub enum CompileLibError {
     VersionCheckFailed(VersionCheckError),
-    CargoBuildFailed(CommandError),
+    CargoBuildFailed(bossy::Error),
 }
 
-impl fmt::Display for CompileLibError {
+impl Display for CompileLibError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            CompileLibError::VersionCheckFailed(err) => {
-                write!(f, "Xcode version check failed: {}", err)
-            }
-            CompileLibError::CargoBuildFailed(err) => {
-                write!(f, "Failed to run `cargo build`: {}", err)
-            }
+            Self::VersionCheckFailed(err) => write!(f, "Xcode version check failed: {}", err),
+            Self::CargoBuildFailed(err) => write!(f, "Failed to run `cargo build`: {}", err),
         }
     }
 }
 
 #[derive(Debug)]
-pub struct BuildError(CommandError);
+pub struct BuildError(bossy::Error);
 
-impl fmt::Display for BuildError {
+impl Display for BuildError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Failed to build via `xcodebuild`: {}", self.0)
     }
@@ -89,17 +85,15 @@ impl fmt::Display for BuildError {
 
 #[derive(Debug)]
 pub enum ArchiveError {
-    ArchiveFailed(CommandError),
-    ExportFailed(CommandError),
+    ArchiveFailed(bossy::Error),
+    ExportFailed(bossy::Error),
 }
 
-impl fmt::Display for ArchiveError {
+impl Display for ArchiveError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ArchiveError::ArchiveFailed(err) => {
-                write!(f, "Failed to archive via `xcodebuild: {}", err)
-            }
-            ArchiveError::ExportFailed(err) => {
+            Self::ArchiveFailed(err) => write!(f, "Failed to archive via `xcodebuild: {}", err),
+            Self::ExportFailed(err) => {
                 write!(f, "Failed to export archive via `xcodebuild: {}", err)
             }
         }
@@ -220,10 +214,10 @@ impl<'a> Target<'a> {
         self.cargo(config, "check")
             .map_err(CheckError::VersionCheckFailed)?
             .with_verbose(noise_level.is_pedantic())
-            .into_command(env)
-            .status()
-            .into_result()
-            .map_err(CheckError::CargoCheckFailed)
+            .into_command_pure(env)
+            .run_and_wait()
+            .map_err(CheckError::CargoCheckFailed)?;
+        Ok(())
     }
 
     pub fn compile_lib(
@@ -240,23 +234,24 @@ impl<'a> Target<'a> {
             .with_verbose(noise_level.is_pedantic())
             .with_release(profile.is_release())
             .into_command_impure()
-            .status()
-            .into_result()
-            .map_err(CompileLibError::CargoBuildFailed)
+            .run_and_wait()
+            .map_err(CompileLibError::CargoBuildFailed)?;
+        Ok(())
     }
 
     pub fn build(&self, config: &Config, env: &Env, profile: Profile) -> Result<(), BuildError> {
         let configuration = profile.as_str();
-        PureCommand::new("xcodebuild", env)
-            .args(&["-scheme", &config.scheme()])
-            .arg("-workspace")
-            .arg(&config.workspace_path())
-            .args(&["-configuration", configuration])
-            .args(&["-arch", self.arch])
-            .arg("build")
-            .status()
-            .into_result()
-            .map_err(BuildError)
+        bossy::Command::pure("xcodebuild")
+            .with_env_vars(env.explicit_env())
+            .with_args(&["-scheme", &config.scheme()])
+            .with_arg("-workspace")
+            .with_arg(&config.workspace_path())
+            .with_args(&["-configuration", configuration])
+            .with_args(&["-arch", self.arch])
+            .with_arg("build")
+            .run_and_wait()
+            .map_err(BuildError)?;
+        Ok(())
     }
 
     pub(super) fn archive(
@@ -267,33 +262,34 @@ impl<'a> Target<'a> {
     ) -> Result<(), ArchiveError> {
         let configuration = profile.as_str();
         let archive_path = config.export_path().join(&config.scheme());
-        PureCommand::new("xcodebuild", env)
-            .args(&["-scheme", &config.scheme()])
-            .arg("-workspace")
-            .arg(&config.workspace_path())
-            .args(&["-sdk", "iphoneos"])
-            .args(&["-configuration", configuration])
-            .args(&["-arch", self.arch])
-            .arg("archive")
-            .arg("-archivePath")
-            .arg(&archive_path)
-            .status()
-            .into_result()
+        bossy::Command::pure("xcodebuild")
+            .with_env_vars(env.explicit_env())
+            .with_args(&["-scheme", &config.scheme()])
+            .with_arg("-workspace")
+            .with_arg(&config.workspace_path())
+            .with_args(&["-sdk", "iphoneos"])
+            .with_args(&["-configuration", configuration])
+            .with_args(&["-arch", self.arch])
+            .with_arg("archive")
+            .with_arg("-archivePath")
+            .with_arg(&archive_path)
+            .run_and_wait()
             .map_err(ArchiveError::ArchiveFailed)?;
         // Super fun discrepancy in expectation of `-archivePath` value
         let archive_path = config
             .export_path()
             .join(&format!("{}.xcarchive", config.scheme()));
-        PureCommand::new("xcodebuild", env)
-            .arg("-exportArchive")
-            .arg("-archivePath")
-            .arg(&archive_path)
-            .arg("-exportOptionsPlist")
-            .arg(&config.export_plist_path())
-            .arg("-exportPath")
-            .arg(&config.export_path())
-            .status()
-            .into_result()
-            .map_err(ArchiveError::ExportFailed)
+        bossy::Command::pure("xcodebuild")
+            .with_env_vars(env.explicit_env())
+            .with_arg("-exportArchive")
+            .with_arg("-archivePath")
+            .with_arg(&archive_path)
+            .with_arg("-exportOptionsPlist")
+            .with_arg(&config.export_plist_path())
+            .with_arg("-exportPath")
+            .with_arg(&config.export_path())
+            .run_and_wait()
+            .map_err(ArchiveError::ExportFailed)?;
+        Ok(())
     }
 }

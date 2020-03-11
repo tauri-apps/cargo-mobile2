@@ -1,9 +1,9 @@
 use crate::ndk;
-use ginit_core::{
-    env::{Env as CoreEnv, Error as CoreError},
-    util::ExplicitEnv,
+use ginit_core::env::{Env as CoreEnv, Error as CoreError, ExplicitEnv};
+use std::{
+    fmt::{self, Display},
+    path::PathBuf,
 };
-use std::{fmt, path::PathBuf};
 
 #[derive(Debug)]
 pub enum Error {
@@ -14,18 +14,18 @@ pub enum Error {
     NdkEnvError(ndk::Error),
 }
 
-impl fmt::Display for Error {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::CoreEnvError(err) => write!(f, "{}", err),
-            Error::AndroidSdkRootNotSet(err) => {
+            Self::CoreEnvError(err) => write!(f, "{}", err),
+            Self::AndroidSdkRootNotSet(err) => {
                 write!(f, "The `ANDROID_SDK_ROOT` environment variable isn't set, and is required: {}", err)
             }
-            Error::AndroidSdkRootNotADir => write!(
+            Self::AndroidSdkRootNotADir => write!(
                 f,
                 "The `ANDROID_SDK_ROOT` environment variable is set, but doesn't point to an existing directory."
             ),
-            Error::NdkEnvError(err) => write!(f, "{}", err),
+            Self::NdkEnvError(err) => write!(f, "{}", err),
         }
     }
 }

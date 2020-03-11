@@ -1,45 +1,41 @@
 use crate::{device::Device, target::Target};
 use ginit_core::{
-    env::Env,
-    exports::into_result::{command::CommandError, IntoResult as _},
-    util::PureCommand,
+    env::{Env, ExplicitEnv as _},
+    exports::bossy,
 };
 use serde::Deserialize;
-use std::{collections::BTreeSet, fmt, process::Stdio};
+use std::{
+    collections::BTreeSet,
+    fmt::{self, Display},
+};
 
 #[derive(Debug)]
 pub enum DeviceListError {
-    DetectionFailed(CommandError),
+    DetectionFailed(bossy::Error),
     KillFailed(std::io::Error),
-    OutputFailed(std::io::Error),
+    OutputFailed(bossy::Error),
     InvalidUtf8(std::str::Utf8Error),
     ParseFailed(serde_json::error::Error),
     ArchInvalid(String),
 }
 
-impl fmt::Display for DeviceListError {
+impl Display for DeviceListError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DeviceListError::DetectionFailed(err) => write!(
+            Self::DetectionFailed(err) => write!(
                 f,
                 "Failed to request device list from `ios-deploy`: {}",
                 err
             ),
-            DeviceListError::KillFailed(err) => write!(f, "Failed to kill `ios-deploy`: {}", err),
-            DeviceListError::OutputFailed(err) => write!(
+            Self::KillFailed(err) => write!(f, "Failed to kill `ios-deploy`: {}", err),
+            Self::OutputFailed(err) => write!(
                 f,
                 "Failed to get device list output from `ios-deploy`: {}",
                 err
             ),
-            DeviceListError::InvalidUtf8(err) => {
-                write!(f, "Device info contained invalid UTF-8: {}", err)
-            }
-            DeviceListError::ParseFailed(err) => {
-                write!(f, "Device info couldn't be parsed: {}", err)
-            }
-            DeviceListError::ArchInvalid(arch) => {
-                write!(f, "{:?} isn't a valid target arch.", arch)
-            }
+            Self::InvalidUtf8(err) => write!(f, "Device info contained invalid UTF-8: {}", err),
+            Self::ParseFailed(err) => write!(f, "Device info couldn't be parsed: {}", err),
+            Self::ArchInvalid(arch) => write!(f, "{:?} isn't a valid target arch.", arch),
         }
     }
 }
@@ -61,19 +57,20 @@ pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListErro
         #[serde(rename = "Device")]
         device: DeviceInfo,
     }
-    let mut handle = PureCommand::new("ios-deploy", env)
-        .args(&["--detect", "--json", "--no-wifi", "--unbuffered"])
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .into_result()
+    let mut handle = bossy::Command::pure("ios-deploy")
+        .with_env_vars(env.explicit_env())
+        .with_args(&["--detect", "--json", "--no-wifi", "--unbuffered"])
+        .with_stdout_piped()
+        .with_stderr_piped()
+        .run()
         .map_err(DeviceListError::DetectionFailed)?;
+    // TODO: this feels so gross
     std::thread::sleep(std::time::Duration::from_millis(500));
     handle.kill().map_err(DeviceListError::KillFailed)?;
     let output = handle
-        .wait_with_output()
+        .wait_for_output()
         .map_err(DeviceListError::OutputFailed)?;
-    let raw_list = std::str::from_utf8(&output.stdout).map_err(DeviceListError::InvalidUtf8)?;
+    let raw_list = output.stdout_str().map_err(DeviceListError::InvalidUtf8)?;
     let raw_docs = {
         let mut raw_docs = Vec::new();
         let mut prev_index = 0;

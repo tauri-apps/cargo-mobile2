@@ -1,5 +1,5 @@
 use crate::{
-    exports::{into_result, once_cell::sync::OnceCell},
+    exports::{bossy, once_cell::sync::OnceCell},
     util,
 };
 use std::{
@@ -23,7 +23,7 @@ pub trait TargetTrait<'a>: Debug + Sized {
     fn default_ref() -> &'a Self {
         Self::all()
             .get(Self::DEFAULT_KEY)
-            .expect("Developer error: no target matched `DEFAULT_KEY`")
+            .expect("developer error: no target matched `DEFAULT_KEY`")
     }
 
     fn for_name(name: &str) -> Option<&'a Self> {
@@ -38,11 +38,11 @@ pub trait TargetTrait<'a>: Debug + Sized {
 
     fn arch(&'a self) -> &'a str;
 
-    fn install(&'a self) -> into_result::command::CommandResult<()> {
+    fn install(&'a self) -> bossy::Result<bossy::ExitStatus> {
         util::rustup_add(self.triple())
     }
 
-    fn install_all() -> into_result::command::CommandResult<()>
+    fn install_all() -> bossy::Result<()>
     where
         Self: 'a,
     {

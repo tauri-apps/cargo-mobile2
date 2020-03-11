@@ -2,10 +2,7 @@ use crate::{config::Config, env::Env, ndk};
 use ginit_core::{
     cargo::DotCargoTarget,
     config::ConfigTrait,
-    exports::{
-        into_result::{command::CommandError, IntoResult as _},
-        once_cell::sync::OnceCell,
-    },
+    exports::{bossy, once_cell::sync::OnceCell},
     opts::{NoiseLevel, Profile},
     target::TargetTrait,
     util::{self, ln},
@@ -45,7 +42,7 @@ pub enum CompileLibError {
     MissingTool(ndk::MissingToolError),
     CargoFailed {
         mode: CargoMode,
-        cause: CommandError,
+        cause: bossy::Error,
     },
 }
 
@@ -228,29 +225,29 @@ impl<'a> Target<'a> {
             .with_features(Some("vulkan")) // TODO: rust-lib plugin
             .with_no_default_features(true)
             .with_release(profile.is_release())
-            .into_command(env)
-            .env("ANDROID_NATIVE_API_LEVEL", min_sdk_version.to_string())
-            .env(
+            .into_command_pure(env)
+            .with_env_var("ANDROID_NATIVE_API_LEVEL", min_sdk_version.to_string())
+            .with_env_var(
                 "TARGET_AR",
                 env.ndk
                     .binutil_path(ndk::Binutil::Ar, self.binutils_triple())
                     .map_err(CompileLibError::MissingTool)?,
             )
-            .env(
+            .with_env_var(
                 "TARGET_CC",
                 env.ndk
                     .compiler_path(ndk::Compiler::Clang, self.clang_triple(), min_sdk_version)
                     .map_err(CompileLibError::MissingTool)?,
             )
-            .env(
+            .with_env_var(
                 "TARGET_CXX",
                 env.ndk
                     .compiler_path(ndk::Compiler::Clangxx, self.clang_triple(), min_sdk_version)
                     .map_err(CompileLibError::MissingTool)?,
             )
-            .status()
-            .into_result()
-            .map_err(|cause| CompileLibError::CargoFailed { mode, cause })
+            .run_and_wait()
+            .map_err(|cause| CompileLibError::CargoFailed { mode, cause })?;
+        Ok(())
     }
 
     pub(super) fn get_jnilibs_subdir(&self, config: &Config) -> PathBuf {

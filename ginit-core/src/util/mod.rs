@@ -4,28 +4,16 @@ mod common_email_providers;
 pub mod ln;
 mod path;
 pub mod prompt;
-mod pure_command;
 
-pub use self::{
-    cargo::CargoCommand,
-    common_email_providers::COMMON_EMAIL_PROVIDERS,
-    path::*,
-    pure_command::{ExplicitEnv, PureCommand},
-};
-use crate::{
-    exports::into_result::{
-        command::{CommandError, CommandResult},
-        IntoResult as _,
-    },
-    os,
-};
+pub use self::{cargo::CargoCommand, common_email_providers::COMMON_EMAIL_PROVIDERS, path::*};
+
+use crate::{exports::bossy, os};
 use std::{
     env,
     ffi::OsStr,
     fmt::{self, Display},
     io::{self, Write},
     path::{Path, PathBuf},
-    process::{Command, Stdio},
 };
 
 pub type Never = std::convert::Infallible;
@@ -61,45 +49,41 @@ pub fn list_display(list: &[impl Display]) -> String {
 }
 
 pub fn temp_dir() -> PathBuf {
-    std::env::temp_dir().join("com.brainiumstudios.ginit")
+    env::temp_dir().join("com.brainiumstudios.ginit")
 }
 
 pub fn add_to_path(path: impl Display) -> String {
     format!("{}:{}", path, env::var("PATH").unwrap())
 }
 
-pub fn command_path(name: &str) -> CommandResult<Vec<u8>> {
-    Command::new("command")
-        .arg("-v")
-        .arg(name)
-        .output()
-        .into_result()
-        .map(|output| output.stdout)
+pub fn command_path(name: &str) -> bossy::Result<bossy::Output> {
+    bossy::Command::impure("command")
+        .with_args(&["-v", name])
+        .run_and_wait_for_output()
 }
 
-pub fn command_present(name: &str) -> CommandResult<bool> {
-    command_path(name)
-        .map(|_path| true)
-        .or_else(|err| match err {
-            CommandError::NonZeroExitStatus(Some(1)) => Ok(false),
-            _ => Err(err),
-        })
+pub fn command_present(name: &str) -> bossy::Result<bool> {
+    command_path(name).map(|_path| true).or_else(|err| {
+        if let Some(1) = err.status().and_then(|status| status.code()) {
+            Ok(false)
+        } else {
+            Err(err)
+        }
+    })
 }
 
-pub fn git(dir: &impl AsRef<Path>, args: &[impl AsRef<OsStr>]) -> CommandResult<()> {
-    Command::new("git")
-        .arg("-C")
-        .arg(dir.as_ref())
-        .args(args)
-        .status()
-        .into_result()
+pub fn git(dir: &impl AsRef<Path>, args: &[impl AsRef<OsStr>]) -> bossy::Result<bossy::ExitStatus> {
+    bossy::Command::impure("git")
+        .with_arg("-C")
+        .with_arg(dir.as_ref())
+        .with_args(args)
+        .run_and_wait()
 }
 
-pub fn rustup_add(triple: &str) -> CommandResult<()> {
-    Command::new("rustup")
-        .args(&["target", "add", triple])
-        .status()
-        .into_result()
+pub fn rustup_add(triple: &str) -> bossy::Result<bossy::ExitStatus> {
+    bossy::Command::impure("rustup")
+        .with_args(&["target", "add", triple])
+        .run_and_wait()
 }
 
 #[derive(Debug)]
@@ -127,8 +111,8 @@ pub fn open_in_editor(path: impl AsRef<Path>) -> Result<(), OpenInEditorError> {
 
 #[derive(Debug)]
 pub enum PipeError {
-    TxCommandFailed(CommandError),
-    RxCommandFailed(CommandError),
+    TxCommandFailed(bossy::Error),
+    RxCommandFailed(bossy::Error),
     PipeFailed(io::Error),
 }
 
@@ -144,19 +128,17 @@ impl Display for PipeError {
     }
 }
 
-pub fn pipe(mut tx_command: Command, mut rx_command: Command) -> Result<(), PipeError> {
+pub fn pipe(mut tx_command: bossy::Command, rx_command: bossy::Command) -> Result<(), PipeError> {
     let tx_output = tx_command
-        .output()
-        .into_result()
+        .run_and_wait_for_output()
         .map_err(PipeError::TxCommandFailed)?;
-    let rx_command = rx_command
-        .stdin(Stdio::piped())
-        .spawn()
-        .into_result()
+    let mut rx_command = rx_command
+        .with_stdin_piped()
+        .run()
         .map_err(PipeError::RxCommandFailed)?;
     rx_command
-        .stdin
+        .stdin()
         .unwrap()
-        .write_all(&tx_output.stdout)
+        .write_all(tx_output.stdout())
         .map_err(PipeError::PipeFailed)
 }

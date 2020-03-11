@@ -64,8 +64,4 @@ impl Storage {
     pub fn plugin_templates_dir(&self, plugin: impl AsRef<str>) -> PathBuf {
         self.plugin_dir(plugin).join("templates")
     }
-
-    pub fn plugin_data_dir(&self, plugin: impl AsRef<str>) -> PathBuf {
-        self.plugin_dir(plugin).join("data")
-    }
 }

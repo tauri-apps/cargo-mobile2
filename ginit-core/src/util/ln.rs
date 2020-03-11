@@ -1,8 +1,7 @@
-use crate::exports::into_result::{command::CommandError, IntoResult as _};
+use crate::exports::bossy;
 use std::{
     fmt::{self, Display},
     path::{Path, PathBuf},
-    process::Command,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -55,7 +54,7 @@ impl Display for TargetStyle {
 #[derive(Debug)]
 pub enum ErrorCause {
     MissingFileName,
-    CommandFailed(CommandError),
+    CommandFailed(bossy::Error),
 }
 
 impl Display for ErrorCause {
@@ -130,17 +129,17 @@ impl<'a> Call<'a> {
     }
 
     pub fn exec(self) -> Result<(), Error> {
-        let mut command = Command::new("ln");
-        command.arg("-h"); // don't follow symlinks
+        let mut command = bossy::Command::impure("ln");
+        command.add_arg("-h"); // don't follow symlinks
         if let LinkType::Symbolic = self.link_type {
-            command.arg("-s");
+            command.add_arg("-s");
         }
         match self.force {
             Clobber::FileOnly => {
-                command.arg("-f");
+                command.add_arg("-f");
             }
             Clobber::FileOrDirectory => {
-                command.arg("-F");
+                command.add_arg("-F");
             }
             _ => (),
         }
@@ -155,13 +154,13 @@ impl<'a> Call<'a> {
         } else {
             None
         };
-        command.arg(self.source);
+        command.add_arg(self.source);
         if let Some(target) = target_override.as_ref() {
-            command.arg(target);
+            command.add_arg(target);
         } else {
-            command.arg(self.target);
+            command.add_arg(self.target);
         }
-        command.status().into_result().map_err(|err| Error {
+        command.run_and_wait().map_err(|err| Error {
             link_type: self.link_type,
             force: self.force,
             source: self.source.to_owned(),
@@ -172,7 +171,8 @@ impl<'a> Call<'a> {
             },
             target_style: self.target_style,
             cause: ErrorCause::CommandFailed(err),
-        })
+        })?;
+        Ok(())
     }
 }
 

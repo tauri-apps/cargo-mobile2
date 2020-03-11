@@ -10,7 +10,7 @@ compile_error!("Target platform not yet supported by ginit");
 pub static NAME: &'static str = std::env::consts::OS;
 
 pub mod exports {
-    pub use into_result;
+    pub use bossy;
     #[cfg(target_os = "macos")]
     pub use {cocoa, core_foundation, objc, objc_id};
 }

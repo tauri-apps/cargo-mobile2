@@ -1,19 +1,12 @@
-use ginit_core::{
-    exports::into_result::{command::CommandError, IntoResult as _},
-    opts::Clobbering,
-    util,
-};
-use std::{
-    fmt::{self, Display},
-    process::Command,
-};
+use ginit_core::{exports::bossy, opts::Clobbering, util};
+use std::fmt::{self, Display};
 
 #[derive(Debug)]
 pub enum Error {
-    XcodeGenPresenceCheckFailed(CommandError),
-    XcodeGenInstallFailed(CommandError),
-    IosDeployPresenceCheckFailed(CommandError),
-    IosDeployInstallFailed(CommandError),
+    XcodeGenPresenceCheckFailed(bossy::Error),
+    XcodeGenInstallFailed(bossy::Error),
+    IosDeployPresenceCheckFailed(bossy::Error),
+    IosDeployInstallFailed(bossy::Error),
 }
 
 impl Display for Error {
@@ -38,21 +31,19 @@ pub fn install(clobbering: Clobbering) -> Result<(), Error> {
     let xcodegen_found =
         util::command_present("xcodegen").map_err(Error::XcodeGenPresenceCheckFailed)?;
     if !xcodegen_found || clobbering.is_allowed() {
-        Command::new("brew")
+        bossy::Command::impure("brew")
             // reinstall works even if it's not installed yet,
             // and will upgrade if it's already installed!
-            .args(&["reinstall", "xcodegen"])
-            .status()
-            .into_result()
+            .with_args(&["reinstall", "xcodegen"])
+            .run_and_wait()
             .map_err(Error::XcodeGenInstallFailed)?;
     }
     let ios_deploy_found =
         util::command_present("ios-deploy").map_err(Error::IosDeployPresenceCheckFailed)?;
     if !ios_deploy_found || clobbering.is_allowed() {
-        Command::new("brew")
-            .args(&["reinstall", "ios-deploy"])
-            .status()
-            .into_result()
+        bossy::Command::impure("brew")
+            .with_args(&["reinstall", "ios-deploy"])
+            .run_and_wait()
             .map_err(Error::IosDeployInstallFailed)?;
     }
     Ok(())

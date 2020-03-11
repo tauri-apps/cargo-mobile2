@@ -163,7 +163,9 @@ fn main() {
                 .ok_or_else(|| {
                     NonZeroExit::display(format!("Subcommand {:?} didn't match any plugins.", name))
                 })?
-                .run_and_wait(input.noise_level, input.interactivity, args)
+                .command(input.noise_level, input.interactivity, args)
+                .run_and_wait()
+                .map(|_| ())
                 .map_err(NonZeroExit::display),
         }
     })

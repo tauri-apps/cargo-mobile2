@@ -1,8 +1,9 @@
 mod writer;
 
-use crate::plugin::{self, Map as PluginMap, RunError};
+use crate::plugin::{self, Map as PluginMap};
 use ginit_core::{
     config::{shared, DetectedConfigTrait as _, RawConfigTrait as _},
+    exports::bossy,
     opts, util,
 };
 use std::{
@@ -15,11 +16,11 @@ pub enum Error {
     SharedDetectionFailed(shared::DetectError),
     SharedPromptFailed(shared::PromptError),
     SharedUpgradeFailed(shared::UpgradeError),
-    PluginLoadFailed(plugin::LoadError),
+    PluginLoadFailed(plugin::Error),
     ConfigLoadFailed(writer::LoadError),
     GenFailed {
         plugin_name: String,
-        cause: RunError,
+        cause: bossy::Error,
     },
     WriteFailed(writer::LinkAndWriteError),
 }
@@ -73,7 +74,8 @@ pub fn gen_and_write(
         .map_err(Error::ConfigLoadFailed)?;
     for plugin in plugins.iter() {
         plugin
-            .run_and_wait(noise_level, interactivity, &["config-gen"])
+            .command(noise_level, interactivity, &["config-gen"])
+            .run_and_wait()
             .map_err(|cause| Error::GenFailed {
                 plugin_name: plugin.name().to_owned(),
                 cause,

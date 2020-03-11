@@ -131,11 +131,11 @@ fn transliterate_initial_number(s: &str) -> String {
         .char_indices()
         .take_while(|(_, c)| c.is_ascii_digit())
         .last()
-        .expect("called `transliterate_initial_number` on an app name that didn't actually start with a number");
+        .expect("developer error: called `transliterate_initial_number` on an app name that didn't actually start with a number");
     let (number, tail) = s.split_at(last_digit_indx + 1);
-    let number: i64 = number
-        .parse()
-        .expect("despite being digits, the initial digits couldn't be parsed as a number");
+    let number: i64 = number.parse().expect(
+        "developer error: despite being digits, the initial digits couldn't be parsed as a number",
+    );
     let transliterated = english_numbers::convert(
         number,
         english_numbers::Formatting {

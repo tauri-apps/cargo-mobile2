@@ -6,12 +6,10 @@ use core_foundation::{
     string::{CFString, CFStringRef},
     url::CFURL,
 };
-use into_result::{command::CommandResult, IntoResult as _};
 use std::{
     ffi::OsStr,
     fmt::{self, Display},
     path::{Path, PathBuf},
-    process::Command,
     ptr,
 };
 
@@ -96,11 +94,10 @@ impl Application {
 pub fn open_file_with(
     application: impl AsRef<OsStr>,
     path: impl AsRef<OsStr>,
-) -> CommandResult<()> {
-    Command::new("open")
-        .arg("-a")
-        .arg(application.as_ref())
-        .arg(path.as_ref())
-        .status()
-        .into_result()
+) -> bossy::Result<()> {
+    bossy::Command::impure("open")
+        .with_arg("-a")
+        .with_args(&[application.as_ref(), path.as_ref()])
+        .run_and_wait()?;
+    Ok(())
 }

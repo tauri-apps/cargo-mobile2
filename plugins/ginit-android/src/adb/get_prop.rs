@@ -31,12 +31,14 @@ impl Display for Error {
 }
 
 pub fn get_prop(env: &Env, serial_no: &str, prop: &str) -> Result<String, Error> {
-    let output = super::run_checked(adb(env, serial_no).args(&["shell", "getprop", prop]))
-        .map_err(|cause| Error::LookupFailed {
-            prop: prop.to_owned(),
-            cause,
-        })?;
-    str::from_utf8(&output.stdout)
+    let output =
+        super::run_checked(&mut adb(env, serial_no).with_args(&["shell", "getprop", prop]))
+            .map_err(|cause| Error::LookupFailed {
+                prop: prop.to_owned(),
+                cause,
+            })?;
+    output
+        .stdout_str()
         .map_err(|cause| Error::InvalidUtf8 {
             prop: prop.to_owned(),
             cause,

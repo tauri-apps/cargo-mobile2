@@ -5,6 +5,7 @@ use crate::{
 };
 use ginit_core::{
     config::umbrella::{self, Umbrella},
+    exports::bossy,
     opts,
     util::{self, cli},
 };
@@ -42,11 +43,11 @@ pub fn app<'a, 'b>(steps: &'a [&'a str]) -> App<'a, 'b> {
 pub enum Error {
     ConfigLoadFailed(umbrella::Error),
     ConfigGenFailed(config_gen::Error),
-    PluginLoadFailed(plugin::LoadError),
+    PluginLoadFailed(plugin::Error),
     OnlyParseFailed(StepNotRegistered),
     SkipParseFailed(StepNotRegistered),
     StepNotRegistered(StepNotRegistered),
-    PluginInitFailed(plugin::RunError),
+    PluginInitFailed(bossy::Error),
     OpenInEditorFailed(util::OpenInEditorError),
 }
 
@@ -153,7 +154,8 @@ pub fn exec(
             .map_err(Error::StepNotRegistered)?
         {
             plugin
-                .run_and_wait(noise_level, interactivity, &args)
+                .command(noise_level, interactivity, &args)
+                .run_and_wait()
                 .map_err(Error::PluginInitFailed)?;
         }
     }

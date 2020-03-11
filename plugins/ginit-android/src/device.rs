@@ -6,48 +6,52 @@ use crate::{
 };
 use ginit_core::{
     config::ConfigTrait,
-    exports::into_result::{command::CommandError, IntoResult as _},
+    env::ExplicitEnv as _,
+    exports::bossy,
     opts::{NoiseLevel, Profile},
-    util::{self, PureCommand},
+    util,
 };
-use std::{fmt, io, process::Command};
+use std::{
+    fmt::{self, Display},
+    io,
+};
 
-fn gradlew(config: &Config, env: &Env) -> Command {
+fn gradlew(config: &Config, env: &Env) -> bossy::Command {
     let gradlew_path = config.project_path().join("gradlew");
-    let mut command = PureCommand::new(&gradlew_path, env);
-    command.arg("--project-dir");
-    command.arg(config.project_path());
-    command
+    bossy::Command::pure(&gradlew_path)
+        .with_env_vars(env.explicit_env())
+        .with_arg("--project-dir")
+        .with_arg(config.project_path())
 }
 
 #[derive(Debug)]
 pub enum ApkBuildError {
     LibSymlinkCleaningFailed(io::Error),
     LibBuildFailed(BuildError),
-    AssembleFailed(CommandError),
+    AssembleFailed(bossy::Error),
 }
 
-impl fmt::Display for ApkBuildError {
+impl Display for ApkBuildError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ApkBuildError::LibSymlinkCleaningFailed(err) => {
+            Self::LibSymlinkCleaningFailed(err) => {
                 write!(f, "Failed to delete broken symlink: {}", err)
             }
-            ApkBuildError::LibBuildFailed(err) => write!(f, "{}", err),
-            ApkBuildError::AssembleFailed(err) => write!(f, "Failed to assemble APK: {}", err),
+            Self::LibBuildFailed(err) => write!(f, "{}", err),
+            Self::AssembleFailed(err) => write!(f, "Failed to assemble APK: {}", err),
         }
     }
 }
 
 #[derive(Debug)]
 pub enum ApkInstallError {
-    InstallFailed(CommandError),
+    InstallFailed(bossy::Error),
 }
 
-impl fmt::Display for ApkInstallError {
+impl Display for ApkInstallError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ApkInstallError::InstallFailed(err) => write!(f, "Failed to install APK: {}", err),
+            Self::InstallFailed(err) => write!(f, "Failed to install APK: {}", err),
         }
     }
 }
@@ -56,8 +60,8 @@ impl fmt::Display for ApkInstallError {
 pub enum RunError {
     ApkBuildFailed(ApkBuildError),
     ApkInstallFailed(ApkInstallError),
-    StartFailed(CommandError),
-    WakeScreenFailed(CommandError),
+    StartFailed(bossy::Error),
+    WakeScreenFailed(bossy::Error),
 }
 
 impl fmt::Display for RunError {
@@ -76,12 +80,10 @@ pub enum StacktraceError {
     PipeFailed(util::PipeError),
 }
 
-impl fmt::Display for StacktraceError {
+impl Display for StacktraceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            StacktraceError::PipeFailed(err) => {
-                write!(f, "Failed to pipe stacktrace output: {}", err)
-            }
+            Self::PipeFailed(err) => write!(f, "Failed to pipe stacktrace output: {}", err),
         }
     }
 }
@@ -94,7 +96,7 @@ pub struct Device<'a> {
     target: &'a Target<'a>,
 }
 
-impl<'a> fmt::Display for Device<'a> {
+impl<'a> Display for Device<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)?;
         if self.model != self.name {
@@ -123,7 +125,7 @@ impl<'a> Device<'a> {
         self.target
     }
 
-    fn adb(&self, env: &Env) -> Command {
+    fn adb(&self, env: &Env) -> bossy::Command {
         adb::adb(env, &self.serial_no)
     }
 
@@ -139,10 +141,10 @@ impl<'a> Device<'a> {
             .build(config, env, noise_level, profile)
             .map_err(ApkBuildError::LibBuildFailed)?;
         gradlew(config, env)
-            .arg("assembleDebug")
-            .status()
-            .into_result()
-            .map_err(ApkBuildError::AssembleFailed)
+            .with_arg("assembleDebug")
+            .run_and_wait()
+            .map_err(ApkBuildError::AssembleFailed)?;
+        Ok(())
     }
 
     fn install_apk(&self, config: &Config, env: &Env) -> Result<(), ApkInstallError> {
@@ -150,18 +152,18 @@ impl<'a> Device<'a> {
             .project_path()
             .join("app/build/outputs/apk/debug/app-debug.apk");
         self.adb(env)
-            .arg("install")
-            .arg(apk_path)
-            .status()
-            .into_result()
-            .map_err(ApkInstallError::InstallFailed)
+            .with_arg("install")
+            .with_arg(apk_path)
+            .run_and_wait()
+            .map_err(ApkInstallError::InstallFailed)?;
+        Ok(())
     }
 
-    fn wake_screen(&self, env: &Env) -> Result<(), CommandError> {
+    fn wake_screen(&self, env: &Env) -> bossy::Result<()> {
         self.adb(env)
-            .args(&["shell", "input", "keyevent", "KEYCODE_WAKEUP"])
-            .status()
-            .into_result()
+            .with_args(&["shell", "input", "keyevent", "KEYCODE_WAKEUP"])
+            .run_and_wait()?;
+        Ok(())
     }
 
     pub fn run(
@@ -181,21 +183,20 @@ impl<'a> Device<'a> {
             config.shared().app_name_snake(),
         );
         self.adb(env)
-            .args(&["shell", "am", "start", "-n", &activity])
-            .status()
-            .into_result()
+            .with_args(&["shell", "am", "start", "-n", &activity])
+            .run_and_wait()
             .map_err(RunError::StartFailed)?;
         self.wake_screen(env).map_err(RunError::WakeScreenFailed)
     }
 
     pub fn stacktrace(&self, config: &Config, env: &Env) -> Result<(), StacktraceError> {
-        let mut logcat_command = adb::adb(env, &self.serial_no);
-        logcat_command.args(&["logcat", "-d"]); // print and exit
-        let mut stack_command = PureCommand::new("ndk-stack", env);
-        stack_command
-            .env("PATH", util::add_to_path(env.ndk.home().display()))
-            .arg("-sym")
-            .arg(self.target.get_jnilibs_subdir(config));
+        // -d = print and exit
+        let logcat_command = adb::adb(env, &self.serial_no).with_args(&["logcat", "-d"]);
+        let stack_command = bossy::Command::pure("ndk-stack")
+            .with_env_vars(env.explicit_env())
+            .with_env_var("PATH", util::add_to_path(env.ndk.home().display()))
+            .with_arg("-sym")
+            .with_arg(self.target.get_jnilibs_subdir(config));
         util::pipe(logcat_command, stack_command).map_err(StacktraceError::PipeFailed)
     }
 }
