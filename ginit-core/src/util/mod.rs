@@ -114,6 +114,7 @@ pub enum PipeError {
     TxCommandFailed(bossy::Error),
     RxCommandFailed(bossy::Error),
     PipeFailed(io::Error),
+    WaitFailed(bossy::Error),
 }
 
 impl Display for PipeError {
@@ -124,6 +125,9 @@ impl Display for PipeError {
                 write!(f, "Failed to run receiving command: {}", err)
             }
             PipeError::PipeFailed(err) => write!(f, "Failed to pipe output: {}", err),
+            PipeError::WaitFailed(err) => {
+                write!(f, "Failed to wait for receiving command to exit: {}", err)
+            }
         }
     }
 }
@@ -136,9 +140,15 @@ pub fn pipe(mut tx_command: bossy::Command, rx_command: bossy::Command) -> Resul
         .with_stdin_piped()
         .run()
         .map_err(PipeError::RxCommandFailed)?;
-    rx_command
+    let pipe_result = rx_command
         .stdin()
         .unwrap()
         .write_all(tx_output.stdout())
-        .map_err(PipeError::PipeFailed)
+        .map_err(PipeError::PipeFailed);
+    let wait_result = rx_command.wait().map_err(PipeError::WaitFailed);
+    // We try to wait even if the pipe failed, but the pipe error has higher
+    // priority than the wait error, since it's likely to be more relevant.
+    pipe_result?;
+    wait_result?;
+    Ok(())
 }
