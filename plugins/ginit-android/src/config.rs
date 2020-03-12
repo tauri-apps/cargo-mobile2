@@ -3,7 +3,11 @@ use ginit_core::{
     util,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display},
+    path::PathBuf,
+};
 
 const DEFAULT_MIN_SDK_VERSION: u32 = 24;
 static DEFAULT_PROJECT_ROOT: &'static str = "gen/android";
@@ -18,9 +22,12 @@ pub enum ProjectRootInvalid {
         android_project_root: String,
         project_root: PathBuf,
     },
+    ContainsSpaces {
+        android_project_root: String,
+    },
 }
 
-impl fmt::Display for ProjectRootInvalid {
+impl Display for ProjectRootInvalid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NormalizationFailed {
@@ -39,6 +46,13 @@ impl fmt::Display for ProjectRootInvalid {
                 "{:?} is outside of the project root ({:?}).",
                 android_project_root, project_root,
             ),
+            Self::ContainsSpaces {
+                android_project_root,
+            } => write!(
+                f,
+                "{:?} contains spaces, which the NDK is remarkably intolerant of.",
+                android_project_root
+            ),
         }
     }
 }
@@ -48,7 +62,7 @@ pub enum Error {
     ProjectRootInvalid(ProjectRootInvalid),
 }
 
-impl fmt::Display for Error {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ProjectRootInvalid(err) => write!(f, "`android.project-root` invalid: {}", err),
@@ -94,6 +108,7 @@ pub struct Config {
 impl ConfigTrait for Config {
     type Raw = Raw;
     type Error = Error;
+
     fn from_raw(shared: Shared, raw: Option<Self::Raw>) -> Result<Self, Self::Error> {
         let raw = raw.unwrap_or_default();
         if raw.targets.is_some() {
@@ -128,7 +143,11 @@ impl ConfigTrait for Config {
                     }))?
                     .starts_with(shared.project_root())
                 {
-                    Ok(project_root)
+                    if !project_root.contains(' ') {
+                        Ok(project_root)
+                    } else {
+                        Err(Error::ProjectRootInvalid(ProjectRootInvalid::ContainsSpaces { android_project_root: project_root }))
+                    }
                 } else {
                     Err(Error::ProjectRootInvalid(ProjectRootInvalid::OutsideOfProject {
                         android_project_root: project_root,

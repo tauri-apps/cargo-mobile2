@@ -196,7 +196,19 @@ impl<'a> Device<'a> {
             .with_env_vars(env.explicit_env())
             .with_env_var("PATH", util::add_to_path(env.ndk.home().display()))
             .with_arg("-sym")
-            .with_arg(self.target.get_jnilibs_subdir(config));
-        util::pipe(logcat_command, stack_command).map_err(StacktraceError::PipeFailed)
+            .with_arg(
+                config
+                    .shared()
+                    // ndk-stack can't seem to handle spaces in args, no matter
+                    // how I try to quote or escape them... so, instead of
+                    // mandating that the entire path not contain spaces, we'll
+                    // just use a relative path!
+                    .unprefix_path(self.target.get_jnilibs_subdir(config))
+                    .expect("developer error: jnilibs subdir not prefixed"),
+            );
+        if !util::pipe(logcat_command, stack_command).map_err(StacktraceError::PipeFailed)? {
+            println!("  -- no stacktrace --");
+        }
+        Ok(())
     }
 }
