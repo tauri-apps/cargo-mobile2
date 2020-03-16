@@ -73,7 +73,7 @@ impl<'a> Steps<'a> {
     }
 
     pub fn set(&mut self, step: impl AsRef<str>) -> Result<(), StepNotRegistered> {
-        self.registry.flag(step).map(|flag| self.bits &= flag)
+        self.registry.flag(step).map(|flag| self.bits |= flag)
     }
 
     // pub fn unset(&mut self, step: impl AsRef<str>) -> Result<(), StepNotRegistered> {
