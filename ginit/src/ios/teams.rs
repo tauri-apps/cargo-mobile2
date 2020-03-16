@@ -9,12 +9,20 @@ use openssl::{
 };
 use std::{collections::BTreeSet, fmt, process::Command};
 
-pub fn get_pem_list() -> CommandResult<Vec<u8>> {
+fn get_pem_list(name_substr: &str) -> CommandResult<Vec<u8>> {
     Command::new("security")
-        .args(&["find-certificate", "-p", "-a", "-c", "Developer:"])
+        .args(&["find-certificate", "-p", "-a", "-c", name_substr])
         .output()
         .into_result()
         .map(|output| output.stdout)
+}
+
+pub fn get_pem_list_old_name_scheme() -> CommandResult<Vec<u8>> {
+    get_pem_list("Developer:")
+}
+
+pub fn get_pem_list_new_name_scheme() -> CommandResult<Vec<u8>> {
+    get_pem_list("Development:")
 }
 
 #[derive(Debug)]
@@ -64,8 +72,13 @@ impl Team {
 }
 
 pub fn find_development_teams() -> Result<Vec<Team>, Error> {
-    let certs = X509::stack_from_pem(&get_pem_list().map_err(Error::SecurityCommandFailed)?)
-        .map_err(Error::X509ParseFailed)?;
+    let certs = {
+        let new = get_pem_list_new_name_scheme().map_err(Error::SecurityCommandFailed)?;
+        let mut certs = X509::stack_from_pem(&new).map_err(Error::X509ParseFailed)?;
+        let old = get_pem_list_old_name_scheme().map_err(Error::SecurityCommandFailed)?;
+        certs.append(&mut X509::stack_from_pem(&old).map_err(Error::X509ParseFailed)?);
+        certs
+    };
     let mut teams = BTreeSet::new();
     for cert in certs {
         teams.insert(Team::from_x509(cert)?);
