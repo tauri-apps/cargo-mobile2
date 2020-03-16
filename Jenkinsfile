@@ -1,40 +1,37 @@
 #!groovy
 
-projectName = 'ginit'
-branchName = env.BRANCH_NAME
-resourceName = "${projectName}_${branchName}_build"
+@Library('jenkinsfile-scripts@refactor') _
 
-milestone()
 
-def citools
-
-lock(resource: resourceName, inversePrecedence: true) {
-    stage('git') {
-        node {
-            // https://github.com/MarkEWaite/jenkins-bugs/blob/JENKINS-35687/Jenkinsfile
-            checkout([$class: 'GitSCM',
-                      branches: [[name: branchName]],
-                      extensions: [[$class: 'GitLFSPull']],
-                      userRemoteConfigs: [[url: "git@bitbucket.org:brainium/${projectName}.git"]],
-                ]
-            )
-            sh "ci/git.sh"
-            citools = load ('ci-tools/jenkinsfile_functions.groovy')
+project {
+    name 'ginit'
+    branch {
+        pattern '^master$'
+        pingSlack true
+        custom {
+            buildStages {
+                stage('test') {
+                    sh "ci/test.sh"
+                }
+                stage('test project') {
+                    sh "ci/test_project.sh"
+                }
+                stage('install') {
+                    sh "ci/install.sh"
+                }
+            }
         }
     }
-    citools.parseLog {
-        citools.failableStage('test', citools.default_notify_branches) {
-            sh "ci/test.sh"
-        }
-        citools.failableStage('install', citools.default_notify_branches) {
-            sh "ci/install.sh ${branchName} ${citools.devBranch}"
-        }
-        citools.failableStage('test project', citools.default_notify_branches) {
-            sh "ci/test_project.sh ${branchName} ${citools.devBranch}"
-        }
-        stage('success') {
-            node {
-                citools.backToNormalGuarded(citools.default_notify_branches)
+    branch {
+        pattern '.*'
+        custom {
+            buildStages {
+                stage('test') {
+                    sh "ci/test.sh"
+                }
+                stage('test project') {
+                    sh "ci/test_project.sh"
+                }
             }
         }
     }
