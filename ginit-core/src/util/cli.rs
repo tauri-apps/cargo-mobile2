@@ -138,8 +138,8 @@ pub fn init_logging(noise_level: opts::NoiseLevel) {
     use env_logger::{Builder, Env};
     let default_level = match noise_level {
         opts::NoiseLevel::Polite => "warn",
-        opts::NoiseLevel::LoudAndProud => "ginit=info",
-        opts::NoiseLevel::FranklyQuitePedantic => "info",
+        opts::NoiseLevel::LoudAndProud => "ginit=info,bossy=info",
+        opts::NoiseLevel::FranklyQuitePedantic => "info,bossy=debug",
     };
     let env = Env::default().default_filter_or(default_level);
     Builder::from_env(env).init();
