@@ -1,7 +1,6 @@
 #!groovy
 
-@Library('jenkinsfile-scripts@refactor') _
-
+@Library('jenkinsfile-scripts') _
 
 project {
     name 'ginit'
