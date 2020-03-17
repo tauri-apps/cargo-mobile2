@@ -8,5 +8,5 @@ description = "Game dev productivity tools"
 [dependencies]
 clap = "2.33.0"
 colored = "1.8.0"
-env_logger = "0.6.2"
+env_logger = "0.7.1"
 ginit = { path = "../ginit" }

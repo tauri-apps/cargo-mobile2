@@ -5,7 +5,7 @@ authors = ["Brainium Studios LLC"]
 edition = "2018"
 
 [dependencies]
-bicycle = { git = "ssh://git@bitbucket.org/brainium/bicycle.git" }
+bicycle = { git = "ssh://git@bitbucket.org/brainium/bicycle.git", rev = "992e768518743b6f6ff39d5eb79c33cc343f91dc" }
 bitflags = "1.1.0"
 colored = "1"
 deunicode = "1.0.0"
