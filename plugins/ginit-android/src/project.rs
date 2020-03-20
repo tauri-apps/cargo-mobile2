@@ -6,7 +6,7 @@ use ginit_core::{
     opts,
     target::TargetTrait as _,
     template_pack,
-    util::ln,
+    util::{self, ln},
 };
 use std::{
     fmt::{self, Display},
@@ -65,20 +65,20 @@ pub fn generate(
     let dest = config.project_path();
     bike.process(src, &dest, |map| {
         config.insert_template_data(crate::NAME, map);
+        map.insert("min-sdk-version", config.min_sdk_version());
         map.insert(
-            "abi-list",
+            "app-root-rel",
+            util::relativize_path(config.shared().app_root(), config.project_path()),
+        );
+        map.insert("targets", Target::all().values().collect::<Vec<_>>());
+        map.insert("target-names", Target::all().keys().collect::<Vec<_>>());
+        map.insert(
+            "arches",
             Target::all()
                 .values()
-                .map(|target| target.abi)
+                .map(|target| target.arch)
                 .collect::<Vec<_>>(),
         );
-        map.insert("abi-list-joined", {
-            Target::all()
-                .values()
-                .map(|target| format!("\"{}\"", target.abi))
-                .collect::<Vec<_>>()
-                .join(", ")
-        });
     })
     .map_err(Error::TemplateProcessingFailed)?;
 

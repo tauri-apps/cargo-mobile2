@@ -1,0 +1,62 @@
+plugins {
+    id("com.android.application")
+    id("rustPlugin")
+}
+
+android {
+    compileSdkVersion(28)
+    defaultConfig {
+        applicationId = appId
+        minSdkVersion({{min-sdk-version}})
+        targetSdkVersion(28)
+        versionCode = 1
+        versionName = "1.0"
+    }
+    sourceSets {
+        // Vulkan validation layers
+        val ndkHome = System.getenv("NDK_HOME")
+        getByName("main").jniLibs.srcDir("${ndkHome}/sources/third_party/vulkan/src/build-android/jniLibs")
+    }
+    buildTypes {
+        getByName("debug") {
+            isDebuggable = true
+            isJniDebuggable = true
+            isMinifyEnabled = false
+            isUseProguard = false
+            packagingOptions {
+                {{~#each targets}}
+                doNotStrip("*/{{this.abi}}/*.so"){{/each}}
+            }
+        }
+        getByName("release") {
+            isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
+        }
+    }
+    flavorDimensions("abi")
+    productFlavors {
+        {{~#each targets}}
+        create("{{this.arch}}") {
+            dimension = "abi"
+            ndk {
+                setAbiFilters(listOf("{{this.abi}}"))
+            }
+        }{{/each}}
+    }
+}
+
+rust {
+    appRootRel = "{{app-root-rel}}"
+    targets = listOf({{quote-and-join target-names}})
+    arches = listOf({{quote-and-join arches}})
+}
+
+afterEvaluate {
+    android.applicationVariants.all {
+        val buildType = "${buildType.name.capitalize()}"
+        productFlavors.forEach {
+            val archAndBuildType = name.capitalize()
+            tasks["assemble${archAndBuildType}"].dependsOn(tasks["rustBuild${archAndBuildType}"])
+        }
+    }
+}

@@ -167,7 +167,7 @@ impl cli::Exec for Input {
                     &env,
                     |target: &Target| {
                         target
-                            .check(config, &env, noise_level)
+                            .check(config, &env, noise_level, interactivity)
                             .map_err(Error::CheckFailed)
                     },
                 )
@@ -183,7 +183,7 @@ impl cli::Exec for Input {
                     &env,
                     |target: &Target| {
                         target
-                            .build(config, &env, noise_level, profile)
+                            .build(config, &env, noise_level, interactivity, profile)
                             .map_err(Error::BuildFailed)
                     },
                 )

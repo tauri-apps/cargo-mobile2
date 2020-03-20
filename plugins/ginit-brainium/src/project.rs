@@ -156,8 +156,6 @@ pub fn gen(config: &Config, bike: &bicycle::Bicycle, clobbering: Clobbering) -> 
 
     let insert_data = |map: &mut bicycle::JsonMap| {
         config.insert_template_data(crate::NAME, map);
-        let app_root = config.shared().app_root();
-        map.insert("app-root", &app_root);
     };
     let actions = bicycle::traverse(
         template_pack!(Some(config.shared()), "rust-lib-app").ok_or_else(|| {

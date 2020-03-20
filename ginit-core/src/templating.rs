@@ -14,7 +14,20 @@ fn get_str<'a>(helper: &'a Helper) -> &'a str {
     helper
         .param(0)
         .and_then(|v| v.value().as_str())
-        .unwrap_or("")
+        .unwrap_or_else(|| "")
+}
+
+fn get_str_array<'a>(
+    helper: &'a Helper,
+    formatter: impl Fn(&str) -> String,
+) -> Option<Vec<String>> {
+    helper.param(0).and_then(|v| {
+        v.value().as_array().and_then(|arr| {
+            arr.iter()
+                .map(|val| val.as_str().map(|s| formatter(s)))
+                .collect()
+        })
+    })
 }
 
 fn html_escape(
@@ -26,6 +39,21 @@ fn html_escape(
 ) -> HelperResult {
     out.write(&handlebars::html_escape(get_str(helper)))
         .map_err(Into::into)
+}
+
+fn quote_and_join(
+    helper: &Helper,
+    _: &Handlebars,
+    _: &Context,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    out.write(
+        &get_str_array(helper, |s| format!("{:?}", s))
+            .ok_or_else(|| RenderError::new("`join` helper wasn't given an array"))?
+            .join(", "),
+    )
+    .map_err(Into::into)
 }
 
 fn project_root<'a>(ctx: &'a Context) -> Result<&'a str, RenderError> {
@@ -85,6 +113,7 @@ pub fn init(config: Option<&Shared>) -> Bicycle {
         {
             let mut helpers = HashMap::<_, Box<dyn HelperDef>>::new();
             helpers.insert("html-escape", Box::new(html_escape));
+            helpers.insert("quote-and-join", Box::new(quote_and_join));
             if config.is_some() {
                 // don't mix these up or very bad things will happen to all of us
                 helpers.insert("prefix-path", Box::new(prefix_path));

@@ -30,6 +30,20 @@ impl Default for Interactivity {
     }
 }
 
+impl Interactivity {
+    pub fn full(&self) -> bool {
+        if let Self::Full = self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn none(&self) -> bool {
+        !self.full()
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum NoiseLevel {
     Polite,

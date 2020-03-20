@@ -7,7 +7,7 @@ use crate::{
 use ginit_core::{
     config::ConfigTrait,
     env::ExplicitEnv as _,
-    exports::bossy,
+    exports::{bossy, heck::CamelCase as _},
     opts::{NoiseLevel, Profile},
     util,
 };
@@ -137,20 +137,32 @@ impl<'a> Device<'a> {
         profile: Profile,
     ) -> Result<(), ApkBuildError> {
         Target::clean_jnilibs(config).map_err(ApkBuildError::LibSymlinkCleaningFailed)?;
-        self.target
-            .build(config, env, noise_level, profile)
-            .map_err(ApkBuildError::LibBuildFailed)?;
+        let flavor = self.target.arch.to_camel_case();
+        let build_ty = profile.as_str().to_camel_case();
         gradlew(config, env)
-            .with_arg("assembleDebug")
+            .with_arg(format!("assemble{}{}", flavor, build_ty))
+            .with_arg(match noise_level {
+                NoiseLevel::Polite => "--warn",
+                NoiseLevel::LoudAndProud => "--info",
+                NoiseLevel::FranklyQuitePedantic => "--debug",
+            })
             .run_and_wait()
             .map_err(ApkBuildError::AssembleFailed)?;
         Ok(())
     }
 
-    fn install_apk(&self, config: &Config, env: &Env) -> Result<(), ApkInstallError> {
-        let apk_path = config
-            .project_path()
-            .join("app/build/outputs/apk/debug/app-debug.apk");
+    fn install_apk(
+        &self,
+        config: &Config,
+        env: &Env,
+        profile: Profile,
+    ) -> Result<(), ApkInstallError> {
+        let flavor = self.target.arch;
+        let build_ty = profile.as_str();
+        let apk_path = config.project_path().join(format!(
+            "app/build/outputs/apk/{}/{}/app-{}-{}.apk",
+            flavor, build_ty, flavor, build_ty
+        ));
         self.adb(env)
             .with_arg("install")
             .with_arg(apk_path)
@@ -175,7 +187,7 @@ impl<'a> Device<'a> {
     ) -> Result<(), RunError> {
         self.build_apk(config, env, noise_level, profile)
             .map_err(RunError::ApkBuildFailed)?;
-        self.install_apk(config, env)
+        self.install_apk(config, env, profile)
             .map_err(RunError::ApkInstallFailed)?;
         let activity = format!(
             "{}.{}/android.app.NativeActivity",

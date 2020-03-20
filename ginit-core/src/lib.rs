@@ -15,6 +15,7 @@ pub mod exports {
     pub use colored;
     pub use dirs;
     pub use ginit_os::exports::bossy;
+    pub use heck;
     pub use once_cell_regex::{
         self,
         exports::{once_cell, regex},

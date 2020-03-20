@@ -179,5 +179,6 @@ impl Shared {
         map.insert("app-name-snake", self.app_name_snake());
         map.insert("stylized-app-name", self.stylized_app_name());
         map.insert("reverse-domain", self.reverse_domain());
+        map.insert("app-root", self.app_root());
     }
 }

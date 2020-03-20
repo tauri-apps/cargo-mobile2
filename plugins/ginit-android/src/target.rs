@@ -3,10 +3,11 @@ use ginit_core::{
     cargo::DotCargoTarget,
     config::ConfigTrait,
     exports::{bossy, once_cell::sync::OnceCell},
-    opts::{NoiseLevel, Profile},
+    opts::{Interactivity, NoiseLevel, Profile},
     target::TargetTrait,
     util::{self, ln},
 };
+use serde::Serialize;
 use std::{collections::BTreeMap, fmt, fs, io, path::PathBuf, str};
 
 fn so_name(config: &Config) -> String {
@@ -95,7 +96,7 @@ impl fmt::Display for BuildError {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Target<'a> {
     pub triple: &'a str,
     clang_triple_override: Option<&'a str>,
@@ -213,10 +214,18 @@ impl<'a> Target<'a> {
         config: &Config,
         env: &Env,
         noise_level: NoiseLevel,
+        interactivity: Interactivity,
         profile: Profile,
         mode: CargoMode,
     ) -> Result<(), CompileLibError> {
         let min_sdk_version = config.min_sdk_version();
+        // Force color, since gradle would otherwise give us uncolored output
+        // (which Android Studio makes red, which is extra gross!)
+        let color = if interactivity.none() {
+            "auto"
+        } else {
+            "always"
+        };
         util::CargoCommand::new(mode.as_str())
             .with_verbose(noise_level.is_pedantic())
             .with_package(Some(config.shared().app_name()))
@@ -245,6 +254,7 @@ impl<'a> Target<'a> {
                     .compiler_path(ndk::Compiler::Clangxx, self.clang_triple(), min_sdk_version)
                     .map_err(CompileLibError::MissingTool)?,
             )
+            .with_args(&["--color", color])
             .run_and_wait()
             .map_err(|cause| CompileLibError::CargoFailed { mode, cause })?;
         Ok(())
@@ -302,8 +312,16 @@ impl<'a> Target<'a> {
         config: &Config,
         env: &Env,
         noise_level: NoiseLevel,
+        interactivity: Interactivity,
     ) -> Result<(), CompileLibError> {
-        self.compile_lib(config, env, noise_level, Profile::Debug, CargoMode::Check)
+        self.compile_lib(
+            config,
+            env,
+            noise_level,
+            interactivity,
+            Profile::Debug,
+            CargoMode::Check,
+        )
     }
 
     pub fn build(
@@ -311,10 +329,18 @@ impl<'a> Target<'a> {
         config: &Config,
         env: &Env,
         noise_level: NoiseLevel,
+        interactivity: Interactivity,
         profile: Profile,
     ) -> Result<(), BuildError> {
-        self.compile_lib(config, env, noise_level, profile, CargoMode::Build)
-            .map_err(BuildError::BuildFailed)?;
+        self.compile_lib(
+            config,
+            env,
+            noise_level,
+            interactivity,
+            profile,
+            CargoMode::Build,
+        )
+        .map_err(BuildError::BuildFailed)?;
         self.symlink_lib(config, profile)
             .map_err(BuildError::LibSymlinkFailed)
     }
