@@ -57,14 +57,14 @@ targets:
         ENABLE_BITCODE: false
         ARCHS: [arm64, x86_64] # rustc doesn't support arm64e yet
         VALID_ARCHS: arm64 x86_64 # rustc doesn't support arm64e yet
-        LIBRARY_SEARCH_PATHS[sdk=iphoneos*]: $(inherited) {{prefix-path "target/aarch64-apple-ios/$(CONFIGURATION)"}}
-        LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]: $(inherited) {{prefix-path "target/x86_64-apple-ios/$(CONFIGURATION)"}}
+        LIBRARY_SEARCH_PATHS[sdk=iphoneos*]: $(inherited) "{{prefix-path "target/aarch64-apple-ios/$(CONFIGURATION)"}}"
+        LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]: $(inherited) "{{prefix-path "target/x86_64-apple-ios/$(CONFIGURATION)"}}"
       groups: [app]
     dependencies:
       - target: lib_{{app-name}}_iOS
         embed: false
         link: false
-      - framework: lib{{app-name}}.a
+      - framework: lib{{app-name-snake}}.a
         embed: false
       - sdk: CoreGraphics.framework
       - sdk: Metal.framework
@@ -82,13 +82,13 @@ targets:
         RUST_LOG: info
     settings:
       base:
-        LIBRARY_SEARCH_PATHS: $(inherited) {{prefix-path "target/x86_64-apple-darwin/$(CONFIGURATION)"}}
+        LIBRARY_SEARCH_PATHS: $(inherited) "{{prefix-path "target/$(CONFIGURATION)"}}"
       groups: [app]
     dependencies:
       - target: lib_{{app-name}}_macOS
         embed: false
         link: false
-      - framework: lib{{app-name}}.a
+      - framework: lib{{app-name-snake}}.a
         embed: false
       - sdk: Metal.framework
   lib_{{app-name}}_iOS:

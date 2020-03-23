@@ -1,5 +1,35 @@
-use crate::{env::ExplicitEnv, exports::bossy};
+use crate::{
+    env::ExplicitEnv,
+    exports::{bossy, once_cell_regex::regex},
+};
 use std::path::PathBuf;
+
+fn detect_host() -> Option<String> {
+    // TODO: add fast paths
+    let result = bossy::Command::impure("rustc")
+        .with_args(&["--verbose", "--version"])
+        .run_and_wait_for_output();
+    match result {
+        Ok(output) => match output.stdout_str() {
+            Ok(raw) => {
+                let re = regex!(r"host: ([\w-]+)");
+                let triple = re.captures(raw).map(|caps| caps[0].to_owned());
+                if triple.is_none() {
+                    log::error!("when detecting host, no matches were found");
+                }
+                triple
+            }
+            Err(err) => {
+                log::error!("when detecting host, output wasn't valid utf-8: {}", err);
+                None
+            }
+        },
+        Err(err) => {
+            log::error!("failed to detect host: {}", err);
+            None
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct CargoCommand<'a> {
@@ -74,7 +104,17 @@ impl<'a> CargoCommand<'a> {
             command.add_arg("--manifest-path").add_arg(manifest_path);
         }
         if let Some(target) = self.target {
-            command.add_args(&["--target", target]);
+            // Don't pass target if it's the default target, since that would
+            // result in a different build cache being used than with regular
+            // `cargo build` stuff.
+            if detect_host().as_deref() != self.target {
+                command.add_args(&["--target", target]);
+            } else {
+                log::info!(
+                    "omitting explicit target triple {:?}, since it's the default target triple on this host",
+                    target
+                );
+            }
         }
         if let Some(features) = self.features {
             command.add_args(&["--features", features]);
