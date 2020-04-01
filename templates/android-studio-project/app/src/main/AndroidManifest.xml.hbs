@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="{{reverse-domain app.domain}}.{{snake-case app.name}}">
+
+    <application
+        android:allowBackup="true"
+        android:hasCode="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <activity
+            android:configChanges="orientation|keyboardHidden"
+            android:label="@string/app_name"
+            android:name="android.app.NativeActivity">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="{{snake-case app.name}}" />
+            <meta-data
+                android:name="android.app.func_name"
+                android:value="native_activity_on_create" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

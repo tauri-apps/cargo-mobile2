@@ -10,5 +10,5 @@ BRANCH_NAME="${1:?}"
 DEV_BRANCH="${2:?}"
 
 if [[ $BRANCH_NAME == $DEV_BRANCH ]]; then
-    cargo install --path ginit/ --force
+    cargo install --path . --force
 fi
