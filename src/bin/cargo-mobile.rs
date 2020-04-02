@@ -1,11 +1,17 @@
 #![forbid(unsafe_code)]
 
-use cargo_mobile::{cli, init, opts, util, NAME, PKG_NAME_SNAKE};
+use cargo_mobile::{
+    init, opts,
+    util::{
+        self,
+        cli::{self, Exec, ExecError, GlobalFlags, TextWrapper},
+    },
+    NAME,
+};
 use std::fmt::{self, Display};
-use structexec::{Exec, ExecError, GlobalFlags, TextWrapper};
 use structopt::StructOpt;
 
-#[structexec::main(NAME, PKG_NAME_SNAKE)]
+#[cli::main(NAME)]
 #[derive(Debug, StructOpt)]
 #[structopt(bin_name = cli::bin_name(NAME), settings = cli::SETTINGS)]
 pub struct Input {
@@ -27,7 +33,7 @@ pub enum Command {
         #[structopt(
             long,
             about = "Open in default code editor",
-            parse(from_flag = cli::open_in_from_presence),
+            parse(from_flag = opts::OpenIn::from_flag),
         )]
         open: opts::OpenIn,
         #[structopt(

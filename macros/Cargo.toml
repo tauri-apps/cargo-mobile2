@@ -1,0 +1,17 @@
+[package]
+name = "cargo-mobile-macros"
+version = "0.1.0"
+authors = ["Brainium Studios LLC"]
+edition = "2018"
+description = "Macros for `cargo-mobile` - don't depend on this directly"
+documentation = "https://docs.rs/cargo-mobile"
+repository = "https://github.com/BrainiumLLC/cargo-mobile"
+license = "Apache-2.0/MIT"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0.10"
+quote = "1.0.3"
+syn = "1.0.17"

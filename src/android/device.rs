@@ -4,12 +4,15 @@ use super::{
     env::Env,
     target::{BuildError, Target},
 };
-use crate::{env::ExplicitEnv as _, opts::Profile, util};
+use crate::{
+    env::ExplicitEnv as _,
+    opts::{NoiseLevel, Profile},
+    util,
+};
 use std::{
     fmt::{self, Display},
     io,
 };
-use structexec::NoiseLevel;
 
 fn gradlew(config: &Config, env: &Env) -> bossy::Command {
     let gradlew_path = config.project_dir().join("gradlew");

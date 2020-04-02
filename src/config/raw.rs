@@ -1,8 +1,10 @@
 use super::{app, TemplatePack};
-use crate::{android, apple, util::submodule::Submodule};
+use crate::{
+    android, apple,
+    util::{cli::TextWrapper, submodule::Submodule},
+};
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
-use structexec::TextWrapper;
 
 #[derive(Debug)]
 pub enum PromptError {

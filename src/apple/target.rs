@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     env::{Env, ExplicitEnv as _},
-    opts::Profile,
+    opts::{NoiseLevel, Profile},
     target::TargetTrait,
     util::CargoCommand,
 };
@@ -13,7 +13,6 @@ use std::{
     collections::BTreeMap,
     fmt::{self, Display},
 };
-use structexec::NoiseLevel;
 
 #[derive(Debug)]
 pub enum VersionCheckError {
@@ -232,7 +231,7 @@ impl<'a> Target<'a> {
         self.cargo(config, "build")
             .map_err(CompileLibError::VersionCheckFailed)?
             .with_verbose(noise_level.pedantic())
-            .with_release(profile.is_release())
+            .with_release(profile.release())
             .into_command_impure()
             .run_and_wait()
             .map_err(CompileLibError::CargoBuildFailed)?;

@@ -3,10 +3,9 @@ use crate::{
     config::{self, Config},
     opts, project,
     steps::{self, Steps},
-    util,
+    util::{self, cli::TextWrapper},
 };
 use std::fmt::{self, Display};
-use structexec::{Interactivity, TextWrapper};
 
 pub static STEPS: &'static [&'static str] = &["project", "android", "apple"];
 
@@ -40,7 +39,7 @@ impl Display for Error {
 }
 
 pub fn exec(
-    interactivity: Interactivity,
+    interactivity: opts::Interactivity,
     clobbering: opts::Clobbering,
     open_in: opts::OpenIn,
     only: Option<Vec<String>>,

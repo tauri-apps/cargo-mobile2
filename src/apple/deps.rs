@@ -30,7 +30,7 @@ impl Display for Error {
 pub fn install(clobbering: Clobbering) -> Result<(), Error> {
     let xcodegen_found =
         util::command_present("xcodegen").map_err(Error::XcodeGenPresenceCheckFailed)?;
-    if !xcodegen_found || clobbering.is_allowed() {
+    if !xcodegen_found || clobbering.allowed() {
         bossy::Command::impure("brew")
             // reinstall works even if it's not installed yet,
             // and will upgrade if it's already installed!
@@ -40,7 +40,7 @@ pub fn install(clobbering: Clobbering) -> Result<(), Error> {
     }
     let ios_deploy_found =
         util::command_present("ios-deploy").map_err(Error::IosDeployPresenceCheckFailed)?;
-    if !ios_deploy_found || clobbering.is_allowed() {
+    if !ios_deploy_found || clobbering.allowed() {
         bossy::Command::impure("brew")
             .with_args(&["reinstall", "ios-deploy"])
             .run_and_wait()

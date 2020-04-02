@@ -71,7 +71,7 @@ pub fn gen(config: &Config, bike: &bicycle::Bicycle, clobbering: Clobbering) -> 
             actions
                 .iter()
                 // Prevent clobbering
-                .filter(|action| clobbering.is_allowed() || !action.dest().exists()),
+                .filter(|action| clobbering.allowed() || !action.dest().exists()),
             |_| (),
         )
         .map_err(Error::ProcessingFailed)?;

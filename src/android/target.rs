@@ -1,11 +1,14 @@
 use super::{config::Config, env::Env, ndk};
 use crate::{
-    dot_cargo::DotCargoTarget, opts::Profile, target::TargetTrait, util::ln, util::CargoCommand,
+    dot_cargo::DotCargoTarget,
+    opts::{Interactivity, NoiseLevel, Profile},
+    target::TargetTrait,
+    util::ln,
+    util::CargoCommand,
 };
 use once_cell_regex::exports::once_cell::sync::OnceCell;
 use serde::Serialize;
 use std::{collections::BTreeMap, fmt, fs, io, path::PathBuf, str};
-use structexec::{Interactivity, NoiseLevel};
 
 fn so_name(config: &Config) -> String {
     format!("lib{}.so", config.app().name_snake())
@@ -230,7 +233,7 @@ impl<'a> Target<'a> {
             .with_target(Some(self.triple))
             .with_features(Some("vulkan")) // TODO: configurable
             .with_no_default_features(true)
-            .with_release(profile.is_release())
+            .with_release(profile.release())
             .into_command_pure(env)
             .with_env_var("ANDROID_NATIVE_API_LEVEL", min_sdk_version.to_string())
             .with_env_var(

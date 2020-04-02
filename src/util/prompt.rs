@@ -1,8 +1,8 @@
+use colored::{Color, Colorize as _};
 use std::{
     fmt::Display,
     io::{self, Write},
 };
-use structexec::colored::{Color, Colorize as _};
 
 pub fn minimal(msg: impl Display) -> io::Result<String> {
     let mut input = String::new();

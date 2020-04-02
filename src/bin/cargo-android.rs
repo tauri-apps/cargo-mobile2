@@ -9,20 +9,20 @@ use cargo_mobile::{
         target::{BuildError, CompileLibError, Target},
         NAME,
     },
-    cli,
     config::{Config as OmniConfig, LoadOrGenError},
     define_device_prompt,
     device::PromptError,
     init, opts, os,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
-    util::prompt,
-    PKG_NAME_SNAKE,
+    util::{
+        cli::{self, Exec, ExecError, GlobalFlags, TextWrapper},
+        prompt,
+    },
 };
 use std::fmt::{self, Display};
-use structexec::{Exec, ExecError, GlobalFlags, Interactivity, TextWrapper};
 use structopt::StructOpt;
 
-#[structexec::main(NAME, PKG_NAME_SNAKE)]
+#[cli::main(NAME)]
 #[derive(Debug, StructOpt)]
 #[structopt(bin_name = cli::bin_name(NAME), settings = cli::SETTINGS)]
 pub struct Input {
@@ -44,7 +44,7 @@ pub enum Command {
         #[structopt(
             long,
             about = "Open in Android Studio",
-            parse(from_flag = cli::open_in_from_presence),
+            parse(from_flag = opts::OpenIn::from_flag),
         )]
         open: opts::OpenIn,
     },
@@ -122,7 +122,7 @@ impl Exec for Input {
         }
 
         fn with_config(
-            interactivity: Interactivity,
+            interactivity: opts::Interactivity,
             wrapper: &TextWrapper,
             f: impl FnOnce(&Config) -> Result<(), Error>,
         ) -> Result<(), Error> {

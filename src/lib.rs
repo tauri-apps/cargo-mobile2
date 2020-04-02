@@ -2,7 +2,6 @@
 
 pub mod android;
 pub mod apple;
-pub mod cli;
 pub mod config;
 pub mod device;
 pub mod dot_cargo;
@@ -17,5 +16,3 @@ pub mod templating;
 pub mod util;
 
 pub static NAME: &'static str = "mobile";
-pub static PKG_NAME: &'static str = env!("CARGO_PKG_NAME");
-pub static PKG_NAME_SNAKE: &'static str = "cargo_mobile";

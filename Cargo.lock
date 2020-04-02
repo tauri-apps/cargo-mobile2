@@ -144,7 +144,9 @@ version = "0.5.0"
 dependencies = [
  "bicycle 0.1.0 (git+ssh://git@bitbucket.org/brainium/bicycle.git)",
  "bossy 0.1.1 (git+ssh://git@bitbucket.org/brainium/bossy.git)",
+ "cargo-mobile-macros 0.1.0",
  "cocoa 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "colored 1.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "deunicode 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dirs 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -164,7 +166,17 @@ dependencies = [
  "serde_json 1.0.50 (registry+https://github.com/rust-lang/crates.io-index)",
  "structexec 0.1.0 (git+ssh://git@bitbucket.org/brainium/structexec.git)",
  "structopt 0.3.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "textwrap 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "cargo-mobile-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2 1.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

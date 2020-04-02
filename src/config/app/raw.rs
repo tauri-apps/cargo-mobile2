@@ -1,5 +1,6 @@
 use super::{common_email_providers::COMMON_EMAIL_PROVIDERS, name};
-use crate::util::prompt;
+use crate::util::{cli::TextWrapper, prompt};
+use colored::Colorize as _;
 use heck::{KebabCase as _, TitleCase as _};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -8,7 +9,6 @@ use std::{
     io,
     path::PathBuf,
 };
-use structexec::{colored::Colorize as _, TextWrapper};
 
 #[derive(Debug)]
 enum DefaultDomainError {

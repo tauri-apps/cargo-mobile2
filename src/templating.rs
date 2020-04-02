@@ -212,7 +212,7 @@ impl Display for BundledPackError {
 
 pub fn bundled_pack(name: &str) -> Result<PathBuf, BundledPackError> {
     let dir = util::home_dir()
-        .map(|home| home.join(format!(".{}", crate::PKG_NAME)))
+        .map(|home| home.join(concat!(".", env!("CARGO_PKG_NAME"))))
         .map_err(BundledPackError::NoHomeDir)?;
     find_pack(dir, name).map_err(BundledPackError::MissingPack)
 }

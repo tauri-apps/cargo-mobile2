@@ -1,4 +1,5 @@
 mod cargo;
+pub mod cli;
 mod git;
 pub mod ln;
 mod path;

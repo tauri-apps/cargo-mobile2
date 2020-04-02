@@ -2,14 +2,18 @@ pub mod app;
 mod raw;
 
 use self::{app::App, raw::*};
-use crate::{android, apple, templating, util::submodule::Submodule};
+use crate::{
+    android, apple,
+    opts::Interactivity,
+    templating,
+    util::{cli::TextWrapper, submodule::Submodule},
+};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Debug, Display},
     fs, io,
     path::{Path, PathBuf},
 };
-use structexec::{Interactivity, TextWrapper};
 
 #[derive(Debug)]
 pub enum FromRawError {

@@ -1,10 +1,10 @@
-use crate::{apple::teams, util::prompt};
+use crate::{
+    apple::teams,
+    util::{cli::TextWrapper, prompt},
+};
+use colored::{Color, Colorize as _};
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
-use structexec::{
-    colored::{Color, Colorize as _},
-    TextWrapper,
-};
 
 #[derive(Debug)]
 pub enum DetectError {
