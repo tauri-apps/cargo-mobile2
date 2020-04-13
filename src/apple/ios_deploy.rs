@@ -64,42 +64,53 @@ pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListErro
     // TODO: this feels so gross
     std::thread::sleep(std::time::Duration::from_millis(500));
     handle.kill().map_err(DeviceListError::KillFailed)?;
-    let output = handle
-        .wait_for_output()
-        .map_err(DeviceListError::OutputFailed)?;
-    let raw_list = output.stdout_str().map_err(DeviceListError::InvalidUtf8)?;
-    let raw_docs = {
-        let mut raw_docs = Vec::new();
-        let mut prev_index = 0;
-        for (index, _) in raw_list.match_indices("}{") {
-            let end = index + 1;
-            raw_docs.push(&raw_list[prev_index..end]);
-            prev_index = end;
+    match handle.wait_for_output() {
+        Ok(output) => {
+            let raw_list = output.stdout_str().map_err(DeviceListError::InvalidUtf8)?;
+            let raw_docs = {
+                let mut raw_docs = Vec::new();
+                let mut prev_index = 0;
+                for (index, _) in raw_list.match_indices("}{") {
+                    let end = index + 1;
+                    raw_docs.push(&raw_list[prev_index..end]);
+                    prev_index = end;
+                }
+                raw_docs.push(&raw_list[prev_index..]);
+                raw_docs
+            };
+            raw_docs
+                .into_iter()
+                .filter(|raw_doc| !raw_doc.is_empty())
+                .map(|raw_doc| {
+                    serde_json::from_str::<DeviceDetected>(raw_doc)
+                        .map_err(DeviceListError::ParseFailed)
+                        .map(|device_detected| device_detected.device)
+                        .and_then(
+                            |DeviceInfo {
+                                device_identifier,
+                                device_name,
+                                model_arch,
+                                model_name,
+                            }| {
+                                Target::for_arch(&model_arch)
+                                    .map(|target| {
+                                        Device::new(device_identifier, device_name, model_name, target)
+                                    })
+                                    .ok_or_else(|| DeviceListError::ArchInvalid(model_arch))
+                            },
+                        )
+                })
+                .collect::<Result<_, _>>()
+            },
+            Err(err) => {
+                let output = err.output().expect("`bossy::Handle::wait_for_output` failed with a `bossy::Cause` variant other than `CommandFailedWithOutput`");
+                // When the device list is empty, `ios-deploy` exits with no
+                // code and an empty stderr.
+                if output.status().code().is_none() && output.stderr().is_empty() {
+                    Ok(Default::default())
+                } else {
+                    Err(err).map_err(DeviceListError::OutputFailed)
+                }
+            }
         }
-        raw_docs.push(&raw_list[prev_index..]);
-        raw_docs
-    };
-    raw_docs
-        .into_iter()
-        .filter(|raw_doc| !raw_doc.is_empty())
-        .map(|raw_doc| {
-            serde_json::from_str::<DeviceDetected>(raw_doc)
-                .map_err(DeviceListError::ParseFailed)
-                .map(|device_detected| device_detected.device)
-                .and_then(
-                    |DeviceInfo {
-                         device_identifier,
-                         device_name,
-                         model_arch,
-                         model_name,
-                     }| {
-                        Target::for_arch(&model_arch)
-                            .map(|target| {
-                                Device::new(device_identifier, device_name, model_name, target)
-                            })
-                            .ok_or_else(|| DeviceListError::ArchInvalid(model_arch))
-                    },
-                )
-        })
-        .collect::<Result<_, _>>()
 }
