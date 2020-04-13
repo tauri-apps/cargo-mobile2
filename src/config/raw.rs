@@ -43,7 +43,7 @@ impl Display for DetectError {
 }
 
 fn default_template_packs_and_submodules() -> (Option<Vec<TemplatePack>>, Option<Vec<Submodule>>) {
-    let brainium = true;
+    let brainium = false;
     if brainium {
         (
             Some(vec![TemplatePack::with_src(
@@ -55,7 +55,12 @@ fn default_template_packs_and_submodules() -> (Option<Vec<TemplatePack>>, Option
             )]),
         )
     } else {
-        todo!()
+        (
+            Some(vec![TemplatePack::with_src(
+                "~/.cargo-mobile/templates/wgpu-app",
+            )]),
+            None,
+        )
     }
 }
 

@@ -73,11 +73,27 @@ impl Display for LoadError {
 }
 
 #[derive(Debug)]
+pub enum WriteError {
+    SerializeFailed(toml::ser::Error),
+    WriteFailed(io::Error),
+}
+
+impl Display for WriteError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::SerializeFailed(err) => write!(f, "Failed to serialize config: {}", err),
+            Self::WriteFailed(err) => write!(f, "Failed to write config: {}", err),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum GenError {
     PromptFailed(PromptError),
     DetectFailed(DetectError),
     CanonicalizeFailed(io::Error),
     FromRawFailed(FromRawError),
+    WriteFailed(WriteError),
 }
 
 impl Display for GenError {
@@ -87,6 +103,7 @@ impl Display for GenError {
             Self::DetectFailed(err) => write!(f, "Failed to detect config: {}", err),
             Self::CanonicalizeFailed(err) => write!(f, "Failed to canonicalize root dir: {}", err),
             Self::FromRawFailed(err) => write!(f, "Generated config invalid: {}", err),
+            Self::WriteFailed(err) => write!(f, "{}", err),
         }
     }
 }
@@ -155,6 +172,7 @@ impl Config {
     pub fn discover_root(cwd: impl AsRef<Path>) -> io::Result<Option<PathBuf>> {
         let file_name = Self::file_name();
         let mut path = cwd.as_ref().canonicalize()?.join(&file_name);
+        log::info!("looking for config file at {:?}", path);
         // TODO: fold
         while !path.exists() {
             if let Some(parent) = path.parent().and_then(Path::parent) {
@@ -194,7 +212,7 @@ impl Config {
         })
     }
 
-    pub fn load(cwd: impl AsRef<Path>) -> Result<Option<Self>, LoadError> {
+    fn load(cwd: impl AsRef<Path>) -> Result<Option<Self>, LoadError> {
         if let Some(root_dir) = Self::discover_root(cwd).map_err(LoadError::DiscoverFailed)? {
             let path = root_dir.join(Self::file_name());
             let bytes = fs::read(&path).map_err(|cause| LoadError::ReadFailed {
@@ -213,7 +231,14 @@ impl Config {
         }
     }
 
-    pub fn gen(
+    fn write(&self, root_dir: &Path) -> Result<(), WriteError> {
+        let bytes = toml::to_string_pretty(self).map_err(WriteError::SerializeFailed)?;
+        let path = root_dir.join(Self::file_name());
+        log::info!("writing config to {:?}", path);
+        fs::write(path, bytes).map_err(WriteError::WriteFailed)
+    }
+
+    fn gen(
         cwd: impl AsRef<Path>,
         interactivity: Interactivity,
         wrapper: &TextWrapper,
@@ -226,8 +251,9 @@ impl Config {
             .as_ref()
             .canonicalize()
             .map_err(GenError::CanonicalizeFailed)?;
-        let config = Self::from_raw(root_dir, raw).map_err(GenError::FromRawFailed)?;
+        let config = Self::from_raw(root_dir.clone(), raw).map_err(GenError::FromRawFailed)?;
         log::info!("generated config: {:#?}", config);
+        config.write(&root_dir).map_err(GenError::WriteFailed)?;
         Ok(config)
     }
 
