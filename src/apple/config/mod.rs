@@ -9,7 +9,7 @@ use std::{
     path::PathBuf,
 };
 
-static DEFAULT_PROJECT_DIR: &'static str = "gen/aaple";
+static DEFAULT_PROJECT_DIR: &'static str = "gen/apple";
 
 #[derive(Debug)]
 pub enum ProjectDirInvalid {
