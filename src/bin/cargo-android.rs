@@ -22,7 +22,6 @@ use cargo_mobile::{
 use std::fmt::{self, Display};
 use structopt::StructOpt;
 
-#[cli::main(NAME)]
 #[derive(Debug, StructOpt)]
 #[structopt(bin_name = cli::bin_name(NAME), settings = cli::SETTINGS)]
 pub struct Input {
@@ -215,4 +214,8 @@ impl Exec for Input {
                 }),
         }
     }
+}
+
+fn main() {
+    cli::exec::<Input>(NAME)
 }

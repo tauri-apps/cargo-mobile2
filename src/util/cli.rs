@@ -1,5 +1,3 @@
-pub use cargo_mobile_macros::main;
-
 use crate::opts;
 use colored::Colorize as _;
 use std::fmt::{Debug, Display};

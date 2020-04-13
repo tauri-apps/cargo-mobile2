@@ -13,7 +13,6 @@ default = ["android", "apple"]
 [dependencies]
 bicycle = { git = "ssh://git@bitbucket.org/brainium/bicycle.git" }
 bossy = { git = "ssh://git@bitbucket.org/brainium/bossy.git" }
-cargo-mobile-macros = { path = "macros" }
 colored = "1.9.3"
 deunicode = "1.1.0"
 dirs = "2.0.2"
@@ -29,7 +28,6 @@ path_abs = "0.5.0"
 publicsuffix = { version = "1.5.4", default-features = false }
 serde = { version = "1.0.105", features = ["derive"] }
 serde_json = { version = "1.0.50", optional = true }
-structexec = { git = "ssh://git@bitbucket.org/brainium/structexec.git" }
 structopt = "0.3.12"
 textwrap = { version = "0.11.0", features = ["term_size"] }
 toml = { version = "0.5.6", features = ["preserve_order"] }
