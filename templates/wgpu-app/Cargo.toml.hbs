@@ -1,0 +1,19 @@
+[package]
+name = "{{app.name}}"
+version = "0.1.0"
+authors = ["{{author}}"]
+edition = "2018"
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "{{app.name}}-desktop"
+path = "gen/bin/desktop.rs"
+
+[dependencies]
+env_logger = "0.7.1"
+futures = "0.3.4"
+mobile-entry-point = { git = "ssh://git@bitbucket.org/brainium/mobile-entry-point.git" }
+wgpu = "0.5.0"
+winit = "0.22.0"
