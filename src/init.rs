@@ -8,7 +8,11 @@ use crate::{
     steps::{self, Steps},
     util::{self, cli::TextWrapper},
 };
-use std::fmt::{self, Display};
+use std::{
+    fmt::{self, Display},
+    fs, io,
+    path::PathBuf,
+};
 
 pub static STEPS: &'static [&'static str] = &[
     "project",
@@ -25,6 +29,10 @@ pub enum Error {
     SkipParseFailed(steps::NotRegistered),
     StepNotRegistered(steps::NotRegistered),
     ProjectInitFailed(project::Error),
+    AssetDirCreationFailed {
+        asset_dir: PathBuf,
+        cause: io::Error,
+    },
     #[cfg(feature = "android")]
     AndroidEnvFailed(android::env::Error),
     #[cfg(feature = "android")]
@@ -42,6 +50,7 @@ impl Display for Error {
             Self::SkipParseFailed(err) => write!(f, "Failed to parse `skip` step list: {}", err),
             Self::StepNotRegistered(err) => write!(f, "{}", err),
             Self::ProjectInitFailed(err) => write!(f, "Failed to generate base project: {}", err),
+            Self::AssetDirCreationFailed { asset_dir, cause } => write!(f, "Failed to create asset dir {:?}: {}", asset_dir, cause),
             #[cfg(feature = "android")]
             Self::AndroidEnvFailed(err) => write!(f, "Failed to detect Android env: {}", err),
             #[cfg(feature = "android")]
@@ -80,6 +89,11 @@ pub fn exec(
     };
     if steps.is_set("project") {
         project::gen(&config, &bike, clobbering).map_err(Error::ProjectInitFailed)?;
+        let asset_dir = config.app().asset_dir();
+        if !asset_dir.is_dir() {
+            fs::create_dir_all(&asset_dir)
+                .map_err(|cause| Error::AssetDirCreationFailed { asset_dir, cause })?;
+        }
     }
     #[cfg(feature = "android")]
     {

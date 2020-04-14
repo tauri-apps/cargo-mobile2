@@ -8,9 +8,8 @@ pub enum Error {
     DepsInstallFailed(deps::Error),
     MissingPack(templating::BundledPackError),
     TemplateProcessingFailed(bicycle::ProcessingError),
-    AppSymlinkFailed(ln::Error),
-    LibSymlinkFailed(ln::Error),
-    ResourcesSymlinkFailed(ln::Error),
+    SourceDirSymlinkFailed(ln::Error),
+    AssetDirSymlinkFailed(ln::Error),
     ScriptChmodFailed(bossy::Error),
     XcodegenFailed(bossy::Error),
 }
@@ -22,10 +21,11 @@ impl Display for Error {
             Self::DepsInstallFailed(err) => write!(f, "Failed to install dependencies: {}", err),
             Self::MissingPack(err) => write!(f, "{}", err),
             Self::TemplateProcessingFailed(err) => write!(f, "Template processing failed: {}", err),
-            Self::AppSymlinkFailed(err) => write!(f, "App couldn't be symlinked: {}", err),
-            Self::LibSymlinkFailed(err) => write!(f, "rust-lib couldn't be symlinked: {}", err),
-            Self::ResourcesSymlinkFailed(err) => {
-                write!(f, "Resources couldn't be symlinked: {}", err)
+            Self::SourceDirSymlinkFailed(err) => {
+                write!(f, "Source dir couldn't be symlinked: {}", err)
+            }
+            Self::AssetDirSymlinkFailed(err) => {
+                write!(f, "Asset dir couldn't be symlinked: {}", err)
             }
             Self::ScriptChmodFailed(err) => {
                 write!(f, "Failed to `chmod` \"cargo-xcode.sh\": {}", err)
@@ -46,20 +46,17 @@ pub fn gen(config: &Config, bike: &bicycle::Bicycle, clobbering: Clobbering) -> 
     bike.process(src, &dest, |_| ())
         .map_err(Error::TemplateProcessingFailed)?;
 
-    ln::force_symlink_relative(
-        config.app().root_dir().join("src"),
-        &dest,
-        ln::TargetStyle::Directory,
-    )
-    .map_err(Error::AppSymlinkFailed)?;
-    ln::force_symlink_relative(
-        config.app().root_dir().join("rust-lib"),
-        &dest,
-        ln::TargetStyle::Directory,
-    )
-    .map_err(Error::LibSymlinkFailed)?;
+    for source_dir in config.source_dirs() {
+        ln::force_symlink_relative(
+            config.app().root_dir().join(source_dir),
+            &dest,
+            ln::TargetStyle::Directory,
+        )
+        .map_err(Error::SourceDirSymlinkFailed)?;
+    }
+
     ln::force_symlink_relative(config.app().asset_dir(), &dest, ln::TargetStyle::Directory)
-        .map_err(Error::ResourcesSymlinkFailed)?;
+        .map_err(Error::AssetDirSymlinkFailed)?;
 
     bossy::Command::impure("chmod")
         .with_arg("+x")

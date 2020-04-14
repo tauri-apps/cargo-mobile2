@@ -47,6 +47,7 @@ impl Display for PromptError {
 pub struct Raw {
     pub development_team: String,
     pub project_dir: Option<String>,
+    pub source_dirs: Option<Vec<String>>,
 }
 
 impl Raw {
@@ -59,6 +60,7 @@ impl Raw {
                 .map(|development_team| development_team.id.clone())
                 .ok_or_else(|| DetectError::DeveloperTeamsEmpty)?,
             project_dir: None,
+            source_dirs: None,
         })
     }
 
@@ -114,6 +116,7 @@ impl Raw {
         Ok(Self {
             development_team,
             project_dir: None,
+            source_dirs: None,
         })
     }
 }

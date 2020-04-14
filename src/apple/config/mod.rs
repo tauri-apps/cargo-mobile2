@@ -71,47 +71,63 @@ pub struct Config {
     app: App,
     development_team: String,
     project_dir: String,
+    source_dirs: Vec<String>,
 }
 
 impl Config {
     pub fn from_raw(app: App, raw: Option<Raw>) -> Result<Self, Error> {
         let raw = raw.ok_or_else(|| Error::DevelopmentTeamMissing)?;
+
         if raw.development_team.is_empty() {
-            Err(Error::DevelopmentTeamEmpty)
-        } else {
-            let project_dir = raw
-                .project_dir
-                .map(|project_dir| {
-                    if project_dir == DEFAULT_PROJECT_DIR {
-                        log::warn!("`{}.project-dir` is set to the default value; you can remove it from your config", super::NAME);
-                    }
-                    if util::normalize_path(&project_dir)
-                        .map_err(|cause| Error::ProjectDirInvalid(ProjectDirInvalid::NormalizationFailed {
-                            project_dir: project_dir.clone(),
-                            cause,
-                        }))?
-                        .starts_with(app.root_dir())
-                    {
-                        Ok(project_dir)
-                    } else {
-                        Err(Error::ProjectDirInvalid(ProjectDirInvalid::OutsideOfAppRoot {
-                            project_dir,
-                            root_dir: app.root_dir().to_owned(),
-                        }))
-                    }
-                }).unwrap_or_else(|| {
-                    log::info!(
-                        "`{}.project-dir` not set; defaulting to {}",
-                        super::NAME, DEFAULT_PROJECT_DIR
-                    );
-                    Ok(DEFAULT_PROJECT_DIR.to_owned())
-                })?;
-            Ok(Self {
-                app,
-                development_team: raw.development_team,
-                project_dir,
-            })
+            return Err(Error::DevelopmentTeamEmpty);
         }
+
+        let project_dir = raw
+            .project_dir
+            .map(|project_dir| {
+                if project_dir == DEFAULT_PROJECT_DIR {
+                    log::warn!("`{}.project-dir` is set to the default value; you can remove it from your config", super::NAME);
+                }
+                if util::under_root(&project_dir, app.root_dir())
+                    .map_err(|cause| Error::ProjectDirInvalid(ProjectDirInvalid::NormalizationFailed {
+                        project_dir: project_dir.clone(),
+                        cause,
+                    }))?
+                {
+                    Ok(project_dir)
+                } else {
+                    Err(Error::ProjectDirInvalid(ProjectDirInvalid::OutsideOfAppRoot {
+                        project_dir,
+                        root_dir: app.root_dir().to_owned(),
+                    }))
+                }
+            }).unwrap_or_else(|| {
+                log::info!(
+                    "`{}.project-dir` not set; defaulting to {}",
+                    super::NAME, DEFAULT_PROJECT_DIR
+                );
+                Ok(DEFAULT_PROJECT_DIR.to_owned())
+            })?;
+
+        let default_source_dirs = if cfg!(feature = "brainium") {
+            vec!["src".to_owned(), "rust-lib".to_owned()]
+        } else {
+            vec!["src".to_owned()]
+        };
+        if raw.source_dirs.as_ref() == Some(&default_source_dirs) {
+            log::warn!(
+                "`{}.source-dirs` is set to the default value; you can remove it from your config",
+                super::NAME
+            );
+        }
+        let source_dirs = raw.source_dirs.unwrap_or_else(|| default_source_dirs);
+
+        Ok(Self {
+            app,
+            development_team: raw.development_team,
+            project_dir,
+            source_dirs,
+        })
     }
 
     pub fn app(&self) -> &App {
@@ -148,5 +164,9 @@ impl Config {
 
     pub fn scheme(&self) -> String {
         format!("{}_iOS", self.app.name())
+    }
+
+    pub fn source_dirs(&self) -> &[String] {
+        &self.source_dirs
     }
 }

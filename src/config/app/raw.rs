@@ -135,6 +135,7 @@ pub struct Raw {
     pub name: String,
     pub stylized_name: Option<String>,
     pub domain: String,
+    pub asset_dir: Option<String>,
 }
 
 impl Raw {
@@ -144,6 +145,7 @@ impl Raw {
             name: defaults.name.ok_or_else(|| DetectError::NameNotDetected)?,
             stylized_name: Some(defaults.stylized_name),
             domain: defaults.domain,
+            asset_dir: None,
         })
     }
 
@@ -156,6 +158,7 @@ impl Raw {
             name,
             stylized_name: Some(stylized_name),
             domain,
+            asset_dir: None,
         })
     }
 }

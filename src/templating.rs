@@ -45,6 +45,21 @@ fn html_escape(
         .map_err(Into::into)
 }
 
+fn join(
+    helper: &Helper,
+    _: &Handlebars,
+    _: &Context,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    out.write(
+        &get_str_array(helper, |s| format!("{}", s))
+            .ok_or_else(|| RenderError::new("`join` helper wasn't given an array"))?
+            .join(", "),
+    )
+    .map_err(Into::into)
+}
+
 fn quote_and_join(
     helper: &Helper,
     _: &Handlebars,
@@ -54,7 +69,7 @@ fn quote_and_join(
 ) -> HelperResult {
     out.write(
         &get_str_array(helper, |s| format!("{:?}", s))
-            .ok_or_else(|| RenderError::new("`join` helper wasn't given an array"))?
+            .ok_or_else(|| RenderError::new("`quote-and-join` helper wasn't given an array"))?
             .join(", "),
     )
     .map_err(Into::into)
@@ -142,6 +157,7 @@ pub fn init(config: Option<&Config>) -> Bicycle {
         {
             let mut helpers = HashMap::<_, Box<dyn HelperDef>>::new();
             helpers.insert("html-escape", Box::new(html_escape));
+            helpers.insert("join", Box::new(join));
             helpers.insert("quote-and-join", Box::new(quote_and_join));
             helpers.insert("snake-case", Box::new(snake_case));
             helpers.insert("reverse-domain", Box::new(reverse_domain));

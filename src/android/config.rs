@@ -97,16 +97,12 @@ impl Config {
                     super::NAME
                 );
             }
-            let prefixed = app.root_dir().join(&project_dir);
-            if util::normalize_path(&prefixed)
-                .map_err(|cause| {
-                    Error::ProjectDirInvalid(ProjectDirInvalid::NormalizationFailed {
-                        project_dir: project_dir.clone(),
-                        cause,
-                    })
-                })?
-                .starts_with(app.root_dir())
-            {
+            if util::under_root(&project_dir, app.root_dir()).map_err(|cause| {
+                Error::ProjectDirInvalid(ProjectDirInvalid::NormalizationFailed {
+                    project_dir: project_dir.clone(),
+                    cause,
+                })
+            })? {
                 if !project_dir.contains(' ') {
                     Ok(project_dir.into())
                 } else {

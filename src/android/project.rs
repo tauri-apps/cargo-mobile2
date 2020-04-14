@@ -20,7 +20,7 @@ pub enum Error {
         path: PathBuf,
         cause: std::io::Error,
     },
-    AssetSymlinkFailed(ln::Error),
+    AssetDirSymlinkFailed(ln::Error),
     DotCargoLoadFailed(dot_cargo::LoadError),
     DotCargoGenFailed(ndk::MissingToolError),
     DotCargoWriteFailed(dot_cargo::WriteError),
@@ -35,7 +35,9 @@ impl Display for Error {
             Self::DirectoryCreationFailed { path, cause } => {
                 write!(f, "Failed to create directory at {:?}: {}", path, cause)
             }
-            Self::AssetSymlinkFailed(err) => write!(f, "Assets couldn't be symlinked: {}", err),
+            Self::AssetDirSymlinkFailed(err) => {
+                write!(f, "Asset dir couldn't be symlinked: {}", err)
+            }
             Self::DotCargoLoadFailed(err) => write!(f, "Failed to load cargo config: {}", err),
             Self::DotCargoGenFailed(err) => write!(f, "Failed to generate cargo config: {}", err),
             Self::DotCargoWriteFailed(err) => write!(f, "Failed to write cargo config: {}", err),
@@ -76,7 +78,7 @@ pub fn gen(
         cause,
     })?;
     ln::force_symlink_relative(config.app().asset_dir(), dest, ln::TargetStyle::Directory)
-        .map_err(Error::AssetSymlinkFailed)?;
+        .map_err(Error::AssetDirSymlinkFailed)?;
 
     {
         let mut dot_cargo =

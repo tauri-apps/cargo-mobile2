@@ -13,10 +13,22 @@ use std::{
 
 pub static KEY: &'static str = "app";
 
+pub static DEFAULT_ASSET_DIR: &'static str = "res";
+
 #[derive(Debug)]
 pub enum Error {
     NameInvalid(name::Invalid),
-    DomainInvalid { domain: String },
+    DomainInvalid {
+        domain: String,
+    },
+    AssetDirNormalizationFailed {
+        asset_dir: PathBuf,
+        cause: util::NormalizationError,
+    },
+    AssetDirOutsideOfAppRoot {
+        asset_dir: PathBuf,
+        root_dir: PathBuf,
+    },
 }
 
 impl Display for Error {
@@ -27,6 +39,19 @@ impl Display for Error {
                 f,
                 "`{}.domain` invalid: {:?} isn't valid domain syntax.",
                 KEY, domain
+            ),
+            Self::AssetDirNormalizationFailed { asset_dir, cause } => write!(
+                f,
+                "Asset dir {:?} couldn't be normalized: {}",
+                asset_dir, cause
+            ),
+            Self::AssetDirOutsideOfAppRoot {
+                asset_dir,
+                root_dir,
+            } => write!(
+                f,
+                "Asset dir {:?} is outside of the app root {:?}",
+                asset_dir, root_dir,
             ),
         }
     }
@@ -39,13 +64,17 @@ pub struct App {
     name: String,
     stylized_name: String,
     domain: String,
+    asset_dir: PathBuf,
 }
 
 impl App {
     pub fn from_raw(root_dir: PathBuf, raw: Raw) -> Result<Self, Error> {
         assert!(root_dir.is_absolute(), "root must be absolute");
+
         let name = name::validate(raw.name).map_err(Error::NameInvalid)?;
+
         let stylized_name = raw.stylized_name.unwrap_or_else(|| name.clone());
+
         let domain = {
             let domain = raw.domain;
             if publicsuffix::Domain::has_valid_syntax(&domain) {
@@ -54,11 +83,39 @@ impl App {
                 Err(Error::DomainInvalid { domain })
             }
         }?;
+
+        if raw.asset_dir.as_deref() == Some(DEFAULT_ASSET_DIR) {
+            log::warn!(
+                "`{}.asset-dir` is set to the default value; you can remove it from your config",
+                KEY
+            );
+        }
+        let asset_dir = raw.asset_dir.map(PathBuf::from).unwrap_or_else(|| {
+            log::info!(
+                "`{}.asset-dir` not set; defaulting to {}",
+                KEY,
+                DEFAULT_ASSET_DIR
+            );
+            DEFAULT_ASSET_DIR.into()
+        });
+        if !util::under_root(&asset_dir, &root_dir).map_err(|cause| {
+            Error::AssetDirNormalizationFailed {
+                asset_dir: asset_dir.clone(),
+                cause,
+            }
+        })? {
+            return Err(Error::AssetDirOutsideOfAppRoot {
+                asset_dir,
+                root_dir,
+            });
+        }
+
         Ok(Self {
             root_dir,
             name,
             stylized_name,
             domain,
+            asset_dir,
         })
     }
 
@@ -101,6 +158,6 @@ impl App {
     }
 
     pub fn asset_dir(&self) -> PathBuf {
-        self.root_dir().join("res")
+        self.root_dir().join(&self.asset_dir)
     }
 }

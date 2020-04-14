@@ -135,3 +135,10 @@ pub fn normalize_path(path: impl AsRef<Path>) -> Result<PathBuf, NormalizationEr
             .map(|abs| abs.as_path().to_owned())
     }
 }
+
+pub fn under_root(
+    path: impl AsRef<Path>,
+    root: impl AsRef<Path>,
+) -> Result<bool, NormalizationError> {
+    normalize_path(root.as_ref().join(path)).map(|norm| norm.starts_with(root))
+}
