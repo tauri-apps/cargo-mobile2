@@ -1,5 +1,8 @@
+#[cfg(feature = "android")]
+use crate::android;
+#[cfg(feature = "apple")]
+use crate::apple;
 use crate::{
-    android, apple,
     config::{self, Config},
     opts, project,
     steps::{self, Steps},
@@ -7,7 +10,13 @@ use crate::{
 };
 use std::fmt::{self, Display};
 
-pub static STEPS: &'static [&'static str] = &["project", "android", "apple"];
+pub static STEPS: &'static [&'static str] = &[
+    "project",
+    #[cfg(feature = "android")]
+    "android",
+    #[cfg(feature = "apple")]
+    "apple",
+];
 
 #[derive(Debug)]
 pub enum Error {
@@ -16,8 +25,11 @@ pub enum Error {
     SkipParseFailed(steps::NotRegistered),
     StepNotRegistered(steps::NotRegistered),
     ProjectInitFailed(project::Error),
+    #[cfg(feature = "android")]
     AndroidEnvFailed(android::env::Error),
+    #[cfg(feature = "android")]
     AndroidInitFailed(android::project::Error),
+    #[cfg(feature = "apple")]
     AppleInitFailed(apple::project::Error),
     OpenInEditorFailed(util::OpenInEditorError),
 }
@@ -30,8 +42,11 @@ impl Display for Error {
             Self::SkipParseFailed(err) => write!(f, "Failed to parse `skip` step list: {}", err),
             Self::StepNotRegistered(err) => write!(f, "{}", err),
             Self::ProjectInitFailed(err) => write!(f, "Failed to generate base project: {}", err),
+            #[cfg(feature = "android")]
             Self::AndroidEnvFailed(err) => write!(f, "Failed to detect Android env: {}", err),
+            #[cfg(feature = "android")]
             Self::AndroidInitFailed(err) => write!(f, "Failed to init Android project: {}", err),
+            #[cfg(feature = "apple")]
             Self::AppleInitFailed(err) => write!(f, "Failed to init Apple project: {}", err),
             Self::OpenInEditorFailed(err) => write!(f, "Failed to open project in editor (your project generated successfully though, so no worries!): {}", err),
         }
@@ -66,13 +81,20 @@ pub fn exec(
     if steps.is_set("project") {
         project::gen(&config, &bike, clobbering).map_err(Error::ProjectInitFailed)?;
     }
-    if steps.is_set("android") {
-        let env = android::env::Env::new().map_err(Error::AndroidEnvFailed)?;
-        android::project::gen(config.android(), &env, &bike, clobbering)
-            .map_err(Error::AndroidInitFailed)?;
+    #[cfg(feature = "android")]
+    {
+        if steps.is_set("android") {
+            let env = android::env::Env::new().map_err(Error::AndroidEnvFailed)?;
+            android::project::gen(config.android(), &env, &bike, clobbering)
+                .map_err(Error::AndroidInitFailed)?;
+        }
     }
-    if steps.is_set("apple") {
-        apple::project::gen(config.apple(), &bike, clobbering).map_err(Error::AppleInitFailed)?;
+    #[cfg(feature = "apple")]
+    {
+        if steps.is_set("apple") {
+            apple::project::gen(config.apple(), &bike, clobbering)
+                .map_err(Error::AppleInitFailed)?;
+        }
     }
     if open_in.editor() {
         util::open_in_editor(".").map_err(Error::OpenInEditorFailed)?;

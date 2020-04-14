@@ -5,9 +5,18 @@ authors = ["Brainium Studios LLC"]
 edition = "2018"
 description = "Rust on mobile"
 
+[[bin]]
+name = "cargo-android"
+required-features = ["android"]
+
+[[bin]]
+name = "cargo-apple"
+required-features = ["apple"]
+
 [features]
 android = ["java-properties"]
 apple = ["openssl", "serde_json"]
+brainium = []
 default = ["android", "apple"]
 
 [dependencies]

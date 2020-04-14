@@ -1,8 +1,9 @@
 use super::{app, TemplatePack};
-use crate::{
-    android, apple,
-    util::{cli::TextWrapper, submodule::Submodule},
-};
+#[cfg(feature = "android")]
+use crate::android;
+#[cfg(feature = "apple")]
+use crate::apple;
+use crate::util::{cli::TextWrapper, submodule::Submodule};
 use serde::{Deserialize, Serialize};
 
 use std::{
@@ -14,6 +15,7 @@ use std::{
 #[derive(Debug)]
 pub enum PromptError {
     AppFailed(app::PromptError),
+    #[cfg(feature = "apple")]
     AppleFailed(apple::config::PromptError),
 }
 
@@ -23,6 +25,7 @@ impl Display for PromptError {
             Self::AppFailed(err) => {
                 write!(f, "Failed to prompt for `{}` config: {}", app::KEY, err)
             }
+            #[cfg(feature = "apple")]
             Self::AppleFailed(err) => {
                 write!(f, "Failed to prompt for `{}` config: {}", apple::NAME, err)
             }
@@ -33,6 +36,7 @@ impl Display for PromptError {
 #[derive(Debug)]
 pub enum DetectError {
     AppFailed(app::DetectError),
+    #[cfg(feature = "apple")]
     AppleFailed(apple::config::DetectError),
 }
 
@@ -40,6 +44,7 @@ impl Display for DetectError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::AppFailed(err) => write!(f, "Failed to detect `{}` config: {}", app::KEY, err),
+            #[cfg(feature = "apple")]
             Self::AppleFailed(err) => {
                 write!(f, "Failed to detect `{}` config: {}", apple::NAME, err)
             }
@@ -48,8 +53,7 @@ impl Display for DetectError {
 }
 
 fn default_template_packs_and_submodules() -> (Option<Vec<TemplatePack>>, Option<Vec<Submodule>>) {
-    let brainium = false;
-    if brainium {
+    if cfg!(feature = "brainium") {
         (
             Some(vec![TemplatePack::with_src(
                 "~/.cargo-mobile/templates/rust-lib-app",
@@ -121,7 +125,9 @@ pub struct Raw {
     pub app: app::Raw,
     pub template_packs: Option<Vec<TemplatePack>>,
     pub submodules: Option<Vec<Submodule>>,
+    #[cfg(feature = "android")]
     pub android: Option<android::config::Raw>,
+    #[cfg(feature = "apple")]
     pub apple: Option<apple::config::Raw>,
 }
 
@@ -129,12 +135,15 @@ impl Raw {
     pub fn prompt(wrapper: &TextWrapper) -> Result<Self, PromptError> {
         let app = app::Raw::prompt(wrapper).map_err(PromptError::AppFailed)?;
         let (template_packs, submodules) = default_template_packs_and_submodules();
+        #[cfg(feature = "apple")]
         let apple = apple::config::Raw::prompt(wrapper).map_err(PromptError::AppleFailed)?;
         Ok(Self {
             app,
             template_packs,
             submodules,
+            #[cfg(feature = "android")]
             android: None,
+            #[cfg(feature = "apple")]
             apple: Some(apple),
         })
     }
@@ -142,12 +151,15 @@ impl Raw {
     pub fn detect() -> Result<Self, DetectError> {
         let app = app::Raw::detect().map_err(DetectError::AppFailed)?;
         let (template_packs, submodules) = default_template_packs_and_submodules();
+        #[cfg(feature = "apple")]
         let apple = apple::config::Raw::detect().map_err(DetectError::AppleFailed)?;
         Ok(Self {
             app,
             template_packs,
             submodules,
+            #[cfg(feature = "android")]
             android: None,
+            #[cfg(feature = "apple")]
             apple: Some(apple),
         })
     }

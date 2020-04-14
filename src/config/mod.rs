@@ -2,8 +2,11 @@ pub mod app;
 mod raw;
 
 use self::{app::App, raw::*};
+#[cfg(feature = "android")]
+use crate::android;
+#[cfg(feature = "apple")]
+use crate::apple;
 use crate::{
-    android, apple,
     opts::Interactivity,
     templating,
     util::{cli::TextWrapper, submodule::Submodule},
@@ -18,7 +21,9 @@ use std::{
 #[derive(Debug)]
 pub enum FromRawError {
     AppConfigInvalid(app::Error),
+    #[cfg(feature = "android")]
     AndroidConfigInvalid(android::config::Error),
+    #[cfg(feature = "apple")]
     AppleConfigInvalid(apple::config::Error),
 }
 
@@ -26,9 +31,11 @@ impl Display for FromRawError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::AppConfigInvalid(err) => write!(f, "`{}` config invalid: {}", app::KEY, err),
+            #[cfg(feature = "android")]
             Self::AndroidConfigInvalid(err) => {
                 write!(f, "`{}` config invalid: {}", android::NAME, err)
             }
+            #[cfg(feature = "apple")]
             Self::AppleConfigInvalid(err) => write!(f, "`{}` config invalid: {}", apple::NAME, err),
         }
     }
@@ -111,31 +118,28 @@ pub struct Config {
     app: App,
     template_packs: Option<Vec<TemplatePack>>,
     submodules: Option<Vec<Submodule>>,
+    #[cfg(feature = "android")]
     android: android::config::Config,
+    #[cfg(feature = "apple")]
     apple: apple::config::Config,
 }
 
 impl Config {
-    fn from_raw(
-        root_dir: PathBuf,
-        Raw {
-            app,
-            template_packs,
-            submodules,
-            android,
-            apple,
-        }: Raw,
-    ) -> Result<Self, FromRawError> {
-        let app = App::from_raw(root_dir, app).map_err(FromRawError::AppConfigInvalid)?;
-        let android = android::config::Config::from_raw(app.clone(), android)
+    fn from_raw(root_dir: PathBuf, raw: Raw) -> Result<Self, FromRawError> {
+        let app = App::from_raw(root_dir, raw.app).map_err(FromRawError::AppConfigInvalid)?;
+        #[cfg(feature = "android")]
+        let android = android::config::Config::from_raw(app.clone(), raw.android)
             .map_err(FromRawError::AndroidConfigInvalid)?;
-        let apple = apple::config::Config::from_raw(app.clone(), apple)
+        #[cfg(feature = "apple")]
+        let apple = apple::config::Config::from_raw(app.clone(), raw.apple)
             .map_err(FromRawError::AppleConfigInvalid)?;
         Ok(Self {
             app,
-            template_packs,
-            submodules,
+            template_packs: raw.template_packs,
+            submodules: raw.submodules,
+            #[cfg(feature = "android")]
             android,
+            #[cfg(feature = "apple")]
             apple,
         })
     }
@@ -188,10 +192,12 @@ impl Config {
         self.submodules.as_ref()
     }
 
+    #[cfg(feature = "android")]
     pub fn android(&self) -> &android::config::Config {
         &self.android
     }
 
+    #[cfg(feature = "apple")]
     pub fn apple(&self) -> &apple::config::Config {
         &self.apple
     }

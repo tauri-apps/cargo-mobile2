@@ -1,5 +1,4 @@
 use crate::{
-    android, apple,
     config::{app, Config},
     util,
 };
@@ -157,8 +156,10 @@ pub fn init(config: Option<&Config>) -> Bicycle {
             let mut map = JsonMap::default();
             if let Some(config) = config {
                 map.insert(app::KEY, config.app());
-                map.insert(android::NAME, config.android());
-                map.insert(apple::NAME, config.apple());
+                #[cfg(feature = "android")]
+                map.insert(crate::android::NAME, config.android());
+                #[cfg(feature = "apple")]
+                map.insert(crate::apple::NAME, config.apple());
             }
             map
         },
