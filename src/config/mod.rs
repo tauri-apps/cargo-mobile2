@@ -11,7 +11,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Debug, Display},
-    fs, io,
+    io,
     path::{Path, PathBuf},
 };
 
@@ -30,59 +30,6 @@ impl Display for FromRawError {
                 write!(f, "`{}` config invalid: {}", android::NAME, err)
             }
             Self::AppleConfigInvalid(err) => write!(f, "`{}` config invalid: {}", apple::NAME, err),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum LoadError {
-    DiscoverFailed(io::Error),
-    ReadFailed {
-        path: PathBuf,
-        cause: io::Error,
-    },
-    ParseFailed {
-        path: PathBuf,
-        cause: toml::de::Error,
-    },
-    FromRawFailed {
-        path: PathBuf,
-        cause: FromRawError,
-    },
-}
-
-impl Display for LoadError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::DiscoverFailed(err) => write!(
-                f,
-                "Failed to canonicalize path while searching for config file: {}",
-                err
-            ),
-            Self::ReadFailed { path, cause } => {
-                write!(f, "Failed to read config file at {:?}: {}", path, cause)
-            }
-            Self::ParseFailed { path, cause } => {
-                write!(f, "Failed to parse config file at {:?}: {}", path, cause)
-            }
-            Self::FromRawFailed { path, cause } => {
-                write!(f, "Config file at {:?} invalid: {}", path, cause)
-            }
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum WriteError {
-    SerializeFailed(toml::ser::Error),
-    WriteFailed(io::Error),
-}
-
-impl Display for WriteError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::SerializeFailed(err) => write!(f, "Failed to serialize config: {}", err),
-            Self::WriteFailed(err) => write!(f, "Failed to write config: {}", err),
         }
     }
 }
@@ -111,6 +58,7 @@ impl Display for GenError {
 #[derive(Debug)]
 pub enum LoadOrGenError {
     LoadFailed(LoadError),
+    FromRawFailed { path: PathBuf, cause: FromRawError },
     GenFailed(GenError),
 }
 
@@ -118,12 +66,15 @@ impl Display for LoadOrGenError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::LoadFailed(err) => write!(f, "Failed to load config: {}", err),
+            Self::FromRawFailed { path, cause } => {
+                write!(f, "Config file at {:?} invalid: {}", path, cause)
+            }
             Self::GenFailed(err) => write!(f, "Failed to generate config: {}", err),
         }
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TemplatePack {
     src: PathBuf,
     dest: Option<PathBuf>,
@@ -165,29 +116,6 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn file_name() -> String {
-        format!("{}.toml", crate::NAME)
-    }
-
-    pub fn discover_root(cwd: impl AsRef<Path>) -> io::Result<Option<PathBuf>> {
-        let file_name = Self::file_name();
-        let mut path = cwd.as_ref().canonicalize()?.join(&file_name);
-        log::info!("looking for config file at {:?}", path);
-        // TODO: fold
-        while !path.exists() {
-            if let Some(parent) = path.parent().and_then(Path::parent) {
-                path = parent.join(&file_name);
-                log::info!("looking for config file at {:?}", path);
-            } else {
-                log::info!("no config file was ever found");
-                return Ok(None);
-            }
-        }
-        log::info!("found config file at {:?}", path);
-        path.pop();
-        Ok(Some(path))
-    }
-
     fn from_raw(
         root_dir: PathBuf,
         Raw {
@@ -212,32 +140,6 @@ impl Config {
         })
     }
 
-    fn load(cwd: impl AsRef<Path>) -> Result<Option<Self>, LoadError> {
-        if let Some(root_dir) = Self::discover_root(cwd).map_err(LoadError::DiscoverFailed)? {
-            let path = root_dir.join(Self::file_name());
-            let bytes = fs::read(&path).map_err(|cause| LoadError::ReadFailed {
-                path: path.clone(),
-                cause,
-            })?;
-            let raw = toml::from_slice::<Raw>(&bytes).map_err(|cause| LoadError::ParseFailed {
-                path: path.clone(),
-                cause,
-            })?;
-            Self::from_raw(root_dir, raw)
-                .map(Some)
-                .map_err(|cause| LoadError::FromRawFailed { path, cause })
-        } else {
-            Ok(None)
-        }
-    }
-
-    fn write(&self, root_dir: &Path) -> Result<(), WriteError> {
-        let bytes = toml::to_string_pretty(self).map_err(WriteError::SerializeFailed)?;
-        let path = root_dir.join(Self::file_name());
-        log::info!("writing config to {:?}", path);
-        fs::write(path, bytes).map_err(WriteError::WriteFailed)
-    }
-
     fn gen(
         cwd: impl AsRef<Path>,
         interactivity: Interactivity,
@@ -251,9 +153,10 @@ impl Config {
             .as_ref()
             .canonicalize()
             .map_err(GenError::CanonicalizeFailed)?;
-        let config = Self::from_raw(root_dir.clone(), raw).map_err(GenError::FromRawFailed)?;
+        let config =
+            Self::from_raw(root_dir.clone(), raw.clone()).map_err(GenError::FromRawFailed)?;
         log::info!("generated config: {:#?}", config);
-        config.write(&root_dir).map_err(GenError::WriteFailed)?;
+        raw.write(&root_dir).map_err(GenError::WriteFailed)?;
         Ok(config)
     }
 
@@ -263,8 +166,11 @@ impl Config {
         wrapper: &TextWrapper,
     ) -> Result<Self, LoadOrGenError> {
         let cwd = cwd.as_ref();
-        if let Some(config) = Self::load(cwd).map_err(LoadOrGenError::LoadFailed)? {
-            Ok(config)
+        if let Some((root_dir, raw)) = Raw::load(cwd).map_err(LoadOrGenError::LoadFailed)? {
+            Self::from_raw(root_dir.clone(), raw).map_err(|cause| LoadOrGenError::FromRawFailed {
+                path: root_dir,
+                cause,
+            })
         } else {
             Self::gen(cwd, interactivity, wrapper).map_err(LoadOrGenError::GenFailed)
         }
