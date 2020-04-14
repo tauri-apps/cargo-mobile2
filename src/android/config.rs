@@ -66,6 +66,8 @@ impl Display for Error {
 pub struct Raw {
     min_sdk_version: Option<u32>,
     project_dir: Option<String>,
+    no_default_features: Option<bool>,
+    features: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -75,6 +77,8 @@ pub struct Config {
     app: App,
     min_sdk_version: u32,
     project_dir: PathBuf,
+    no_default_features: bool,
+    features: Vec<String>,
 }
 
 impl Config {
@@ -127,10 +131,24 @@ impl Config {
             Ok(DEFAULT_PROJECT_DIR.into())
         }?;
 
+        let no_default_features = raw
+            .no_default_features
+            .unwrap_or(cfg!(feature = "brainium"));
+
+        let features = raw.features.unwrap_or_else(|| {
+            if cfg!(target = "brainium") {
+                vec!["vulkan".to_owned()]
+            } else {
+                vec![]
+            }
+        });
+
         Ok(Self {
             app,
             min_sdk_version,
             project_dir,
+            no_default_features,
+            features,
         })
     }
 
@@ -146,5 +164,13 @@ impl Config {
         self.app
             .prefix_path(&self.project_dir)
             .join(self.app().name())
+    }
+
+    pub fn no_default_features(&self) -> bool {
+        self.no_default_features
+    }
+
+    pub fn features(&self) -> &[String] {
+        &self.features
     }
 }

@@ -231,8 +231,8 @@ impl<'a> Target<'a> {
             .with_package(Some(config.app().name()))
             .with_manifest_path(Some(config.app().manifest_path()))
             .with_target(Some(self.triple))
-            .with_features(Some("vulkan")) // TODO: configurable
-            .with_no_default_features(true)
+            .with_no_default_features(config.no_default_features())
+            .with_features(Some(config.features()))
             .with_release(profile.release())
             .into_command_pure(env)
             .with_env_var("ANDROID_NATIVE_API_LEVEL", min_sdk_version.to_string())

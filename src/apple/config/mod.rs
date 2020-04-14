@@ -72,6 +72,10 @@ pub struct Config {
     development_team: String,
     project_dir: String,
     source_dirs: Vec<String>,
+    ios_no_default_features: bool,
+    ios_features: Vec<String>,
+    macos_no_default_features: bool,
+    macos_features: Vec<String>,
 }
 
 impl Config {
@@ -122,11 +126,35 @@ impl Config {
         }
         let source_dirs = raw.source_dirs.unwrap_or_else(|| default_source_dirs);
 
+        let ios_no_default_features = raw
+            .ios_no_default_features
+            .unwrap_or(cfg!(feature = "brainium"));
+        let ios_features = raw.ios_features.unwrap_or_else(|| {
+            if cfg!(target = "brainium") {
+                vec!["metal".to_owned()]
+            } else {
+                vec![]
+            }
+        });
+
+        let macos_no_default_features = raw.macos_no_default_features.unwrap_or(false);
+        let macos_features = raw.macos_features.unwrap_or_else(|| {
+            if cfg!(target = "brainium") {
+                vec!["metal".to_owned()]
+            } else {
+                vec![]
+            }
+        });
+
         Ok(Self {
             app,
             development_team: raw.development_team,
             project_dir,
             source_dirs,
+            ios_no_default_features,
+            ios_features,
+            macos_no_default_features,
+            macos_features,
         })
     }
 
@@ -168,5 +196,21 @@ impl Config {
 
     pub fn source_dirs(&self) -> &[String] {
         &self.source_dirs
+    }
+
+    pub fn ios_no_default_features(&self) -> bool {
+        self.ios_no_default_features
+    }
+
+    pub fn ios_features(&self) -> &[String] {
+        &self.ios_features
+    }
+
+    pub fn macos_no_default_features(&self) -> bool {
+        self.macos_no_default_features
+    }
+
+    pub fn macos_features(&self) -> &[String] {
+        &self.macos_features
     }
 }

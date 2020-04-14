@@ -36,8 +36,8 @@ pub struct CargoCommand<'a> {
     package: Option<&'a str>,
     manifest_path: Option<PathBuf>,
     target: Option<&'a str>,
-    features: Option<&'a str>,
     no_default_features: bool,
+    features: Option<&'a [String]>,
     release: bool,
 }
 
@@ -49,8 +49,8 @@ impl<'a> CargoCommand<'a> {
             package: Default::default(),
             manifest_path: Default::default(),
             target: Default::default(),
-            features: Default::default(),
             no_default_features: Default::default(),
+            features: Default::default(),
             release: Default::default(),
         }
     }
@@ -75,13 +75,13 @@ impl<'a> CargoCommand<'a> {
         self
     }
 
-    pub fn with_features(mut self, features: Option<&'a str>) -> Self {
-        self.features = features;
+    pub fn with_no_default_features(mut self, no_default_features: bool) -> Self {
+        self.no_default_features = no_default_features;
         self
     }
 
-    pub fn with_no_default_features(mut self, no_default_features: bool) -> Self {
-        self.no_default_features = no_default_features;
+    pub fn with_features(mut self, features: Option<&'a [String]>) -> Self {
+        self.features = features;
         self
     }
 
@@ -114,11 +114,11 @@ impl<'a> CargoCommand<'a> {
                 );
             }
         }
-        if let Some(features) = self.features {
-            command.add_args(&["--features", features]);
-        }
         if self.no_default_features {
             command.add_arg("--no-default-features");
+        }
+        if let Some(features) = self.features {
+            command.add_args(&["--features", &features.join(" ")]);
         }
         if self.release {
             command.add_arg("--release");

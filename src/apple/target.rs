@@ -194,13 +194,18 @@ impl<'a> Target<'a> {
         config: &'a Config,
         subcommand: &'a str,
     ) -> Result<CargoCommand<'a>, VersionCheckError> {
+        let (no_default_features, features) = if self.is_macos() {
+            (config.macos_no_default_features(), config.macos_features())
+        } else {
+            (config.ios_no_default_features(), config.ios_features())
+        };
         self.min_xcode_version_satisfied().map(|()| {
             CargoCommand::new(subcommand)
                 .with_package(Some(config.app().name()))
                 .with_manifest_path(Some(config.app().manifest_path()))
                 .with_target(Some(&self.triple))
-                .with_features(Some("metal"))
-                .with_no_default_features(!self.is_macos())
+                .with_no_default_features(no_default_features)
+                .with_features(Some(features))
         })
     }
 

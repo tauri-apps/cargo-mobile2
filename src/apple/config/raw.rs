@@ -48,6 +48,10 @@ pub struct Raw {
     pub development_team: String,
     pub project_dir: Option<String>,
     pub source_dirs: Option<Vec<String>>,
+    pub ios_no_default_features: Option<bool>,
+    pub ios_features: Option<Vec<String>>,
+    pub macos_no_default_features: Option<bool>,
+    pub macos_features: Option<Vec<String>>,
 }
 
 impl Raw {
@@ -61,6 +65,10 @@ impl Raw {
                 .ok_or_else(|| DetectError::DeveloperTeamsEmpty)?,
             project_dir: None,
             source_dirs: None,
+            ios_no_default_features: None,
+            ios_features: None,
+            macos_no_default_features: None,
+            macos_features: None,
         })
     }
 
@@ -117,6 +125,10 @@ impl Raw {
             development_team,
             project_dir: None,
             source_dirs: None,
+            ios_no_default_features: None,
+            ios_features: None,
+            macos_no_default_features: None,
+            macos_features: None,
         })
     }
 }
