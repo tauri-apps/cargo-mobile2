@@ -33,4 +33,16 @@ impl<'a> Git<'a> {
             Ok(None)
         }
     }
+
+    pub fn user_name(&self) -> bossy::Result<bossy::Output> {
+        self.command()
+            .with_args(&["config", "user.name"])
+            .run_and_wait_for_output()
+    }
+
+    pub fn user_email(&self) -> bossy::Result<bossy::Output> {
+        self.command()
+            .with_args(&["config", "user.email"])
+            .run_and_wait_for_output()
+    }
 }

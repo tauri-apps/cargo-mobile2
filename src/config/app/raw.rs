@@ -1,5 +1,5 @@
 use super::{common_email_providers::COMMON_EMAIL_PROVIDERS, name};
-use crate::util::{cli::TextWrapper, prompt};
+use crate::util::{cli::TextWrapper, prompt, Git};
 use colored::Colorize as _;
 use heck::{KebabCase as _, TitleCase as _};
 use serde::{Deserialize, Serialize};
@@ -18,9 +18,8 @@ enum DefaultDomainError {
 }
 
 fn default_domain() -> Result<Option<String>, DefaultDomainError> {
-    let output = bossy::Command::impure("git")
-        .with_args(&["config", "user.email"])
-        .run_and_wait_for_output()
+    let output = Git::new(".".as_ref())
+        .user_email()
         .map_err(DefaultDomainError::FailedToGetGitEmailAddr)?;
     let email = output
         .stdout_str()

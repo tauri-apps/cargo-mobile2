@@ -1,6 +1,6 @@
 use crate::{
     config::{app, Config},
-    util,
+    util::{self, Git},
 };
 use bicycle::{
     handlebars::{
@@ -151,6 +151,27 @@ fn unprefix_path(
     .map_err(Into::into)
 }
 
+#[cfg(feature = "brainium")]
+fn detect_author() -> String {
+    "Brainium Studios LLC".to_owned()
+}
+
+#[cfg(not(feature = "brainium"))]
+fn detect_author() -> String {
+    let git = Git::new(".".as_ref());
+    let name_output = git.user_name().ok();
+    let name = name_output
+        .as_ref()
+        .and_then(|output| output.stdout_str().ok())
+        .unwrap_or_else(|| "Watashi");
+    let email_output = git.user_email().ok();
+    let email = email_output
+        .as_ref()
+        .and_then(|output| output.stdout_str().ok())
+        .unwrap_or_else(|| "watashi@example.com");
+    format!("{} <{}>", name.trim(), email.trim())
+}
+
 pub fn init(config: Option<&Config>) -> Bicycle {
     Bicycle::new(
         EscapeFn::None,
@@ -172,6 +193,7 @@ pub fn init(config: Option<&Config>) -> Bicycle {
             let mut map = JsonMap::default();
             if let Some(config) = config {
                 map.insert(app::KEY, config.app());
+                map.insert("author", detect_author());
                 #[cfg(feature = "android")]
                 map.insert(crate::android::NAME, config.android());
                 #[cfg(feature = "apple")]
