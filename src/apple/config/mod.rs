@@ -10,6 +10,19 @@ use std::{
 };
 
 static DEFAULT_PROJECT_DIR: &'static str = "gen/apple";
+static DEFAULT_IOS_NO_DEFAULT_FEATURES: bool = cfg!(feature = "brainium");
+static DEFAULT_IOS_FEATURES: &'static [&'static str] = {
+    #[cfg(feature = "brainium")]
+    {
+        &["metal"]
+    }
+    #[cfg(not(feature = "brainium"))]
+    {
+        &[]
+    }
+};
+static DEFAULT_MACOS_NO_DEFAULT_FEATURES: bool = false;
+static DEFAULT_MACOS_FEATURES: &'static [&'static str] = DEFAULT_IOS_FEATURES;
 
 #[derive(Debug)]
 pub enum ProjectDirInvalid {
@@ -71,7 +84,6 @@ pub struct Config {
     app: App,
     development_team: String,
     project_dir: String,
-    source_dirs: Vec<String>,
     ios_no_default_features: bool,
     ios_features: Vec<String>,
     macos_no_default_features: bool,
@@ -113,44 +125,47 @@ impl Config {
                 Ok(DEFAULT_PROJECT_DIR.to_owned())
             })?;
 
-        let default_source_dirs = if cfg!(feature = "brainium") {
-            vec!["src".to_owned(), "rust-lib".to_owned()]
-        } else {
-            vec!["src".to_owned()]
-        };
-        if raw.source_dirs.as_ref() == Some(&default_source_dirs) {
-            log::warn!(
-                "`{}.source-dirs` is set to the default value; you can remove it from your config",
-                super::NAME
+        let ios_no_default_features = raw.ios_no_default_features.unwrap_or_else(|| {
+            log::info!(
+                "`{}.ios-no-default-features` not set; defaulting to {:?}",
+                super::NAME,
+                DEFAULT_IOS_NO_DEFAULT_FEATURES
             );
-        }
-        let source_dirs = raw.source_dirs.unwrap_or_else(|| default_source_dirs);
-
-        let ios_no_default_features = raw
-            .ios_no_default_features
-            .unwrap_or(cfg!(feature = "brainium"));
+            DEFAULT_IOS_NO_DEFAULT_FEATURES
+        });
         let ios_features = raw.ios_features.unwrap_or_else(|| {
-            if cfg!(target = "brainium") {
-                vec!["metal".to_owned()]
-            } else {
-                vec![]
-            }
+            log::info!(
+                "`{}.ios-features` not set; defaulting to {:?}",
+                super::NAME,
+                DEFAULT_IOS_FEATURES
+            );
+            DEFAULT_IOS_FEATURES.iter().map(|s| s.to_string()).collect()
         });
 
-        let macos_no_default_features = raw.macos_no_default_features.unwrap_or(false);
+        let macos_no_default_features = raw.macos_no_default_features.unwrap_or_else(|| {
+            log::info!(
+                "`{}.macos-no-default-features` not set; defaulting to {:?}",
+                super::NAME,
+                DEFAULT_MACOS_NO_DEFAULT_FEATURES
+            );
+            DEFAULT_MACOS_NO_DEFAULT_FEATURES
+        });
         let macos_features = raw.macos_features.unwrap_or_else(|| {
-            if cfg!(target = "brainium") {
-                vec!["metal".to_owned()]
-            } else {
-                vec![]
-            }
+            log::info!(
+                "`{}.macos-features` not set; defaulting to {:?}",
+                super::NAME,
+                DEFAULT_MACOS_FEATURES
+            );
+            DEFAULT_MACOS_FEATURES
+                .iter()
+                .map(|s| s.to_string())
+                .collect()
         });
 
         Ok(Self {
             app,
             development_team: raw.development_team,
             project_dir,
-            source_dirs,
             ios_no_default_features,
             ios_features,
             macos_no_default_features,
@@ -192,10 +207,6 @@ impl Config {
 
     pub fn scheme(&self) -> String {
         format!("{}_iOS", self.app.name())
-    }
-
-    pub fn source_dirs(&self) -> &[String] {
-        &self.source_dirs
     }
 
     pub fn ios_no_default_features(&self) -> bool {

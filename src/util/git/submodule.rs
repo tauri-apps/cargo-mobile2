@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
     io,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 #[derive(Debug)]
@@ -80,6 +80,10 @@ impl Submodule {
             log::info!("detected submodule name: {:?}", name);
             name
         })
+    }
+
+    pub fn path(&self) -> &Path {
+        &self.path
     }
 
     fn exists(&self, git: Git<'_>, name: &str) -> io::Result<bool> {

@@ -3,7 +3,7 @@ options:
   bundleIdPrefix: {{reverse-domain app.domain}}
   deploymentTarget:
     iOS: 8.0
-fileGroups: [src, rust-lib]
+fileGroups: [{{join file-groups}}]
 configs:
   debug: debug
   release: release

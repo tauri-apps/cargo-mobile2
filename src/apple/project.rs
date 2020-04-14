@@ -1,6 +1,14 @@
 use super::{config::Config, deps, target::Target};
-use crate::{opts::Clobbering, target::TargetTrait as _, templating, util::ln};
-use std::fmt::{self, Display};
+use crate::{
+    opts::Clobbering,
+    target::TargetTrait as _,
+    templating,
+    util::{ln, submodule::Submodule},
+};
+use std::{
+    fmt::{self, Display},
+    path::PathBuf,
+};
 
 #[derive(Debug)]
 pub enum Error {
@@ -36,17 +44,34 @@ impl Display for Error {
 }
 
 // unprefixed app_root seems pretty dangerous!!
-pub fn gen(config: &Config, bike: &bicycle::Bicycle, clobbering: Clobbering) -> Result<(), Error> {
+pub fn gen(
+    config: &Config,
+    submodules: Option<&Vec<Submodule>>,
+    bike: &bicycle::Bicycle,
+    clobbering: Clobbering,
+) -> Result<(), Error> {
     Target::install_all().map_err(Error::RustupFailed)?;
 
     deps::install(clobbering).map_err(Error::DepsInstallFailed)?;
 
+    let source_dirs = std::iter::once("src".into())
+        .chain(
+            submodules
+                .cloned()
+                .unwrap_or_default()
+                .into_iter()
+                .map(|submodule| submodule.path().to_owned()),
+        )
+        .collect::<Vec<PathBuf>>();
+
     let src = templating::bundled_pack("xcode-project").map_err(Error::MissingPack)?;
     let dest = config.project_dir();
-    bike.process(src, &dest, |_| ())
-        .map_err(Error::TemplateProcessingFailed)?;
+    bike.process(src, &dest, |map| {
+        map.insert("file-groups", source_dirs.clone());
+    })
+    .map_err(Error::TemplateProcessingFailed)?;
 
-    for source_dir in config.source_dirs() {
+    for source_dir in source_dirs {
         ln::force_symlink_relative(
             config.app().root_dir().join(source_dir),
             &dest,

@@ -7,15 +7,15 @@ android {
     compileSdkVersion(28)
     defaultConfig {
         applicationId = "{{reverse-domain app.domain}}.{{snake-case app.name}}"
-        minSdkVersion({{min-sdk-version}})
+        minSdkVersion({{android.min-sdk-version}})
         targetSdkVersion(28)
         versionCode = 1
         versionName = "1.0"
     }
     sourceSets {
-        // Vulkan validation layers
+        {{#if android.vulkan-validation}}// Vulkan validation layers
         val ndkHome = System.getenv("NDK_HOME")
-        getByName("main").jniLibs.srcDir("${ndkHome}/sources/third_party/vulkan/src/build-android/jniLibs")
+        getByName("main").jniLibs.srcDir("${ndkHome}/sources/third_party/vulkan/src/build-android/jniLibs"){{/if}}
     }
     buildTypes {
         getByName("debug") {

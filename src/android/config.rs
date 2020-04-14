@@ -6,7 +6,19 @@ use std::{
 };
 
 static DEFAULT_MIN_SDK_VERSION: u32 = 24;
+static DEFAULT_VULKAN_VALIDATION: bool = true;
 static DEFAULT_PROJECT_DIR: &'static str = "gen/android";
+static DEFAULT_NO_DEFAULT_FEATURES: bool = cfg!(feature = "brainium");
+static DEFAULT_FEATURES: &'static [&'static str] = {
+    #[cfg(feature = "brainium")]
+    {
+        &["vulkan"]
+    }
+    #[cfg(not(feature = "brainium"))]
+    {
+        &[]
+    }
+};
 
 #[derive(Debug)]
 pub enum ProjectDirInvalid {
@@ -65,6 +77,7 @@ impl Display for Error {
 #[serde(rename_all = "kebab-case")]
 pub struct Raw {
     min_sdk_version: Option<u32>,
+    vulkan_validation: Option<bool>,
     project_dir: Option<String>,
     no_default_features: Option<bool>,
     features: Option<Vec<String>>,
@@ -76,6 +89,7 @@ pub struct Config {
     #[serde(skip_serializing)]
     app: App,
     min_sdk_version: u32,
+    vulkan_validation: bool,
     project_dir: PathBuf,
     no_default_features: bool,
     features: Vec<String>,
@@ -92,6 +106,15 @@ impl Config {
                 DEFAULT_MIN_SDK_VERSION
             );
             DEFAULT_MIN_SDK_VERSION
+        });
+
+        let vulkan_validation = raw.vulkan_validation.unwrap_or_else(|| {
+            log::info!(
+                "`{}.vulkan-validation` not set; defaulting to {}",
+                super::NAME,
+                DEFAULT_VULKAN_VALIDATION
+            );
+            DEFAULT_VULKAN_VALIDATION
         });
 
         let project_dir = if let Some(project_dir) = raw.project_dir {
@@ -131,21 +154,28 @@ impl Config {
             Ok(DEFAULT_PROJECT_DIR.into())
         }?;
 
-        let no_default_features = raw
-            .no_default_features
-            .unwrap_or(cfg!(feature = "brainium"));
+        let no_default_features = raw.no_default_features.unwrap_or_else(|| {
+            log::info!(
+                "`{}.no-default-features` not set; defaulting to {:?}",
+                super::NAME,
+                DEFAULT_NO_DEFAULT_FEATURES
+            );
+            DEFAULT_NO_DEFAULT_FEATURES
+        });
 
         let features = raw.features.unwrap_or_else(|| {
-            if cfg!(target = "brainium") {
-                vec!["vulkan".to_owned()]
-            } else {
-                vec![]
-            }
+            log::info!(
+                "`{}.features` not set; defaulting to {:?}",
+                super::NAME,
+                DEFAULT_FEATURES
+            );
+            DEFAULT_FEATURES.iter().map(|s| s.to_string()).collect()
         });
 
         Ok(Self {
             app,
             min_sdk_version,
+            vulkan_validation,
             project_dir,
             no_default_features,
             features,

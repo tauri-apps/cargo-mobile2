@@ -106,7 +106,7 @@ pub fn exec(
     #[cfg(feature = "apple")]
     {
         if steps.is_set("apple") {
-            apple::project::gen(config.apple(), &bike, clobbering)
+            apple::project::gen(config.apple(), config.submodules(), &bike, clobbering)
                 .map_err(Error::AppleInitFailed)?;
         }
     }

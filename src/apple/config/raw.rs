@@ -47,7 +47,6 @@ impl Display for PromptError {
 pub struct Raw {
     pub development_team: String,
     pub project_dir: Option<String>,
-    pub source_dirs: Option<Vec<String>>,
     pub ios_no_default_features: Option<bool>,
     pub ios_features: Option<Vec<String>>,
     pub macos_no_default_features: Option<bool>,
@@ -64,7 +63,6 @@ impl Raw {
                 .map(|development_team| development_team.id.clone())
                 .ok_or_else(|| DetectError::DeveloperTeamsEmpty)?,
             project_dir: None,
-            source_dirs: None,
             ios_no_default_features: None,
             ios_features: None,
             macos_no_default_features: None,
@@ -124,7 +122,6 @@ impl Raw {
         Ok(Self {
             development_team,
             project_dir: None,
-            source_dirs: None,
             ios_no_default_features: None,
             ios_features: None,
             macos_no_default_features: None,

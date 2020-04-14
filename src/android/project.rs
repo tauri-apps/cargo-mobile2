@@ -55,7 +55,6 @@ pub fn gen(
     let src = templating::bundled_pack("android-studio-project").map_err(Error::MissingPack)?;
     let dest = config.project_dir();
     bike.process(src, &dest, |map| {
-        map.insert("min-sdk-version", config.min_sdk_version());
         map.insert(
             "root-dir-rel",
             util::relativize_path(config.app().root_dir(), config.project_dir()),
