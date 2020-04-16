@@ -99,7 +99,7 @@ dependencies = [
 [[package]]
 name = "bossy"
 version = "0.1.1"
-source = "git+ssh://git@bitbucket.org/brainium/bossy.git#07f571b9daeb34f342e6ce25ebb77d8ed84943fa"
+source = "git+ssh://git@bitbucket.org/brainium/bossy.git#1a0d7d3b2eb7e1a7286057b583cf565211431e07"
 dependencies = [
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
