@@ -6,10 +6,7 @@ pub use self::{device_list::device_list, device_name::device_name, get_prop::get
 
 use super::env::Env;
 use crate::{env::ExplicitEnv as _, util::cli::Report};
-use std::{
-    fmt::{self, Display},
-    str,
-};
+use std::str;
 
 pub fn adb(env: &Env, serial_no: &str) -> bossy::Command {
     bossy::Command::pure("adb")
@@ -24,23 +21,14 @@ pub enum RunCheckedError {
     CommandFailed(bossy::Error),
 }
 
-impl Display for RunCheckedError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl RunCheckedError {
+    pub fn report(&self, msg: &str) -> Report {
         match self {
             Self::InvalidUtf8(err) => {
-                write!(f, "stderr contained invalid UTF-8: {}", err)
+                Report::error(msg, format!("stderr contained invalid UTF-8: {}", err))
             }
-            Self::Unauthorized => write!(f, "This device doesn't yet trust this computer. On the device, you should see a prompt like \"Allow USB debugging?\". Pressing \"Allow\" should fix this."),
-            Self::CommandFailed(err) => write!(f, "Failed to run adb command: {}", err),
-        }
-    }
-}
-
-impl RunCheckedError {
-    pub fn report(&self, msg: impl Display) -> Report {
-        match self {
-            Self::Unauthorized => Report::action_request(msg, self),
-            _ => Report::error(msg, self),
+            Self::Unauthorized => Report::action_request(msg, "This device doesn't yet trust this computer. On the device, you should see a prompt like \"Allow USB debugging?\". Pressing \"Allow\" should fix this."),
+            Self::CommandFailed(err) => Report::error(msg, err),
         }
     }
 }

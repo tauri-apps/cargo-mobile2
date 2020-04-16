@@ -29,7 +29,7 @@ impl Reportable for Error {
     fn report(&self) -> Report {
         let msg = format!("Failed to run `adb shell getprop {}`", self.prop());
         match self {
-            Self::LookupFailed { cause, .. } => cause.report(msg),
+            Self::LookupFailed { cause, .. } => cause.report(&msg),
             Self::InvalidUtf8 { cause, .. } => {
                 Report::error(msg, format!("Output contained invalid UTF-8: {}", cause))
             }

@@ -82,6 +82,10 @@ impl Label {
             Self::ActionRequest => "action request",
         }
     }
+
+    pub fn exit_code(&self) -> i32 {
+        (!matches!(self, Self::Warning)) as _
+    }
 }
 
 #[derive(Debug)]
@@ -132,12 +136,8 @@ impl Report {
 
 pub trait Reportable: Debug {
     fn report(&self) -> Report;
-
-    fn code(&self) -> i8 {
-        1
-    }
 }
-
+//todo:0exitforwarn
 pub trait Exec: Debug + StructOpt {
     type Report: Reportable;
 
@@ -169,23 +169,21 @@ fn init_logging(noise_level: opts::NoiseLevel) {
 
 #[derive(Debug)]
 enum Exit {
-    Report(Report, i8),
+    Report(Report),
     Clap(clap::Error),
 }
 
 impl Exit {
     fn report(reportable: impl Reportable) -> Self {
         log::info!("exiting with {:#?}", reportable);
-        Self::Report(reportable.report(), reportable.code())
+        Self::Report(reportable.report())
     }
 
     fn do_the_thing(self, wrapper: TextWrapper) -> ! {
         match self {
-            Self::Report(report, code) => {
+            Self::Report(report) => {
                 eprintln!("{}", report.render(&wrapper));
-                // We only expose access to the 8 lsb of the exit code, since:
-                // https://doc.rust-lang.org/std/process/fn.exit.html#platform-specific-behavior
-                std::process::exit(code as i32)
+                std::process::exit(report.label.exit_code())
             }
             Self::Clap(err) => err.exit(),
         }
