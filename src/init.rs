@@ -6,13 +6,12 @@ use crate::{
     config::{self, Config},
     opts, project,
     steps::{self, Steps},
-    util::{self, cli::TextWrapper},
+    util::{
+        self,
+        cli::{Report, Reportable, TextWrapper},
+    },
 };
-use std::{
-    fmt::{self, Display},
-    fs, io,
-    path::PathBuf,
-};
+use std::{fs, io, path::PathBuf};
 
 pub static STEPS: &'static [&'static str] = &[
     "project",
@@ -27,7 +26,6 @@ pub enum Error {
     ConfigLoadOrGenFailed(config::LoadOrGenError),
     OnlyParseFailed(steps::NotRegistered),
     SkipParseFailed(steps::NotRegistered),
-    StepNotRegistered(steps::NotRegistered),
     ProjectInitFailed(project::Error),
     AssetDirCreationFailed {
         asset_dir: PathBuf,
@@ -42,22 +40,21 @@ pub enum Error {
     OpenInEditorFailed(util::OpenInEditorError),
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for Error {
+    fn report(&self) -> Report {
         match self {
-            Self::ConfigLoadOrGenFailed(err) => write!(f, "{}", err),
-            Self::OnlyParseFailed(err) => write!(f, "Failed to parse `only` step list: {}", err),
-            Self::SkipParseFailed(err) => write!(f, "Failed to parse `skip` step list: {}", err),
-            Self::StepNotRegistered(err) => write!(f, "{}", err),
-            Self::ProjectInitFailed(err) => write!(f, "Failed to generate base project: {}", err),
-            Self::AssetDirCreationFailed { asset_dir, cause } => write!(f, "Failed to create asset dir {:?}: {}", asset_dir, cause),
+            Self::ConfigLoadOrGenFailed(err) => err.report(),
+            Self::OnlyParseFailed(err) => Report::error("Failed to parse `only` step list", err),
+            Self::SkipParseFailed(err) => Report::error("Failed to parse `skip` step list", err),
+            Self::ProjectInitFailed(err) => err.report(),
+            Self::AssetDirCreationFailed { asset_dir, cause } => Report::error(format!("Failed to create asset dir {:?}", asset_dir), cause),
             #[cfg(feature = "android")]
-            Self::AndroidEnvFailed(err) => write!(f, "Failed to detect Android env: {}", err),
+            Self::AndroidEnvFailed(err) => err.report(),
             #[cfg(feature = "android")]
-            Self::AndroidInitFailed(err) => write!(f, "Failed to init Android project: {}", err),
+            Self::AndroidInitFailed(err) => err.report(),
             #[cfg(feature = "apple")]
-            Self::AppleInitFailed(err) => write!(f, "Failed to init Apple project: {}", err),
-            Self::OpenInEditorFailed(err) => write!(f, "Failed to open project in editor (your project generated successfully though, so no worries!): {}", err),
+            Self::AppleInitFailed(err) => err.report(),
+            Self::OpenInEditorFailed(err) => Report::warning("Failed to open project in editor (your project generated successfully though, so no worries!)", err),
         }
     }
 }

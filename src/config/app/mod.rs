@@ -4,12 +4,9 @@ mod raw;
 
 pub use self::raw::*;
 
-use crate::util;
+use crate::util::{self, cli::Report};
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::{self, Display},
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 pub static KEY: &'static str = "app";
 
@@ -31,27 +28,35 @@ pub enum Error {
     },
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Error {
+    pub fn report(&self, msg: &str) -> Report {
         match self {
-            Self::NameInvalid(err) => write!(f, "`{}.name` invalid: {}", KEY, err),
-            Self::DomainInvalid { domain } => write!(
-                f,
-                "`{}.domain` invalid: {:?} isn't valid domain syntax.",
-                KEY, domain
+            Self::NameInvalid(err) => {
+                Report::error(msg, format!("`{}.name` invalid: {}", KEY, err))
+            }
+            Self::DomainInvalid { domain } => Report::error(
+                msg,
+                format!(
+                    "`{}.domain` invalid: {:?} isn't valid domain syntax",
+                    KEY, domain
+                ),
             ),
-            Self::AssetDirNormalizationFailed { asset_dir, cause } => write!(
-                f,
-                "Asset dir {:?} couldn't be normalized: {}",
-                asset_dir, cause
+            Self::AssetDirNormalizationFailed { asset_dir, cause } => Report::error(
+                msg,
+                format!(
+                    "`{}.asset-dir` {:?} couldn't be normalized: {}",
+                    KEY, asset_dir, cause
+                ),
             ),
             Self::AssetDirOutsideOfAppRoot {
                 asset_dir,
                 root_dir,
-            } => write!(
-                f,
-                "Asset dir {:?} is outside of the app root {:?}",
-                asset_dir, root_dir,
+            } => Report::error(
+                msg,
+                format!(
+                    "`{}.asset-dir` {:?} is outside of the app root {:?}",
+                    KEY, asset_dir, root_dir,
+                ),
             ),
         }
     }

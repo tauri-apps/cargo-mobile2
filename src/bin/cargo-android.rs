@@ -15,11 +15,10 @@ use cargo_mobile::{
     init, opts, os,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
     util::{
-        cli::{self, Exec, ExecError, GlobalFlags, TextWrapper},
+        cli::{self, Exec, GlobalFlags, Report, Reportable, TextWrapper},
         prompt,
     },
 };
-use std::fmt::{self, Display};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -87,34 +86,32 @@ pub enum Error {
     ListFailed(adb::device_list::Error),
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for Error {
+    fn report(&self) -> Report {
         match self {
-            Self::EnvInitFailed(err) => write!(f, "{}", err),
-            Self::DevicePromptFailed(err) => write!(f, "{}", err),
-            Self::TargetInvalid(err) => write!(f, "Specified target was invalid: {}", err),
-            Self::ConfigFailed(err) => write!(f, "Failed to load or generate config: {}", err),
-            Self::InitFailed(err) => write!(f, "Failed to generate project: {}", err),
-            Self::OpenFailed(err) => write!(f, "Failed to open project in Android Studio: {}", err),
-            Self::CheckFailed(err) => write!(f, "{}", err),
-            Self::BuildFailed(err) => write!(f, "{}", err),
-            Self::RunFailed(err) => write!(f, "{}", err),
-            Self::StacktraceFailed(err) => write!(f, "{}", err),
-            Self::ListFailed(err) => write!(f, "{}", err),
+            Self::EnvInitFailed(err) => err.report(),
+            Self::DevicePromptFailed(err) => err.report(),
+            Self::TargetInvalid(err) => Report::error("Specified target was invalid", err),
+            Self::ConfigFailed(err) => err.report(),
+            Self::InitFailed(err) => err.report(),
+            Self::OpenFailed(err) => Report::error("Failed to open project in Android Studio", err),
+            Self::CheckFailed(err) => err.report(),
+            Self::BuildFailed(err) => err.report(),
+            Self::RunFailed(err) => err.report(),
+            Self::StacktraceFailed(err) => err.report(),
+            Self::ListFailed(err) => err.report(),
         }
     }
 }
 
-impl ExecError for Error {}
-
 impl Exec for Input {
-    type Error = Error;
+    type Report = Error;
 
     fn global_flags(&self) -> GlobalFlags {
         self.flags
     }
 
-    fn exec(self, wrapper: &TextWrapper) -> Result<(), Self::Error> {
+    fn exec(self, wrapper: &TextWrapper) -> Result<(), Self::Report> {
         define_device_prompt!(adb::device_list, adb::device_list::Error, Android);
         fn detect_target_ok<'a>(env: &Env) -> Option<&'a Target<'a>> {
             device_prompt(env).map(|device| device.target()).ok()

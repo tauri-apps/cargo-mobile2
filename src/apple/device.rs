@@ -5,6 +5,7 @@ use super::{
 use crate::{
     env::{Env, ExplicitEnv as _},
     opts::Profile,
+    util::cli::{Report, Reportable},
 };
 use std::fmt::{self, Display};
 
@@ -16,13 +17,13 @@ pub enum RunError {
     DeployFailed(bossy::Error),
 }
 
-impl Display for RunError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for RunError {
+    fn report(&self) -> Report {
         match self {
-            Self::BuildFailed(err) => write!(f, "Failed to build app: {}", err),
-            Self::ArchiveFailed(err) => write!(f, "Failed to archive app: {}", err),
-            Self::UnzipFailed(err) => write!(f, "Failed to unzip archive: {}", err),
-            Self::DeployFailed(err) => write!(f, "Failed to deploy app via `ios-deploy`: {}", err),
+            Self::BuildFailed(err) => err.report(),
+            Self::ArchiveFailed(err) => err.report(),
+            Self::UnzipFailed(err) => Report::error("Failed to unzip archive", err),
+            Self::DeployFailed(err) => Report::error("Failed to deploy app via `ios-deploy`", err),
         }
     }
 }
@@ -35,7 +36,7 @@ pub struct Device<'a> {
     target: &'a Target<'a>,
 }
 
-impl<'a> fmt::Display for Device<'a> {
+impl<'a> Display for Device<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} ({})", self.name, self.model)
     }

@@ -3,8 +3,10 @@ use crate::{
     dot_cargo::DotCargoTarget,
     opts::{Interactivity, NoiseLevel, Profile},
     target::TargetTrait,
-    util::ln,
-    util::CargoCommand,
+    util::{
+        cli::{Report, Reportable},
+        ln, CargoCommand,
+    },
 };
 use once_cell_regex::exports::once_cell::sync::OnceCell;
 use serde::Serialize;
@@ -47,12 +49,12 @@ pub enum CompileLibError {
     },
 }
 
-impl fmt::Display for CompileLibError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for CompileLibError {
+    fn report(&self) -> Report {
         match self {
-            CompileLibError::MissingTool(err) => write!(f, "{}", err),
-            CompileLibError::CargoFailed { mode, cause } => {
-                write!(f, "`Failed to run `cargo {}`: {}", mode, cause)
+            Self::MissingTool(err) => Report::error("Failed to locate required build tool", err),
+            Self::CargoFailed { mode, cause } => {
+                Report::error(format!("`Failed to run `cargo {}`", mode), cause)
             }
         }
     }
@@ -65,18 +67,17 @@ pub enum LibSymlinkError {
     SymlinkFailed(ln::Error),
 }
 
-impl fmt::Display for LibSymlinkError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for LibSymlinkError {
+    fn report(&self) -> Report {
         match self {
-            LibSymlinkError::JniLibsSubDirCreationFailed(err) => {
-                write!(f, "Failed to create \"jniLibs\" subdirectory: {}", err)
+            Self::JniLibsSubDirCreationFailed(err) => {
+                Report::error("Failed to create \"jniLibs\" subdirectory", err)
             }
-            LibSymlinkError::SourceMissing { src } => write!(
-                f,
-                "The symlink source is {:?}, but nothing exists there.",
-                src
+            Self::SourceMissing { src } => Report::error(
+                "Failed to symlink built lib",
+                format!("The symlink source is {:?}, but nothing exists there", src),
             ),
-            LibSymlinkError::SymlinkFailed(err) => write!(f, "Failed to symlink lib: {}", err),
+            Self::SymlinkFailed(err) => Report::error("Failed to symlink built lib", err),
         }
     }
 }
@@ -87,11 +88,11 @@ pub enum BuildError {
     LibSymlinkFailed(LibSymlinkError),
 }
 
-impl fmt::Display for BuildError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for BuildError {
+    fn report(&self) -> Report {
         match self {
-            BuildError::BuildFailed(err) => write!(f, "Build failed: {}", err),
-            BuildError::LibSymlinkFailed(err) => write!(f, "Failed to symlink built lib: {}", err),
+            Self::BuildFailed(err) => err.report(),
+            Self::LibSymlinkFailed(err) => err.report(),
         }
     }
 }

@@ -1,9 +1,9 @@
 use super::adb;
-use crate::android::env::Env;
-use std::{
-    fmt::{self, Display},
-    str,
+use crate::{
+    android::env::Env,
+    util::cli::{Report, Reportable},
 };
+use std::str;
 
 #[derive(Debug)]
 pub enum Error {
@@ -17,14 +17,21 @@ pub enum Error {
     },
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Error {
+    fn prop(&self) -> &str {
         match self {
-            Self::LookupFailed { prop, cause } => {
-                write!(f, "Failed to run `adb shell getprop {}`: {}", prop, cause)
-            }
-            Self::InvalidUtf8 { prop, cause } => {
-                write!(f, "`{}` contained invalid UTF-8: {}", prop, cause)
+            Self::LookupFailed { prop, .. } | Self::InvalidUtf8 { prop, .. } => prop,
+        }
+    }
+}
+
+impl Reportable for Error {
+    fn report(&self) -> Report {
+        let msg = format!("Failed to run `adb shell getprop {}`", self.prop());
+        match self {
+            Self::LookupFailed { cause, .. } => cause.report(msg),
+            Self::InvalidUtf8 { cause, .. } => {
+                Report::error(msg, format!("Output contained invalid UTF-8: {}", cause))
             }
         }
     }

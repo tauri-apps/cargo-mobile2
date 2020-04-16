@@ -2,13 +2,10 @@ use super::{device_name, get_prop};
 use crate::{
     android::{device::Device, env::Env, target::Target},
     env::ExplicitEnv as _,
+    util::cli::{Report, Reportable},
 };
 use once_cell_regex::regex_multi_line;
-use std::{
-    collections::BTreeSet,
-    fmt::{self, Display},
-    str,
-};
+use std::{collections::BTreeSet, str};
 
 #[derive(Debug)]
 pub enum Error {
@@ -20,15 +17,19 @@ pub enum Error {
     AbiInvalid(String),
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for Error {
+    fn report(&self) -> Report {
+        let msg = "Failed to detect connected Android devices";
         match self {
-            Self::DevicesFailed(err) => write!(f, "Failed to run `adb devices`: {}", err),
-            Self::InvalidUtf8(err) => write!(f, "Device list contained invalid UTF-8: {}", err),
-            Self::NameFailed(err) => write!(f, "Failed to get device name: {}", err),
-            Self::ModelFailed(err) => write!(f, "Failed to get device model: {}", err),
-            Self::AbiFailed(err) => write!(f, "Failed to get device ABI: {}", err),
-            Self::AbiInvalid(abi) => write!(f, "{:?} isn't a valid target ABI.", abi),
+            Self::DevicesFailed(err) => err.report("Failed to run `adb devices`"),
+            Self::InvalidUtf8(err) => {
+                Report::error(msg, format!("Device list contained invalid UTF-8: {}", err))
+            }
+            Self::NameFailed(err) => err.report(),
+            Self::ModelFailed(err) | Self::AbiFailed(err) => err.report(),
+            Self::AbiInvalid(abi) => {
+                Report::error(msg, format!("{:?} isn't a valid target ABI.", abi))
+            }
         }
     }
 }

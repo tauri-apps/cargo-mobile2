@@ -9,11 +9,14 @@ use crate::apple;
 use crate::{
     opts::Interactivity,
     templating,
-    util::{cli::TextWrapper, submodule::Submodule},
+    util::{
+        cli::{Report, Reportable, TextWrapper},
+        submodule::Submodule,
+    },
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    fmt::{self, Debug, Display},
+    fmt::Debug,
     io,
     path::{Path, PathBuf},
 };
@@ -27,16 +30,14 @@ pub enum FromRawError {
     AppleConfigInvalid(apple::config::Error),
 }
 
-impl Display for FromRawError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl FromRawError {
+    pub fn report(&self, msg: &str) -> Report {
         match self {
-            Self::AppConfigInvalid(err) => write!(f, "`{}` config invalid: {}", app::KEY, err),
+            Self::AppConfigInvalid(err) => err.report(msg),
             #[cfg(feature = "android")]
-            Self::AndroidConfigInvalid(err) => {
-                write!(f, "`{}` config invalid: {}", android::NAME, err)
-            }
+            Self::AndroidConfigInvalid(err) => err.report(msg),
             #[cfg(feature = "apple")]
-            Self::AppleConfigInvalid(err) => write!(f, "`{}` config invalid: {}", apple::NAME, err),
+            Self::AppleConfigInvalid(err) => err.report(msg),
         }
     }
 }
@@ -50,14 +51,17 @@ pub enum GenError {
     WriteFailed(WriteError),
 }
 
-impl Display for GenError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for GenError {
+    fn report(&self) -> Report {
+        let msg = "Failed to generate config";
         match self {
-            Self::PromptFailed(err) => write!(f, "Failed to prompt for config: {}", err),
-            Self::DetectFailed(err) => write!(f, "Failed to detect config: {}", err),
-            Self::CanonicalizeFailed(err) => write!(f, "Failed to canonicalize root dir: {}", err),
-            Self::FromRawFailed(err) => write!(f, "Generated config invalid: {}", err),
-            Self::WriteFailed(err) => write!(f, "{}", err),
+            Self::PromptFailed(err) => err.report(),
+            Self::DetectFailed(err) => err.report(),
+            Self::CanonicalizeFailed(err) => {
+                Report::error(msg, format!("Failed to canonicalize root dir: {}", err))
+            }
+            Self::FromRawFailed(err) => err.report(msg),
+            Self::WriteFailed(err) => err.report(),
         }
     }
 }
@@ -69,14 +73,15 @@ pub enum LoadOrGenError {
     GenFailed(GenError),
 }
 
-impl Display for LoadOrGenError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for LoadOrGenError {
+    fn report(&self) -> Report {
         match self {
-            Self::LoadFailed(err) => write!(f, "Failed to load config: {}", err),
+            Self::LoadFailed(err) => Report::error("Failed to load config", err),
             Self::FromRawFailed { path, cause } => {
-                write!(f, "Config file at {:?} invalid: {}", path, cause)
+                let msg = format!("Config file at {:?} invalid", path);
+                cause.report(&msg)
             }
-            Self::GenFailed(err) => write!(f, "Failed to generate config: {}", err),
+            Self::GenFailed(err) => err.report(),
         }
     }
 }

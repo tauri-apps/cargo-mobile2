@@ -3,13 +3,13 @@ use crate::{
     dot_cargo, opts,
     target::TargetTrait as _,
     templating,
-    util::{self, ln},
+    util::{
+        self,
+        cli::{Report, Reportable},
+        ln,
+    },
 };
-use std::{
-    fmt::{self, Display},
-    fs,
-    path::PathBuf,
-};
+use std::{fs, path::PathBuf};
 
 #[derive(Debug)]
 pub enum Error {
@@ -26,21 +26,26 @@ pub enum Error {
     DotCargoWriteFailed(dot_cargo::WriteError),
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for Error {
+    fn report(&self) -> Report {
         match self {
-            Self::RustupFailed(err) => write!(f, "Failed to `rustup` Android toolchains: {}", err),
-            Self::MissingPack(err) => write!(f, "{}", err),
-            Self::TemplateProcessingFailed(err) => write!(f, "Template processing failed: {}", err),
-            Self::DirectoryCreationFailed { path, cause } => {
-                write!(f, "Failed to create directory at {:?}: {}", path, cause)
+            Self::RustupFailed(err) => Report::error("Failed to `rustup` Android toolchains", err),
+            Self::MissingPack(err) => Report::error("Failed to locate Android template pack", err),
+            Self::TemplateProcessingFailed(err) => {
+                Report::error("Android template processing failed", err)
             }
+            Self::DirectoryCreationFailed { path, cause } => Report::error(
+                format!("Failed to create Android assets directory at {:?}", path),
+                cause,
+            ),
             Self::AssetDirSymlinkFailed(err) => {
-                write!(f, "Asset dir couldn't be symlinked: {}", err)
+                Report::error("Asset dir couldn't be symlinked into Android project", err)
             }
-            Self::DotCargoLoadFailed(err) => write!(f, "Failed to load cargo config: {}", err),
-            Self::DotCargoGenFailed(err) => write!(f, "Failed to generate cargo config: {}", err),
-            Self::DotCargoWriteFailed(err) => write!(f, "Failed to write cargo config: {}", err),
+            Self::DotCargoLoadFailed(err) => err.report(),
+            Self::DotCargoGenFailed(err) => {
+                Report::error("Failed to generate Android cargo config", err)
+            }
+            Self::DotCargoWriteFailed(err) => err.report(),
         }
     }
 }

@@ -7,7 +7,10 @@ use super::{
 use crate::{
     env::ExplicitEnv as _,
     opts::{NoiseLevel, Profile},
-    util,
+    util::{
+        self,
+        cli::{Report, Reportable},
+    },
 };
 use std::{
     fmt::{self, Display},
@@ -29,14 +32,14 @@ pub enum ApkBuildError {
     AssembleFailed(bossy::Error),
 }
 
-impl Display for ApkBuildError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for ApkBuildError {
+    fn report(&self) -> Report {
         match self {
             Self::LibSymlinkCleaningFailed(err) => {
-                write!(f, "Failed to delete broken symlink: {}", err)
+                Report::error("Failed to delete broken symlink", err)
             }
-            Self::LibBuildFailed(err) => write!(f, "{}", err),
-            Self::AssembleFailed(err) => write!(f, "Failed to assemble APK: {}", err),
+            Self::LibBuildFailed(err) => err.report(),
+            Self::AssembleFailed(err) => Report::error("Failed to assemble APK", err),
         }
     }
 }
@@ -46,10 +49,10 @@ pub enum ApkInstallError {
     InstallFailed(bossy::Error),
 }
 
-impl Display for ApkInstallError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for ApkInstallError {
+    fn report(&self) -> Report {
         match self {
-            Self::InstallFailed(err) => write!(f, "Failed to install APK: {}", err),
+            Self::InstallFailed(err) => Report::error("Failed to install APK", err),
         }
     }
 }
@@ -62,13 +65,13 @@ pub enum RunError {
     WakeScreenFailed(bossy::Error),
 }
 
-impl fmt::Display for RunError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for RunError {
+    fn report(&self) -> Report {
         match self {
-            RunError::ApkBuildFailed(err) => write!(f, "Failed to build app: {}", err),
-            RunError::ApkInstallFailed(err) => write!(f, "Failed to install app: {}", err),
-            RunError::StartFailed(err) => write!(f, "Failed to start app on device: {}", err),
-            RunError::WakeScreenFailed(err) => write!(f, "Failed to wake device screen: {}", err),
+            Self::ApkBuildFailed(err) => err.report(),
+            Self::ApkInstallFailed(err) => err.report(),
+            Self::StartFailed(err) => Report::error("Failed to start app on device", err),
+            Self::WakeScreenFailed(err) => Report::error("Failed to wake device screen", err),
         }
     }
 }
@@ -78,10 +81,10 @@ pub enum StacktraceError {
     PipeFailed(util::PipeError),
 }
 
-impl Display for StacktraceError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for StacktraceError {
+    fn report(&self) -> Report {
         match self {
-            Self::PipeFailed(err) => write!(f, "Failed to pipe stacktrace output: {}", err),
+            Self::PipeFailed(err) => Report::error("Failed to pipe stacktrace output", err),
         }
     }
 }

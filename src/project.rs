@@ -2,13 +2,12 @@ use crate::{
     config::Config,
     opts::Clobbering,
     util,
-    util::{submodule, Git},
+    util::{
+        cli::{Report, Reportable},
+        submodule, Git,
+    },
 };
-use std::{
-    collections::VecDeque,
-    fmt::{self, Display},
-    path::PathBuf,
-};
+use std::{collections::VecDeque, path::PathBuf};
 
 #[derive(Debug)]
 pub enum Error {
@@ -23,18 +22,24 @@ pub enum Error {
     ProcessingFailed(bicycle::ProcessingError),
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for Error {
+    fn report(&self) -> Report {
         match self {
-            Self::GitInitFailed(err) => write!(f, "Failed to initialize git: {}", err),
-            Self::SubmoduleFailed(err) => write!(f, "{}", err),
-            Self::NoHomeDir(err) => write!(f, "{}", err),
-            Self::TraversalFailed { src, dest, cause } => write!(
-                f,
-                "Template traversal from src {:?} to dest {:?} failed: {}",
-                src, dest, cause
+            Self::GitInitFailed(err) => Report::error("Failed to initialize git", err),
+            Self::SubmoduleFailed(err) => Report::error("Failed to setup submodule", err),
+            Self::NoHomeDir(err) => {
+                Report::error("Failed to find installed `cargo-mobile` files", err)
+            }
+            Self::TraversalFailed { src, dest, cause } => Report::error(
+                format!(
+                    "Base project template traversal from src {:?} to dest {:?} failed",
+                    src, dest
+                ),
+                cause,
             ),
-            Self::ProcessingFailed(err) => write!(f, "Template processing failed: {}", err),
+            Self::ProcessingFailed(err) => {
+                Report::error("Base project template processing failed", err)
+            }
         }
     }
 }

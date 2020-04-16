@@ -100,7 +100,7 @@ targets:
       VALID_ARCHS: arm64 x86_64 # rustc doesn't support arm64e yet
     legacy:
       toolPath: $(SRCROOT)/cargo-xcode.sh
-      arguments: ${SDKROOT:?} ${CONFIGURATION:?} ${PLATFORM_DISPLAY_NAME:?} ${ARCHS:?}
+      arguments: --cli=${CLI} ${SDKROOT:?} ${CONFIGURATION:?} ${PLATFORM_DISPLAY_NAME:?} ${ARCHS:?}
       passSettings: false # prevents evil linker errors
       workingDirectory: $(SRCROOT)/..
   lib_{{app.name}}_macOS:
@@ -108,6 +108,6 @@ targets:
     platform: macOS
     legacy:
       toolPath: $(SRCROOT)/cargo-xcode.sh
-      arguments: ${SDKROOT:?} ${CONFIGURATION:?} ${PLATFORM_DISPLAY_NAME:?} ${ARCHS:?}
+      arguments: --cli=${CLI} ${SDKROOT:?} ${CONFIGURATION:?} ${PLATFORM_DISPLAY_NAME:?} ${ARCHS:?}
       passSettings: false
       workingDirectory: $(SRCROOT)/..

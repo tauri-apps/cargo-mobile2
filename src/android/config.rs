@@ -1,4 +1,7 @@
-use crate::{config::app::App, util};
+use crate::{
+    config::app::App,
+    util::{self, cli::Report},
+};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
@@ -51,7 +54,7 @@ impl Display for ProjectDirInvalid {
             ),
             Self::ContainsSpaces { project_dir } => write!(
                 f,
-                "{:?} contains spaces, which the NDK is remarkably intolerant of.",
+                "{:?} contains spaces, which the NDK is remarkably intolerant of",
                 project_dir
             ),
         }
@@ -63,12 +66,13 @@ pub enum Error {
     ProjectDirInvalid(ProjectDirInvalid),
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Error {
+    pub fn report(&self, msg: &str) -> Report {
         match self {
-            Self::ProjectDirInvalid(err) => {
-                write!(f, "`{}.project-root` invalid: {}", super::NAME, err)
-            }
+            Self::ProjectDirInvalid(err) => Report::error(
+                msg,
+                format!("`{}.project-dir` invalid: {}", super::NAME, err),
+            ),
         }
     }
 }

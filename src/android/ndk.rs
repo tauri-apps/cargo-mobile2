@@ -1,3 +1,4 @@
+use crate::util::cli::{Report, Reportable};
 use std::{
     fmt::{self, Display},
     fs::File,
@@ -68,7 +69,7 @@ pub struct MissingToolError {
     tried_path: PathBuf,
 }
 
-impl fmt::Display for MissingToolError {
+impl Display for MissingToolError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -105,24 +106,24 @@ pub enum VersionError {
 impl Display for VersionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::OpenFailed{path,cause} => {
-                write!(f, "Failed to open {:?}: {}", path,cause)
+            Self::OpenFailed { path, cause } => {
+                write!(f, "Failed to open {:?}: {}", path, cause)
             }
-            Self::ParseFailed{path,cause} => {
-                write!(f, "Failed to parse {:?}: {}", path,cause)
+            Self::ParseFailed { path, cause } => {
+                write!(f, "Failed to parse {:?}: {}", path, cause)
             }
-            Self::VersionMissing{path} =>{
+            Self::VersionMissing { path } =>{
                 write!(f, "No version number was present in {:?}.", path)
             }
-            Self::ComponentNotNumerical{path,component,cause} => write!(
+            Self::ComponentNotNumerical { path, component, cause } => write!(
                 f,
                 "Properties at {:?} contained a version component {:?} that wasn't a valid number: {}",
-                path,component,cause
+                path, component, cause
             ),
-            Self::TooFewComponents{path,version} => write!(
+            Self::TooFewComponents { path, version } => write!(
                 f,
                 "Version {:?} in properties file {:?} didn't have as many components as expected.",
-                path,version
+                path, version
             ),
         }
     }
@@ -134,7 +135,7 @@ pub struct Version {
     minor: u32,
 }
 
-impl fmt::Display for Version {
+impl Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "r{}", self.major)?;
         if self.minor != 0 {
@@ -163,28 +164,34 @@ pub enum Error {
     },
 }
 
-impl fmt::Display for Error {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::NdkHomeNotSet(err) => write!(
+            Self::NdkHomeNotSet(err) => write!(
                 f,
                 "The `NDK_HOME` environment variable isn't set, and is required: {}",
                 err,
             ),
-            Error::NdkHomeNotADir => write!(
+            Self::NdkHomeNotADir => write!(
                 f,
                 "The `NDK_HOME` environment variable is set, but doesn't point to an existing directory."
             ),
-            Error::VersionLookupFailed(err) => {
+            Self::VersionLookupFailed(err) => {
                 write!(f, "Failed to lookup version of installed NDK: {}", err)
             }
-            Error::VersionTooLow { you_have, you_need } => write!(
+            Self::VersionTooLow { you_have, you_need } => write!(
                 f,
                 "At least NDK {} is required (you currently have NDK {})",
                 you_need,
                 you_have,
             ),
         }
+    }
+}
+
+impl Reportable for Error {
+    fn report(&self) -> Report {
+        Report::error("Failed to initialize NDK environment", self)
     }
 }
 

@@ -4,11 +4,10 @@ use cargo_mobile::{
     init, opts,
     util::{
         self,
-        cli::{self, Exec, ExecError, GlobalFlags, TextWrapper},
+        cli::{self, Exec, GlobalFlags, Report, Reportable, TextWrapper},
     },
     NAME,
 };
-use std::fmt::{self, Display};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -58,33 +57,29 @@ pub enum Command {
 
 #[derive(Debug)]
 pub enum Error {
-    ConfigMissing,
     InitFailed(init::Error),
     OpenFailed(util::OpenInEditorError),
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for Error {
+    fn report(&self) -> Report {
         match self {
-            Self::ConfigMissing => write!(f, "Config still absent after init"),
-            Self::InitFailed(err) => write!(f, "Failed to generate project: {}", err),
+            Self::InitFailed(err) => err.report(),
             Self::OpenFailed(err) => {
-                write!(f, "Failed to open project in default code editor: {}", err)
+                Report::error("Failed to open project in default code editor", err)
             }
         }
     }
 }
 
-impl ExecError for Error {}
-
 impl Exec for Input {
-    type Error = Error;
+    type Report = Error;
 
     fn global_flags(&self) -> GlobalFlags {
         self.flags
     }
 
-    fn exec(self, wrapper: &TextWrapper) -> Result<(), Self::Error> {
+    fn exec(self, wrapper: &TextWrapper) -> Result<(), Self::Report> {
         let Self {
             flags: GlobalFlags { interactivity, .. },
             command,

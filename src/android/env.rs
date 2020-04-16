@@ -1,5 +1,8 @@
 use super::ndk;
-use crate::env::{Env as CoreEnv, Error as CoreError, ExplicitEnv};
+use crate::{
+    env::{Env as CoreEnv, Error as CoreError, ExplicitEnv},
+    util::cli::{Report, Reportable},
+};
 use std::{
     fmt::{self, Display},
     path::PathBuf,
@@ -26,6 +29,16 @@ impl Display for Error {
                 "The `ANDROID_SDK_ROOT` environment variable is set, but doesn't point to an existing directory."
             ),
             Self::NdkEnvError(err) => write!(f, "{}", err),
+        }
+    }
+}
+
+impl Reportable for Error {
+    fn report(&self) -> Report {
+        match self {
+            Self::CoreEnvError(err) => err.report(),
+            Self::NdkEnvError(err) => err.report(),
+            _ => Report::error("Failed to initialize Android environment", self),
         }
     }
 }

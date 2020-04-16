@@ -5,7 +5,7 @@ pub mod get_prop;
 pub use self::{device_list::device_list, device_name::device_name, get_prop::get_prop};
 
 use super::env::Env;
-use crate::env::ExplicitEnv as _;
+use crate::{env::ExplicitEnv as _, util::cli::Report};
 use std::{
     fmt::{self, Display},
     str,
@@ -32,6 +32,15 @@ impl Display for RunCheckedError {
             }
             Self::Unauthorized => write!(f, "This device doesn't yet trust this computer. On the device, you should see a prompt like \"Allow USB debugging?\". Pressing \"Allow\" should fix this."),
             Self::CommandFailed(err) => write!(f, "Failed to run adb command: {}", err),
+        }
+    }
+}
+
+impl RunCheckedError {
+    pub fn report(&self, msg: impl Display) -> Report {
+        match self {
+            Self::Unauthorized => Report::action_request(msg, self),
+            _ => Report::error(msg, self),
         }
     }
 }

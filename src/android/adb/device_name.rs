@@ -1,10 +1,10 @@
 use super::adb;
-use crate::android::env::Env;
-use once_cell_regex::regex;
-use std::{
-    fmt::{self, Display},
-    str,
+use crate::{
+    android::env::Env,
+    util::cli::{Report, Reportable},
 };
+use once_cell_regex::regex;
+use std::str;
 
 #[derive(Debug)]
 pub enum Error {
@@ -13,16 +13,17 @@ pub enum Error {
     NotMatched,
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for Error {
+    fn report(&self) -> Report {
+        let msg = "Failed to get device name";
         match self {
-            Self::DumpsysFailed(err) => write!(
-                f,
-                "Failed to run `adb shell dumpsys bluetooth_manager`: {}",
-                err
-            ),
-            Self::InvalidUtf8(err) => write!(f, "Bluetooth info contained invalid UTF-8: {}", err),
-            Self::NotMatched => write!(f, "Name regex didn't match anything."),
+            Self::DumpsysFailed(err) => {
+                err.report("Failed to run `adb shell dumpsys bluetooth_manager`")
+            }
+            Self::InvalidUtf8(err) => {
+                Report::error(msg, format!("Output contained invalid UTF-8: {}", err))
+            }
+            Self::NotMatched => Report::error(msg, "Name regex didn't match anything"),
         }
     }
 }

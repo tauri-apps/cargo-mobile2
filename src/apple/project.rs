@@ -3,12 +3,13 @@ use crate::{
     opts::Clobbering,
     target::TargetTrait as _,
     templating,
-    util::{ln, submodule::Submodule},
+    util::{
+        cli::{Report, Reportable},
+        ln,
+        submodule::Submodule,
+    },
 };
-use std::{
-    fmt::{self, Display},
-    path::PathBuf,
-};
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum Error {
@@ -22,28 +23,33 @@ pub enum Error {
     XcodegenFailed(bossy::Error),
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for Error {
+    fn report(&self) -> Report {
         match self {
-            Self::RustupFailed(err) => write!(f, "Failed to `rustup` iOS toolchains: {}", err),
-            Self::DepsInstallFailed(err) => write!(f, "Failed to install dependencies: {}", err),
-            Self::MissingPack(err) => write!(f, "{}", err),
-            Self::TemplateProcessingFailed(err) => write!(f, "Template processing failed: {}", err),
+            Self::RustupFailed(err) => Report::error("Failed to `rustup` Apple toolchains", err),
+            Self::DepsInstallFailed(err) => {
+                Report::error("Failed to install Apple dependencies", err)
+            }
+            Self::MissingPack(err) => Report::error("Failed to locate Xcode template pack", err),
+            Self::TemplateProcessingFailed(err) => {
+                Report::error("Xcode template processing failed", err)
+            }
             Self::SourceDirSymlinkFailed(err) => {
-                write!(f, "Source dir couldn't be symlinked: {}", err)
+                Report::error("Source dir couldn't be symlinked into Xcode project", err)
             }
             Self::AssetDirSymlinkFailed(err) => {
-                write!(f, "Asset dir couldn't be symlinked: {}", err)
+                Report::error("Asset dir couldn't be symlinked into Xcode project", err)
             }
             Self::ScriptChmodFailed(err) => {
-                write!(f, "Failed to `chmod` \"cargo-xcode.sh\": {}", err)
+                Report::error("Failed to `chmod` \"cargo-xcode.sh\"", err)
             }
-            Self::XcodegenFailed(err) => write!(f, "Failed to run `xcodegen`: {}", err),
+            Self::XcodegenFailed(err) => Report::error("Failed to run `xcodegen`", err),
         }
     }
 }
 
 // unprefixed app_root seems pretty dangerous!!
+// TODO: figure out what I meant by that
 pub fn gen(
     config: &Config,
     submodules: Option<&Vec<Submodule>>,

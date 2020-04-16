@@ -2,7 +2,10 @@ mod raw;
 
 pub use self::raw::*;
 
-use crate::{config::app::App, util};
+use crate::{
+    config::app::App,
+    util::{self, cli::Report},
+};
 use serde::Serialize;
 use std::{
     fmt::{self, Display},
@@ -63,16 +66,20 @@ pub enum Error {
     ProjectDirInvalid(ProjectDirInvalid),
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Error {
+    pub fn report(&self, msg: &str) -> Report {
         match self {
-            Self::DevelopmentTeamMissing => {
-                write!(f, "`{}.development-team` must be specified.", super::NAME)
+            Self::DevelopmentTeamMissing => Report::error(
+                msg,
+                format!("`{}.development-team` must be specified", super::NAME),
+            ),
+            Self::DevelopmentTeamEmpty => {
+                Report::error(msg, format!("`{}.development-team` is empty", super::NAME))
             }
-            Self::DevelopmentTeamEmpty => write!(f, "`{}.development-team` is empty.", super::NAME),
-            Self::ProjectDirInvalid(err) => {
-                write!(f, "`{}.project-dir` invalid: {}", super::NAME, err)
-            }
+            Self::ProjectDirInvalid(err) => Report::error(
+                msg,
+                format!("`{}.project-dir` invalid: {}", super::NAME, err),
+            ),
         }
     }
 }

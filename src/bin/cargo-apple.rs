@@ -15,11 +15,10 @@ use cargo_mobile::{
     init, opts, os,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
     util::{
-        cli::{self, Exec, ExecError, GlobalFlags, TextWrapper},
+        cli::{self, Exec, GlobalFlags, Report, Reportable, TextWrapper},
         prompt,
     },
 };
-use std::fmt::{self, Display};
 use structopt::{clap::AppSettings, StructOpt};
 
 #[derive(Debug, StructOpt)]
@@ -99,35 +98,36 @@ pub enum Error {
     CompileLibFailed(CompileLibError),
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for Error {
+    fn report(&self) -> Report {
         match self {
-            Self::EnvInitFailed(err) => write!(f, "{}", err),
-            Self::DevicePromptFailed(err) => write!(f, "{}", err),
-            Self::TargetInvalid(err) => write!(f, "Specified target was invalid: {}", err),
-            Self::ConfigFailed(err) => write!(f, "Failed to load or generate config: {}", err),
-            Self::InitFailed(err) => write!(f, "{}", err),
-            Self::OpenFailed(err) => write!(f, "Failed to open project in Xcode: {}", err),
-            Self::CheckFailed(err) => write!(f, "{}", err),
-            Self::BuildFailed(err) => write!(f, "{}", err),
-            Self::RunFailed(err) => write!(f, "{}", err),
-            Self::ListFailed(err) => write!(f, "{}", err),
-            Self::ArchInvalid { arch } => write!(f, "Specified arch was invalid: {}", arch),
-            Self::CompileLibFailed(err) => write!(f, "{}", err),
+            Self::EnvInitFailed(err) => err.report(),
+            Self::DevicePromptFailed(err) => err.report(),
+            Self::TargetInvalid(err) => Report::error("Specified target was invalid", err),
+            Self::ConfigFailed(err) => err.report(),
+            Self::InitFailed(err) => err.report(),
+            Self::OpenFailed(err) => Report::error("Failed to open project in Xcode", err),
+            Self::CheckFailed(err) => err.report(),
+            Self::BuildFailed(err) => err.report(),
+            Self::RunFailed(err) => err.report(),
+            Self::ListFailed(err) => err.report(),
+            Self::ArchInvalid { arch } => Report::error(
+                "`cargo-xcode.sh` bug",
+                format!("Specified arch {:?} was invalid", arch),
+            ),
+            Self::CompileLibFailed(err) => err.report(),
         }
     }
 }
 
-impl ExecError for Error {}
-
 impl Exec for Input {
-    type Error = Error;
+    type Report = Error;
 
     fn global_flags(&self) -> GlobalFlags {
         self.flags
     }
 
-    fn exec(self, wrapper: &TextWrapper) -> Result<(), Self::Error> {
+    fn exec(self, wrapper: &TextWrapper) -> Result<(), Self::Report> {
         define_device_prompt!(ios_deploy::device_list, ios_deploy::DeviceListError, iOS);
         fn detect_target_ok<'a>(env: &Env) -> Option<&'a Target<'a>> {
             device_prompt(env).map(|device| device.target()).ok()
@@ -225,12 +225,14 @@ impl Exec for Input {
                 profile: cli::Profile { profile },
             } => with_config(interactivity, wrapper, |config| {
                 match macos {
-                    true => Target::macos().compile_lib(config, noise_level, profile),
+                    true => {
+                        Target::macos().compile_lib(config, noise_level, interactivity, profile)
+                    }
                     false => Target::for_arch(&arch)
                         .ok_or_else(|| Error::ArchInvalid {
                             arch: arch.to_owned(),
                         })?
-                        .compile_lib(config, noise_level, profile),
+                        .compile_lib(config, noise_level, interactivity, profile),
                 }
                 .map_err(Error::CompileLibFailed)
             }),

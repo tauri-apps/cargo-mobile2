@@ -3,7 +3,10 @@ use super::{app, TemplatePack};
 use crate::android;
 #[cfg(feature = "apple")]
 use crate::apple;
-use crate::util::{cli::TextWrapper, submodule::Submodule};
+use crate::util::{
+    cli::{Report, Reportable, TextWrapper},
+    submodule::Submodule,
+};
 use serde::{Deserialize, Serialize};
 
 use std::{
@@ -19,16 +22,17 @@ pub enum PromptError {
     AppleFailed(apple::config::PromptError),
 }
 
-impl Display for PromptError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for PromptError {
+    fn report(&self) -> Report {
         match self {
             Self::AppFailed(err) => {
-                write!(f, "Failed to prompt for `{}` config: {}", app::KEY, err)
+                Report::error(format!("Failed to prompt for `{}` config", app::KEY), err)
             }
             #[cfg(feature = "apple")]
-            Self::AppleFailed(err) => {
-                write!(f, "Failed to prompt for `{}` config: {}", apple::NAME, err)
-            }
+            Self::AppleFailed(err) => Report::error(
+                format!("Failed to prompt for `{}` config", apple::NAME),
+                err,
+            ),
         }
     }
 }
@@ -40,13 +44,15 @@ pub enum DetectError {
     AppleFailed(apple::config::DetectError),
 }
 
-impl Display for DetectError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for DetectError {
+    fn report(&self) -> Report {
         match self {
-            Self::AppFailed(err) => write!(f, "Failed to detect `{}` config: {}", app::KEY, err),
+            Self::AppFailed(err) => {
+                Report::error(format!("Failed to detect `{}` config", app::KEY), err)
+            }
             #[cfg(feature = "apple")]
             Self::AppleFailed(err) => {
-                write!(f, "Failed to detect `{}` config: {}", apple::NAME, err)
+                Report::error(format!("Failed to detect `{}` config", apple::NAME), err)
             }
         }
     }
@@ -110,11 +116,11 @@ pub enum WriteError {
     WriteFailed(io::Error),
 }
 
-impl Display for WriteError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for WriteError {
+    fn report(&self) -> Report {
         match self {
-            Self::SerializeFailed(err) => write!(f, "Failed to serialize config: {}", err),
-            Self::WriteFailed(err) => write!(f, "Failed to write config: {}", err),
+            Self::SerializeFailed(err) => Report::error("Failed to serialize config", err),
+            Self::WriteFailed(err) => Report::error("Failed to write config", err),
         }
     }
 }

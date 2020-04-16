@@ -1,11 +1,9 @@
-use crate::config::app::App;
-use serde::{Deserialize, Serialize};
-use std::{
-    collections::BTreeMap,
-    fmt::{self, Display},
-    fs, io,
-    path::PathBuf,
+use crate::{
+    config::app::App,
+    util::cli::{Report, Reportable},
 };
+use serde::{Deserialize, Serialize};
+use std::{collections::BTreeMap, fs, io, path::PathBuf};
 
 #[derive(Debug)]
 pub enum LoadError {
@@ -23,21 +21,20 @@ pub enum LoadError {
     },
 }
 
-impl Display for LoadError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for LoadError {
+    fn report(&self) -> Report {
         match self {
-            Self::DirCreationFailed { path, cause } => write!(
-                f,
-                "Failed to create \".cargo\" directory at {:?}: {}",
-                path, cause
+            Self::DirCreationFailed { path, cause } => Report::error(
+                format!("Failed to create \".cargo\" directory at {:?}", path),
+                cause,
             ),
-            Self::ReadFailed { path, cause } => {
-                write!(f, "Failed to read cargo config from {:?}: {}", path, cause)
-            }
-            Self::DeserializeFailed { path, cause } => write!(
-                f,
-                "Failed to deserialize cargo config at {:?}: {}",
-                path, cause
+            Self::ReadFailed { path, cause } => Report::error(
+                format!("Failed to read cargo config from {:?}", path),
+                cause,
+            ),
+            Self::DeserializeFailed { path, cause } => Report::error(
+                format!("Failed to deserialize cargo config at {:?}", path),
+                cause,
             ),
         }
     }
@@ -50,17 +47,16 @@ pub enum WriteError {
     WriteFailed { path: PathBuf, cause: io::Error },
 }
 
-impl Display for WriteError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for WriteError {
+    fn report(&self) -> Report {
         match self {
-            Self::SerializeFailed(err) => write!(f, "Failed to serialize cargo config: {}", err),
-            Self::DirCreationFailed { path, cause } => write!(
-                f,
-                "Failed to create \".cargo\" directory at {:?}: {}",
-                path, cause
+            Self::SerializeFailed(err) => Report::error("Failed to serialize cargo config", err),
+            Self::DirCreationFailed { path, cause } => Report::error(
+                format!("Failed to create \".cargo\" directory at {:?}", path),
+                cause,
             ),
             Self::WriteFailed { path, cause } => {
-                write!(f, "Failed to write cargo config to {:?}: {}", path, cause)
+                Report::error(format!("Failed to write cargo config to {:?}", path), cause)
             }
         }
     }

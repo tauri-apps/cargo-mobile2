@@ -4,15 +4,15 @@ use super::{
 };
 use crate::{
     env::{Env, ExplicitEnv as _},
-    opts::{NoiseLevel, Profile},
+    opts::{Interactivity, NoiseLevel, Profile},
     target::TargetTrait,
-    util::CargoCommand,
+    util::{
+        cli::{Report, Reportable},
+        CargoCommand,
+    },
 };
 use once_cell_regex::exports::once_cell::sync::OnceCell;
-use std::{
-    collections::BTreeMap,
-    fmt::{self, Display},
-};
+use std::collections::BTreeMap;
 
 #[derive(Debug)]
 pub enum VersionCheckError {
@@ -24,20 +24,20 @@ pub enum VersionCheckError {
     },
 }
 
-impl fmt::Display for VersionCheckError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for VersionCheckError {
+    fn report(&self) -> Report {
         match self {
-            VersionCheckError::LookupFailed(err) => {
-                write!(f, "Failed to lookup Xcode version: {}", err)
-            }
-            VersionCheckError::TooLow {
+            Self::LookupFailed(err) => Report::error("Failed to lookup Xcode version", err),
+            Self::TooLow {
                 msg,
                 you_have,
                 you_need,
-            } => write!(
-                f,
-                "{} Xcode {}.{}; you have Xcode {}.{}.",
-                msg, you_need.0, you_need.1, you_have.0, you_have.1
+            } => Report::action_request(
+                "Installed Xcode version too low; please upgrade and try again",
+                format!(
+                    "{} Xcode {}.{}; you have Xcode {}.{}.",
+                    msg, you_need.0, you_need.1, you_have.0, you_have.1
+                ),
             ),
         }
     }
@@ -49,11 +49,11 @@ pub enum CheckError {
     CargoCheckFailed(bossy::Error),
 }
 
-impl Display for CheckError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for CheckError {
+    fn report(&self) -> Report {
         match self {
-            Self::VersionCheckFailed(err) => write!(f, "Xcode version check failed: {}", err),
-            Self::CargoCheckFailed(err) => write!(f, "Failed to run `cargo check`: {}", err),
+            Self::VersionCheckFailed(err) => err.report(),
+            Self::CargoCheckFailed(err) => Report::error("Failed to run `cargo check`", err),
         }
     }
 }
@@ -64,11 +64,11 @@ pub enum CompileLibError {
     CargoBuildFailed(bossy::Error),
 }
 
-impl Display for CompileLibError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for CompileLibError {
+    fn report(&self) -> Report {
         match self {
-            Self::VersionCheckFailed(err) => write!(f, "Xcode version check failed: {}", err),
-            Self::CargoBuildFailed(err) => write!(f, "Failed to run `cargo build`: {}", err),
+            Self::VersionCheckFailed(err) => err.report(),
+            Self::CargoBuildFailed(err) => Report::error("Failed to run `cargo build`", err),
         }
     }
 }
@@ -76,9 +76,9 @@ impl Display for CompileLibError {
 #[derive(Debug)]
 pub struct BuildError(bossy::Error);
 
-impl Display for BuildError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Failed to build via `xcodebuild`: {}", self.0)
+impl Reportable for BuildError {
+    fn report(&self) -> Report {
+        Report::error("Failed to build via `xcodebuild`", &self.0)
     }
 }
 
@@ -88,12 +88,12 @@ pub enum ArchiveError {
     ExportFailed(bossy::Error),
 }
 
-impl Display for ArchiveError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for ArchiveError {
+    fn report(&self) -> Report {
         match self {
-            Self::ArchiveFailed(err) => write!(f, "Failed to archive via `xcodebuild: {}", err),
+            Self::ArchiveFailed(err) => Report::error("Failed to archive via `xcodebuild`", err),
             Self::ExportFailed(err) => {
-                write!(f, "Failed to export archive via `xcodebuild: {}", err)
+                Report::error("Failed to export archive via `xcodebuild: {}", err)
             }
         }
     }
@@ -224,20 +224,28 @@ impl<'a> Target<'a> {
         Ok(())
     }
 
+    // NOTE: it's up to Xcode to pass the verbose flag here, so even when
+    // using our build/run commands it won't get passed.
+    // TODO: do something about that?
     pub fn compile_lib(
         &self,
         config: &Config,
         noise_level: NoiseLevel,
+        interactivity: Interactivity,
         profile: Profile,
     ) -> Result<(), CompileLibError> {
-        // NOTE: it's up to Xcode to pass the verbose flag here, so even when
-        // using our build/run commands it won't get passed.
-        // TODO: I don't undestand this comment
+        // Force color when running from CLI
+        let color = if interactivity.full() {
+            "always"
+        } else {
+            "auto"
+        };
         self.cargo(config, "build")
             .map_err(CompileLibError::VersionCheckFailed)?
             .with_verbose(noise_level.pedantic())
             .with_release(profile.release())
             .into_command_impure()
+            .with_args(&["--color", color])
             .run_and_wait()
             .map_err(CompileLibError::CargoBuildFailed)?;
         Ok(())
@@ -247,6 +255,7 @@ impl<'a> Target<'a> {
         let configuration = profile.as_str();
         bossy::Command::pure("xcodebuild")
             .with_env_vars(env.explicit_env())
+            .with_env_var("CLI", "1")
             .with_args(&["-scheme", &config.scheme()])
             .with_arg("-workspace")
             .with_arg(&config.workspace_path())

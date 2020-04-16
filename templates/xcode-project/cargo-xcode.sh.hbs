@@ -4,17 +4,18 @@ set -ex
 
 source "$HOME/.cargo/env"
 
-if [ "$#" -lt 4 ]; then
+if [ "$#" -lt 5 ]; then
     echo "Wrong number of arguments passed to build script"
     exit 1
 fi
 
 # To prevent horrible arcane linker errors, none of Xcode's env vars are passed
 # to this script. Instead, we pass things explicitly as args.
-SDKROOT="${1:?}"
-CONFIGURATION="${2:?}"
-PLATFORM_DISPLAY_NAME="${3:?}"
-shift 3
+CLI="${1:?}"
+SDKROOT="${2:?}"
+CONFIGURATION="${3:?}"
+PLATFORM_DISPLAY_NAME="${4:?}"
+shift 4
 ARCHS="${@:?}"
 
 if [ ! -d "$SDKROOT" ]; then
@@ -31,6 +32,16 @@ export CFLAGS_$MAC_ARCH="${MAC_FLAGS:?}"
 export CXXFLAGS_$MAC_ARCH="${MAC_FLAGS:?}"
 export OBJC_INCLUDE_PATH_$MAC_ARCH="${SDKROOT:?}/usr/include"
 
+export RUST_BACKTRACE=1
+
+if [ "${CLI:?}" != "--cli=1" ]; then
+    INTERACTIVE="--non-interactive"
+fi
+
+if [ "${PLATFORM_DISPLAY_NAME:?}" = "macOS" ]; then
+    MACOS="--macos"
+fi
+
 # set target-specific flags to not muck up build.rs scripts
 for ARCH in ${ARCHS:?}; do
     if [ "${ARCH:?}" = "arm64" ]; then
@@ -44,18 +55,13 @@ for ARCH in ${ARCHS:?}; do
     export CXXFLAGS_$PLATFORM_ARCH="${FLAGS:?}"
     export OBJC_INCLUDE_PATH_$PLATFORM_ARCH="${SDKROOT:?}/usr/include"
 done
-export RUST_BACKTRACE=1
 
 if [ "${CONFIGURATION:?}" = "release" ]; then
     CONFIG="--release"
 fi
 
-if [ "${PLATFORM_DISPLAY_NAME:?}" = "macOS" ]; then
-    MACOS="--macos"
-fi
-
 for ARCH in ${ARCHS:?}; do
-    COMMAND="cargo apple compile-lib $MACOS $ARCH $CONFIG"
+    COMMAND="cargo apple compile-lib $INTERACTIVE $MACOS $ARCH $CONFIG"
     echo $COMMAND
     eval $COMMAND
 done

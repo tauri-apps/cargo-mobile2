@@ -1,3 +1,4 @@
+use crate::util::cli::{Report, Reportable};
 use std::{
     ffi::OsStr,
     fmt::{self, Debug, Display},
@@ -27,6 +28,12 @@ impl Display for Error {
                 err
             ),
         }
+    }
+}
+
+impl Reportable for Error {
+    fn report(&self) -> Report {
+        Report::error("Failed to initialize base environment", self)
     }
 }
 

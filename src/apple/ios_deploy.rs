@@ -1,10 +1,10 @@
 use super::{device::Device, target::Target};
-use crate::env::{Env, ExplicitEnv as _};
-use serde::Deserialize;
-use std::{
-    collections::BTreeSet,
-    fmt::{self, Display},
+use crate::{
+    env::{Env, ExplicitEnv as _},
+    util::cli::{Report, Reportable},
 };
+use serde::Deserialize;
+use std::collections::BTreeSet;
 
 #[derive(Debug)]
 pub enum DeviceListError {
@@ -16,23 +16,33 @@ pub enum DeviceListError {
     ArchInvalid(String),
 }
 
-impl Display for DeviceListError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Reportable for DeviceListError {
+    fn report(&self) -> Report {
+        let msg = "Failed to detect connected Android devices";
         match self {
-            Self::DetectionFailed(err) => write!(
-                f,
-                "Failed to request device list from `ios-deploy`: {}",
-                err
+            Self::DetectionFailed(err) => Report::error(
+                msg,
+                format!("Failed to request device list from `ios-deploy`: {}", err),
             ),
-            Self::KillFailed(err) => write!(f, "Failed to kill `ios-deploy`: {}", err),
-            Self::OutputFailed(err) => write!(
-                f,
-                "Failed to get device list output from `ios-deploy`: {}",
-                err
+            Self::KillFailed(err) => {
+                Report::error(msg, format!("Failed to kill `ios-deploy`: {}", err))
+            }
+            Self::OutputFailed(err) => Report::error(
+                msg,
+                format!(
+                    "Failed to get device list output from `ios-deploy`: {}",
+                    err
+                ),
             ),
-            Self::InvalidUtf8(err) => write!(f, "Device info contained invalid UTF-8: {}", err),
-            Self::ParseFailed(err) => write!(f, "Device info couldn't be parsed: {}", err),
-            Self::ArchInvalid(arch) => write!(f, "{:?} isn't a valid target arch.", arch),
+            Self::InvalidUtf8(err) => {
+                Report::error(msg, format!("Device info contained invalid UTF-8: {}", err))
+            }
+            Self::ParseFailed(err) => {
+                Report::error(msg, format!("Device info couldn't be parsed: {}", err))
+            }
+            Self::ArchInvalid(arch) => {
+                Report::error(msg, format!("{:?} isn't a valid target arch.", arch))
+            }
         }
     }
 }

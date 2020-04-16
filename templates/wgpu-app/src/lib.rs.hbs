@@ -137,11 +137,12 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
 
 #[mobile_entry_point]
 fn start_app() {
+    // use android ver
+    env_logger::init();
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .with_title("{{app.stylized-name}}")
         .build(&event_loop)
         .unwrap();
-    env_logger::init();
     futures::executor::block_on(run(event_loop, window));
 }

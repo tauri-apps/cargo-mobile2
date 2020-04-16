@@ -59,25 +59,91 @@ pub struct Profile {
 
 pub type TextWrapper = textwrap::Wrapper<'static, textwrap::NoHyphenation>;
 
-pub trait ExecError: Debug + Display {
-    fn code(&self) -> i8 {
-        1
+#[derive(Clone, Copy, Debug)]
+pub enum Label {
+    Warning,
+    Error,
+    ActionRequest,
+}
+
+impl Label {
+    pub fn color(&self) -> colored::Color {
+        match self {
+            Self::Warning => colored::Color::BrightYellow,
+            Self::Error => colored::Color::BrightRed,
+            Self::ActionRequest => colored::Color::BrightMagenta,
+        }
     }
 
-    fn color(&self) -> colored::Color {
-        colored::Color::BrightRed
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Warning => "warning",
+            Self::Error => "error",
+            Self::ActionRequest => "action request",
+        }
     }
 }
 
-impl ExecError for std::convert::Infallible {}
-impl ExecError for std::io::Error {}
+#[derive(Debug)]
+pub struct Report {
+    label: Label,
+    msg: String,
+    details: String,
+}
+
+impl Report {
+    pub fn new(label: Label, msg: impl Display, details: impl Display) -> Self {
+        Self {
+            label,
+            msg: format!("{}", msg),
+            details: format!("{}", details),
+        }
+    }
+
+    pub fn warning(msg: impl Display, details: impl Display) -> Self {
+        Self::new(Label::Warning, msg, details)
+    }
+
+    pub fn error(msg: impl Display, details: impl Display) -> Self {
+        Self::new(Label::Error, msg, details)
+    }
+
+    pub fn action_request(msg: impl Display, details: impl Display) -> Self {
+        Self::new(Label::ActionRequest, msg, details)
+    }
+
+    pub fn render(&self, wrapper: &TextWrapper) -> String {
+        let head = wrapper
+            .fill(&format!(
+                "{}: {}",
+                self.label.as_str().color(self.label.color()),
+                self.msg
+            ))
+            .bold();
+        static INDENT: &'static str = "    ";
+        let wrapper = wrapper
+            .clone()
+            .initial_indent(INDENT)
+            .subsequent_indent(INDENT);
+        let details = wrapper.fill(&self.details);
+        format!("{}\n{}", head, details)
+    }
+}
+
+pub trait Reportable: Debug {
+    fn report(&self) -> Report;
+
+    fn code(&self) -> i8 {
+        1
+    }
+}
 
 pub trait Exec: Debug + StructOpt {
-    type Error: ExecError;
+    type Report: Reportable;
 
     fn global_flags(&self) -> GlobalFlags;
 
-    fn exec(self, wrapper: &TextWrapper) -> Result<(), Self::Error>;
+    fn exec(self, wrapper: &TextWrapper) -> Result<(), Self::Report>;
 }
 
 fn get_args(name: &str) -> Vec<String> {
@@ -103,26 +169,20 @@ fn init_logging(noise_level: opts::NoiseLevel) {
 
 #[derive(Debug)]
 enum Exit {
-    Display(String, i8, colored::Color),
+    Report(Report, i8),
     Clap(clap::Error),
 }
 
 impl Exit {
-    fn display(err: impl ExecError) -> Self {
-        Self::Display(format!("{}", err), err.code(), err.color())
+    fn report(reportable: impl Reportable) -> Self {
+        log::info!("exiting with {:#?}", reportable);
+        Self::Report(reportable.report(), reportable.code())
     }
 
-    fn do_the_thing(self, wrapper: Option<TextWrapper>) -> ! {
+    fn do_the_thing(self, wrapper: TextWrapper) -> ! {
         match self {
-            Self::Display(err, code, color) => {
-                eprintln!(
-                    "{}",
-                    if let Some(wrapper) = wrapper {
-                        wrapper.fill(&err).color(color)
-                    } else {
-                        err.color(color)
-                    }
-                );
+            Self::Report(report, code) => {
+                eprintln!("{}", report.render(&wrapper));
                 // We only expose access to the 8 lsb of the exit code, since:
                 // https://doc.rust-lang.org/std/process/fn.exit.html#platform-specific-behavior
                 std::process::exit(code as i32)
@@ -134,7 +194,7 @@ impl Exit {
     fn main(inner: impl FnOnce(&TextWrapper) -> Result<(), Self>) {
         let wrapper = TextWrapper::with_splitter(textwrap::termwidth(), textwrap::NoHyphenation);
         if let Err(exit) = inner(&wrapper) {
-            exit.do_the_thing(Some(wrapper))
+            exit.do_the_thing(wrapper)
         }
     }
 }
@@ -143,6 +203,6 @@ pub fn exec<E: Exec>(name: &str) {
     Exit::main(|wrapper| {
         let input = E::from_iter_safe(get_args(name)).map_err(Exit::Clap)?;
         init_logging(input.global_flags().noise_level);
-        input.exec(wrapper).map_err(Exit::display)
+        input.exec(wrapper).map_err(Exit::report)
     })
 }
