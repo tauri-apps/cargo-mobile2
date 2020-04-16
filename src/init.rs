@@ -54,7 +54,7 @@ impl Reportable for Error {
             Self::AndroidInitFailed(err) => err.report(),
             #[cfg(feature = "apple")]
             Self::AppleInitFailed(err) => err.report(),
-            Self::OpenInEditorFailed(err) => Report::warning("Failed to open project in editor (your project generated successfully though, so no worries!)", err),
+            Self::OpenInEditorFailed(err) => Report::error("Failed to open project in editor (your project generated successfully though, so no worries!)", err),
         }
     }
 }

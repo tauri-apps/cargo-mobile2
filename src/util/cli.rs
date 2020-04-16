@@ -61,7 +61,6 @@ pub type TextWrapper = textwrap::Wrapper<'static, textwrap::NoHyphenation>;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Label {
-    Warning,
     Error,
     ActionRequest,
 }
@@ -69,7 +68,6 @@ pub enum Label {
 impl Label {
     pub fn color(&self) -> colored::Color {
         match self {
-            Self::Warning => colored::Color::BrightYellow,
             Self::Error => colored::Color::BrightRed,
             Self::ActionRequest => colored::Color::BrightMagenta,
         }
@@ -77,14 +75,9 @@ impl Label {
 
     pub fn as_str(&self) -> &'static str {
         match self {
-            Self::Warning => "warning",
             Self::Error => "error",
             Self::ActionRequest => "action request",
         }
-    }
-
-    pub fn exit_code(&self) -> i32 {
-        (!matches!(self, Self::Warning)) as _
     }
 }
 
@@ -102,10 +95,6 @@ impl Report {
             msg: format!("{}", msg),
             details: format!("{}", details),
         }
-    }
-
-    pub fn warning(msg: impl Display, details: impl Display) -> Self {
-        Self::new(Label::Warning, msg, details)
     }
 
     pub fn error(msg: impl Display, details: impl Display) -> Self {
@@ -183,7 +172,7 @@ impl Exit {
         match self {
             Self::Report(report) => {
                 eprintln!("{}", report.render(&wrapper));
-                std::process::exit(report.label.exit_code())
+                std::process::exit(1)
             }
             Self::Clap(err) => err.exit(),
         }
