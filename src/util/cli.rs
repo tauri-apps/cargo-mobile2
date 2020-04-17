@@ -105,28 +105,46 @@ impl Report {
         Self::new(Label::ActionRequest, msg, details)
     }
 
-    pub fn render(&self, wrapper: &TextWrapper) -> String {
-        let head = wrapper
-            .fill(&format!(
-                "{}: {}",
-                self.label.as_str().color(self.label.color()),
-                self.msg
-            ))
-            .bold();
-        static INDENT: &'static str = "    ";
-        let wrapper = wrapper
-            .clone()
-            .initial_indent(INDENT)
-            .subsequent_indent(INDENT);
-        let details = wrapper.fill(&self.details);
-        format!("{}\n{}", head, details)
+    pub fn render(&self, wrapper: &TextWrapper, interactivity: opts::Interactivity) -> String {
+        fn render_head(wrapper: &TextWrapper, label: impl Display, msg: &str) -> String {
+            wrapper.fill(&format!("{}: {}", label, msg))
+        }
+
+        fn render_full(wrapper: &TextWrapper, head: impl Display, details: &str) -> String {
+            static INDENT: &'static str = "    ";
+            let wrapper = wrapper
+                .clone()
+                .initial_indent(INDENT)
+                .subsequent_indent(INDENT);
+            let details = wrapper.fill(details);
+            format!("{}\n{}", head, details)
+        }
+
+        if interactivity.full() && colored::control::SHOULD_COLORIZE.should_colorize() {
+            render_full(
+                wrapper,
+                render_head(
+                    wrapper,
+                    self.label.as_str().color(self.label.color()),
+                    &self.msg,
+                )
+                .bold(),
+                &self.details,
+            )
+        } else {
+            render_full(
+                wrapper,
+                render_head(wrapper, self.label.as_str(), &self.msg),
+                &self.details,
+            )
+        }
     }
 }
 
 pub trait Reportable: Debug {
     fn report(&self) -> Report;
 }
-//todo:0exitforwarn
+
 pub trait Exec: Debug + StructOpt {
     type Report: Reportable;
 
@@ -158,20 +176,20 @@ fn init_logging(noise_level: opts::NoiseLevel) {
 
 #[derive(Debug)]
 enum Exit {
-    Report(Report),
+    Report(Report, opts::Interactivity),
     Clap(clap::Error),
 }
 
 impl Exit {
-    fn report(reportable: impl Reportable) -> Self {
+    fn report(reportable: impl Reportable, interactivity: opts::Interactivity) -> Self {
         log::info!("exiting with {:#?}", reportable);
-        Self::Report(reportable.report())
+        Self::Report(reportable.report(), interactivity)
     }
 
     fn do_the_thing(self, wrapper: TextWrapper) -> ! {
         match self {
-            Self::Report(report) => {
-                eprintln!("{}", report.render(&wrapper));
+            Self::Report(report, interactivity) => {
+                eprintln!("{}", report.render(&wrapper, interactivity));
                 std::process::exit(1)
             }
             Self::Clap(err) => err.exit(),
@@ -189,7 +207,13 @@ impl Exit {
 pub fn exec<E: Exec>(name: &str) {
     Exit::main(|wrapper| {
         let input = E::from_iter_safe(get_args(name)).map_err(Exit::Clap)?;
-        init_logging(input.global_flags().noise_level);
-        input.exec(wrapper).map_err(Exit::report)
+        let GlobalFlags {
+            noise_level,
+            interactivity,
+        } = input.global_flags();
+        init_logging(noise_level);
+        input
+            .exec(wrapper)
+            .map_err(|report| Exit::report(report, interactivity))
     })
 }
