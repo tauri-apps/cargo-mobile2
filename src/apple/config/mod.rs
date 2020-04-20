@@ -13,7 +13,7 @@ use std::{
 };
 
 static DEFAULT_PROJECT_DIR: &'static str = "gen/apple";
-static DEFAULT_IOS_NO_DEFAULT_FEATURES: bool = cfg!(feature = "brainium");
+const DEFAULT_IOS_NO_DEFAULT_FEATURES: bool = cfg!(feature = "brainium");
 static DEFAULT_IOS_FEATURES: &'static [&'static str] = {
     #[cfg(feature = "brainium")]
     {
@@ -24,7 +24,7 @@ static DEFAULT_IOS_FEATURES: &'static [&'static str] = {
         &[]
     }
 };
-static DEFAULT_MACOS_NO_DEFAULT_FEATURES: bool = false;
+const DEFAULT_MACOS_NO_DEFAULT_FEATURES: bool = false;
 static DEFAULT_MACOS_FEATURES: &'static [&'static str] = DEFAULT_IOS_FEATURES;
 
 #[derive(Debug)]

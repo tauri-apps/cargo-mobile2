@@ -1,11 +1,9 @@
-use mobile_entry_point::mobile_entry_point;
-use winit::{
-    event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
-    window::{Window, WindowBuilder},
-};
+mod window;
 
-async fn run(event_loop: EventLoop<()>, window: Window) {
+use self::window::*;
+use mobile_entry_point::mobile_entry_point;
+
+async fn run(event_loop: EventLoop, window: Window) {
     let size = window.inner_size();
     let surface = wgpu::Surface::create(&window);
 
@@ -92,16 +90,15 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
 
     let mut swap_chain = device.create_swap_chain(&surface, &sc_desc);
 
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Poll;
+    run_event_loop(event_loop, move |event, control_flow| {
         match event {
             Event::MainEventsCleared => window.request_redraw(),
-            Event::WindowEvent { event: WindowEvent::Resized(size), .. } => {
-                sc_desc.width = size.width;
-                sc_desc.height = size.height;
+            Event::WindowEvent(WindowEvent::Resized { width, height }) => {
+                sc_desc.width = width;
+                sc_desc.height = height;
                 swap_chain = device.create_swap_chain(&surface, &sc_desc);
             }
-            Event::RedrawRequested(_) => {
+            Event::RedrawRequested => {
                 let frame = swap_chain
                     .get_next_texture()
                     .expect("Timeout when acquiring next swap chain texture");
@@ -126,18 +123,14 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
 
                 queue.submit(&[encoder.finish()]);
             }
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                ..
-            } => *control_flow = ControlFlow::Exit,
-            _ => {}
+            Event::WindowEvent(WindowEvent::CloseRequested) => *control_flow = ControlFlow::Exit,
         }
     });
 }
 
 #[mobile_entry_point]
 fn start_app() {
-    // use android ver
+    // TODO: use android ver
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()

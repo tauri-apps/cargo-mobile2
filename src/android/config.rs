@@ -8,10 +8,10 @@ use std::{
     path::PathBuf,
 };
 
-static DEFAULT_MIN_SDK_VERSION: u32 = 24;
-static DEFAULT_VULKAN_VALIDATION: bool = true;
+const DEFAULT_MIN_SDK_VERSION: u32 = 24;
+const DEFAULT_VULKAN_VALIDATION: bool = true;
 static DEFAULT_PROJECT_DIR: &'static str = "gen/android";
-static DEFAULT_NO_DEFAULT_FEATURES: bool = cfg!(feature = "brainium");
+const DEFAULT_NO_DEFAULT_FEATURES: bool = cfg!(feature = "brainium");
 static DEFAULT_FEATURES: &'static [&'static str] = {
     #[cfg(feature = "brainium")]
     {
