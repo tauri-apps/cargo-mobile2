@@ -12,13 +12,16 @@ name = "{{app.name}}-desktop"
 path = "gen/bin/desktop.rs"
 
 [dependencies]
-env_logger = "0.7.1"
 futures = "0.3.4"
 mobile-entry-point = { git = "ssh://git@bitbucket.org/brainium/mobile-entry-point.git" }
-wgpu = "0.5.0"
+wgpu = { git = "https://github.com/francesca64/wgpu-rs" }
 
 [target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.8.6"
+log = "0.4.8"
+old-glue = { git = "ssh://git@bitbucket.org/brainium/old-glue.git" }
 winit = "0.19.5"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
+env_logger = "0.7.1"
 winit = "0.22.0"

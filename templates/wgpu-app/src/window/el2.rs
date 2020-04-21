@@ -7,6 +7,10 @@ use super::{Event, WindowEvent};
 
 pub type EventLoop = winit::event_loop::EventLoop<()>;
 
+pub fn window_size(window: &Window) -> (u32, u32) {
+    window.inner_size().into()
+}
+
 fn conv_event(event: winit::event::Event<()>) -> Option<Event> {
     fn window_event(event: WindowEvent) -> Option<Event> {
         Some(Event::WindowEvent(event))

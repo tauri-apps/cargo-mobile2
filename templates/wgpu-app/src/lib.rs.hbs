@@ -3,8 +3,14 @@ mod window;
 use self::window::*;
 use mobile_entry_point::mobile_entry_point;
 
+// TODO: how can we detect supported formats dynamically?
+#[cfg(target_os = "android")]
+const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrgb;
+#[cfg(not(target_os = "android"))]
+const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
+
 async fn run(event_loop: EventLoop, window: Window) {
-    let size = window.inner_size();
+    let (width, height) = window_size(&window);
     let surface = wgpu::Surface::create(&window);
 
     let adapter = wgpu::Adapter::request(
@@ -65,7 +71,7 @@ async fn run(event_loop: EventLoop, window: Window) {
         }),
         primitive_topology: wgpu::PrimitiveTopology::TriangleList,
         color_states: &[wgpu::ColorStateDescriptor {
-            format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            format: FORMAT,
             color_blend: wgpu::BlendDescriptor::REPLACE,
             alpha_blend: wgpu::BlendDescriptor::REPLACE,
             write_mask: wgpu::ColorWrite::ALL,
@@ -82,9 +88,9 @@ async fn run(event_loop: EventLoop, window: Window) {
 
     let mut sc_desc = wgpu::SwapChainDescriptor {
         usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-        format: wgpu::TextureFormat::Bgra8UnormSrgb,
-        width: size.width,
-        height: size.height,
+        format: FORMAT,
+        width,
+        height,
         present_mode: wgpu::PresentMode::Mailbox,
     };
 
@@ -92,6 +98,7 @@ async fn run(event_loop: EventLoop, window: Window) {
 
     run_event_loop(event_loop, move |event, control_flow| {
         match event {
+            #[cfg(not(target_os = "android"))]
             Event::MainEventsCleared => window.request_redraw(),
             Event::WindowEvent(WindowEvent::Resized { width, height }) => {
                 sc_desc.width = width;
@@ -130,7 +137,13 @@ async fn run(event_loop: EventLoop, window: Window) {
 
 #[mobile_entry_point]
 fn start_app() {
-    // TODO: use android ver
+    #[cfg(target_os = "android")]
+    android_logger::init_once(
+        android_logger::Config::default()
+            .with_min_level(log::Level::Info)
+            .with_tag("{{app.name}}"),
+    );
+    #[cfg(not(target_os = "android"))]
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()

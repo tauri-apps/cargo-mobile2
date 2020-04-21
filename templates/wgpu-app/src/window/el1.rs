@@ -2,6 +2,13 @@ pub use winit::{EventsLoop as EventLoop, Window, WindowBuilder};
 
 use super::{Event, WindowEvent};
 
+pub fn window_size(window: &Window) -> (u32, u32) {
+    // so, DPI detection on Android is currently unsupported, and
+    // even when that changes, it's not like it'd get backported to
+    // EL1... so, let's take it easy and use the logical size as-is!
+    window.get_inner_size().unwrap().into()
+}
+
 #[derive(Debug)]
 pub enum ControlFlow {
     Poll,
@@ -17,10 +24,8 @@ fn conv_event(event: winit::Event) -> Option<Event> {
         winit::Event::WindowEvent { event, .. } => match event {
             winit::WindowEvent::CloseRequested => window_event(WindowEvent::CloseRequested),
             winit::WindowEvent::Resized(logical_size) => {
-                // so, DPI detection on Android is currently unsupported, and
-                // even when that changes, it's not like it'd get backported to
-                // EL1... so, let's take it easy!
-                let (width, height) = logical_size.to_physical(1.0).into();
+                // see comment in `window_size`
+                let (width, height) = logical_size.into();
                 window_event(WindowEvent::Resized { width, height })
             }
             _ => None,
@@ -29,7 +34,10 @@ fn conv_event(event: winit::Event) -> Option<Event> {
     }
 }
 
-pub fn run_event_loop(event_loop: EventLoop, mut f: impl FnMut(Event, &mut ControlFlow) + 'static) {
+pub fn run_event_loop(
+    mut event_loop: EventLoop,
+    mut f: impl FnMut(Event, &mut ControlFlow) + 'static,
+) {
     let mut control_flow = ControlFlow::Poll;
     while !matches!(control_flow, ControlFlow::Exit) {
         event_loop.poll_events(|event| {
