@@ -1,9 +1,15 @@
 [package]
 name = "{{app.name}}"
 version = "0.1.0"
-authors = ["{{author}}"]
+authors = ["Brainium Studios LLC"]
 edition = "2018"
 build = "gen/build.rs"
+
+[package.metadata.cargo-android]
+features = ["vulkan"]
+
+[package.metadata.cargo-apple.ios]
+features = ["metal"]
 
 [lib]
 crate-type = ["staticlib", "cdylib", "rlib"]

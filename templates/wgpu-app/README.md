@@ -8,4 +8,4 @@ This is just the [`wgpu-rs` triangle example](https://github.com/gfx-rs/wgpu-rs/
   - Use `Rgba8UnormSrgb` instead of `Bgra8UnormSrgb` (ideally, the supported format would be detected dynamically instead)
   - Use winit `0.19` (EL1) instead of `0.22` (EL2), since the latter doesn't yet support Android (fixing this would dramatically simplify things)
 
-To run this on desktop, just do `cargo run` like normal! For mobile, use `cargo apple run` and `cargo android run` respectively (or use `cargo apple open`/`cargo android open` to open in Xcode and Android Studio respectively).
+To run this on desktop, just do `cargo run` like normal! For mobile, use `cargo android run` and `cargo apple run` respectively (or use `cargo android open`/`cargo apple open` to open in Android Studio and Xcode respectively).

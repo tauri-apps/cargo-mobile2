@@ -1,5 +1,5 @@
 use super::{
-    config::Config,
+    config::{Config, Metadata},
     system_profile::{self, DeveloperTools},
 };
 use crate::{
@@ -192,30 +192,32 @@ impl<'a> Target<'a> {
     fn cargo(
         &'a self,
         config: &'a Config,
+        metadata: &'a Metadata,
         subcommand: &'a str,
     ) -> Result<CargoCommand<'a>, VersionCheckError> {
-        let (no_default_features, features) = if self.is_macos() {
-            (config.macos_no_default_features(), config.macos_features())
+        let metadata = if self.is_macos() {
+            &metadata.macos
         } else {
-            (config.ios_no_default_features(), config.ios_features())
+            &metadata.ios
         };
         self.min_xcode_version_satisfied().map(|()| {
             CargoCommand::new(subcommand)
                 .with_package(Some(config.app().name()))
                 .with_manifest_path(Some(config.app().manifest_path()))
                 .with_target(Some(&self.triple))
-                .with_no_default_features(no_default_features)
-                .with_features(Some(features))
+                .with_no_default_features(metadata.no_default_features())
+                .with_features(metadata.features())
         })
     }
 
     pub fn check(
         &self,
         config: &Config,
+        metadata: &Metadata,
         env: &Env,
         noise_level: NoiseLevel,
     ) -> Result<(), CheckError> {
-        self.cargo(config, "check")
+        self.cargo(config, metadata, "check")
             .map_err(CheckError::VersionCheckFailed)?
             .with_verbose(noise_level.pedantic())
             .into_command_pure(env)
@@ -230,6 +232,7 @@ impl<'a> Target<'a> {
     pub fn compile_lib(
         &self,
         config: &Config,
+        metadata: &Metadata,
         noise_level: NoiseLevel,
         interactivity: Interactivity,
         profile: Profile,
@@ -240,7 +243,7 @@ impl<'a> Target<'a> {
         } else {
             "auto"
         };
-        self.cargo(config, "build")
+        self.cargo(config, metadata, "build")
             .map_err(CompileLibError::VersionCheckFailed)?
             .with_verbose(noise_level.pedantic())
             .with_release(profile.release())

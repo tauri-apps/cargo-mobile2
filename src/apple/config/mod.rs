@@ -6,26 +6,37 @@ use crate::{
     config::app::App,
     util::{self, cli::Report},
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
     path::PathBuf,
 };
 
 static DEFAULT_PROJECT_DIR: &'static str = "gen/apple";
-const DEFAULT_IOS_NO_DEFAULT_FEATURES: bool = cfg!(feature = "brainium");
-static DEFAULT_IOS_FEATURES: &'static [&'static str] = {
-    #[cfg(feature = "brainium")]
-    {
-        &["metal"]
+
+#[derive(Debug, Default, Deserialize)]
+pub struct Features {
+    #[serde(default)]
+    features: Option<Vec<String>>,
+}
+
+impl Features {
+    pub fn no_default_features(&self) -> bool {
+        self.features.is_some()
     }
-    #[cfg(not(feature = "brainium"))]
-    {
-        &[]
+
+    pub fn features(&self) -> Option<&[String]> {
+        self.features.as_deref()
     }
-};
-const DEFAULT_MACOS_NO_DEFAULT_FEATURES: bool = false;
-static DEFAULT_MACOS_FEATURES: &'static [&'static str] = DEFAULT_IOS_FEATURES;
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct Metadata {
+    #[serde(default)]
+    pub ios: Features,
+    #[serde(default)]
+    pub macos: Features,
+}
 
 #[derive(Debug)]
 pub enum ProjectDirInvalid {
@@ -91,10 +102,6 @@ pub struct Config {
     app: App,
     development_team: String,
     project_dir: String,
-    ios_no_default_features: bool,
-    ios_features: Vec<String>,
-    macos_no_default_features: bool,
-    macos_features: Vec<String>,
 }
 
 impl Config {
@@ -132,51 +139,10 @@ impl Config {
                 Ok(DEFAULT_PROJECT_DIR.to_owned())
             })?;
 
-        let ios_no_default_features = raw.ios_no_default_features.unwrap_or_else(|| {
-            log::info!(
-                "`{}.ios-no-default-features` not set; defaulting to {:?}",
-                super::NAME,
-                DEFAULT_IOS_NO_DEFAULT_FEATURES
-            );
-            DEFAULT_IOS_NO_DEFAULT_FEATURES
-        });
-        let ios_features = raw.ios_features.unwrap_or_else(|| {
-            log::info!(
-                "`{}.ios-features` not set; defaulting to {:?}",
-                super::NAME,
-                DEFAULT_IOS_FEATURES
-            );
-            DEFAULT_IOS_FEATURES.iter().map(|s| s.to_string()).collect()
-        });
-
-        let macos_no_default_features = raw.macos_no_default_features.unwrap_or_else(|| {
-            log::info!(
-                "`{}.macos-no-default-features` not set; defaulting to {:?}",
-                super::NAME,
-                DEFAULT_MACOS_NO_DEFAULT_FEATURES
-            );
-            DEFAULT_MACOS_NO_DEFAULT_FEATURES
-        });
-        let macos_features = raw.macos_features.unwrap_or_else(|| {
-            log::info!(
-                "`{}.macos-features` not set; defaulting to {:?}",
-                super::NAME,
-                DEFAULT_MACOS_FEATURES
-            );
-            DEFAULT_MACOS_FEATURES
-                .iter()
-                .map(|s| s.to_string())
-                .collect()
-        });
-
         Ok(Self {
             app,
             development_team: raw.development_team,
             project_dir,
-            ios_no_default_features,
-            ios_features,
-            macos_no_default_features,
-            macos_features,
         })
     }
 
@@ -214,21 +180,5 @@ impl Config {
 
     pub fn scheme(&self) -> String {
         format!("{}_iOS", self.app.name())
-    }
-
-    pub fn ios_no_default_features(&self) -> bool {
-        self.ios_no_default_features
-    }
-
-    pub fn ios_features(&self) -> &[String] {
-        &self.ios_features
-    }
-
-    pub fn macos_no_default_features(&self) -> bool {
-        self.macos_no_default_features
-    }
-
-    pub fn macos_features(&self) -> &[String] {
-        &self.macos_features
     }
 }

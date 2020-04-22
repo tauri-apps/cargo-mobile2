@@ -151,12 +151,6 @@ fn unprefix_path(
     .map_err(Into::into)
 }
 
-#[cfg(feature = "brainium")]
-fn detect_author() -> String {
-    "Brainium Studios LLC".to_owned()
-}
-
-#[cfg(not(feature = "brainium"))]
 fn detect_author() -> String {
     let git = Git::new(".".as_ref());
     let name_output = git.user_name().ok();

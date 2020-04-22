@@ -11,17 +11,22 @@ use std::{
 const DEFAULT_MIN_SDK_VERSION: u32 = 24;
 const DEFAULT_VULKAN_VALIDATION: bool = true;
 static DEFAULT_PROJECT_DIR: &'static str = "gen/android";
-const DEFAULT_NO_DEFAULT_FEATURES: bool = cfg!(feature = "brainium");
-static DEFAULT_FEATURES: &'static [&'static str] = {
-    #[cfg(feature = "brainium")]
-    {
-        &["vulkan"]
+
+#[derive(Debug, Default, Deserialize)]
+pub struct Metadata {
+    #[serde(default)]
+    features: Option<Vec<String>>,
+}
+
+impl Metadata {
+    pub fn no_default_features(&self) -> bool {
+        self.features.is_some()
     }
-    #[cfg(not(feature = "brainium"))]
-    {
-        &[]
+
+    pub fn features(&self) -> Option<&[String]> {
+        self.features.as_deref()
     }
-};
+}
 
 #[derive(Debug)]
 pub enum ProjectDirInvalid {
@@ -95,8 +100,6 @@ pub struct Config {
     min_sdk_version: u32,
     vulkan_validation: bool,
     project_dir: PathBuf,
-    no_default_features: bool,
-    features: Vec<String>,
 }
 
 impl Config {
@@ -158,31 +161,11 @@ impl Config {
             Ok(DEFAULT_PROJECT_DIR.into())
         }?;
 
-        let no_default_features = raw.no_default_features.unwrap_or_else(|| {
-            log::info!(
-                "`{}.no-default-features` not set; defaulting to {:?}",
-                super::NAME,
-                DEFAULT_NO_DEFAULT_FEATURES
-            );
-            DEFAULT_NO_DEFAULT_FEATURES
-        });
-
-        let features = raw.features.unwrap_or_else(|| {
-            log::info!(
-                "`{}.features` not set; defaulting to {:?}",
-                super::NAME,
-                DEFAULT_FEATURES
-            );
-            DEFAULT_FEATURES.iter().map(|s| s.to_string()).collect()
-        });
-
         Ok(Self {
             app,
             min_sdk_version,
             vulkan_validation,
             project_dir,
-            no_default_features,
-            features,
         })
     }
 
@@ -198,13 +181,5 @@ impl Config {
         self.app
             .prefix_path(&self.project_dir)
             .join(self.app().name())
-    }
-
-    pub fn no_default_features(&self) -> bool {
-        self.no_default_features
-    }
-
-    pub fn features(&self) -> &[String] {
-        &self.features
     }
 }

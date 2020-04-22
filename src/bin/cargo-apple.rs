@@ -2,13 +2,16 @@
 
 use cargo_mobile::{
     apple::{
-        config::Config,
+        config::{Config, Metadata},
         device::{Device, RunError},
         ios_deploy,
         target::{BuildError, CheckError, CompileLibError, Target},
         NAME,
     },
-    config::{Config as OmniConfig, LoadOrGenError},
+    config::{
+        metadata::{self, Metadata as OmniMetadata},
+        Config as OmniConfig, LoadOrGenError,
+    },
     define_device_prompt,
     device::PromptError,
     env::{Env, Error as EnvError},
@@ -88,6 +91,7 @@ pub enum Error {
     DevicePromptFailed(PromptError<ios_deploy::DeviceListError>),
     TargetInvalid(TargetInvalid),
     ConfigFailed(LoadOrGenError),
+    MetadataFailed(metadata::Error),
     InitFailed(init::Error),
     OpenFailed(bossy::Error),
     CheckFailed(CheckError),
@@ -105,6 +109,7 @@ impl Reportable for Error {
             Self::DevicePromptFailed(err) => err.report(),
             Self::TargetInvalid(err) => Report::error("Specified target was invalid", err),
             Self::ConfigFailed(err) => err.report(),
+            Self::MetadataFailed(err) => err.report(),
             Self::InitFailed(err) => err.report(),
             Self::OpenFailed(err) => Report::error("Failed to open project in Xcode", err),
             Self::CheckFailed(err) => err.report(),
@@ -143,6 +148,18 @@ impl Exec for Input {
             f(config.apple())
         }
 
+        fn with_config_and_metadata(
+            interactivity: opts::Interactivity,
+            wrapper: &TextWrapper,
+            f: impl FnOnce(&Config, &Metadata) -> Result<(), Error>,
+        ) -> Result<(), Error> {
+            with_config(interactivity, wrapper, |config| {
+                let metadata =
+                    OmniMetadata::load(&config.app().root_dir()).map_err(Error::MetadataFailed)?;
+                f(config, &metadata.apple)
+            })
+        }
+
         fn open_in_xcode(config: &Config) -> Result<(), Error> {
             os::open_file_with("Xcode", config.project_dir()).map_err(Error::OpenFailed)
         }
@@ -177,19 +194,21 @@ impl Exec for Input {
                 }
             }
             Command::Open => with_config(interactivity, wrapper, open_in_xcode),
-            Command::Check { targets } => with_config(interactivity, wrapper, |config| {
-                call_for_targets_with_fallback(
-                    targets.iter(),
-                    &detect_target_ok,
-                    &env,
-                    |target: &Target| {
-                        target
-                            .check(config, &env, noise_level)
-                            .map_err(Error::CheckFailed)
-                    },
-                )
-                .map_err(Error::TargetInvalid)?
-            }),
+            Command::Check { targets } => {
+                with_config_and_metadata(interactivity, wrapper, |config, metadata| {
+                    call_for_targets_with_fallback(
+                        targets.iter(),
+                        &detect_target_ok,
+                        &env,
+                        |target: &Target| {
+                            target
+                                .check(config, metadata, &env, noise_level)
+                                .map_err(Error::CheckFailed)
+                        },
+                    )
+                    .map_err(Error::TargetInvalid)?
+                })
+            }
             Command::Build {
                 targets,
                 profile: cli::Profile { profile },
@@ -223,16 +242,20 @@ impl Exec for Input {
                 macos,
                 arch,
                 profile: cli::Profile { profile },
-            } => with_config(interactivity, wrapper, |config| {
+            } => with_config_and_metadata(interactivity, wrapper, |config, metadata| {
                 match macos {
-                    true => {
-                        Target::macos().compile_lib(config, noise_level, interactivity, profile)
-                    }
+                    true => Target::macos().compile_lib(
+                        config,
+                        metadata,
+                        noise_level,
+                        interactivity,
+                        profile,
+                    ),
                     false => Target::for_arch(&arch)
                         .ok_or_else(|| Error::ArchInvalid {
                             arch: arch.to_owned(),
                         })?
-                        .compile_lib(config, noise_level, interactivity, profile),
+                        .compile_lib(config, metadata, noise_level, interactivity, profile),
                 }
                 .map_err(Error::CompileLibFailed)
             }),

@@ -1,4 +1,5 @@
 pub mod app;
+pub mod metadata;
 mod raw;
 
 use self::{app::App, raw::*};

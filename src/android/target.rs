@@ -1,4 +1,8 @@
-use super::{config::Config, env::Env, ndk};
+use super::{
+    config::{Config, Metadata},
+    env::Env,
+    ndk,
+};
 use crate::{
     dot_cargo::DotCargoTarget,
     opts::{Interactivity, NoiseLevel, Profile},
@@ -213,6 +217,7 @@ impl<'a> Target<'a> {
     fn compile_lib(
         &self,
         config: &Config,
+        metadata: &Metadata,
         env: &Env,
         noise_level: NoiseLevel,
         interactivity: Interactivity,
@@ -232,8 +237,8 @@ impl<'a> Target<'a> {
             .with_package(Some(config.app().name()))
             .with_manifest_path(Some(config.app().manifest_path()))
             .with_target(Some(self.triple))
-            .with_no_default_features(config.no_default_features())
-            .with_features(Some(config.features()))
+            .with_no_default_features(metadata.no_default_features())
+            .with_features(metadata.features())
             .with_release(profile.release())
             .into_command_pure(env)
             .with_env_var("ANDROID_NATIVE_API_LEVEL", min_sdk_version.to_string())
@@ -311,12 +316,14 @@ impl<'a> Target<'a> {
     pub fn check(
         &self,
         config: &Config,
+        metadata: &Metadata,
         env: &Env,
         noise_level: NoiseLevel,
         interactivity: Interactivity,
     ) -> Result<(), CompileLibError> {
         self.compile_lib(
             config,
+            metadata,
             env,
             noise_level,
             interactivity,
@@ -328,6 +335,7 @@ impl<'a> Target<'a> {
     pub fn build(
         &self,
         config: &Config,
+        metadata: &Metadata,
         env: &Env,
         noise_level: NoiseLevel,
         interactivity: Interactivity,
@@ -335,6 +343,7 @@ impl<'a> Target<'a> {
     ) -> Result<(), BuildError> {
         self.compile_lib(
             config,
+            metadata,
             env,
             noise_level,
             interactivity,
