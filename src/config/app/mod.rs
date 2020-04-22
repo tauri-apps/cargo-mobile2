@@ -4,13 +4,20 @@ mod raw;
 
 pub use self::raw::*;
 
-use crate::util::{self, cli::Report};
+use crate::{
+    templating::{bundled_pack, BundledPackError, Pack},
+    util::{self, cli::Report},
+};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 pub static KEY: &'static str = "app";
 
 pub static DEFAULT_ASSET_DIR: &'static str = "res";
+#[cfg(feature = "brainium")]
+pub static DEFAULT_TEMPLATE_PACK: &'static str = "rust-lib-app";
+#[cfg(not(feature = "brainium"))]
+pub static DEFAULT_TEMPLATE_PACK: &'static str = "wgpu-app";
 
 #[derive(Debug)]
 pub enum Error {
@@ -26,6 +33,7 @@ pub enum Error {
         asset_dir: PathBuf,
         root_dir: PathBuf,
     },
+    TemplatePackNotFound(BundledPackError),
 }
 
 impl Error {
@@ -58,6 +66,7 @@ impl Error {
                     KEY, asset_dir, root_dir,
                 ),
             ),
+            Self::TemplatePackNotFound(err) => Report::error(msg, err),
         }
     }
 }
@@ -70,6 +79,7 @@ pub struct App {
     stylized_name: String,
     domain: String,
     asset_dir: PathBuf,
+    template_pack: Pack,
 }
 
 impl App {
@@ -115,12 +125,35 @@ impl App {
             });
         }
 
+        #[cfg(feature = "brainium")]
+        let template_pack = {
+            if raw.template_pack.as_deref() == Some(DEFAULT_TEMPLATE_PACK) {
+                log::warn!(
+                    "`{}.template-pack` is set to the default value; you can remove it from your config",
+                    KEY
+                );
+            }
+            raw.template_pack.as_deref().unwrap_or_else(|| {
+                log::info!(
+                    "`{}.template-pack` not set; defaulting to {}",
+                    KEY,
+                    DEFAULT_TEMPLATE_PACK
+                );
+                DEFAULT_TEMPLATE_PACK
+            })
+        };
+        #[cfg(not(feature = "brainium"))]
+        let template_pack = &raw.template_pack;
+
+        let template_pack = bundled_pack(template_pack).map_err(Error::TemplatePackNotFound)?;
+
         Ok(Self {
             root_dir,
             name,
             stylized_name,
             domain,
             asset_dir,
+            template_pack,
         })
     }
 
@@ -164,5 +197,9 @@ impl App {
 
     pub fn asset_dir(&self) -> PathBuf {
         self.root_dir().join(&self.asset_dir)
+    }
+
+    pub fn template_pack(&self) -> &Pack {
+        &self.template_pack
     }
 }

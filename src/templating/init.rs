@@ -8,11 +8,7 @@ use bicycle::{
     },
     Bicycle, EscapeFn, HelperDef, JsonMap,
 };
-use std::{
-    collections::HashMap,
-    fmt::{self, Display},
-    path::{Path, PathBuf},
-};
+use std::collections::HashMap;
 
 fn get_str<'a>(helper: &'a Helper) -> &'a str {
     helper
@@ -196,56 +192,4 @@ pub fn init(config: Option<&Config>) -> Bicycle {
             map
         },
     )
-}
-
-#[derive(Debug)]
-pub struct MissingPack {
-    name: String,
-    tried: PathBuf,
-}
-
-impl Display for MissingPack {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Didn't find {:?} template pack at {:?}",
-            self.name, self.tried
-        )
-    }
-}
-
-pub fn find_pack(dir: impl AsRef<Path>, name: &str) -> Result<PathBuf, MissingPack> {
-    let path = dir.as_ref().join("templates").join(name);
-    log::info!("checking for template pack \"{}\" at {:?}", name, path);
-    if path.exists() {
-        log::info!("found template pack \"{}\" at {:?}", name, path);
-        Ok(path)
-    } else {
-        Err(MissingPack {
-            name: name.to_owned(),
-            tried: path,
-        })
-    }
-}
-
-#[derive(Debug)]
-pub enum BundledPackError {
-    NoHomeDir(util::NoHomeDir),
-    MissingPack(MissingPack),
-}
-
-impl Display for BundledPackError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::NoHomeDir(err) => write!(f, "{}", err),
-            Self::MissingPack(err) => write!(f, "{}", err),
-        }
-    }
-}
-
-pub fn bundled_pack(name: &str) -> Result<PathBuf, BundledPackError> {
-    let dir = util::home_dir()
-        .map(|home| home.join(concat!(".", env!("CARGO_PKG_NAME"))))
-        .map_err(BundledPackError::NoHomeDir)?;
-    find_pack(dir, name).map_err(BundledPackError::MissingPack)
 }

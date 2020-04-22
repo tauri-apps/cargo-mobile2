@@ -10,12 +10,9 @@ use crate::apple;
 use crate::{
     opts::Interactivity,
     templating,
-    util::{
-        cli::{Report, Reportable, TextWrapper},
-        submodule::Submodule,
-    },
+    util::cli::{Report, Reportable, TextWrapper},
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::{
     fmt::Debug,
     io,
@@ -87,43 +84,10 @@ impl Reportable for LoadOrGenError {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct TemplatePack {
-    src: PathBuf,
-    dest: Option<PathBuf>,
-}
-
-impl TemplatePack {
-    pub fn with_src(src: impl Into<PathBuf>) -> Self {
-        Self {
-            src: src.into(),
-            dest: None,
-        }
-    }
-
-    pub fn prefix_src(&self, prefix: &Path, home: &Path) -> PathBuf {
-        if let Ok(src) = self.src.strip_prefix("~") {
-            home.join(src)
-        } else {
-            prefix.join(&self.src)
-        }
-    }
-
-    pub fn prefix_dest(&self, prefix: &Path) -> PathBuf {
-        if let Some(dest) = &self.dest {
-            prefix.join(dest)
-        } else {
-            prefix.to_owned()
-        }
-    }
-}
-
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
     app: App,
-    template_packs: Option<Vec<TemplatePack>>,
-    submodules: Option<Vec<Submodule>>,
     #[cfg(feature = "android")]
     android: android::config::Config,
     #[cfg(feature = "apple")]
@@ -141,8 +105,6 @@ impl Config {
             .map_err(FromRawError::AppleConfigInvalid)?;
         Ok(Self {
             app,
-            template_packs: raw.template_packs,
-            submodules: raw.submodules,
             #[cfg(feature = "android")]
             android,
             #[cfg(feature = "apple")]
@@ -188,14 +150,6 @@ impl Config {
 
     pub fn app(&self) -> &App {
         &self.app
-    }
-
-    pub fn template_packs(&self) -> Option<&Vec<TemplatePack>> {
-        self.template_packs.as_ref()
-    }
-
-    pub fn submodules(&self) -> Option<&Vec<Submodule>> {
-        self.submodules.as_ref()
     }
 
     #[cfg(feature = "android")]

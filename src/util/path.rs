@@ -18,6 +18,16 @@ pub fn home_dir() -> Result<PathBuf, NoHomeDir> {
     dirs::home_dir().ok_or(NoHomeDir)
 }
 
+pub fn expand_home(path: impl AsRef<Path>) -> Result<PathBuf, NoHomeDir> {
+    let home = home_dir()?;
+    let path = path.as_ref();
+    if let Ok(path) = path.strip_prefix("~") {
+        Ok(home.join(path))
+    } else {
+        Ok(path.to_owned())
+    }
+}
+
 #[derive(Debug)]
 pub struct PathNotPrefixed {
     path: PathBuf,

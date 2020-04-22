@@ -103,8 +103,13 @@ pub fn exec(
     #[cfg(feature = "apple")]
     {
         if steps.is_set("apple") {
-            apple::project::gen(config.apple(), config.submodules(), &bike, clobbering)
-                .map_err(Error::AppleInitFailed)?;
+            apple::project::gen(
+                config.apple(),
+                config.app().template_pack().submodule_path(),
+                &bike,
+                clobbering,
+            )
+            .map_err(Error::AppleInitFailed)?;
         }
     }
     if open_in.editor() {

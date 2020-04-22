@@ -1,6 +1,9 @@
 use super::{common_email_providers::COMMON_EMAIL_PROVIDERS, name};
-use crate::util::{cli::TextWrapper, prompt, Git};
-use colored::Colorize as _;
+use crate::{
+    templating,
+    util::{cli::TextWrapper, prompt, Git},
+};
+use colored::{Color, Colorize as _};
 use heck::{KebabCase as _, TitleCase as _};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -113,6 +116,8 @@ pub enum PromptError {
     NamePromptFailed(io::Error),
     StylizedNamePromptFailed(io::Error),
     DomainPromptFailed(io::Error),
+    ListBundledTemplatePacksFailed(templating::ListBundledPackError),
+    TemplatePackPromptFailed(io::Error),
 }
 
 impl Display for PromptError {
@@ -124,6 +129,10 @@ impl Display for PromptError {
                 write!(f, "Failed to prompt for stylized name: {}", err)
             }
             Self::DomainPromptFailed(err) => write!(f, "Failed to prompt for domain: {}", err),
+            Self::ListBundledTemplatePacksFailed(err) => write!(f, "{}", err),
+            Self::TemplatePackPromptFailed(err) => {
+                write!(f, "Failed to prompt for template pack: {}", err)
+            }
         }
     }
 }
@@ -135,6 +144,10 @@ pub struct Raw {
     pub stylized_name: Option<String>,
     pub domain: String,
     pub asset_dir: Option<String>,
+    #[cfg(feature = "brainium")]
+    pub template_pack: Option<String>,
+    #[cfg(not(feature = "brainium"))]
+    pub template_pack: String,
 }
 
 impl Raw {
@@ -145,6 +158,10 @@ impl Raw {
             stylized_name: Some(defaults.stylized_name),
             domain: defaults.domain,
             asset_dir: None,
+            #[cfg(feature = "brainium")]
+            template_pack: None,
+            #[cfg(not(feature = "brainium"))]
+            template_pack: super::DEFAULT_TEMPLATE_PACK.to_owned(),
         })
     }
 
@@ -153,11 +170,15 @@ impl Raw {
         let (name, default_stylized) = Self::prompt_name(wrapper, &defaults)?;
         let stylized_name = Self::prompt_stylized_name(&name, default_stylized)?;
         let domain = Self::prompt_domain(wrapper, &defaults)?;
+        let template_pack = Self::prompt_template_pack(wrapper)?;
+        #[cfg(feature = "brainium")]
+        let template_pack = Some(template_pack).filter(|pack| pack == super::DEFAULT_TEMPLATE_PACK);
         Ok(Self {
             name,
             stylized_name: Some(stylized_name),
             domain,
             asset_dir: None,
+            template_pack,
         })
     }
 }
@@ -236,5 +257,42 @@ impl Raw {
             }
         }
         Ok(domain.unwrap())
+    }
+
+    pub fn prompt_template_pack(wrapper: &TextWrapper) -> Result<String, PromptError> {
+        let packs = templating::list_bundled_packs()
+            .map_err(PromptError::ListBundledTemplatePacksFailed)?;
+        let mut default_pack = None;
+        println!("Detected template packs:");
+        for (index, pack) in packs.iter().enumerate() {
+            println!("  [{}] {}", index.to_string().green(), pack,);
+            if pack == super::DEFAULT_TEMPLATE_PACK {
+                default_pack = Some(index.to_string());
+            }
+        }
+        if packs.is_empty() {
+            println!("  -- none --");
+        }
+        loop {
+            println!("  Enter an {} for a template pack above.", "index".green(),);
+            let pack_input =
+                prompt::default("Template pack", default_pack.as_deref(), Some(Color::Green))
+                    .map_err(PromptError::TemplatePackPromptFailed)?;
+            let pack_name = pack_input
+                .parse::<usize>()
+                .ok()
+                .and_then(|index| packs.get(index))
+                .map(|pack| pack.clone());
+            if let Some(pack_name) = pack_name {
+                break Ok(pack_name);
+            } else {
+                println!(
+                    "{}",
+                    wrapper
+                        .fill("Uh-oh, you need to specify a template pack.")
+                        .bright_magenta()
+                );
+            }
+        }
     }
 }

@@ -6,10 +6,9 @@ use crate::{
     util::{
         cli::{Report, Reportable},
         ln,
-        submodule::Submodule,
     },
 };
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 pub enum Error {
@@ -52,7 +51,7 @@ impl Reportable for Error {
 // TODO: figure out what I meant by that
 pub fn gen(
     config: &Config,
-    submodules: Option<&Vec<Submodule>>,
+    submodule_path: Option<&Path>,
     bike: &bicycle::Bicycle,
     clobbering: Clobbering,
 ) -> Result<(), Error> {
@@ -61,16 +60,12 @@ pub fn gen(
     deps::install(clobbering).map_err(Error::DepsInstallFailed)?;
 
     let source_dirs = std::iter::once("src".into())
-        .chain(
-            submodules
-                .cloned()
-                .unwrap_or_default()
-                .into_iter()
-                .map(|submodule| submodule.path().to_owned()),
-        )
+        .chain(submodule_path.map(|path| path.to_owned()))
         .collect::<Vec<PathBuf>>();
 
-    let src = templating::bundled_pack("xcode-project").map_err(Error::MissingPack)?;
+    let src = templating::bundled_pack("xcode-project")
+        .map_err(Error::MissingPack)?
+        .expect_local();
     let dest = config.project_dir();
     bike.process(src, &dest, |map| {
         map.insert("file-groups", source_dirs.clone());

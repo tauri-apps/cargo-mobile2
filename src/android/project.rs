@@ -57,7 +57,9 @@ pub fn gen(
     _clobbering: opts::Clobbering,
 ) -> Result<(), Error> {
     Target::install_all().map_err(Error::RustupFailed)?;
-    let src = templating::bundled_pack("android-studio-project").map_err(Error::MissingPack)?;
+    let src = templating::bundled_pack("android-studio-project")
+        .map_err(Error::MissingPack)?
+        .expect_local();
     let dest = config.project_dir();
     bike.process(src, &dest, |map| {
         map.insert(
