@@ -22,11 +22,11 @@ impl Display for Error {
         match self {
             Self::CoreEnvError(err) => write!(f, "{}", err),
             Self::AndroidSdkRootNotSet(err) => {
-                write!(f, "The `ANDROID_SDK_ROOT` environment variable isn't set, and is required: {}", err)
+                write!(f, "Have you installed the Android SDK? The `ANDROID_SDK_ROOT` environment variable isn't set, and is required: {}", err)
             }
             Self::AndroidSdkRootNotADir => write!(
                 f,
-                "The `ANDROID_SDK_ROOT` environment variable is set, but doesn't point to an existing directory."
+                "Have you installed the Android SDK? The `ANDROID_SDK_ROOT` environment variable is set, but doesn't point to an existing directory."
             ),
             Self::NdkEnvError(err) => write!(f, "{}", err),
         }

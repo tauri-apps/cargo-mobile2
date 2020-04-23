@@ -169,12 +169,12 @@ impl Display for Error {
         match self {
             Self::NdkHomeNotSet(err) => write!(
                 f,
-                "The `NDK_HOME` environment variable isn't set, and is required: {}",
+                "Have you installed the NDK? The `NDK_HOME` environment variable isn't set, and is required: {}",
                 err,
             ),
             Self::NdkHomeNotADir => write!(
                 f,
-                "The `NDK_HOME` environment variable is set, but doesn't point to an existing directory."
+                "Have you installed the NDK? The `NDK_HOME` environment variable is set, but doesn't point to an existing directory."
             ),
             Self::VersionLookupFailed(err) => {
                 write!(f, "Failed to lookup version of installed NDK: {}", err)
