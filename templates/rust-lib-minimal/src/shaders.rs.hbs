@@ -1,0 +1,11 @@
+use rust_lib::{shader_macros::shader, *};
+
+#[shader("./shaders/swizzle.frag")]
+frag! {
+    pub type SwizzleFrag {
+        type PipelineUniform = SwizzlePU;
+        type DrawUniform = SwizzleDU;
+    }
+}
+
+pub type SwizzleShader = shaders::CustomFrag<SwizzleFrag>;

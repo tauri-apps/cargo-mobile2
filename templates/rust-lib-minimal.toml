@@ -1,0 +1,6 @@
+# path = "rust-lib/templates/rust-lib-minimal"
+path = "~/.cargo-mobile/templates/rust-lib-minimal"
+
+[submodule]
+remote = "git@bitbucket.org:brainium/rust_lib.git"
+path = "rust-lib"
