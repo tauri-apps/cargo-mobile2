@@ -17,7 +17,7 @@ required-features = ["apple"]
 android = ["java-properties"]
 apple = ["openssl", "serde_json"]
 brainium = []
-default = ["android", "apple"]
+default = ["android", "apple", "brainium"]
 
 [dependencies]
 bicycle = { git = "ssh://git@bitbucket.org/brainium/bicycle.git" }

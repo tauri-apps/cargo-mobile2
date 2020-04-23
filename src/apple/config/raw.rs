@@ -74,17 +74,32 @@ impl Raw {
         let development_team = {
             let development_teams =
                 teams::find_development_teams().map_err(PromptError::DeveloperTeamLookupFailed)?;
-            let mut default_team = None;
+            let default_team = if !development_teams.is_empty() {
+                Some("0")
+            } else {
+                None
+            };
             println!("Detected development teams:");
             for (index, team) in development_teams.iter().enumerate() {
-                println!(
-                    "  [{}] {} ({})",
-                    index.to_string().green(),
-                    team.name,
-                    team.id.cyan(),
-                );
-                if development_teams.len() == 1 {
-                    default_team = Some("0");
+                if index == 0 {
+                    println!(
+                        "{}",
+                        format!(
+                            "  [{}] {} ({})",
+                            index.to_string().bright_green(),
+                            team.name,
+                            team.id.bright_cyan(),
+                        )
+                        .bright_white()
+                        .bold()
+                    );
+                } else {
+                    println!(
+                        "  [{}] {} ({})",
+                        index.to_string().green(),
+                        team.name,
+                        team.id.cyan(),
+                    );
                 }
             }
             if development_teams.is_empty() {
@@ -97,9 +112,12 @@ impl Raw {
                     "index".green(),
                     "team ID".cyan(),
                 );
-                let team_input =
-                    prompt::default("Apple development team", default_team, Some(Color::Green))
-                        .map_err(PromptError::DeveloperTeamPromptFailed)?;
+                let team_input = prompt::default(
+                    "Apple development team",
+                    default_team,
+                    Some(Color::BrightGreen),
+                )
+                .map_err(PromptError::DeveloperTeamPromptFailed)?;
                 let team_id = team_input
                     .parse::<usize>()
                     .ok()

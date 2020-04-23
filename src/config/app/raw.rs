@@ -172,7 +172,7 @@ impl Raw {
         let domain = Self::prompt_domain(wrapper, &defaults)?;
         let template_pack = Self::prompt_template_pack(wrapper)?;
         #[cfg(feature = "brainium")]
-        let template_pack = Some(template_pack).filter(|pack| pack == super::DEFAULT_TEMPLATE_PACK);
+        let template_pack = Some(template_pack).filter(|pack| pack != super::DEFAULT_TEMPLATE_PACK);
         Ok(Self {
             name,
             stylized_name: Some(stylized_name),
@@ -264,9 +264,17 @@ impl Raw {
         let mut default_pack = None;
         println!("Detected template packs:");
         for (index, pack) in packs.iter().enumerate() {
-            println!("  [{}] {}", index.to_string().green(), pack,);
-            if pack == super::DEFAULT_TEMPLATE_PACK {
+            let default = pack == super::DEFAULT_TEMPLATE_PACK;
+            if default {
                 default_pack = Some(index.to_string());
+                println!(
+                    "{}",
+                    format!("  [{}] {}", index.to_string().bright_green(), pack,)
+                        .bright_white()
+                        .bold()
+                );
+            } else {
+                println!("  [{}] {}", index.to_string().green(), pack);
             }
         }
         if packs.is_empty() {
@@ -274,9 +282,12 @@ impl Raw {
         }
         loop {
             println!("  Enter an {} for a template pack above.", "index".green(),);
-            let pack_input =
-                prompt::default("Template pack", default_pack.as_deref(), Some(Color::Green))
-                    .map_err(PromptError::TemplatePackPromptFailed)?;
+            let pack_input = prompt::default(
+                "Template pack",
+                default_pack.as_deref(),
+                Some(Color::BrightGreen),
+            )
+            .map_err(PromptError::TemplatePackPromptFailed)?;
             let pack_name = pack_input
                 .parse::<usize>()
                 .ok()

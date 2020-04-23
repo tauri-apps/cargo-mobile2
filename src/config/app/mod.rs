@@ -18,6 +18,8 @@ pub static DEFAULT_ASSET_DIR: &'static str = "res";
 pub static DEFAULT_TEMPLATE_PACK: &'static str = "rust-lib-app";
 #[cfg(not(feature = "brainium"))]
 pub static DEFAULT_TEMPLATE_PACK: &'static str = "wgpu-app";
+#[cfg(feature = "brainium")]
+pub static EXEMPT_TEMPLATE_PACKS: &'static [&'static str] = &["rust-lib-app", "rust-lib-minimal"];
 
 #[derive(Debug)]
 pub enum Error {

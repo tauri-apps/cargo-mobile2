@@ -20,7 +20,7 @@ pub fn default(
 ) -> io::Result<String> {
     if let Some(default) = default {
         let msg = if let Some(default_color) = default_color {
-            format!("{} ({})", msg, default.color(default_color))
+            format!("{} ({})", msg, default.color(default_color).bold())
         } else {
             format!("{} ({})", msg, default)
         };
