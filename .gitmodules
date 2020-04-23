@@ -1,3 +1,0 @@
-[submodule "ci-tools"]
-	path = ci-tools
-	url = ssh://git@bitbucket.org/brainium/ci-tools.git
