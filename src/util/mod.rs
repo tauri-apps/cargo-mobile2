@@ -107,7 +107,8 @@ pub fn pipe(mut tx_command: bossy::Command, rx_command: bossy::Command) -> Resul
         // We try to wait even if the pipe failed, but the pipe error has higher
         // priority than the wait error, since it's likely to be more relevant.
         pipe_result?;
-        Ok(!wait_result?.stdout().is_empty())
+        wait_result?;
+        Ok(true)
     } else {
         Ok(false)
     }
