@@ -2,7 +2,7 @@ use super::{config::Config, deps, target::Target};
 use crate::{
     opts::Clobbering,
     target::TargetTrait as _,
-    templating,
+    templating::{self, Pack},
     util::{
         cli::{Report, Reportable},
         ln,
@@ -10,11 +10,13 @@ use crate::{
 };
 use std::path::{Path, PathBuf};
 
+pub static TEMPLATE_PACK: &'static str = "xcode-project";
+
 #[derive(Debug)]
 pub enum Error {
     RustupFailed(bossy::Error),
     DepsInstallFailed(deps::Error),
-    MissingPack(templating::BundledPackError),
+    MissingPack(templating::LookupError),
     TemplateProcessingFailed(bicycle::ProcessingError),
     SourceDirSymlinkFailed(ln::Error),
     AssetDirSymlinkFailed(ln::Error),
@@ -63,7 +65,7 @@ pub fn gen(
         .chain(submodule_path.map(|path| path.to_owned()))
         .collect::<Vec<PathBuf>>();
 
-    let src = templating::bundled_pack("xcode-project")
+    let src = Pack::lookup(TEMPLATE_PACK)
         .map_err(Error::MissingPack)?
         .expect_local();
     let dest = config.project_dir();

@@ -28,6 +28,10 @@ pub fn expand_home(path: impl AsRef<Path>) -> Result<PathBuf, NoHomeDir> {
     }
 }
 
+pub fn install_dir() -> Result<PathBuf, NoHomeDir> {
+    home_dir().map(|home| home.join(concat!(".", env!("CARGO_PKG_NAME"))))
+}
+
 #[derive(Debug)]
 pub struct PathNotPrefixed {
     path: PathBuf,

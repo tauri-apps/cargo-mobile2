@@ -116,7 +116,7 @@ pub enum PromptError {
     NamePromptFailed(io::Error),
     StylizedNamePromptFailed(io::Error),
     DomainPromptFailed(io::Error),
-    ListBundledTemplatePacksFailed(templating::ListBundledPackError),
+    ListTemplatePacksFailed(templating::ListError),
     TemplatePackPromptFailed(io::Error),
 }
 
@@ -129,7 +129,7 @@ impl Display for PromptError {
                 write!(f, "Failed to prompt for stylized name: {}", err)
             }
             Self::DomainPromptFailed(err) => write!(f, "Failed to prompt for domain: {}", err),
-            Self::ListBundledTemplatePacksFailed(err) => write!(f, "{}", err),
+            Self::ListTemplatePacksFailed(err) => write!(f, "{}", err),
             Self::TemplatePackPromptFailed(err) => {
                 write!(f, "Failed to prompt for template pack: {}", err)
             }
@@ -260,8 +260,7 @@ impl Raw {
     }
 
     pub fn prompt_template_pack(wrapper: &TextWrapper) -> Result<String, PromptError> {
-        let packs = templating::list_bundled_packs()
-            .map_err(PromptError::ListBundledTemplatePacksFailed)?;
+        let packs = templating::list_packs().map_err(PromptError::ListTemplatePacksFailed)?;
         let mut default_pack = None;
         println!("Detected template packs:");
         for (index, pack) in packs.iter().enumerate() {

@@ -5,7 +5,7 @@ mod raw;
 pub use self::raw::*;
 
 use crate::{
-    templating::{bundled_pack, BundledPackError, Pack},
+    templating::{self, Pack},
     util::{self, cli::Report},
 };
 use serde::{Deserialize, Serialize};
@@ -33,7 +33,7 @@ pub enum Error {
         asset_dir: PathBuf,
         root_dir: PathBuf,
     },
-    TemplatePackNotFound(BundledPackError),
+    TemplatePackNotFound(templating::LookupError),
 }
 
 impl Error {
@@ -145,7 +145,7 @@ impl App {
         #[cfg(not(feature = "brainium"))]
         let template_pack = &raw.template_pack;
 
-        let template_pack = bundled_pack(template_pack).map_err(Error::TemplatePackNotFound)?;
+        let template_pack = Pack::lookup(template_pack).map_err(Error::TemplatePackNotFound)?;
 
         Ok(Self {
             root_dir,

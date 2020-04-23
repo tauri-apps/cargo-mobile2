@@ -2,7 +2,7 @@ use super::{config::Config, env::Env, ndk, target::Target};
 use crate::{
     dot_cargo, opts,
     target::TargetTrait as _,
-    templating,
+    templating::{self, Pack},
     util::{
         self,
         cli::{Report, Reportable},
@@ -14,7 +14,7 @@ use std::{fs, path::PathBuf};
 #[derive(Debug)]
 pub enum Error {
     RustupFailed(bossy::Error),
-    MissingPack(templating::BundledPackError),
+    MissingPack(templating::LookupError),
     TemplateProcessingFailed(bicycle::ProcessingError),
     DirectoryCreationFailed {
         path: PathBuf,
@@ -57,7 +57,7 @@ pub fn gen(
     _clobbering: opts::Clobbering,
 ) -> Result<(), Error> {
     Target::install_all().map_err(Error::RustupFailed)?;
-    let src = templating::bundled_pack("android-studio-project")
+    let src = Pack::lookup("android-studio-project")
         .map_err(Error::MissingPack)?
         .expect_local();
     let dest = config.project_dir();
