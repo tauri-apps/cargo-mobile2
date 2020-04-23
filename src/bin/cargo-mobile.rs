@@ -53,12 +53,15 @@ pub enum Command {
     },
     #[structopt(name = "open", about = "Open project in default code editor")]
     Open,
+    #[structopt(name = "update", about = "Update `cargo-mobile`")]
+    Update,
 }
 
 #[derive(Debug)]
 pub enum Error {
     InitFailed(init::Error),
     OpenFailed(util::OpenInEditorError),
+    UpdateFailed(bossy::Error),
 }
 
 impl Reportable for Error {
@@ -68,6 +71,7 @@ impl Reportable for Error {
             Self::OpenFailed(err) => {
                 Report::error("Failed to open project in default code editor", err)
             }
+            Self::UpdateFailed(err) => Report::error("Failed to update `cargo-mobile`", err),
         }
     }
 }
@@ -94,6 +98,16 @@ impl Exec for Input {
                 .map(|_| ())
                 .map_err(Error::InitFailed),
             Command::Open => util::open_in_editor(".").map_err(Error::OpenFailed),
+            Command::Update => bossy::Command::impure("cargo")
+                .with_args(&[
+                    "install",
+                    "--force",
+                    "--git",
+                    "ssh://git@bitbucket.org/brainium/cargo-mobile.git",
+                ])
+                .run_and_wait()
+                .map(|_| ())
+                .map_err(Error::UpdateFailed),
         }
     }
 }
