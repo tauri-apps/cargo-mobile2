@@ -9,7 +9,9 @@ fn main() {
         .join(format!(".{}/templates", pkg_name));
     let actions = bicycle::traverse(&src, &dest, bicycle::no_transform, None)
         .expect("failed to traverse src templates dir");
-    std::fs::remove_dir_all(&dest).expect("failed to delete old templates");
+    if dest.is_dir() {
+        std::fs::remove_dir_all(&dest).expect("failed to delete old templates");
+    }
     let bike = bicycle::Bicycle::default();
     bike.process_actions(
         actions.iter().inspect(|action| match action {
