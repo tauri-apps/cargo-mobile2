@@ -1,5 +1,6 @@
 use crate::util;
 use heck::{KebabCase as _, SnekCase as _};
+use reserved_names::{is_reserved, Reservation};
 use std::{
     fmt::{self, Display},
     ops::Deref,
@@ -74,6 +75,15 @@ impl Display for Invalid {
 }
 
 impl Invalid {
+    fn from_reservation(reservation: Reservation, app_name: impl Into<String>) -> Self {
+        let app_name = app_name.into();
+        match reservation {
+            Reservation::Keywords => Self::ReservedKeyword { app_name },
+            Reservation::Windows => Self::ReservedWindows { app_name },
+            Reservation::Artifacts => Self::ReservedArtifacts { app_name },
+        }
+    }
+
     pub fn suggested(&self) -> Option<&str> {
         match self {
             Invalid::NotAscii { suggested, .. } => suggested.as_ref(),
@@ -157,33 +167,28 @@ fn validate_non_recursive<T: Deref<Target = str>>(app_name: T) -> Result<T, Inva
                     app_name: app_name.to_owned(),
                     suggested: None,
                 })
-            } else if reserved_names::in_keywords(&app_name.deref()) {
-                Err(Invalid::ReservedKeyword {
-                    app_name: app_name.to_owned(),
-                })
-            } else if reserved_names::in_windows(&app_name.deref()) {
-                Err(Invalid::ReservedWindows {
-                    app_name: app_name.to_owned(),
-                })
-            } else if reserved_names::in_artifacts(&app_name.deref()) {
-                Err(Invalid::ReservedArtifacts {
-                    app_name: app_name.to_owned(),
-                })
             } else {
-                if app_name.chars().all(|c| char_allowed(c)) {
-                    Ok(app_name)
-                } else {
-                    let mut naughty_chars = Vec::new();
-                    for c in app_name.chars().filter(|c| char_naughty(*c)) {
-                        if !naughty_chars.contains(&c) {
-                            naughty_chars.push(c);
+                match is_reserved(&app_name.deref()) {
+                    Ok(()) => {
+                        if app_name.chars().all(|c| char_allowed(c)) {
+                            Ok(app_name)
+                        } else {
+                            let mut naughty_chars = Vec::new();
+                            for c in app_name.chars().filter(|c| char_naughty(*c)) {
+                                if !naughty_chars.contains(&c) {
+                                    naughty_chars.push(c);
+                                }
+                            }
+                            Err(Invalid::NotAlphanumericHyphenOrUnderscore {
+                                app_name: app_name.to_owned(),
+                                naughty_chars,
+                                suggested: None,
+                            })
                         }
                     }
-                    Err(Invalid::NotAlphanumericHyphenOrUnderscore {
-                        app_name: app_name.to_owned(),
-                        naughty_chars,
-                        suggested: None,
-                    })
+                    Err(reservation) => {
+                        Err(Invalid::from_reservation(reservation, app_name.deref()))
+                    }
                 }
             }
         } else {

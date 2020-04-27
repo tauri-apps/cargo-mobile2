@@ -797,7 +797,7 @@ checksum = "7fe5bd57d1d7414c6b5ed48563a2c855d995ff777729dcd91c369ec7fea395ae"
 [[package]]
 name = "reserved-names"
 version = "0.1.0"
-source = "git+ssh://git@bitbucket.org/brainium/reserved-names.git#3a90566e85ee697494a9c3396d21d6d36f1c6d05"
+source = "git+ssh://git@bitbucket.org/brainium/reserved-names.git#5599f282e45101985e6a5c28d4c8ea5f35341db5"
 
 [[package]]
 name = "rust-argon2"
