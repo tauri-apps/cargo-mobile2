@@ -5,22 +5,6 @@ use std::{
     ops::Deref,
 };
 
-// https://github.com/rust-lang/cargo/blob/5fe8ab57e2a88ccaaab0821c306203eb19edf8fd/src/cargo/util/restricted_names.rs
-static RESERVED_KEYWORDS: &'static [&'static str] = &[
-    "Self", "abstract", "as", "async", "await", "become", "box", "break", "const", "continue",
-    "crate", "do", "dyn", "else", "enum", "extern", "false", "final", "fn", "for", "if", "impl",
-    "in", "let", "loop", "macro", "match", "mod", "move", "mut", "override", "priv", "pub", "ref",
-    "return", "self", "static", "struct", "super", "trait", "true", "try", "type", "typeof",
-    "unsafe", "unsized", "use", "virtual", "where", "while", "yield",
-];
-
-static RESERVED_WINDOWS: &'static [&'static str] = &[
-    "con", "prn", "aux", "nul", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8",
-    "com9", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9",
-];
-
-static RESERVED_ARTIFACTS: &'static [&'static str] = &["deps", "examples", "build", "incremental"];
-
 #[derive(Debug)]
 pub enum Invalid {
     Empty,
@@ -173,15 +157,15 @@ fn validate_non_recursive<T: Deref<Target = str>>(app_name: T) -> Result<T, Inva
                     app_name: app_name.to_owned(),
                     suggested: None,
                 })
-            } else if RESERVED_KEYWORDS.contains(&app_name.deref()) {
+            } else if reserved_names::in_keywords(&app_name.deref()) {
                 Err(Invalid::ReservedKeyword {
                     app_name: app_name.to_owned(),
                 })
-            } else if RESERVED_WINDOWS.contains(&app_name.deref()) {
+            } else if reserved_names::in_windows(&app_name.deref()) {
                 Err(Invalid::ReservedWindows {
                     app_name: app_name.to_owned(),
                 })
-            } else if RESERVED_ARTIFACTS.contains(&app_name.deref()) {
+            } else if reserved_names::in_artifacts(&app_name.deref()) {
                 Err(Invalid::ReservedArtifacts {
                     app_name: app_name.to_owned(),
                 })
