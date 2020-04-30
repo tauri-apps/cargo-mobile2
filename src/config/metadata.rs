@@ -32,7 +32,7 @@ impl Reportable for Error {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct Metadata {
     #[cfg(feature = "android")]
     #[serde(default, rename = "cargo-android")]
@@ -46,7 +46,8 @@ impl Metadata {
     pub fn load(project_root: &Path) -> Result<Self, Error> {
         #[derive(Debug, Deserialize)]
         struct Package {
-            metadata: Metadata,
+            #[serde(default)]
+            metadata: Option<Metadata>,
         }
 
         #[derive(Debug, Deserialize)]
@@ -61,6 +62,6 @@ impl Metadata {
         })?;
         let cargo_toml = toml::from_slice::<CargoToml>(&bytes)
             .map_err(|cause| Error::ParseFailed { path, cause })?;
-        Ok(cargo_toml.package.metadata)
+        Ok(cargo_toml.package.metadata.unwrap_or_default())
     }
 }
