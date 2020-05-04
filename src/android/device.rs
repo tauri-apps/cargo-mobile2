@@ -63,6 +63,7 @@ pub enum RunError {
     ApkInstallFailed(ApkInstallError),
     StartFailed(bossy::Error),
     WakeScreenFailed(bossy::Error),
+    LogcatFailed(bossy::Error),
 }
 
 impl Reportable for RunError {
@@ -72,6 +73,7 @@ impl Reportable for RunError {
             Self::ApkInstallFailed(err) => err.report(),
             Self::StartFailed(err) => Report::error("Failed to start app on device", err),
             Self::WakeScreenFailed(err) => Report::error("Failed to wake device screen", err),
+            Self::LogcatFailed(err) => Report::error("Failed to log output", err),
         }
     }
 }
@@ -200,7 +202,21 @@ impl<'a> Device<'a> {
             .with_args(&["shell", "am", "start", "-n", &activity])
             .run_and_wait()
             .map_err(RunError::StartFailed)?;
-        self.wake_screen(env).map_err(RunError::WakeScreenFailed)
+        self.wake_screen(env).map_err(RunError::WakeScreenFailed)?;
+        let filter = format!(
+            "{}:{}",
+            config.app().name(),
+            match noise_level {
+                NoiseLevel::Polite => "W",
+                NoiseLevel::LoudAndProud => "I",
+                NoiseLevel::FranklyQuitePedantic => "V",
+            },
+        );
+        adb::adb(env, &self.serial_no)
+            .with_args(&["logcat", "-v", "color", "-s", &filter])
+            .run_and_wait()
+            .map_err(RunError::LogcatFailed)?;
+        Ok(())
     }
 
     pub fn stacktrace(&self, config: &Config, env: &Env) -> Result<(), StacktraceError> {
