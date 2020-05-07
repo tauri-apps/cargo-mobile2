@@ -163,9 +163,14 @@ impl<'a> Device<'a> {
     ) -> Result<(), ApkInstallError> {
         let flavor = self.target.arch;
         let build_ty = profile.as_str();
+        let apk_suffix = match profile {
+            Profile::Debug => build_ty,
+            // TODO: how to handle signed APKs?
+            Profile::Release => "release-unsigned",
+        };
         let apk_path = config.project_dir().join(format!(
             "app/build/outputs/apk/{}/{}/app-{}-{}.apk",
-            flavor, build_ty, flavor, build_ty
+            flavor, build_ty, flavor, apk_suffix
         ));
         self.adb(env)
             .with_arg("install")

@@ -1,7 +1,9 @@
-mod window;
-
-use self::window::*;
 use mobile_entry_point::mobile_entry_point;
+use winit::{
+    event::{Event, WindowEvent},
+    event_loop::{ControlFlow, EventLoop},
+    window::{Window, WindowBuilder},
+};
 
 // TODO: how can we detect supported formats dynamically?
 #[cfg(target_os = "android")]
@@ -9,8 +11,8 @@ const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrgb;
 #[cfg(not(target_os = "android"))]
 const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
 
-async fn run(event_loop: EventLoop, window: Window) {
-    let (width, height) = window_size(&window);
+async fn run(event_loop: EventLoop<()>, window: Window) {
+    let (width, height) = window.inner_size().into();
     let surface = wgpu::Surface::create(&window);
 
     let adapter = wgpu::Adapter::request(
@@ -96,41 +98,50 @@ async fn run(event_loop: EventLoop, window: Window) {
 
     let mut swap_chain = device.create_swap_chain(&surface, &sc_desc);
 
-    run_event_loop(event_loop, move |event, control_flow| {
+    event_loop.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Poll;
+
+        let mut render = || {
+            let frame = swap_chain
+                .get_next_texture()
+                .expect("Timeout when acquiring next swap chain texture");
+            let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: None,
+            });
+            {
+                let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+                        attachment: &frame.view,
+                        resolve_target: None,
+                        load_op: wgpu::LoadOp::Clear,
+                        store_op: wgpu::StoreOp::Store,
+                        clear_color: wgpu::Color::GREEN,
+                    }],
+                    depth_stencil_attachment: None,
+                });
+                rpass.set_pipeline(&render_pipeline);
+                rpass.set_bind_group(0, &bind_group, &[]);
+                rpass.draw(0 .. 3, 0 .. 1);
+            }
+
+            queue.submit(&[encoder.finish()]);
+        };
+
         match event {
-            #[cfg(not(target_os = "android"))]
-            Event::MainEventsCleared => window.request_redraw(),
-            Event::WindowEvent(WindowEvent::Resized { width, height }) => {
-                sc_desc.width = width;
-                sc_desc.height = height;
+            Event::MainEventsCleared => if cfg!(target_os = "android") {
+                // TODO: `request_redraw` isn't impld in winit's Android backend
+                render();
+            } else {
+                window.request_redraw();
+            },
+            Event::WindowEvent { event: WindowEvent::Resized(size), .. } => {
+                sc_desc.width = size.width;
+                sc_desc.height = size.height;
                 swap_chain = device.create_swap_chain(&surface, &sc_desc);
             }
-            Event::RedrawRequested => {
-                let frame = swap_chain
-                    .get_next_texture()
-                    .expect("Timeout when acquiring next swap chain texture");
-                let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: None,
-                });
-                {
-                    let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                            attachment: &frame.view,
-                            resolve_target: None,
-                            load_op: wgpu::LoadOp::Clear,
-                            store_op: wgpu::StoreOp::Store,
-                            clear_color: wgpu::Color::GREEN,
-                        }],
-                        depth_stencil_attachment: None,
-                    });
-                    rpass.set_pipeline(&render_pipeline);
-                    rpass.set_bind_group(0, &bind_group, &[]);
-                    rpass.draw(0 .. 3, 0 .. 1);
-                }
-
-                queue.submit(&[encoder.finish()]);
-            }
-            Event::WindowEvent(WindowEvent::CloseRequested) => *control_flow = ControlFlow::Exit,
+            Event::RedrawRequested(_) => render(),
+            Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => *control_flow = ControlFlow::Exit,
+            _ => (),
         }
     });
 }
@@ -150,5 +161,9 @@ fn start_app() {
         .with_title("{{app.stylized-name}}")
         .build(&event_loop)
         .unwrap();
+    // TODO: if we pass the surface to wgpu too soon, the native window won't
+    // be set yet and we'll hit a panic... this needs to be solved correctly!
+    #[cfg(target_os = "android")]
+    std::thread::sleep_ms(2000);
     futures::executor::block_on(run(event_loop, window));
 }

@@ -6,6 +6,7 @@ This is just the [`wgpu-rs` triangle example](https://github.com/gfx-rs/wgpu-rs/
 - Changes conditionally compiled on Android:
   - Use `android_logger` instead of `env_logger`
   - Use `Rgba8UnormSrgb` instead of `Bgra8UnormSrgb` (ideally, the supported format would be detected dynamically instead)
-  - Use winit `0.19` (EL1) instead of `0.22` (EL2), since the latter doesn't yet support Android (fixing this would dramatically simplify things)
+  - Use `std::thread::sleep` to shoddily workaround a race condition (oh dear)
+  - Render directly upon `MainEventsCleared` instead of calling `request_redraw`, since winit doesn't implement that method on Android yet
 
 To run this on desktop, just do `cargo run` like normal! For mobile, use `cargo android run` and `cargo apple run` respectively (or use `cargo android open`/`cargo apple open` to open in Android Studio and Xcode respectively).
