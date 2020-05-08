@@ -277,7 +277,7 @@ impl<'a> Target<'a> {
         profile: Profile,
     ) -> Result<(), ArchiveError> {
         let configuration = profile.as_str();
-        let archive_path = config.export_dir().join(&config.scheme());
+        let archive_path = config.archive_dir().join(&config.scheme());
         bossy::Command::pure("xcodebuild")
             .with_env_vars(env.explicit_env())
             .with_args(&["-scheme", &config.scheme()])
@@ -291,9 +291,17 @@ impl<'a> Target<'a> {
             .with_arg(&archive_path)
             .run_and_wait()
             .map_err(ArchiveError::ArchiveFailed)?;
+        Ok(())
+    }
+
+    pub fn export(
+        &self,
+        config: &Config,
+        env: &Env,
+    ) -> Result<(), ArchiveError> { // TODO Separate ArchiveError and ExportError
         // Super fun discrepancy in expectation of `-archivePath` value
         let archive_path = config
-            .export_dir()
+            .archive_dir()
             .join(&format!("{}.xcarchive", config.scheme()));
         bossy::Command::pure("xcodebuild")
             .with_env_vars(env.explicit_env())

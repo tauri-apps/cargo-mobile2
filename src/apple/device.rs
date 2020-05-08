@@ -64,6 +64,9 @@ impl<'a> Device<'a> {
         self.target
             .archive(config, env, profile)
             .map_err(RunError::ArchiveFailed)?;
+        self.target
+            .export(config, env)
+            .map_err(RunError::ArchiveFailed)?;
         bossy::Command::pure("unzip")
             .with_env_vars(env.explicit_env())
             .with_arg("-o") // -o = always overwrite
