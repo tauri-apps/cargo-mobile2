@@ -5,7 +5,7 @@ use cargo_mobile::{
         config::{Config, Metadata},
         device::{Device, RunError},
         ios_deploy,
-        target::{BuildError, ArchiveError, CheckError, CompileLibError, Target},
+        target::{BuildError, ArchiveError, ExportError, CheckError, CompileLibError, Target},
         NAME,
     },
     config::{
@@ -103,6 +103,7 @@ pub enum Error {
     CheckFailed(CheckError),
     BuildFailed(BuildError),
     ArchiveFailed(ArchiveError),
+    ExportFailed(ExportError),
     RunFailed(RunError),
     ListFailed(ios_deploy::DeviceListError),
     ArchInvalid { arch: String },
@@ -122,6 +123,7 @@ impl Reportable for Error {
             Self::CheckFailed(err) => err.report(),
             Self::BuildFailed(err) => err.report(),
             Self::ArchiveFailed(err) => err.report(),
+            Self::ExportFailed(err) => err.report(),
             Self::RunFailed(err) => err.report(),
             Self::ListFailed(err) => err.report(),
             Self::ArchInvalid { arch } => Report::error(

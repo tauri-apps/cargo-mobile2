@@ -1,6 +1,6 @@
 use super::{
     config::Config,
-    target::{ArchiveError, BuildError, Target},
+    target::{ArchiveError, BuildError, ExportError, Target},
 };
 use crate::{
     env::{Env, ExplicitEnv as _},
@@ -13,6 +13,7 @@ use std::fmt::{self, Display};
 pub enum RunError {
     BuildFailed(BuildError),
     ArchiveFailed(ArchiveError),
+    ExportFailed(ExportError),
     UnzipFailed(bossy::Error),
     DeployFailed(bossy::Error),
 }
@@ -22,6 +23,7 @@ impl Reportable for RunError {
         match self {
             Self::BuildFailed(err) => err.report(),
             Self::ArchiveFailed(err) => err.report(),
+            Self::ExportFailed(err) => err.report(),
             Self::UnzipFailed(err) => Report::error("Failed to unzip archive", err),
             Self::DeployFailed(err) => Report::error("Failed to deploy app via `ios-deploy`", err),
         }
@@ -66,7 +68,7 @@ impl<'a> Device<'a> {
             .map_err(RunError::ArchiveFailed)?;
         self.target
             .export(config, env)
-            .map_err(RunError::ArchiveFailed)?;
+            .map_err(RunError::ExportFailed)?;
         bossy::Command::pure("unzip")
             .with_env_vars(env.explicit_env())
             .with_arg("-o") // -o = always overwrite
