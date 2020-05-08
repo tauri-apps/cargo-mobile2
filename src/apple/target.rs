@@ -270,7 +270,7 @@ impl<'a> Target<'a> {
         Ok(())
     }
 
-    pub(super) fn archive(
+    pub fn archive(
         &self,
         config: &Config,
         env: &Env,
