@@ -63,6 +63,7 @@ pub enum Command {
         #[structopt(flatten)]
         profile: cli::Profile,
     },
+    #[structopt(name = "archive", about = "Builds and archives for targets(s)")]
     Archive {
         #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = Target::name_list())]
         targets: Vec<String>,
