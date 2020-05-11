@@ -31,6 +31,8 @@ pub enum Error {
         asset_dir: PathBuf,
         cause: io::Error,
     },
+    CodeCommandPresentFailed(bossy::Error),
+    LldbExtensionInstallFailed(bossy::Error),
     #[cfg(feature = "android")]
     AndroidEnvFailed(android::env::Error),
     #[cfg(feature = "android")]
@@ -48,6 +50,8 @@ impl Reportable for Error {
             Self::SkipParseFailed(err) => Report::error("Failed to parse `skip` step list", err),
             Self::ProjectInitFailed(err) => err.report(),
             Self::AssetDirCreationFailed { asset_dir, cause } => Report::error(format!("Failed to create asset dir {:?}", asset_dir), cause),
+            Self::CodeCommandPresentFailed(err) => Report::error("Failed to check for presence of `code` command", err),
+            Self::LldbExtensionInstallFailed(err) => Report::error("Failed to install CodeLLDB extension", err),
             #[cfg(feature = "android")]
             Self::AndroidEnvFailed(err) => err.report(),
             #[cfg(feature = "android")]
@@ -90,6 +94,16 @@ pub fn exec(
         if !asset_dir.is_dir() {
             fs::create_dir_all(&asset_dir)
                 .map_err(|cause| Error::AssetDirCreationFailed { asset_dir, cause })?;
+        }
+        if util::command_present("code").map_err(Error::CodeCommandPresentFailed)? {
+            let mut command = bossy::Command::impure("code")
+                .with_args(&["--install-extension", "vadimcn.vscode-lldb"]);
+            if interactivity.none() {
+                command.add_arg("--force");
+            }
+            command
+                .run_and_wait()
+                .map_err(Error::LldbExtensionInstallFailed)?;
         }
     }
     #[cfg(feature = "android")]
