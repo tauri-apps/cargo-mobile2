@@ -5,7 +5,7 @@ use cargo_mobile::{
         config::{Config, Metadata},
         device::{Device, RunError},
         ios_deploy,
-        target::{BuildError, CheckError, CompileLibError, Target},
+        target::{BuildError, ArchiveError, ExportError, CheckError, CompileLibError, Target},
         NAME,
     },
     config::{
@@ -63,6 +63,13 @@ pub enum Command {
         #[structopt(flatten)]
         profile: cli::Profile,
     },
+    #[structopt(name = "archive", about = "Builds and archives for targets(s)")]
+    Archive {
+        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = Target::name_list())]
+        targets: Vec<String>,
+        #[structopt(flatten)]
+        profile: cli::Profile,
+    },
     #[structopt(name = "run", about = "Deploys IPA to connected device")]
     Run {
         #[structopt(flatten)]
@@ -96,6 +103,8 @@ pub enum Error {
     OpenFailed(bossy::Error),
     CheckFailed(CheckError),
     BuildFailed(BuildError),
+    ArchiveFailed(ArchiveError),
+    ExportFailed(ExportError),
     RunFailed(RunError),
     ListFailed(ios_deploy::DeviceListError),
     ArchInvalid { arch: String },
@@ -114,6 +123,8 @@ impl Reportable for Error {
             Self::OpenFailed(err) => Report::error("Failed to open project in Xcode", err),
             Self::CheckFailed(err) => err.report(),
             Self::BuildFailed(err) => err.report(),
+            Self::ArchiveFailed(err) => err.report(),
+            Self::ExportFailed(err) => err.report(),
             Self::RunFailed(err) => err.report(),
             Self::ListFailed(err) => err.report(),
             Self::ArchInvalid { arch } => Report::error(
@@ -221,6 +232,25 @@ impl Exec for Input {
                         target
                             .build(config, &env, profile)
                             .map_err(Error::BuildFailed)
+                    },
+                )
+                .map_err(Error::TargetInvalid)?
+            }),
+            Command::Archive {
+                targets,
+                profile: cli::Profile { profile },
+            } => with_config(interactivity, wrapper, |config| {
+                call_for_targets_with_fallback(
+                    targets.iter(),
+                    &detect_target_ok,
+                    &env,
+                    |target: &Target| {
+                        target
+                            .build(config, &env, profile)
+                            .map_err(Error::BuildFailed)?;
+                        target
+                            .archive(config, &env, profile)
+                            .map_err(Error::ArchiveFailed)
                     },
                 )
                 .map_err(Error::TargetInvalid)?
