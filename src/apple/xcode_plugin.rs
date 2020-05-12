@@ -196,7 +196,7 @@ fn check_uuid(
                 "Your Xcode UUID ({}) isn't supported by `rust-xcode-plugin`; skipping installation",
                 uuid
             ),
-            "You won't be able to set breakpoints until this is resolved! Please open an issue at https://github.com/mtak-/rust-xcode-plugin",
+            "You won't be able to set breakpoints in Xcode until this is resolved! Please open an issue at https://github.com/mtak-/rust-xcode-plugin",
         );
         eprintln!("{}", report.render(&wrapper, interactivity));
         Ok(false)
