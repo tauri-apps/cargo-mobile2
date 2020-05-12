@@ -6,5 +6,6 @@ pub mod project;
 pub mod system_profile;
 pub mod target;
 pub mod teams;
+mod xcode_plugin;
 
 pub static NAME: &'static str = "apple";

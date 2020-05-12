@@ -18,6 +18,10 @@ impl<'a> Git<'a> {
             .with_arg(self.root)
     }
 
+    pub fn command_parse(&self, arg_str: impl AsRef<str>) -> bossy::Command {
+        self.command().with_parsed_args(arg_str)
+    }
+
     pub fn init(&self) -> bossy::Result<()> {
         if !self.root.join(".git").exists() {
             self.command().with_arg("init").run_and_wait()?;

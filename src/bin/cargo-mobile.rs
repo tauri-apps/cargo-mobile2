@@ -94,7 +94,7 @@ impl Exec for Input {
                 open,
                 only,
                 skip,
-            } => init::exec(interactivity, clobbering, open, only, skip, wrapper)
+            } => init::exec(wrapper, interactivity, clobbering, open, only, skip, ".")
                 .map(|_| ())
                 .map_err(Error::InitFailed),
             Command::Open => util::open_in_editor(".").map_err(Error::OpenFailed),

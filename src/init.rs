@@ -11,7 +11,10 @@ use crate::{
         cli::{Report, Reportable, TextWrapper},
     },
 };
-use std::{fs, io, path::PathBuf};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 pub static STEPS: &'static [&'static str] = &[
     "project",
@@ -64,15 +67,17 @@ impl Reportable for Error {
 }
 
 pub fn exec(
+    wrapper: &TextWrapper,
     interactivity: opts::Interactivity,
     clobbering: opts::Clobbering,
     open_in: opts::OpenIn,
     only: Option<Vec<String>>,
     skip: Option<Vec<String>>,
-    wrapper: &TextWrapper,
+    cwd: impl AsRef<Path>,
 ) -> Result<Config, Error> {
+    let cwd = cwd.as_ref();
     let config =
-        Config::load_or_gen(".", interactivity, wrapper).map_err(Error::ConfigLoadOrGenFailed)?;
+        Config::load_or_gen(cwd, interactivity, wrapper).map_err(Error::ConfigLoadOrGenFailed)?;
     let bike = config.build_a_bike();
     let step_registry = steps::Registry::new(STEPS);
     let steps = {
@@ -121,13 +126,15 @@ pub fn exec(
                 config.apple(),
                 config.app().template_pack().submodule_path(),
                 &bike,
+                wrapper,
+                interactivity,
                 clobbering,
             )
             .map_err(Error::AppleInitFailed)?;
         }
     }
     if open_in.editor() {
-        util::open_in_editor(".").map_err(Error::OpenInEditorFailed)?;
+        util::open_in_editor(cwd).map_err(Error::OpenInEditorFailed)?;
     }
     Ok(config)
 }

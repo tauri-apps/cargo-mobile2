@@ -1,4 +1,8 @@
-use crate::{opts::Clobbering, util};
+use super::xcode_plugin;
+use crate::{
+    opts::{Clobbering, Interactivity},
+    util::{self, cli::TextWrapper},
+};
 use std::fmt::{self, Display};
 
 #[derive(Debug)]
@@ -7,6 +11,7 @@ pub enum Error {
     XcodeGenInstallFailed(bossy::Error),
     IosDeployPresenceCheckFailed(bossy::Error),
     IosDeployInstallFailed(bossy::Error),
+    XcodeRustPluginInstallFailed(xcode_plugin::Error),
 }
 
 impl Display for Error {
@@ -22,12 +27,16 @@ impl Display for Error {
             Self::IosDeployInstallFailed(err) => {
                 write!(f, "Failed to install `ios-deploy`: {}", err)
             }
+            Self::XcodeRustPluginInstallFailed(err) => write!(f, "{}", err),
         }
     }
 }
 
-// TODO: We should probably also try to install `rust-xcode-plugin`
-pub fn install(clobbering: Clobbering) -> Result<(), Error> {
+pub fn install(
+    wrapper: &TextWrapper,
+    interactivity: Interactivity,
+    clobbering: Clobbering,
+) -> Result<(), Error> {
     let xcodegen_found =
         util::command_present("xcodegen").map_err(Error::XcodeGenPresenceCheckFailed)?;
     if !xcodegen_found || clobbering.allowed() {
@@ -45,6 +54,11 @@ pub fn install(clobbering: Clobbering) -> Result<(), Error> {
             .with_args(&["reinstall", "ios-deploy"])
             .run_and_wait()
             .map_err(Error::IosDeployInstallFailed)?;
+    }
+    // we definitely don't want to install this on CI...
+    if interactivity.full() {
+        xcode_plugin::install(wrapper, interactivity, clobbering)
+            .map_err(Error::XcodeRustPluginInstallFailed)?;
     }
     Ok(())
 }

@@ -179,12 +179,13 @@ impl Exec for Input {
                 open,
             } => {
                 let config = init::exec(
+                    wrapper,
                     interactivity,
                     clobbering,
                     opts::OpenIn::Nothing,
                     Some(vec!["apple".into()]),
                     None,
-                    wrapper,
+                    ".",
                 )
                 .map_err(Error::InitFailed)?;
                 if open.editor() {

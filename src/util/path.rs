@@ -32,6 +32,10 @@ pub fn install_dir() -> Result<PathBuf, NoHomeDir> {
     home_dir().map(|home| home.join(concat!(".", env!("CARGO_PKG_NAME"))))
 }
 
+pub fn temp_dir() -> PathBuf {
+    std::env::temp_dir().join("com.brainiumstudios.cargo-mobile")
+}
+
 #[derive(Debug)]
 pub struct PathNotPrefixed {
     path: PathBuf,

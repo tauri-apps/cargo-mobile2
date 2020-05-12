@@ -1,10 +1,10 @@
 use super::{config::Config, deps, target::Target};
 use crate::{
-    opts::Clobbering,
+    opts::{Clobbering, Interactivity},
     target::TargetTrait as _,
     templating::{self, Pack},
     util::{
-        cli::{Report, Reportable},
+        cli::{Report, Reportable, TextWrapper},
         ln,
     },
 };
@@ -55,11 +55,13 @@ pub fn gen(
     config: &Config,
     submodule_path: Option<&Path>,
     bike: &bicycle::Bicycle,
+    wrapper: &TextWrapper,
+    interactivity: Interactivity,
     clobbering: Clobbering,
 ) -> Result<(), Error> {
     Target::install_all().map_err(Error::RustupFailed)?;
 
-    deps::install(clobbering).map_err(Error::DepsInstallFailed)?;
+    deps::install(wrapper, interactivity, clobbering).map_err(Error::DepsInstallFailed)?;
 
     let source_dirs = std::iter::once("src".into())
         .chain(submodule_path.map(|path| path.to_owned()))
