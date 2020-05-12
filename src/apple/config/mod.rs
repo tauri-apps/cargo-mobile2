@@ -161,6 +161,10 @@ impl Config {
         ))
     }
 
+    pub fn archive_dir(&self) -> PathBuf {
+        self.project_dir().join("build")
+    }
+
     pub fn export_dir(&self) -> PathBuf {
         self.project_dir().join("build")
     }

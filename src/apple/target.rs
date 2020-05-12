@@ -83,19 +83,20 @@ impl Reportable for BuildError {
 }
 
 #[derive(Debug)]
-pub enum ArchiveError {
-    ArchiveFailed(bossy::Error),
-    ExportFailed(bossy::Error),
-}
+pub struct ArchiveError(bossy::Error);
 
 impl Reportable for ArchiveError {
     fn report(&self) -> Report {
-        match self {
-            Self::ArchiveFailed(err) => Report::error("Failed to archive via `xcodebuild`", err),
-            Self::ExportFailed(err) => {
-                Report::error("Failed to export archive via `xcodebuild: {}", err)
-            }
-        }
+        Report::error("Failed to archive via `xcodebuild`", &self.0)
+    }
+}
+
+#[derive(Debug)]
+pub struct ExportError(bossy::Error);
+
+impl Reportable for ExportError {
+    fn report(&self) -> Report {
+        Report::error("Failed to export archive via `xcodebuild`", &self.0)
     }
 }
 
@@ -270,14 +271,14 @@ impl<'a> Target<'a> {
         Ok(())
     }
 
-    pub(super) fn archive(
+    pub fn archive(
         &self,
         config: &Config,
         env: &Env,
         profile: Profile,
     ) -> Result<(), ArchiveError> {
         let configuration = profile.as_str();
-        let archive_path = config.export_dir().join(&config.scheme());
+        let archive_path = config.archive_dir().join(&config.scheme());
         bossy::Command::pure("xcodebuild")
             .with_env_vars(env.explicit_env())
             .with_args(&["-scheme", &config.scheme()])
@@ -290,10 +291,18 @@ impl<'a> Target<'a> {
             .with_arg("-archivePath")
             .with_arg(&archive_path)
             .run_and_wait()
-            .map_err(ArchiveError::ArchiveFailed)?;
+            .map_err(ArchiveError)?;
+        Ok(())
+    }
+
+    pub fn export(
+        &self,
+        config: &Config,
+        env: &Env,
+    ) -> Result<(), ExportError> {
         // Super fun discrepancy in expectation of `-archivePath` value
         let archive_path = config
-            .export_dir()
+            .archive_dir()
             .join(&format!("{}.xcarchive", config.scheme()));
         bossy::Command::pure("xcodebuild")
             .with_env_vars(env.explicit_env())
@@ -305,7 +314,7 @@ impl<'a> Target<'a> {
             .with_arg("-exportPath")
             .with_arg(&config.export_dir())
             .run_and_wait()
-            .map_err(ArchiveError::ExportFailed)?;
+            .map_err(ExportError)?;
         Ok(())
     }
 }
