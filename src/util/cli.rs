@@ -63,6 +63,7 @@ pub type TextWrapper = textwrap::Wrapper<'static, textwrap::NoHyphenation>;
 pub enum Label {
     Error,
     ActionRequest,
+    Victory,
 }
 
 impl Label {
@@ -70,6 +71,7 @@ impl Label {
         match self {
             Self::Error => colored::Color::BrightRed,
             Self::ActionRequest => colored::Color::BrightMagenta,
+            Self::Victory => colored::Color::BrightGreen,
         }
     }
 
@@ -77,6 +79,7 @@ impl Label {
         match self {
             Self::Error => "error",
             Self::ActionRequest => "action request",
+            Self::Victory => "victory",
         }
     }
 }
@@ -105,39 +108,28 @@ impl Report {
         Self::new(Label::ActionRequest, msg, details)
     }
 
+    pub fn victory(msg: impl Display, details: impl Display) -> Self {
+        Self::new(Label::Victory, msg, details)
+    }
+
     pub fn render(&self, wrapper: &TextWrapper, interactivity: opts::Interactivity) -> String {
-        fn render_head(wrapper: &TextWrapper, label: impl Display, msg: &str) -> String {
-            wrapper.fill(&format!("{}: {}", label, msg))
-        }
-
-        fn render_full(wrapper: &TextWrapper, head: impl Display, details: &str) -> String {
-            static INDENT: &'static str = "    ";
-            let wrapper = wrapper
-                .clone()
-                .initial_indent(INDENT)
-                .subsequent_indent(INDENT);
-            let details = wrapper.fill(details);
-            format!("{}\n{}", head, details)
-        }
-
-        if interactivity.full() && colored::control::SHOULD_COLORIZE.should_colorize() {
-            render_full(
-                wrapper,
-                render_head(
-                    wrapper,
-                    self.label.as_str().color(self.label.color()),
-                    &self.msg,
-                )
-                .bold(),
-                &self.details,
-            )
+        static INDENT: &'static str = "    ";
+        let head = if interactivity.full() && colored::control::SHOULD_COLORIZE.should_colorize() {
+            wrapper.fill(&format!(
+                "{} {}",
+                format!("{}:", self.label.as_str())
+                    .color(self.label.color())
+                    .bold(),
+                self.msg.color(self.label.color())
+            ))
         } else {
-            render_full(
-                wrapper,
-                render_head(wrapper, self.label.as_str(), &self.msg),
-                &self.details,
-            )
-        }
+            wrapper.fill(&format!("{}: {}", self.label.as_str(), &self.msg))
+        };
+        let wrapper = wrapper
+            .clone()
+            .initial_indent(INDENT)
+            .subsequent_indent(INDENT);
+        format!("{}\n{}", head, wrapper.fill(&self.details))
     }
 }
 
