@@ -1,4 +1,7 @@
-use super::xcode_plugin;
+use super::{
+    system_profile::{self, DeveloperTools},
+    xcode_plugin,
+};
 use crate::{
     opts::{Clobbering, Interactivity},
     util::{self, cli::TextWrapper},
@@ -11,6 +14,7 @@ pub enum Error {
     XcodeGenInstallFailed(bossy::Error),
     IosDeployPresenceCheckFailed(bossy::Error),
     IosDeployInstallFailed(bossy::Error),
+    VersionLookupFailed(system_profile::Error),
     XcodeRustPluginInstallFailed(xcode_plugin::Error),
 }
 
@@ -27,6 +31,7 @@ impl Display for Error {
             Self::IosDeployInstallFailed(err) => {
                 write!(f, "Failed to install `ios-deploy`: {}", err)
             }
+            Self::VersionLookupFailed(err) => write!(f, "{}", err),
             Self::XcodeRustPluginInstallFailed(err) => write!(f, "{}", err),
         }
     }
@@ -57,7 +62,8 @@ pub fn install(
     }
     // we definitely don't want to install this on CI...
     if interactivity.full() {
-        xcode_plugin::install(wrapper, interactivity, clobbering)
+        let tool_info = DeveloperTools::new().map_err(Error::VersionLookupFailed)?;
+        xcode_plugin::install(wrapper, interactivity, clobbering, tool_info.version)
             .map_err(Error::XcodeRustPluginInstallFailed)?;
     }
     Ok(())
