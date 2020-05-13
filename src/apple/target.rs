@@ -265,6 +265,7 @@ impl<'a> Target<'a> {
             .with_arg(&config.workspace_path())
             .with_args(&["-configuration", configuration])
             .with_args(&["-arch", self.arch])
+            .with_arg("-allowProvisioningUpdates")
             .with_arg("build")
             .run_and_wait()
             .map_err(BuildError)?;
@@ -287,6 +288,7 @@ impl<'a> Target<'a> {
             .with_args(&["-sdk", "iphoneos"])
             .with_args(&["-configuration", configuration])
             .with_args(&["-arch", self.arch])
+            .with_arg("-allowProvisioningUpdates")
             .with_arg("archive")
             .with_arg("-archivePath")
             .with_arg(&archive_path)
