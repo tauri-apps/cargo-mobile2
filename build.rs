@@ -4,7 +4,7 @@ fn main() {
     let pkg_name = std::env::var("CARGO_PKG_NAME").unwrap();
     let src = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("templates");
     println!("cargo:rerun-if-changed={}", src.display());
-    let dest = dirs::home_dir()
+    let dest = home::home_dir()
         .expect("failed to get user's home dir")
         .join(format!(".{}/templates", pkg_name));
     let actions = bicycle::traverse(&src, &dest, bicycle::no_transform, None)

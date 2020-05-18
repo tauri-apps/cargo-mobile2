@@ -15,7 +15,7 @@ impl Display for NoHomeDir {
 }
 
 pub fn home_dir() -> Result<PathBuf, NoHomeDir> {
-    dirs::home_dir().ok_or(NoHomeDir)
+    home::home_dir().ok_or(NoHomeDir)
 }
 
 pub fn expand_home(path: impl AsRef<Path>) -> Result<PathBuf, NoHomeDir> {
