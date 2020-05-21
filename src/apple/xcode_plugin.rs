@@ -168,7 +168,7 @@ fn clone_plugin(checkout_parent_dir: &Path, checkout_dir: &Path) -> Result<(), E
             })?;
         }
         let git = Git::new(&checkout_parent_dir);
-        git.command_parse("clone --depth 1 https://github.com/wyldpixel/rust-xcode-plugin.git")
+        git.command_parse("clone --depth 1 https://github.com/francesca64/rust-xcode-plugin.git")
             .with_arg(&checkout_dir)
             .run_and_wait()
             .map_err(Error::CloneFailed)?;
@@ -210,7 +210,7 @@ fn check_uuid(
                 "Your Xcode UUID ({}, version {}.{}) isn't supported by `rust-xcode-plugin`; skipping installation",
                 uuid, xcode_version.0, xcode_version.1,
             ),
-            "You won't be able to set breakpoints in Xcode until this is resolved! Please open an issue at https://github.com/mtak-/rust-xcode-plugin",
+            "You won't be able to set breakpoints in Xcode until this is resolved! Please open an issue at https://github.com/francesca64/rust-xcode-plugin",
         );
         eprintln!("{}", report.render(&wrapper, interactivity));
         Ok(false)
