@@ -4,6 +4,7 @@ use crate::{
     target::TargetTrait as _,
     templating::{self, Pack},
     util::{
+        self,
         cli::{Report, Reportable, TextWrapper},
         ln,
     },
@@ -18,7 +19,6 @@ pub enum Error {
     DepsInstallFailed(deps::Error),
     MissingPack(templating::LookupError),
     TemplateProcessingFailed(bicycle::ProcessingError),
-    SourceDirSymlinkFailed(ln::Error),
     AssetDirSymlinkFailed(ln::Error),
     ScriptChmodFailed(bossy::Error),
     XcodegenFailed(bossy::Error),
@@ -34,9 +34,6 @@ impl Reportable for Error {
             Self::MissingPack(err) => Report::error("Failed to locate Xcode template pack", err),
             Self::TemplateProcessingFailed(err) => {
                 Report::error("Xcode template processing failed", err)
-            }
-            Self::SourceDirSymlinkFailed(err) => {
-                Report::error("Source dir couldn't be symlinked into Xcode project", err)
             }
             Self::AssetDirSymlinkFailed(err) => {
                 Report::error("Asset dir couldn't be symlinked into Xcode project", err)
@@ -63,27 +60,21 @@ pub fn gen(
 
     deps::install(wrapper, interactivity, clobbering).map_err(Error::DepsInstallFailed)?;
 
-    let source_dirs = std::iter::once("src".into())
-        .chain(submodule_path.map(|path| path.to_owned()))
+    let dest = config.project_dir();
+    let rel_prefix = util::relativize_path(config.app().root_dir(), &dest);
+    let source_dirs = std::iter::once("src".as_ref())
+        .chain(submodule_path)
+        .map(|path| rel_prefix.join(path))
         .collect::<Vec<PathBuf>>();
 
     let src = Pack::lookup(TEMPLATE_PACK)
         .map_err(Error::MissingPack)?
         .expect_local();
-    let dest = config.project_dir();
+
     bike.process(src, &dest, |map| {
         map.insert("file-groups", source_dirs.clone());
     })
     .map_err(Error::TemplateProcessingFailed)?;
-
-    for source_dir in source_dirs {
-        ln::force_symlink_relative(
-            config.app().root_dir().join(source_dir),
-            &dest,
-            ln::TargetStyle::Directory,
-        )
-        .map_err(Error::SourceDirSymlinkFailed)?;
-    }
 
     ln::force_symlink_relative(config.app().asset_dir(), &dest, ln::TargetStyle::Directory)
         .map_err(Error::AssetDirSymlinkFailed)?;

@@ -83,6 +83,7 @@ fn common_root(abs_src: &Path, abs_dest: &Path) -> PathBuf {
     }
 }
 
+/// Transforms `abs_path` to be relative to `abs_relative_to`.
 pub fn relativize_path(abs_path: impl AsRef<Path>, abs_relative_to: impl AsRef<Path>) -> PathBuf {
     let (abs_path, abs_relative_to) = (abs_path.as_ref(), abs_relative_to.as_ref());
     assert!(abs_path.is_absolute());
