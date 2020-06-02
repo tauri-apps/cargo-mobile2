@@ -166,7 +166,7 @@ pub fn init(config: Option<&Config>) -> Bicycle {
     Bicycle::new(
         EscapeFn::None,
         {
-            let mut helpers = HashMap::<_, Box<dyn HelperDef>>::new();
+            let mut helpers = HashMap::<_, Box<dyn HelperDef + Send + Sync>>::new();
             helpers.insert("html-escape", Box::new(html_escape));
             helpers.insert("join", Box::new(join));
             helpers.insert("quote-and-join", Box::new(quote_and_join));
