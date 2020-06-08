@@ -68,7 +68,20 @@ pub fn gen(config: &Config, bike: &bicycle::Bicycle, clobbering: Clobbering) -> 
         actions
             .iter()
             // Prevent clobbering
-            .filter(|action| clobbering.allowed() || !action.dest().exists()),
+            .filter(|action| {
+                clobbering.allowed() || {
+                    let dest = action.dest();
+                    let parent = dest
+                        .parent()
+                        .expect("developer error: template dest wasn't in project root");
+                    if parent == root {
+                        !dest.exists()
+                    } else {
+                        // don't intrude upon existing directories
+                        !parent.exists()
+                    }
+                }
+            }),
         |_| (),
     )
     .map_err(Error::ProcessingFailed)?;
