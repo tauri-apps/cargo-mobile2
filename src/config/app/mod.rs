@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 
 pub static KEY: &'static str = "app";
 
-pub static DEFAULT_ASSET_DIR: &'static str = "res";
+pub static DEFAULT_ASSET_DIR: &'static str = "assets";
 #[cfg(feature = "brainium")]
 pub static DEFAULT_TEMPLATE_PACK: &'static str = "rust-lib-app";
 #[cfg(not(feature = "brainium"))]
