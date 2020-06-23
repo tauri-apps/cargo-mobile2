@@ -38,7 +38,7 @@ checksum = "f8aac770f1885fd7e387acedd76065302551364496e46b3dd00860b2f8359b9d"
 [[package]]
 name = "bicycle"
 version = "0.1.0"
-source = "git+ssh://git@bitbucket.org/brainium/bicycle.git#bebf2af048a46662c3049253a8d1619c9beff770"
+source = "git+ssh://git@bitbucket.org/brainium/bicycle.git#0520c31e19907910dfcd1708f3b989543ea33afa"
 dependencies = [
  "handlebars",
  "log",
