@@ -69,7 +69,7 @@ pub fn gen(config: &Config, bike: &bicycle::Bicycle, clobbering: Clobbering) -> 
             .iter()
             // Prevent clobbering
             .filter(|action| {
-                clobbering.allowed() || {
+                clobbering.allowed() || action.is_create_directory() || {
                     let dest = action.dest();
                     let parent = dest
                         .parent()
