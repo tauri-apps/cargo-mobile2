@@ -40,11 +40,11 @@ impl Display for Error {
 pub fn install(
     wrapper: &TextWrapper,
     interactivity: Interactivity,
-    clobbering: Clobbering,
+    reinstall_deps: Clobbering,
 ) -> Result<(), Error> {
     let xcodegen_found =
         util::command_present("xcodegen").map_err(Error::XcodeGenPresenceCheckFailed)?;
-    if !xcodegen_found || clobbering.allowed() {
+    if !xcodegen_found || reinstall_deps.allowed() {
         bossy::Command::impure("brew")
             // reinstall works even if it's not installed yet,
             // and will upgrade if it's already installed!
@@ -54,7 +54,7 @@ pub fn install(
     }
     let ios_deploy_found =
         util::command_present("ios-deploy").map_err(Error::IosDeployPresenceCheckFailed)?;
-    if !ios_deploy_found || clobbering.allowed() {
+    if !ios_deploy_found || reinstall_deps.allowed() {
         bossy::Command::impure("brew")
             .with_args(&["reinstall", "ios-deploy"])
             .run_and_wait()
@@ -63,7 +63,7 @@ pub fn install(
     // we definitely don't want to install this on CI...
     if interactivity.full() {
         let tool_info = DeveloperTools::new().map_err(Error::VersionLookupFailed)?;
-        xcode_plugin::install(wrapper, interactivity, clobbering, tool_info.version)
+        xcode_plugin::install(wrapper, interactivity, reinstall_deps, tool_info.version)
             .map_err(Error::XcodeRustPluginInstallFailed)?;
     }
     Ok(())

@@ -98,7 +98,8 @@ impl Reportable for Error {
 pub fn exec(
     wrapper: &TextWrapper,
     interactivity: opts::Interactivity,
-    clobbering: opts::Clobbering,
+    please_destroy_my_files: opts::Clobbering,
+    reinstall_deps: opts::Clobbering,
     open_in: opts::OpenIn,
     only: Option<Vec<String>>,
     skip: Option<Vec<String>>,
@@ -121,8 +122,13 @@ pub fn exec(
         })?;
     }
     let bike = config.build_a_bike();
-    let filter = templating::Filter::new(&config, config_origin, dot_first_init_exists, clobbering)
-        .map_err(Error::FilterConfigureFailed)?;
+    let filter = templating::Filter::new(
+        &config,
+        config_origin,
+        dot_first_init_exists,
+        please_destroy_my_files,
+    )
+    .map_err(Error::FilterConfigureFailed)?;
     let step_registry = steps::Registry::new(STEPS);
     let steps = {
         let only = only
@@ -172,7 +178,7 @@ pub fn exec(
                 &bike,
                 wrapper,
                 interactivity,
-                clobbering,
+                reinstall_deps,
                 &filter,
             )
             .map_err(Error::AppleInitFailed)?;

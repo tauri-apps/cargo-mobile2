@@ -142,14 +142,14 @@ fn check_changes(checkout: &Path) -> Result<Status, Error> {
 
 // Step 1: check if installed and up-to-date
 fn check_plugin(
-    clobbering: opts::Clobbering,
+    reinstall_deps: opts::Clobbering,
     xcode_version: (u32, u32),
     checkout: &Path,
     plugins_dir: &Path,
     spec_dst: &Path,
     meta_dst: &Path,
 ) -> Result<Status, Error> {
-    if clobbering.allowed() {
+    if reinstall_deps.allowed() {
         Ok(Status::NeedsUpdate)
     } else {
         let plugin_dst = plugins_dir.join("Rust.ideplugin");
@@ -303,7 +303,7 @@ fn run_setup(
 pub fn install(
     wrapper: &TextWrapper,
     interactivity: opts::Interactivity,
-    clobbering: opts::Clobbering,
+    reinstall_deps: opts::Clobbering,
     xcode_version: (u32, u32),
 ) -> Result<(), Error> {
     let checkout_parent_dir = util::install_dir()
@@ -323,7 +323,7 @@ pub fn install(
     let spec_dst = xcode_spec_dir.join("Rust.xclangspec");
     let meta_dst = xcode_lang_res_dir.join("LanguageMetadata/Xcode.SourceCodeLanguage.Rust.plist");
     let status = check_plugin(
-        clobbering,
+        reinstall_deps,
         xcode_version,
         &checkout_dir,
         &xcode_plugins_dir,

@@ -38,10 +38,10 @@ impl Filter {
         config: &Config,
         config_origin: Origin,
         dot_first_init_exists: bool,
-        clobbering: Clobbering,
+        please_destroy_my_files: Clobbering,
     ) -> Result<Self, FilterError> {
-        if clobbering.allowed() {
-            log::info!("clobbering allowed; using `WildWest` filtering strategy");
+        if please_destroy_my_files.allowed() {
+            log::info!("`--please-destroy-my-files` enabled; using `WildWest` filtering strategy");
             Ok(Self::WildWest)
         } else {
             if config_origin.freshly_minted() {

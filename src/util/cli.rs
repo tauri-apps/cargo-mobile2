@@ -6,12 +6,13 @@ use structopt::{
     StructOpt,
 };
 
-pub static SETTINGS: &'static [AppSettings] = &[
+pub static GLOBAL_SETTINGS: &'static [AppSettings] = &[
     AppSettings::ColoredHelp,
     AppSettings::DeriveDisplayOrder,
-    AppSettings::SubcommandRequiredElseHelp,
     AppSettings::VersionlessSubcommands,
 ];
+
+pub static SETTINGS: &'static [AppSettings] = &[AppSettings::SubcommandRequiredElseHelp];
 
 pub fn bin_name(name: &str) -> String {
     format!("cargo {}", name)
@@ -22,7 +23,7 @@ pub struct GlobalFlags {
     #[structopt(
         short = "v",
         long = "verbose",
-        about = "Make life louder",
+        help = "Make life louder",
         global = true,
         multiple = true,
         parse(from_occurrences = opts::NoiseLevel::from_occurrences),
@@ -30,7 +31,7 @@ pub struct GlobalFlags {
     pub noise_level: opts::NoiseLevel,
     #[structopt(
         long = "non-interactive",
-        about = "Go with the flow",
+        help = "Go with the flow",
         global = true,
         parse(from_flag = opts::Interactivity::from_flag),
     )]
@@ -38,20 +39,30 @@ pub struct GlobalFlags {
 }
 
 #[derive(Clone, Copy, Debug, StructOpt)]
-pub struct Clobbering {
+pub struct PleaseDestroyMyFiles {
     #[structopt(
-        long = "force",
-        about = "Clobber files with no remorse",
+        long = "please-destroy-my-files",
+        help = "Clobber files with no remorse",
         parse(from_flag = opts::Clobbering::from_flag),
     )]
-    pub clobbering: opts::Clobbering,
+    pub please_destroy_my_files: opts::Clobbering,
+}
+
+#[derive(Clone, Copy, Debug, StructOpt)]
+pub struct ReinstallDeps {
+    #[structopt(
+        long = "reinstall-deps",
+        help = "Reinstall dependencies",
+        parse(from_flag = opts::Clobbering::from_flag),
+    )]
+    pub reinstall_deps: opts::Clobbering,
 }
 
 #[derive(Clone, Copy, Debug, StructOpt)]
 pub struct Profile {
     #[structopt(
         long = "release",
-        about = "Build with release optimizations",
+        help = "Build with release optimizations",
         parse(from_flag = opts::Profile::from_flag),
     )]
     pub profile: opts::Profile,

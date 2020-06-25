@@ -11,7 +11,7 @@ use cargo_mobile::{
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
-#[structopt(bin_name = cli::bin_name(NAME), settings = cli::SETTINGS)]
+#[structopt(bin_name = cli::bin_name(NAME), global_settings = cli::GLOBAL_SETTINGS, settings = cli::SETTINGS)]
 pub struct Input {
     #[structopt(flatten)]
     flags: GlobalFlags,
@@ -27,16 +27,18 @@ pub enum Command {
     )]
     Init {
         #[structopt(flatten)]
-        clobbering: cli::Clobbering,
+        please_destroy_my_files: cli::PleaseDestroyMyFiles,
+        #[structopt(flatten)]
+        reinstall_deps: cli::ReinstallDeps,
         #[structopt(
             long,
-            about = "Open in default code editor",
+            help = "Open in default code editor",
             parse(from_flag = opts::OpenIn::from_flag),
         )]
         open: opts::OpenIn,
         #[structopt(
             long,
-            about = "Only do some steps",
+            help = "Only do some steps",
             value_name = "STEPS",
             possible_values = init::STEPS,
             value_delimiter(" "),
@@ -44,7 +46,7 @@ pub enum Command {
         only: Option<Vec<String>>,
         #[structopt(
             long,
-            about = "Skip some steps",
+            help = "Skip some steps",
             value_name = "STEPS",
             possible_values = init::STEPS,
             value_delimiter(" "),
@@ -90,13 +92,26 @@ impl Exec for Input {
         } = self;
         match command {
             Command::Init {
-                clobbering: cli::Clobbering { clobbering },
+                please_destroy_my_files:
+                    cli::PleaseDestroyMyFiles {
+                        please_destroy_my_files,
+                    },
+                reinstall_deps: cli::ReinstallDeps { reinstall_deps },
                 open,
                 only,
                 skip,
-            } => init::exec(wrapper, interactivity, clobbering, open, only, skip, ".")
-                .map(|_| ())
-                .map_err(Error::InitFailed),
+            } => init::exec(
+                wrapper,
+                interactivity,
+                please_destroy_my_files,
+                reinstall_deps,
+                open,
+                only,
+                skip,
+                ".",
+            )
+            .map(|_| ())
+            .map_err(Error::InitFailed),
             Command::Open => util::open_in_editor(".").map_err(Error::OpenFailed),
             Command::Update => bossy::Command::impure("cargo")
                 .with_args(&[

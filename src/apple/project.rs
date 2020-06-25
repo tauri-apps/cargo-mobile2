@@ -54,12 +54,12 @@ pub fn gen(
     bike: &bicycle::Bicycle,
     wrapper: &TextWrapper,
     interactivity: Interactivity,
-    clobbering: Clobbering,
+    reinstall_deps: Clobbering,
     filter: &templating::Filter,
 ) -> Result<(), Error> {
     Target::install_all().map_err(Error::RustupFailed)?;
 
-    deps::install(wrapper, interactivity, clobbering).map_err(Error::DepsInstallFailed)?;
+    deps::install(wrapper, interactivity, reinstall_deps).map_err(Error::DepsInstallFailed)?;
 
     let dest = config.project_dir();
     let rel_prefix = util::relativize_path(config.app().root_dir(), &dest);

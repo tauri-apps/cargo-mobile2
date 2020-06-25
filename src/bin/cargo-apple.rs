@@ -25,7 +25,7 @@ use cargo_mobile::{
 use structopt::{clap::AppSettings, StructOpt};
 
 #[derive(Debug, StructOpt)]
-#[structopt(bin_name = cli::bin_name(NAME), settings = cli::SETTINGS)]
+#[structopt(bin_name = cli::bin_name(NAME), global_settings = cli::GLOBAL_SETTINGS, settings = cli::SETTINGS)]
 pub struct Input {
     #[structopt(flatten)]
     flags: GlobalFlags,
@@ -41,10 +41,12 @@ pub enum Command {
     )]
     Init {
         #[structopt(flatten)]
-        clobbering: cli::Clobbering,
+        please_destroy_my_files: cli::PleaseDestroyMyFiles,
+        #[structopt(flatten)]
+        reinstall_deps: cli::ReinstallDeps,
         #[structopt(
             long,
-            about = "Open in Xcode",
+            help = "Open in Xcode",
             parse(from_flag = opts::OpenIn::from_flag),
         )]
         open: opts::OpenIn,
@@ -83,7 +85,7 @@ pub enum Command {
         setting = AppSettings::Hidden
     )]
     CompileLib {
-        #[structopt(long = "macos", about = "Awkwardly special-case for macOS")]
+        #[structopt(long = "macos", help = "Awkwardly special-case for macOS")]
         macos: bool,
         #[structopt(name = "ARCH", index = 1, required = true)]
         arch: String,
@@ -186,13 +188,18 @@ impl Exec for Input {
         let env = Env::new().map_err(Error::EnvInitFailed)?;
         match command {
             Command::Init {
-                clobbering: cli::Clobbering { clobbering },
+                please_destroy_my_files:
+                    cli::PleaseDestroyMyFiles {
+                        please_destroy_my_files,
+                    },
+                reinstall_deps: cli::ReinstallDeps { reinstall_deps },
                 open,
             } => {
                 let config = init::exec(
                     wrapper,
                     interactivity,
-                    clobbering,
+                    please_destroy_my_files,
+                    reinstall_deps,
                     opts::OpenIn::Nothing,
                     Some(vec!["apple".into()]),
                     None,
