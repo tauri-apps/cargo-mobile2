@@ -1,6 +1,6 @@
 use super::{config::Config, env::Env, ndk, target::Target};
 use crate::{
-    dot_cargo, opts,
+    dot_cargo,
     target::TargetTrait as _,
     templating::{self, Pack},
     util::{
@@ -54,28 +54,33 @@ pub fn gen(
     config: &Config,
     env: &Env,
     bike: &bicycle::Bicycle,
-    _clobbering: opts::Clobbering,
+    filter: &templating::Filter,
 ) -> Result<(), Error> {
     Target::install_all().map_err(Error::RustupFailed)?;
     let src = Pack::lookup("android-studio-project")
         .map_err(Error::MissingPack)?
         .expect_local();
     let dest = config.project_dir();
-    bike.process(src, &dest, |map| {
-        map.insert(
-            "root-dir-rel",
-            util::relativize_path(config.app().root_dir(), config.project_dir()),
-        );
-        map.insert("targets", Target::all().values().collect::<Vec<_>>());
-        map.insert("target-names", Target::all().keys().collect::<Vec<_>>());
-        map.insert(
-            "arches",
-            Target::all()
-                .values()
-                .map(|target| target.arch)
-                .collect::<Vec<_>>(),
-        );
-    })
+    bike.filter_and_process(
+        src,
+        &dest,
+        |map| {
+            map.insert(
+                "root-dir-rel",
+                util::relativize_path(config.app().root_dir(), config.project_dir()),
+            );
+            map.insert("targets", Target::all().values().collect::<Vec<_>>());
+            map.insert("target-names", Target::all().keys().collect::<Vec<_>>());
+            map.insert(
+                "arches",
+                Target::all()
+                    .values()
+                    .map(|target| target.arch)
+                    .collect::<Vec<_>>(),
+            );
+        },
+        filter.fun(),
+    )
     .map_err(Error::TemplateProcessingFailed)?;
 
     let dest = dest.join("app/src/main/assets/");

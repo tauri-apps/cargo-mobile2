@@ -1,7 +1,8 @@
+mod filter;
 mod init;
 mod remote;
 
-pub use self::{init::*, remote::*};
+pub use self::{filter::*, init::*, remote::*};
 
 use crate::util::{self, Git};
 use serde::{Deserialize, Serialize};

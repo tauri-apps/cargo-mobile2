@@ -1,0 +1,118 @@
+use crate::{
+    config::{Config, Origin},
+    opts::Clobbering,
+};
+use bicycle::Action;
+use ignore::gitignore::Gitignore;
+use std::{
+    fmt::{self, Display},
+    io,
+    path::PathBuf,
+};
+
+#[derive(Debug)]
+pub enum FilterError {
+    ReadDirFailed { path: PathBuf, cause: io::Error },
+}
+
+impl Display for FilterError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ReadDirFailed { path, cause } => write!(
+                f,
+                "App root directory {:?} couldn't be checked for emptiness: {}",
+                path, cause
+            ),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Filter {
+    WildWest,
+    Protected { unprotected: Gitignore },
+}
+
+impl Filter {
+    pub fn new(
+        config: &Config,
+        config_origin: Origin,
+        dot_first_init_exists: bool,
+        clobbering: Clobbering,
+    ) -> Result<Self, FilterError> {
+        if clobbering.allowed() {
+            log::info!("clobbering allowed; using `WildWest` filtering strategy");
+            Ok(Self::WildWest)
+        } else {
+            if config_origin.freshly_minted() {
+                log::info!("config freshly minted, so we're assuming a brand new project; using `WildWest` filtering strategy");
+                Ok(Self::WildWest)
+            } else if dot_first_init_exists {
+                log::info!("`{}` exists, so we're assuming a brand new project; using `WildWest` filtering strategy", crate::init::DOT_FIRST_INIT_FILE_NAME);
+                Ok(Self::WildWest)
+            } else {
+                log::info!("existing config loaded, so we're assuming an existing project; using `Protected` filtering strategy");
+                let gitignore_path = config.app().root_dir().join(".gitignore");
+                let (unprotected, err) = Gitignore::new(&gitignore_path);
+                if let Some(err) = err {
+                    log::error!("non-fatal error loading {:?}: {}", gitignore_path, err);
+                }
+                if unprotected.is_empty() {
+                    log::warn!("no ignore entries were parsed from {:?}; project generation will more or less be a no-op", gitignore_path);
+                } else {
+                    log::info!(
+                        "{} ignore entries were parsed from {:?}",
+                        unprotected.num_ignores(),
+                        gitignore_path
+                    );
+                }
+                Ok(Self::Protected { unprotected })
+            }
+        }
+    }
+
+    pub fn fun(&self) -> impl FnMut(&Action) -> bool + '_ {
+        move |action| match self {
+            Self::WildWest => {
+                log::debug!(
+                    "filtering strategy is `WildWest`, so action will be processed: {:#?}",
+                    action
+                );
+                true
+            }
+            Self::Protected { unprotected } => {
+                // If we're protecting the user's files, then we only allow
+                // actions that either create new directories or that apply to
+                // paths excluded from version control.
+                if action.is_create_directory() {
+                    let absent = !action.dest().is_dir();
+                    if absent {
+                        log::debug!(
+                            "dest directory doesn't exist, so action will be processed: {:#?}",
+                            action
+                        );
+                    } else {
+                        log::debug!("dest directory already exists, so action is a no-op and won't be processed: {:#?}", action);
+                    }
+                    absent
+                } else {
+                    let ignored = unprotected
+                        .matched_path_or_any_parents(action.dest(), false)
+                        .is_ignore();
+                    if ignored {
+                        log::debug!(
+                            "action has unprotected src, so will be processed: {:#?}",
+                            action
+                        );
+                    } else {
+                        log::debug!(
+                            "action has protected src, so won't be processed: {:#?}",
+                            action
+                        );
+                    }
+                    ignored
+                }
+            }
+        }
+    }
+}

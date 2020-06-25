@@ -1,7 +1,6 @@
 use crate::{
     config::Config,
-    opts::Clobbering,
-    templating::RemotePackResolveError,
+    templating::{self, RemotePackResolveError},
     util::{
         cli::{Report, Reportable},
         Git,
@@ -13,12 +12,11 @@ use std::path::PathBuf;
 pub enum Error {
     GitInitFailed(bossy::Error),
     TemplatePackResolveFailed(RemotePackResolveError),
-    TraversalFailed {
+    ProcessingFailed {
         src: PathBuf,
         dest: PathBuf,
-        cause: bicycle::TraversalError,
+        cause: bicycle::ProcessingError,
     },
-    ProcessingFailed(bicycle::ProcessingError),
 }
 
 impl Reportable for Error {
@@ -28,23 +26,23 @@ impl Reportable for Error {
             Self::TemplatePackResolveFailed(err) => {
                 Report::error("Failed to resolve template pack", err)
             }
-            Self::TraversalFailed { src, dest, cause } => Report::error(
+            Self::ProcessingFailed { src, dest, cause } => Report::error(
                 format!(
-                    "Base project template traversal from src {:?} to dest {:?} failed",
-                    src, dest
+                    "Base project template processing from src {:?} to dest {:?} failed",
+                    src, dest,
                 ),
                 cause,
             ),
-            Self::ProcessingFailed(err) => {
-                Report::error("Base project template processing failed", err)
-            }
         }
     }
 }
 
-pub fn gen(config: &Config, bike: &bicycle::Bicycle, clobbering: Clobbering) -> Result<(), Error> {
+pub fn gen(
+    config: &Config,
+    bike: &bicycle::Bicycle,
+    filter: &templating::Filter,
+) -> Result<(), Error> {
     let root = config.app().root_dir();
-
     let git = Git::new(&root);
     git.init().map_err(Error::GitInitFailed)?;
     let template_pack = config
@@ -53,25 +51,11 @@ pub fn gen(config: &Config, bike: &bicycle::Bicycle, clobbering: Clobbering) -> 
         .resolve(git)
         .map_err(Error::TemplatePackResolveFailed)?;
     log::info!("traversing template pack {:#?}", template_pack);
-    let actions = bicycle::traverse(
-        &template_pack,
-        &root,
-        |path| bike.transform_path(path, |_| ()),
-        bicycle::DEFAULT_TEMPLATE_EXT,
-    )
-    .map_err(|cause| Error::TraversalFailed {
-        src: template_pack.to_owned(),
-        dest: root.to_owned(),
-        cause,
-    })?;
-    bike.process_actions(
-        actions
-            .iter()
-            // Prevent clobbering
-            .filter(|action| clobbering.allowed() || !action.dest().exists()),
-        |_| (),
-    )
-    .map_err(Error::ProcessingFailed)?;
-
+    bike.filter_and_process(&template_pack, &root, |_| (), filter.fun())
+        .map_err(|cause| Error::ProcessingFailed {
+            src: template_pack.to_owned(),
+            dest: root.to_owned(),
+            cause,
+        })?;
     Ok(())
 }

@@ -127,7 +127,7 @@ impl Exec for Input {
             wrapper: &TextWrapper,
             f: impl FnOnce(&Config) -> Result<(), Error>,
         ) -> Result<(), Error> {
-            let config = OmniConfig::load_or_gen(".", interactivity, wrapper)
+            let (config, _origin) = OmniConfig::load_or_gen(".", interactivity, wrapper)
                 .map_err(Error::ConfigFailed)?;
             f(config.android())
         }

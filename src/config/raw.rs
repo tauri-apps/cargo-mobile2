@@ -138,12 +138,8 @@ impl Raw {
         })
     }
 
-    pub fn file_name() -> String {
-        format!("{}.toml", crate::NAME)
-    }
-
     pub fn discover_root(cwd: impl AsRef<Path>) -> io::Result<Option<PathBuf>> {
-        let file_name = Self::file_name();
+        let file_name = super::file_name();
         let mut path = cwd.as_ref().canonicalize()?.join(&file_name);
         log::info!("looking for config file at {:?}", path);
         while !path.exists() {
@@ -164,7 +160,7 @@ impl Raw {
         Self::discover_root(cwd)
             .map_err(LoadError::DiscoverFailed)?
             .map(|root_dir| {
-                let path = root_dir.join(Self::file_name());
+                let path = root_dir.join(super::file_name());
                 let bytes = fs::read(&path).map_err(|cause| LoadError::ReadFailed {
                     path: path.clone(),
                     cause,
@@ -181,7 +177,7 @@ impl Raw {
 
     pub fn write(&self, root_dir: &Path) -> Result<(), WriteError> {
         let bytes = toml::to_vec(self).map_err(WriteError::SerializeFailed)?;
-        let path = root_dir.join(Self::file_name());
+        let path = root_dir.join(super::file_name());
         log::info!("writing config to {:?}", path);
         fs::write(path, bytes).map_err(WriteError::WriteFailed)
     }

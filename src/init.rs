@@ -6,6 +6,7 @@ use crate::{
     config::{self, Config},
     opts, project,
     steps::{self, Steps},
+    templating,
     util::{
         self,
         cli::{Report, Reportable, TextWrapper},
@@ -24,9 +25,30 @@ pub static STEPS: &'static [&'static str] = &[
     "apple",
 ];
 
+pub static DOT_FIRST_INIT_FILE_NAME: &'static str = ".first-init";
+static DOT_FIRST_INIT_CONTENTS: &'static str = // newline
+r#"The presence of this file indicates `cargo mobile init` has been called for
+the first time on a new project, but hasn't yet completed successfully once. As
+long as this file is here, `cargo mobile init` will use a more aggressive
+template generation strategy, identical to running it with the
+`--please-destroy-my-files` flag.
+
+If you believe this file isn't supposed to be here, please report this, and then
+delete this file to regain normal behavior. Alternatively, if you do that and
+then realize that you were wrong (ouch!) and your project was never fully
+generated, then run `cargo mobile init --please-destroy-my-files` to regain the
+behavior that the presence of this file provided. Just, if you do that, any
+generated files you modified will be overwritten!
+"#;
+
 #[derive(Debug)]
 pub enum Error {
     ConfigLoadOrGenFailed(config::LoadOrGenError),
+    DotFirstInitWriteFailed {
+        path: PathBuf,
+        cause: io::Error,
+    },
+    FilterConfigureFailed(templating::FilterError),
     OnlyParseFailed(steps::NotRegistered),
     SkipParseFailed(steps::NotRegistered),
     ProjectInitFailed(project::Error),
@@ -42,6 +64,10 @@ pub enum Error {
     AndroidInitFailed(android::project::Error),
     #[cfg(feature = "apple")]
     AppleInitFailed(apple::project::Error),
+    DotFirstInitDeleteFailed {
+        path: PathBuf,
+        cause: io::Error,
+    },
     OpenInEditorFailed(util::OpenInEditorError),
 }
 
@@ -49,6 +75,8 @@ impl Reportable for Error {
     fn report(&self) -> Report {
         match self {
             Self::ConfigLoadOrGenFailed(err) => err.report(),
+            Self::DotFirstInitWriteFailed { path, cause } => Report::error(format!("Failed to write first init dot file {:?}", path), cause),
+            Self::FilterConfigureFailed(err) => Report::error("Failed to configure template filter", err),
             Self::OnlyParseFailed(err) => Report::error("Failed to parse `only` step list", err),
             Self::SkipParseFailed(err) => Report::error("Failed to parse `skip` step list", err),
             Self::ProjectInitFailed(err) => err.report(),
@@ -61,6 +89,7 @@ impl Reportable for Error {
             Self::AndroidInitFailed(err) => err.report(),
             #[cfg(feature = "apple")]
             Self::AppleInitFailed(err) => err.report(),
+            Self::DotFirstInitDeleteFailed { path, cause } => Report::action_request(format!("Failed to delete first init dot file {:?}; the project generated successfully, but `cargo mobile init` will have unexpected results unless you manually delete this file!", path), cause),
             Self::OpenInEditorFailed(err) => Report::error("Failed to open project in editor (your project generated successfully though, so no worries!)", err),
         }
     }
@@ -76,9 +105,24 @@ pub fn exec(
     cwd: impl AsRef<Path>,
 ) -> Result<Config, Error> {
     let cwd = cwd.as_ref();
-    let config =
+    let (config, config_origin) =
         Config::load_or_gen(cwd, interactivity, wrapper).map_err(Error::ConfigLoadOrGenFailed)?;
+    let dot_first_init_path = config.app().root_dir().join(DOT_FIRST_INIT_FILE_NAME);
+    let dot_first_init_exists = dot_first_init_path.exists();
+    if config_origin.freshly_minted() && !dot_first_init_exists {
+        // indicate first init is ongoing, so that if we error out and exit
+        // the next init will know to still use `WildWest` filtering
+        log::info!("creating first init dot file at {:?}", dot_first_init_path);
+        fs::write(&dot_first_init_path, DOT_FIRST_INIT_CONTENTS).map_err(|cause| {
+            Error::DotFirstInitWriteFailed {
+                path: dot_first_init_path.clone(),
+                cause,
+            }
+        })?;
+    }
     let bike = config.build_a_bike();
+    let filter = templating::Filter::new(&config, config_origin, dot_first_init_exists, clobbering)
+        .map_err(Error::FilterConfigureFailed)?;
     let step_registry = steps::Registry::new(STEPS);
     let steps = {
         let only = only
@@ -94,7 +138,7 @@ pub fn exec(
         Steps::from_bits(&step_registry, only.bits() & !skip.bits())
     };
     if steps.is_set("project") {
-        project::gen(&config, &bike, clobbering).map_err(Error::ProjectInitFailed)?;
+        project::gen(&config, &bike, &filter).map_err(Error::ProjectInitFailed)?;
         let asset_dir = config.app().asset_dir();
         if !asset_dir.is_dir() {
             fs::create_dir_all(&asset_dir)
@@ -115,7 +159,7 @@ pub fn exec(
     {
         if steps.is_set("android") {
             let env = android::env::Env::new().map_err(Error::AndroidEnvFailed)?;
-            android::project::gen(config.android(), &env, &bike, clobbering)
+            android::project::gen(config.android(), &env, &bike, &filter)
                 .map_err(Error::AndroidInitFailed)?;
         }
     }
@@ -129,9 +173,17 @@ pub fn exec(
                 wrapper,
                 interactivity,
                 clobbering,
+                &filter,
             )
             .map_err(Error::AppleInitFailed)?;
         }
+    }
+    if dot_first_init_exists {
+        log::info!("deleting first init dot file at {:?}", dot_first_init_path);
+        fs::remove_file(&dot_first_init_path).map_err(|cause| Error::DotFirstInitDeleteFailed {
+            path: dot_first_init_path,
+            cause,
+        })?;
     }
     if open_in.editor() {
         util::open_in_editor(cwd).map_err(Error::OpenInEditorFailed)?;

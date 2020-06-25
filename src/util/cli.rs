@@ -160,7 +160,7 @@ fn init_logging(noise_level: opts::NoiseLevel) {
     let default_level = match noise_level {
         opts::NoiseLevel::Polite => "warn",
         opts::NoiseLevel::LoudAndProud => "cargo_mobile=info,bossy=info",
-        opts::NoiseLevel::FranklyQuitePedantic => "info,bossy=debug",
+        opts::NoiseLevel::FranklyQuitePedantic => "info,cargo_mobile=debug,bossy=debug",
     };
     let env = Env::default().default_filter_or(default_level);
     Builder::from_env(env).init();

@@ -55,6 +55,7 @@ pub fn gen(
     wrapper: &TextWrapper,
     interactivity: Interactivity,
     clobbering: Clobbering,
+    filter: &templating::Filter,
 ) -> Result<(), Error> {
     Target::install_all().map_err(Error::RustupFailed)?;
 
@@ -71,9 +72,14 @@ pub fn gen(
         .map_err(Error::MissingPack)?
         .expect_local();
 
-    bike.process(src, &dest, |map| {
-        map.insert("file-groups", source_dirs.clone());
-    })
+    bike.filter_and_process(
+        src,
+        &dest,
+        |map| {
+            map.insert("file-groups", source_dirs.clone());
+        },
+        filter.fun(),
+    )
     .map_err(Error::TemplateProcessingFailed)?;
 
     ln::force_symlink_relative(config.app().asset_dir(), &dest, ln::TargetStyle::Directory)

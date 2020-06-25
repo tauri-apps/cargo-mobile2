@@ -19,6 +19,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
+pub fn file_name() -> String {
+    format!("{}.toml", crate::NAME)
+}
+
 #[derive(Debug)]
 pub enum FromRawError {
     AppConfigInvalid(app::Error),
@@ -84,6 +88,18 @@ impl Reportable for LoadOrGenError {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum Origin {
+    FreshlyMinted,
+    Loaded,
+}
+
+impl Origin {
+    pub fn freshly_minted(self) -> bool {
+        matches!(self, Self::FreshlyMinted)
+    }
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
@@ -136,16 +152,24 @@ impl Config {
         cwd: impl AsRef<Path>,
         interactivity: Interactivity,
         wrapper: &TextWrapper,
-    ) -> Result<Self, LoadOrGenError> {
+    ) -> Result<(Self, Origin), LoadOrGenError> {
         let cwd = cwd.as_ref();
         if let Some((root_dir, raw)) = Raw::load(cwd).map_err(LoadOrGenError::LoadFailed)? {
-            Self::from_raw(root_dir.clone(), raw).map_err(|cause| LoadOrGenError::FromRawFailed {
-                path: root_dir,
-                cause,
-            })
+            Self::from_raw(root_dir.clone(), raw)
+                .map(|config| (config, Origin::Loaded))
+                .map_err(|cause| LoadOrGenError::FromRawFailed {
+                    path: root_dir,
+                    cause,
+                })
         } else {
-            Self::gen(cwd, interactivity, wrapper).map_err(LoadOrGenError::GenFailed)
+            Self::gen(cwd, interactivity, wrapper)
+                .map(|config| (config, Origin::FreshlyMinted))
+                .map_err(LoadOrGenError::GenFailed)
         }
+    }
+
+    pub fn path(&self) -> PathBuf {
+        self.app().root_dir().join(file_name())
     }
 
     pub fn app(&self) -> &App {
