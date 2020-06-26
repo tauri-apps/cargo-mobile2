@@ -82,36 +82,22 @@ impl Filter {
             }
             Self::Protected { unprotected } => {
                 // If we're protecting the user's files, then we only allow
-                // actions that either create new directories or that apply to
-                // paths excluded from version control.
-                if action.is_create_directory() {
-                    let absent = !action.dest().is_dir();
-                    if absent {
-                        log::debug!(
-                            "dest directory doesn't exist, so action will be processed: {:#?}",
-                            action
-                        );
-                    } else {
-                        log::debug!("dest directory already exists, so action is a no-op and won't be processed: {:#?}", action);
-                    }
-                    absent
+                // actions that apply to paths excluded from version control.
+                let ignored = unprotected
+                    .matched_path_or_any_parents(action.dest(), action.is_create_directory())
+                    .is_ignore();
+                if ignored {
+                    log::debug!(
+                        "action has unprotected src, so will be processed: {:#?}",
+                        action
+                    );
                 } else {
-                    let ignored = unprotected
-                        .matched_path_or_any_parents(action.dest(), false)
-                        .is_ignore();
-                    if ignored {
-                        log::debug!(
-                            "action has unprotected src, so will be processed: {:#?}",
-                            action
-                        );
-                    } else {
-                        log::debug!(
-                            "action has protected src, so won't be processed: {:#?}",
-                            action
-                        );
-                    }
-                    ignored
+                    log::debug!(
+                        "action has protected src, so won't be processed: {:#?}",
+                        action
+                    );
                 }
+                ignored
             }
         }
     }
