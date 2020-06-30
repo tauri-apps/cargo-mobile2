@@ -1,35 +1,5 @@
 use crate::env::ExplicitEnv;
-use once_cell_regex::regex;
 use std::path::PathBuf;
-
-fn detect_host() -> Option<String> {
-    // TODO: add fast paths
-    let result = bossy::Command::impure("rustc")
-        .with_args(&["--verbose", "--version"])
-        .run_and_wait_for_output();
-    match result {
-        Ok(output) => match output.stdout_str() {
-            Ok(raw) => {
-                let re = regex!(r"host: ([\w-]+)");
-                let triple = re.captures(raw).map(|caps| caps[1].to_owned());
-                if let Some(triple) = &triple {
-                    log::info!("detected host target triple {:?}", triple);
-                } else {
-                    log::error!("when detecting host, no matches were found");
-                }
-                triple
-            }
-            Err(err) => {
-                log::error!("when detecting host, output wasn't valid utf-8: {}", err);
-                None
-            }
-        },
-        Err(err) => {
-            log::error!("failed to detect host: {}", err);
-            None
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct CargoCommand<'a> {
@@ -104,17 +74,15 @@ impl<'a> CargoCommand<'a> {
             command.add_arg("--manifest-path").add_arg(manifest_path);
         }
         if let Some(target) = self.target {
-            // Don't pass target if it's the default target, since that would
-            // result in a different build cache being used than with regular
-            // `cargo build` stuff.
-            if detect_host().as_deref() != self.target {
-                command.add_args(&["--target", target]);
-            } else {
-                log::info!(
-                    "omitting explicit target triple {:?}, since it's the default target triple on this host",
-                    target
-                );
-            }
+            // We used to use `util::host_target_triple` to avoid explicitly
+            // specifying the default target triple here, since specifying it
+            // results in a different `target` subdir being used... however,
+            // for reasons noted in `crate::init::exec`, we now favor explicitly
+            // specifying `--target` when possible. Though, due to the
+            // solution described in the aforementioned function, omitting the
+            // default target here wouldn't actually have any negative effect,
+            // but it wouldn't accomplish anything either.
+            command.add_args(&["--target", target]);
         }
         if self.no_default_features {
             command.add_arg("--no-default-features");

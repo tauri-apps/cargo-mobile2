@@ -62,6 +62,19 @@ impl Reportable for WriteError {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct DotCargoBuild {
+    target: String,
+}
+
+impl DotCargoBuild {
+    pub fn new(target: impl Into<String>) -> Self {
+        Self {
+            target: target.into(),
+        }
+    }
+}
+
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct DotCargoTarget {
     pub ar: Option<String>,
@@ -75,8 +88,9 @@ impl DotCargoTarget {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct DotCargo {
+    build: Option<DotCargoBuild>,
     target: BTreeMap<String, DotCargoTarget>,
 }
 
@@ -98,10 +112,12 @@ impl DotCargo {
             })?;
             toml::from_slice(&bytes).map_err(|cause| LoadError::DeserializeFailed { path, cause })
         } else {
-            Ok(Self {
-                target: Default::default(),
-            })
+            Ok(Self::default())
         }
+    }
+
+    pub fn set_default_target(&mut self, target: impl Into<String>) {
+        self.build = Some(DotCargoBuild::new(target));
     }
 
     pub fn insert_target(&mut self, name: impl Into<String>, target: DotCargoTarget) {
@@ -111,10 +127,10 @@ impl DotCargo {
         }
     }
 
-    pub fn write(&self, app: &App) -> Result<(), WriteError> {
+    pub fn write(self, app: &App) -> Result<(), WriteError> {
         let path = Self::create_dir_and_get_path(app)
             .map_err(|(path, cause)| WriteError::DirCreationFailed { path, cause })?;
-        let ser = toml::to_string_pretty(self).map_err(WriteError::SerializeFailed)?;
+        let ser = toml::to_string_pretty(&self).map_err(WriteError::SerializeFailed)?;
         fs::write(&path, ser).map_err(|cause| WriteError::WriteFailed { path, cause })
     }
 }

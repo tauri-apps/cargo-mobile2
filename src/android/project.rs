@@ -21,9 +21,7 @@ pub enum Error {
         cause: std::io::Error,
     },
     AssetDirSymlinkFailed(ln::Error),
-    DotCargoLoadFailed(dot_cargo::LoadError),
     DotCargoGenFailed(ndk::MissingToolError),
-    DotCargoWriteFailed(dot_cargo::WriteError),
 }
 
 impl Reportable for Error {
@@ -41,11 +39,9 @@ impl Reportable for Error {
             Self::AssetDirSymlinkFailed(err) => {
                 Report::error("Asset dir couldn't be symlinked into Android project", err)
             }
-            Self::DotCargoLoadFailed(err) => err.report(),
             Self::DotCargoGenFailed(err) => {
                 Report::error("Failed to generate Android cargo config", err)
             }
-            Self::DotCargoWriteFailed(err) => err.report(),
         }
     }
 }
@@ -55,6 +51,7 @@ pub fn gen(
     env: &Env,
     bike: &bicycle::Bicycle,
     filter: &templating::Filter,
+    dot_cargo: &mut dot_cargo::DotCargo,
 ) -> Result<(), Error> {
     Target::install_all().map_err(Error::RustupFailed)?;
     let src = Pack::lookup("android-studio-project")
@@ -92,8 +89,6 @@ pub fn gen(
         .map_err(Error::AssetDirSymlinkFailed)?;
 
     {
-        let mut dot_cargo =
-            dot_cargo::DotCargo::load(config.app()).map_err(Error::DotCargoLoadFailed)?;
         for target in Target::all().values() {
             dot_cargo.insert_target(
                 target.triple.to_owned(),
@@ -102,9 +97,6 @@ pub fn gen(
                     .map_err(Error::DotCargoGenFailed)?,
             );
         }
-        dot_cargo
-            .write(config.app())
-            .map_err(Error::DotCargoWriteFailed)?;
     }
 
     Ok(())

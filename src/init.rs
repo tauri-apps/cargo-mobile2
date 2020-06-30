@@ -4,7 +4,7 @@ use crate::android;
 use crate::apple;
 use crate::{
     config::{self, Config},
-    opts, project,
+    dot_cargo, opts, project,
     steps::{self, Steps},
     templating,
     util::{
@@ -58,12 +58,15 @@ pub enum Error {
     },
     CodeCommandPresentFailed(bossy::Error),
     LldbExtensionInstallFailed(bossy::Error),
+    DotCargoLoadFailed(dot_cargo::LoadError),
+    HostTargetTripleDetectionFailed(util::HostTargetTripleError),
     #[cfg(feature = "android")]
     AndroidEnvFailed(android::env::Error),
     #[cfg(feature = "android")]
     AndroidInitFailed(android::project::Error),
     #[cfg(feature = "apple")]
     AppleInitFailed(apple::project::Error),
+    DotCargoWriteFailed(dot_cargo::WriteError),
     DotFirstInitDeleteFailed {
         path: PathBuf,
         cause: io::Error,
@@ -83,12 +86,15 @@ impl Reportable for Error {
             Self::AssetDirCreationFailed { asset_dir, cause } => Report::error(format!("Failed to create asset dir {:?}", asset_dir), cause),
             Self::CodeCommandPresentFailed(err) => Report::error("Failed to check for presence of `code` command", err),
             Self::LldbExtensionInstallFailed(err) => Report::error("Failed to install CodeLLDB extension", err),
+            Self::DotCargoLoadFailed(err) => err.report(),
+            Self::HostTargetTripleDetectionFailed(err) => err.report(),
             #[cfg(feature = "android")]
             Self::AndroidEnvFailed(err) => err.report(),
             #[cfg(feature = "android")]
             Self::AndroidInitFailed(err) => err.report(),
             #[cfg(feature = "apple")]
             Self::AppleInitFailed(err) => err.report(),
+            Self::DotCargoWriteFailed(err) => err.report(),
             Self::DotFirstInitDeleteFailed { path, cause } => Report::action_request(format!("Failed to delete first init dot file {:?}; the project generated successfully, but `cargo mobile init` will have unexpected results unless you manually delete this file!", path), cause),
             Self::OpenInEditorFailed(err) => Report::error("Failed to open project in editor (your project generated successfully though, so no worries!)", err),
         }
@@ -161,11 +167,26 @@ pub fn exec(
                 .map_err(Error::LldbExtensionInstallFailed)?;
         }
     }
+    let mut dot_cargo =
+        dot_cargo::DotCargo::load(config.app()).map_err(Error::DotCargoLoadFailed)?;
+    // Mysteriously, builds that don't specify `--target` seem to fight over
+    // the build cache with builds that use `--target`! This means that
+    // alternating between i.e. `cargo run` and `cargo apple run` would
+    // result in clean builds being made each time you switched... which is
+    // pretty nightmarish. Specifying `build.target` in `.cargo/config`
+    // fortunately has the same effect as specifying `--target`, so now we can
+    // `cargo run` with peace of mind!
+    //
+    // This behavior could be explained here:
+    // https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
+    dot_cargo.set_default_target(
+        util::host_target_triple().map_err(Error::HostTargetTripleDetectionFailed)?,
+    );
     #[cfg(feature = "android")]
     {
         if steps.is_set("android") {
             let env = android::env::Env::new().map_err(Error::AndroidEnvFailed)?;
-            android::project::gen(config.android(), &env, &bike, &filter)
+            android::project::gen(config.android(), &env, &bike, &filter, &mut dot_cargo)
                 .map_err(Error::AndroidInitFailed)?;
         }
     }
@@ -184,6 +205,9 @@ pub fn exec(
             .map_err(Error::AppleInitFailed)?;
         }
     }
+    dot_cargo
+        .write(config.app())
+        .map_err(Error::DotCargoWriteFailed)?;
     if dot_first_init_exists {
         log::info!("deleting first init dot file at {:?}", dot_first_init_path);
         fs::remove_file(&dot_first_init_path).map_err(|cause| Error::DotFirstInitDeleteFailed {

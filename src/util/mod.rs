@@ -7,7 +7,9 @@ pub mod prompt;
 
 pub use self::{cargo::*, git::*, path::*};
 
+use self::cli::{Report, Reportable};
 use crate::os;
+use once_cell_regex::regex;
 use std::{
     env,
     fmt::{self, Display},
@@ -45,6 +47,45 @@ pub fn rustup_add(triple: &str) -> bossy::Result<bossy::ExitStatus> {
         .run_and_wait()
 }
 
+#[derive(Debug)]
+pub enum HostTargetTripleError {
+    CommandFailed(bossy::Error),
+    Utf8Invalid(std::str::Utf8Error),
+    NoMatchesFound(String),
+}
+
+impl Reportable for HostTargetTripleError {
+    fn report(&self) -> Report {
+        let msg = "Failed to detect host target triple";
+        match self {
+            Self::CommandFailed(err) => Report::error(msg, err),
+            Self::Utf8Invalid(err) => Report::error(msg, err),
+            Self::NoMatchesFound(output) => {
+                Report::error(msg, format!("No matches found in output {:?}", output))
+            }
+        }
+    }
+}
+
+pub fn host_target_triple() -> Result<String, HostTargetTripleError> {
+    // TODO: add fast paths
+    let output = bossy::Command::impure("rustc")
+        .with_args(&["--verbose", "--version"])
+        .run_and_wait_for_output()
+        .map_err(HostTargetTripleError::CommandFailed)?;
+    let raw = output
+        .stdout_str()
+        .map_err(HostTargetTripleError::Utf8Invalid)?;
+    regex!(r"host: ([\w-]+)")
+        .captures(raw)
+        .map(|caps| {
+            let triple = caps[1].to_owned();
+            log::info!("detected host target triple {:?}", triple);
+            triple
+        })
+        .ok_or_else(|| HostTargetTripleError::NoMatchesFound(raw.to_owned()))
+}
+
 pub fn add_to_path(path: impl Display) -> String {
     format!("{}:{}", path, env::var("PATH").unwrap())
 }
@@ -76,12 +117,10 @@ pub enum PipeError {
 impl Display for PipeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            PipeError::TxCommandFailed(err) => write!(f, "Failed to run sending command: {}", err),
-            PipeError::RxCommandFailed(err) => {
-                write!(f, "Failed to run receiving command: {}", err)
-            }
-            PipeError::PipeFailed(err) => write!(f, "Failed to pipe output: {}", err),
-            PipeError::WaitFailed(err) => {
+            Self::TxCommandFailed(err) => write!(f, "Failed to run sending command: {}", err),
+            Self::RxCommandFailed(err) => write!(f, "Failed to run receiving command: {}", err),
+            Self::PipeFailed(err) => write!(f, "Failed to pipe output: {}", err),
+            Self::WaitFailed(err) => {
                 write!(f, "Failed to wait for receiving command to exit: {}", err)
             }
         }

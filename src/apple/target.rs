@@ -297,11 +297,7 @@ impl<'a> Target<'a> {
         Ok(())
     }
 
-    pub fn export(
-        &self,
-        config: &Config,
-        env: &Env,
-    ) -> Result<(), ExportError> {
+    pub fn export(&self, config: &Config, env: &Env) -> Result<(), ExportError> {
         // Super fun discrepancy in expectation of `-archivePath` value
         let archive_path = config
             .archive_dir()
