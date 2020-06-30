@@ -11,8 +11,10 @@ fn detect_host() -> Option<String> {
         Ok(output) => match output.stdout_str() {
             Ok(raw) => {
                 let re = regex!(r"host: ([\w-]+)");
-                let triple = re.captures(raw).map(|caps| caps[0].to_owned());
-                if triple.is_none() {
+                let triple = re.captures(raw).map(|caps| caps[1].to_owned());
+                if let Some(triple) = &triple {
+                    log::info!("detected host target triple {:?}", triple);
+                } else {
                     log::error!("when detecting host, no matches were found");
                 }
                 triple
