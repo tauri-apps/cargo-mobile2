@@ -1,7 +1,4 @@
-use crate::{
-    config::{Config, Origin},
-    opts::Clobbering,
-};
+use crate::config::{Config, Origin};
 use bicycle::Action;
 use ignore::gitignore::Gitignore;
 use std::{
@@ -38,36 +35,30 @@ impl Filter {
         config: &Config,
         config_origin: Origin,
         dot_first_init_exists: bool,
-        please_destroy_my_files: Clobbering,
     ) -> Result<Self, FilterError> {
-        if please_destroy_my_files.allowed() {
-            log::info!("`--please-destroy-my-files` enabled; using `WildWest` filtering strategy");
+        if config_origin.freshly_minted() {
+            log::info!("config freshly minted, so we're assuming a brand new project; using `WildWest` filtering strategy");
+            Ok(Self::WildWest)
+        } else if dot_first_init_exists {
+            log::info!("`{}` exists, so we're assuming a brand new project; using `WildWest` filtering strategy", crate::init::DOT_FIRST_INIT_FILE_NAME);
             Ok(Self::WildWest)
         } else {
-            if config_origin.freshly_minted() {
-                log::info!("config freshly minted, so we're assuming a brand new project; using `WildWest` filtering strategy");
-                Ok(Self::WildWest)
-            } else if dot_first_init_exists {
-                log::info!("`{}` exists, so we're assuming a brand new project; using `WildWest` filtering strategy", crate::init::DOT_FIRST_INIT_FILE_NAME);
-                Ok(Self::WildWest)
-            } else {
-                log::info!("existing config loaded, so we're assuming an existing project; using `Protected` filtering strategy");
-                let gitignore_path = config.app().root_dir().join(".gitignore");
-                let (unprotected, err) = Gitignore::new(&gitignore_path);
-                if let Some(err) = err {
-                    log::error!("non-fatal error loading {:?}: {}", gitignore_path, err);
-                }
-                if unprotected.is_empty() {
-                    log::warn!("no ignore entries were parsed from {:?}; project generation will more or less be a no-op", gitignore_path);
-                } else {
-                    log::info!(
-                        "{} ignore entries were parsed from {:?}",
-                        unprotected.num_ignores(),
-                        gitignore_path
-                    );
-                }
-                Ok(Self::Protected { unprotected })
+            log::info!("existing config loaded, so we're assuming an existing project; using `Protected` filtering strategy");
+            let gitignore_path = config.app().root_dir().join(".gitignore");
+            let (unprotected, err) = Gitignore::new(&gitignore_path);
+            if let Some(err) = err {
+                log::error!("non-fatal error loading {:?}: {}", gitignore_path, err);
             }
+            if unprotected.is_empty() {
+                log::warn!("no ignore entries were parsed from {:?}; project generation will more or less be a no-op", gitignore_path);
+            } else {
+                log::info!(
+                    "{} ignore entries were parsed from {:?}",
+                    unprotected.num_ignores(),
+                    gitignore_path
+                );
+            }
+            Ok(Self::Protected { unprotected })
         }
     }
 

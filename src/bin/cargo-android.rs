@@ -41,8 +41,6 @@ pub enum Command {
     )]
     Init {
         #[structopt(flatten)]
-        please_destroy_my_files: cli::PleaseDestroyMyFiles,
-        #[structopt(flatten)]
         reinstall_deps: cli::ReinstallDeps,
         #[structopt(
             long,
@@ -161,17 +159,12 @@ impl Exec for Input {
         let env = Env::new().map_err(Error::EnvInitFailed)?;
         match command {
             Command::Init {
-                please_destroy_my_files:
-                    cli::PleaseDestroyMyFiles {
-                        please_destroy_my_files,
-                    },
                 reinstall_deps: cli::ReinstallDeps { reinstall_deps },
                 open,
             } => {
                 let config = init::exec(
                     wrapper,
                     interactivity,
-                    please_destroy_my_files,
                     reinstall_deps,
                     opts::OpenIn::Nothing,
                     Some(vec!["android".into()]),

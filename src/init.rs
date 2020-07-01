@@ -30,15 +30,16 @@ static DOT_FIRST_INIT_CONTENTS: &'static str = // newline
 r#"The presence of this file indicates `cargo mobile init` has been called for
 the first time on a new project, but hasn't yet completed successfully once. As
 long as this file is here, `cargo mobile init` will use a more aggressive
-template generation strategy, identical to running it with the
-`--please-destroy-my-files` flag.
+template generation strategy that allows it to place files that it wouldn't
+normally be able to modify.
 
 If you believe this file isn't supposed to be here, please report this, and then
-delete this file to regain normal behavior. Alternatively, if you do that and
-then realize that you were wrong (ouch!) and your project was never fully
-generated, then run `cargo mobile init --please-destroy-my-files` to regain the
-behavior that the presence of this file provided. Just, if you do that, any
-generated files you modified will be overwritten!
+delete this file to regain normal behavior.
+
+Alternatively, if you do that and then realize that you were wrong (ouch!) and
+your project was never fully generated, then you can just create `.first-init`
+again (the contents don't matter) and run `cargo mobile init`. Just, if you do
+that, any generated files you modified will be overwritten!
 "#;
 
 #[derive(Debug)]
@@ -104,8 +105,7 @@ impl Reportable for Error {
 pub fn exec(
     wrapper: &TextWrapper,
     interactivity: opts::Interactivity,
-    please_destroy_my_files: opts::Clobbering,
-    reinstall_deps: opts::Clobbering,
+    reinstall_deps: opts::ReinstallDeps,
     open_in: opts::OpenIn,
     only: Option<Vec<String>>,
     skip: Option<Vec<String>>,
@@ -128,13 +128,8 @@ pub fn exec(
         })?;
     }
     let bike = config.build_a_bike();
-    let filter = templating::Filter::new(
-        &config,
-        config_origin,
-        dot_first_init_exists,
-        please_destroy_my_files,
-    )
-    .map_err(Error::FilterConfigureFailed)?;
+    let filter = templating::Filter::new(&config, config_origin, dot_first_init_exists)
+        .map_err(Error::FilterConfigureFailed)?;
     let step_registry = steps::Registry::new(STEPS);
     let steps = {
         let only = only

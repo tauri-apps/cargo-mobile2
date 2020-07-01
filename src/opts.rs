@@ -81,28 +81,28 @@ impl NoiseLevel {
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum Clobbering {
-    Forbid,
-    Allow,
+pub enum ReinstallDeps {
+    Yes,
+    No,
 }
 
-impl Default for Clobbering {
+impl Default for ReinstallDeps {
     fn default() -> Self {
-        Self::Forbid
+        Self::No
     }
 }
 
-impl Clobbering {
+impl ReinstallDeps {
     pub fn from_flag(flag: bool) -> Self {
         if flag {
-            Self::Allow
+            Self::Yes
         } else {
-            Self::Forbid
+            Self::No
         }
     }
 
-    pub fn allowed(self) -> bool {
-        matches!(self, Self::Allow)
+    pub fn yes(self) -> bool {
+        matches!(self, Self::Yes)
     }
 }
 

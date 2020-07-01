@@ -142,14 +142,14 @@ fn check_changes(checkout: &Path) -> Result<Status, Error> {
 
 // Step 1: check if installed and up-to-date
 fn check_plugin(
-    reinstall_deps: opts::Clobbering,
+    reinstall_deps: opts::ReinstallDeps,
     xcode_version: (u32, u32),
     checkout: &Path,
     plugins_dir: &Path,
     spec_dst: &Path,
     meta_dst: &Path,
 ) -> Result<Status, Error> {
-    if reinstall_deps.allowed() {
+    if reinstall_deps.yes() {
         Ok(Status::NeedsUpdate)
     } else {
         let plugin_dst = plugins_dir.join("Rust.ideplugin");
@@ -303,7 +303,7 @@ fn run_setup(
 pub fn install(
     wrapper: &TextWrapper,
     interactivity: opts::Interactivity,
-    reinstall_deps: opts::Clobbering,
+    reinstall_deps: opts::ReinstallDeps,
     xcode_version: (u32, u32),
 ) -> Result<(), Error> {
     let checkout_parent_dir = util::install_dir()

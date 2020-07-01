@@ -1,6 +1,6 @@
 use super::{config::Config, deps, target::Target};
 use crate::{
-    opts::{Clobbering, Interactivity},
+    opts::{Interactivity, ReinstallDeps},
     target::TargetTrait as _,
     templating::{self, Pack},
     util::{
@@ -54,7 +54,7 @@ pub fn gen(
     bike: &bicycle::Bicycle,
     wrapper: &TextWrapper,
     interactivity: Interactivity,
-    reinstall_deps: Clobbering,
+    reinstall_deps: ReinstallDeps,
     filter: &templating::Filter,
 ) -> Result<(), Error> {
     Target::install_all().map_err(Error::RustupFailed)?;

@@ -39,23 +39,13 @@ pub struct GlobalFlags {
 }
 
 #[derive(Clone, Copy, Debug, StructOpt)]
-pub struct PleaseDestroyMyFiles {
-    #[structopt(
-        long = "please-destroy-my-files",
-        help = "Clobber files with no remorse",
-        parse(from_flag = opts::Clobbering::from_flag),
-    )]
-    pub please_destroy_my_files: opts::Clobbering,
-}
-
-#[derive(Clone, Copy, Debug, StructOpt)]
 pub struct ReinstallDeps {
     #[structopt(
         long = "reinstall-deps",
         help = "Reinstall dependencies",
-        parse(from_flag = opts::Clobbering::from_flag),
+        parse(from_flag = opts::ReinstallDeps::from_flag),
     )]
-    pub reinstall_deps: opts::Clobbering,
+    pub reinstall_deps: opts::ReinstallDeps,
 }
 
 #[derive(Clone, Copy, Debug, StructOpt)]

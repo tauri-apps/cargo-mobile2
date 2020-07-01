@@ -3,7 +3,7 @@ use super::{
     xcode_plugin,
 };
 use crate::{
-    opts::{Clobbering, Interactivity},
+    opts::{Interactivity, ReinstallDeps},
     util::{self, cli::TextWrapper},
 };
 use std::fmt::{self, Display};
@@ -40,11 +40,11 @@ impl Display for Error {
 pub fn install(
     wrapper: &TextWrapper,
     interactivity: Interactivity,
-    reinstall_deps: Clobbering,
+    reinstall_deps: ReinstallDeps,
 ) -> Result<(), Error> {
     let xcodegen_found =
         util::command_present("xcodegen").map_err(Error::XcodeGenPresenceCheckFailed)?;
-    if !xcodegen_found || reinstall_deps.allowed() {
+    if !xcodegen_found || reinstall_deps.yes() {
         bossy::Command::impure("brew")
             // reinstall works even if it's not installed yet,
             // and will upgrade if it's already installed!
@@ -54,7 +54,7 @@ pub fn install(
     }
     let ios_deploy_found =
         util::command_present("ios-deploy").map_err(Error::IosDeployPresenceCheckFailed)?;
-    if !ios_deploy_found || reinstall_deps.allowed() {
+    if !ios_deploy_found || reinstall_deps.yes() {
         bossy::Command::impure("brew")
             .with_args(&["reinstall", "ios-deploy"])
             .run_and_wait()
