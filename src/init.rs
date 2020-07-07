@@ -147,21 +147,23 @@ pub fn exec(
     };
     if steps.is_set("project") {
         project::gen(&config, &bike, &filter).map_err(Error::ProjectInitFailed)?;
-        let asset_dir = config.app().asset_dir();
-        if !asset_dir.is_dir() {
-            fs::create_dir_all(&asset_dir)
-                .map_err(|cause| Error::AssetDirCreationFailed { asset_dir, cause })?;
+    }
+    let asset_dir = config.app().asset_dir();
+    if !asset_dir.is_dir() {
+        fs::create_dir_all(&asset_dir)
+            .map_err(|cause| Error::AssetDirCreationFailed { asset_dir, cause })?;
+    }
+    if skip_dev_tools.no()
+        && util::command_present("code").map_err(Error::CodeCommandPresentFailed)?
+    {
+        let mut command = bossy::Command::impure("code")
+            .with_args(&["--install-extension", "vadimcn.vscode-lldb"]);
+        if non_interactive.yes() {
+            command.add_arg("--force");
         }
-        if util::command_present("code").map_err(Error::CodeCommandPresentFailed)? {
-            let mut command = bossy::Command::impure("code")
-                .with_args(&["--install-extension", "vadimcn.vscode-lldb"]);
-            if non_interactive.yes() {
-                command.add_arg("--force");
-            }
-            command
-                .run_and_wait()
-                .map_err(Error::LldbExtensionInstallFailed)?;
-        }
+        command
+            .run_and_wait()
+            .map_err(Error::LldbExtensionInstallFailed)?;
     }
     let mut dot_cargo =
         dot_cargo::DotCargo::load(config.app()).map_err(Error::DotCargoLoadFailed)?;
