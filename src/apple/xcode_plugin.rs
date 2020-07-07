@@ -203,7 +203,6 @@ fn clone_plugin(checkout_parent_dir: &Path, checkout_dir: &Path) -> Result<(), E
 // Step 3: check if uuid is supported, and prompt user to open issue if not
 fn check_uuid(
     wrapper: &TextWrapper,
-    non_interactive: opts::NonInteractive,
     xcode_version: (u32, u32),
     checkout: &Path,
     xcode_app_dir: &Path,
@@ -230,7 +229,7 @@ fn check_uuid(
             ),
             "You won't be able to set breakpoints in Xcode until this is resolved! Please open an issue at https://github.com/BrainiumLLC/rust-xcode-plugin",
         );
-        eprintln!("{}", report.render(&wrapper, non_interactive));
+        eprintln!("{}", report.render(&wrapper));
         Ok(false)
     } else {
         Ok(true)
@@ -240,7 +239,6 @@ fn check_uuid(
 // Step 4: install plugin!
 fn run_setup(
     wrapper: &TextWrapper,
-    non_interactive: opts::NonInteractive,
     xcode_version: (u32, u32),
     checkout: &Path,
     xcode_plugins_dir: &Path,
@@ -296,13 +294,12 @@ fn run_setup(
         "`rust-xcode-plugin` installed successfully!",
         "Please restart Xcode and click \"Load Bundle\" when an alert shows about `Rust.ideplugin`",
     );
-    println!("{}", report.render(&wrapper, non_interactive));
+    println!("{}", report.render(&wrapper));
     Ok(())
 }
 
 pub fn install(
     wrapper: &TextWrapper,
-    non_interactive: opts::NonInteractive,
     reinstall_deps: opts::ReinstallDeps,
     xcode_version: (u32, u32),
 ) -> Result<(), Error> {
@@ -333,16 +330,9 @@ pub fn install(
     log::info!("`rust-xcode-plugin` installation status: {:?}", status);
     if matches!(status, Status::NeedsUpdate) {
         clone_plugin(&checkout_parent_dir, &checkout_dir)?;
-        if check_uuid(
-            wrapper,
-            non_interactive,
-            xcode_version,
-            &checkout_dir,
-            &xcode_app_dir,
-        )? {
+        if check_uuid(wrapper, xcode_version, &checkout_dir, &xcode_app_dir)? {
             run_setup(
                 wrapper,
-                non_interactive,
                 xcode_version,
                 &checkout_dir,
                 &xcode_plugins_dir,

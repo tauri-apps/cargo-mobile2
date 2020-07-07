@@ -124,9 +124,9 @@ impl Report {
         Self::new(Label::Victory, msg, details)
     }
 
-    pub fn render(&self, wrapper: &TextWrapper, non_interactive: opts::NonInteractive) -> String {
+    pub fn render(&self, wrapper: &TextWrapper) -> String {
         static INDENT: &'static str = "    ";
-        let head = if non_interactive.no() && colored::control::SHOULD_COLORIZE.should_colorize() {
+        let head = if colored::control::SHOULD_COLORIZE.should_colorize() {
             wrapper.fill(&format!(
                 "{} {}",
                 format!("{}:", self.label.as_str())
@@ -180,20 +180,20 @@ fn init_logging(noise_level: opts::NoiseLevel) {
 
 #[derive(Debug)]
 enum Exit {
-    Report(Report, opts::NonInteractive),
+    Report(Report),
     Clap(clap::Error),
 }
 
 impl Exit {
-    fn report(reportable: impl Reportable, non_interactive: opts::NonInteractive) -> Self {
+    fn report(reportable: impl Reportable) -> Self {
         log::info!("exiting with {:#?}", reportable);
-        Self::Report(reportable.report(), non_interactive)
+        Self::Report(reportable.report())
     }
 
     fn do_the_thing(self, wrapper: TextWrapper) -> ! {
         match self {
-            Self::Report(report, non_interactive) => {
-                eprintln!("{}", report.render(&wrapper, non_interactive));
+            Self::Report(report) => {
+                eprintln!("{}", report.render(&wrapper));
                 std::process::exit(1)
             }
             Self::Clap(err) => err.exit(),
@@ -211,13 +211,7 @@ impl Exit {
 pub fn exec<E: Exec>(name: &str) {
     Exit::main(|wrapper| {
         let input = E::from_iter_safe(get_args(name)).map_err(Exit::Clap)?;
-        let GlobalFlags {
-            noise_level,
-            non_interactive,
-        } = input.global_flags();
-        init_logging(noise_level);
-        input
-            .exec(wrapper)
-            .map_err(|report| Exit::report(report, non_interactive))
+        init_logging(input.global_flags().noise_level);
+        input.exec(wrapper).map_err(Exit::report)
     })
 }

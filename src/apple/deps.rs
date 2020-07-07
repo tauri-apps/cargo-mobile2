@@ -3,7 +3,7 @@ use super::{
     xcode_plugin,
 };
 use crate::{
-    opts::{NonInteractive, ReinstallDeps, SkipDevTools},
+    opts,
     util::{self, cli::TextWrapper},
 };
 use std::fmt::{self, Display};
@@ -39,9 +39,8 @@ impl Display for Error {
 
 pub fn install(
     wrapper: &TextWrapper,
-    non_interactive: NonInteractive,
-    skip_dev_tools: SkipDevTools,
-    reinstall_deps: ReinstallDeps,
+    skip_dev_tools: opts::SkipDevTools,
+    reinstall_deps: opts::ReinstallDeps,
 ) -> Result<(), Error> {
     let xcodegen_found =
         util::command_present("xcodegen").map_err(Error::XcodeGenPresenceCheckFailed)?;
@@ -64,7 +63,7 @@ pub fn install(
     // we definitely don't want to install this on CI...
     if skip_dev_tools.yes() {
         let tool_info = DeveloperTools::new().map_err(Error::VersionLookupFailed)?;
-        xcode_plugin::install(wrapper, non_interactive, reinstall_deps, tool_info.version)
+        xcode_plugin::install(wrapper, reinstall_deps, tool_info.version)
             .map_err(Error::XcodeRustPluginInstallFailed)?;
     }
     Ok(())
