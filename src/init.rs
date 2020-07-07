@@ -104,16 +104,17 @@ impl Reportable for Error {
 
 pub fn exec(
     wrapper: &TextWrapper,
-    interactivity: opts::Interactivity,
+    non_interactive: opts::NonInteractive,
+    skip_dev_tools: opts::SkipDevTools,
     reinstall_deps: opts::ReinstallDeps,
-    open_in: opts::OpenIn,
+    open_in_editor: opts::OpenInEditor,
     only: Option<Vec<String>>,
     skip: Option<Vec<String>>,
     cwd: impl AsRef<Path>,
 ) -> Result<Config, Error> {
     let cwd = cwd.as_ref();
     let (config, config_origin) =
-        Config::load_or_gen(cwd, interactivity, wrapper).map_err(Error::ConfigLoadOrGenFailed)?;
+        Config::load_or_gen(cwd, non_interactive, wrapper).map_err(Error::ConfigLoadOrGenFailed)?;
     let dot_first_init_path = config.app().root_dir().join(DOT_FIRST_INIT_FILE_NAME);
     let dot_first_init_exists = dot_first_init_path.exists();
     if config_origin.freshly_minted() && !dot_first_init_exists {
@@ -154,7 +155,7 @@ pub fn exec(
         if util::command_present("code").map_err(Error::CodeCommandPresentFailed)? {
             let mut command = bossy::Command::impure("code")
                 .with_args(&["--install-extension", "vadimcn.vscode-lldb"]);
-            if interactivity.none() {
+            if non_interactive.yes() {
                 command.add_arg("--force");
             }
             command
@@ -193,7 +194,8 @@ pub fn exec(
                 config.app().template_pack().submodule_path(),
                 &bike,
                 wrapper,
-                interactivity,
+                non_interactive,
+                skip_dev_tools,
                 reinstall_deps,
                 &filter,
             )
@@ -210,7 +212,7 @@ pub fn exec(
             cause,
         })?;
     }
-    if open_in.editor() {
+    if open_in_editor.yes() {
         util::open_in_editor(cwd).map_err(Error::OpenInEditorFailed)?;
     }
     Ok(config)

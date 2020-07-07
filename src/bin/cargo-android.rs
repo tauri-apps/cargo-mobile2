@@ -41,13 +41,15 @@ pub enum Command {
     )]
     Init {
         #[structopt(flatten)]
+        skip_dev_tools: cli::SkipDevTools,
+        #[structopt(flatten)]
         reinstall_deps: cli::ReinstallDeps,
         #[structopt(
-            long,
+            long = "open",
             help = "Open in Android Studio",
-            parse(from_flag = opts::OpenIn::from_flag),
+            parse(from_flag = opts::OpenInEditor::from_bool),
         )]
-        open: opts::OpenIn,
+        open_in_editor: opts::OpenInEditor,
     },
     #[structopt(name = "open", about = "Open project in Android Studio")]
     Open,
@@ -123,21 +125,21 @@ impl Exec for Input {
         }
 
         fn with_config(
-            interactivity: opts::Interactivity,
+            non_interactive: opts::NonInteractive,
             wrapper: &TextWrapper,
             f: impl FnOnce(&Config) -> Result<(), Error>,
         ) -> Result<(), Error> {
-            let (config, _origin) = OmniConfig::load_or_gen(".", interactivity, wrapper)
+            let (config, _origin) = OmniConfig::load_or_gen(".", non_interactive, wrapper)
                 .map_err(Error::ConfigFailed)?;
             f(config.android())
         }
 
         fn with_config_and_metadata(
-            interactivity: opts::Interactivity,
+            non_interactive: opts::NonInteractive,
             wrapper: &TextWrapper,
             f: impl FnOnce(&Config, &Metadata) -> Result<(), Error>,
         ) -> Result<(), Error> {
-            with_config(interactivity, wrapper, |config| {
+            with_config(non_interactive, wrapper, |config| {
                 let metadata =
                     OmniMetadata::load(&config.app().root_dir()).map_err(Error::MetadataFailed)?;
                 f(config, &metadata.android)
@@ -152,42 +154,44 @@ impl Exec for Input {
             flags:
                 GlobalFlags {
                     noise_level,
-                    interactivity,
+                    non_interactive,
                 },
             command,
         } = self;
         let env = Env::new().map_err(Error::EnvInitFailed)?;
         match command {
             Command::Init {
+                skip_dev_tools: cli::SkipDevTools { skip_dev_tools },
                 reinstall_deps: cli::ReinstallDeps { reinstall_deps },
-                open,
+                open_in_editor,
             } => {
                 let config = init::exec(
                     wrapper,
-                    interactivity,
+                    non_interactive,
+                    skip_dev_tools,
                     reinstall_deps,
-                    opts::OpenIn::Nothing,
+                    opts::OpenInEditor::No,
                     Some(vec!["android".into()]),
                     None,
                     ".",
                 )
                 .map_err(Error::InitFailed)?;
-                if open.editor() {
+                if open_in_editor.yes() {
                     open_in_android_studio(config.android())
                 } else {
                     Ok(())
                 }
             }
-            Command::Open => with_config(interactivity, wrapper, open_in_android_studio),
+            Command::Open => with_config(non_interactive, wrapper, open_in_android_studio),
             Command::Check { targets } => {
-                with_config_and_metadata(interactivity, wrapper, |config, metadata| {
+                with_config_and_metadata(non_interactive, wrapper, |config, metadata| {
                     call_for_targets_with_fallback(
                         targets.iter(),
                         &detect_target_ok,
                         &env,
                         |target: &Target| {
                             target
-                                .check(config, metadata, &env, noise_level, interactivity)
+                                .check(config, metadata, &env, noise_level, non_interactive)
                                 .map_err(Error::CheckFailed)
                         },
                     )
@@ -197,14 +201,21 @@ impl Exec for Input {
             Command::Build {
                 targets,
                 profile: cli::Profile { profile },
-            } => with_config_and_metadata(interactivity, wrapper, |config, metadata| {
+            } => with_config_and_metadata(non_interactive, wrapper, |config, metadata| {
                 call_for_targets_with_fallback(
                     targets.iter(),
                     &detect_target_ok,
                     &env,
                     |target: &Target| {
                         target
-                            .build(config, metadata, &env, noise_level, interactivity, profile)
+                            .build(
+                                config,
+                                metadata,
+                                &env,
+                                noise_level,
+                                non_interactive,
+                                profile,
+                            )
                             .map_err(Error::BuildFailed)
                     },
                 )
@@ -212,13 +223,13 @@ impl Exec for Input {
             }),
             Command::Run {
                 profile: cli::Profile { profile },
-            } => with_config(interactivity, wrapper, |config| {
+            } => with_config(non_interactive, wrapper, |config| {
                 device_prompt(&env)
                     .map_err(Error::DevicePromptFailed)?
                     .run(config, &env, noise_level, profile)
                     .map_err(Error::RunFailed)
             }),
-            Command::Stacktrace => with_config(interactivity, wrapper, |config| {
+            Command::Stacktrace => with_config(non_interactive, wrapper, |config| {
                 device_prompt(&env)
                     .map_err(Error::DevicePromptFailed)?
                     .stacktrace(config, &env)

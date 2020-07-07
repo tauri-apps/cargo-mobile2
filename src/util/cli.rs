@@ -23,19 +23,30 @@ pub struct GlobalFlags {
     #[structopt(
         short = "v",
         long = "verbose",
-        help = "Make life louder",
+        help = "Vomit out extensive logging",
         global = true,
         multiple = true,
         parse(from_occurrences = opts::NoiseLevel::from_occurrences),
     )]
     pub noise_level: opts::NoiseLevel,
     #[structopt(
+        short = "y",
         long = "non-interactive",
-        help = "Go with the flow",
+        help = "Never prompt for input",
         global = true,
-        parse(from_flag = opts::Interactivity::from_flag),
+        parse(from_flag = opts::NonInteractive::from_flag),
     )]
-    pub interactivity: opts::Interactivity,
+    pub non_interactive: opts::NonInteractive,
+}
+
+#[derive(Clone, Copy, Debug, StructOpt)]
+pub struct SkipDevTools {
+    #[structopt(
+        long = "skip-dev-tools",
+        help = "Skip optional tools that help when writing code",
+        parse(from_flag = opts::SkipDevTools::from_bool),
+    )]
+    pub skip_dev_tools: opts::SkipDevTools,
 }
 
 #[derive(Clone, Copy, Debug, StructOpt)]
@@ -43,7 +54,7 @@ pub struct ReinstallDeps {
     #[structopt(
         long = "reinstall-deps",
         help = "Reinstall dependencies",
-        parse(from_flag = opts::ReinstallDeps::from_flag),
+        parse(from_flag = opts::ReinstallDeps::from_bool),
     )]
     pub reinstall_deps: opts::ReinstallDeps,
 }
@@ -113,9 +124,9 @@ impl Report {
         Self::new(Label::Victory, msg, details)
     }
 
-    pub fn render(&self, wrapper: &TextWrapper, interactivity: opts::Interactivity) -> String {
+    pub fn render(&self, wrapper: &TextWrapper, non_interactive: opts::NonInteractive) -> String {
         static INDENT: &'static str = "    ";
-        let head = if interactivity.full() && colored::control::SHOULD_COLORIZE.should_colorize() {
+        let head = if non_interactive.no() && colored::control::SHOULD_COLORIZE.should_colorize() {
             wrapper.fill(&format!(
                 "{} {}",
                 format!("{}:", self.label.as_str())
@@ -169,20 +180,20 @@ fn init_logging(noise_level: opts::NoiseLevel) {
 
 #[derive(Debug)]
 enum Exit {
-    Report(Report, opts::Interactivity),
+    Report(Report, opts::NonInteractive),
     Clap(clap::Error),
 }
 
 impl Exit {
-    fn report(reportable: impl Reportable, interactivity: opts::Interactivity) -> Self {
+    fn report(reportable: impl Reportable, non_interactive: opts::NonInteractive) -> Self {
         log::info!("exiting with {:#?}", reportable);
-        Self::Report(reportable.report(), interactivity)
+        Self::Report(reportable.report(), non_interactive)
     }
 
     fn do_the_thing(self, wrapper: TextWrapper) -> ! {
         match self {
-            Self::Report(report, interactivity) => {
-                eprintln!("{}", report.render(&wrapper, interactivity));
+            Self::Report(report, non_interactive) => {
+                eprintln!("{}", report.render(&wrapper, non_interactive));
                 std::process::exit(1)
             }
             Self::Clap(err) => err.exit(),
@@ -202,11 +213,11 @@ pub fn exec<E: Exec>(name: &str) {
         let input = E::from_iter_safe(get_args(name)).map_err(Exit::Clap)?;
         let GlobalFlags {
             noise_level,
-            interactivity,
+            non_interactive,
         } = input.global_flags();
         init_logging(noise_level);
         input
             .exec(wrapper)
-            .map_err(|report| Exit::report(report, interactivity))
+            .map_err(|report| Exit::report(report, non_interactive))
     })
 }

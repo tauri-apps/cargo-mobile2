@@ -1,18 +1,9 @@
 use serde::{Deserialize, Serialize};
+use yes_or_no::yes_or_no;
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum Interactivity {
-    Full,
-    None,
-}
+yes_or_no!(NonInteractive);
 
-impl Default for Interactivity {
-    fn default() -> Self {
-        Self::Full
-    }
-}
-
-impl Interactivity {
+impl NonInteractive {
     fn auto() -> Self {
         let is_ci = {
             let ci = std::env::var("CI").ok();
@@ -22,26 +13,18 @@ impl Interactivity {
             log::info!(
                 "env var `CI` is set to `true` or `1`; automatically running in non-interactive mode"
             );
-            Self::None
+            Self::Yes
         } else {
-            Self::default()
+            Self::No
         }
     }
 
     pub fn from_flag(flag: bool) -> Self {
         if flag {
-            Self::None
+            Self::Yes
         } else {
             Self::auto()
         }
-    }
-
-    pub fn full(&self) -> bool {
-        matches!(self, Self::Full)
-    }
-
-    pub fn none(&self) -> bool {
-        matches!(self, Self::None)
     }
 }
 
@@ -80,57 +63,11 @@ impl NoiseLevel {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum ReinstallDeps {
-    Yes,
-    No,
-}
+yes_or_no!(SkipDevTools);
 
-impl Default for ReinstallDeps {
-    fn default() -> Self {
-        Self::No
-    }
-}
+yes_or_no!(ReinstallDeps);
 
-impl ReinstallDeps {
-    pub fn from_flag(flag: bool) -> Self {
-        if flag {
-            Self::Yes
-        } else {
-            Self::No
-        }
-    }
-
-    pub fn yes(self) -> bool {
-        matches!(self, Self::Yes)
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum OpenIn {
-    Nothing,
-    Editor,
-}
-
-impl Default for OpenIn {
-    fn default() -> Self {
-        Self::Nothing
-    }
-}
-
-impl OpenIn {
-    pub fn from_flag(flag: bool) -> Self {
-        if flag {
-            Self::Editor
-        } else {
-            Self::Nothing
-        }
-    }
-
-    pub fn editor(&self) -> bool {
-        matches!(self, Self::Editor)
-    }
-}
+yes_or_no!(OpenInEditor);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Profile {

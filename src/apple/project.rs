@@ -1,6 +1,6 @@
 use super::{config::Config, deps, target::Target};
 use crate::{
-    opts::{Interactivity, ReinstallDeps},
+    opts::{NonInteractive, ReinstallDeps, SkipDevTools},
     target::TargetTrait as _,
     templating::{self, Pack},
     util::{
@@ -53,13 +53,15 @@ pub fn gen(
     submodule_path: Option<&Path>,
     bike: &bicycle::Bicycle,
     wrapper: &TextWrapper,
-    interactivity: Interactivity,
+    non_interactive: NonInteractive,
+    skip_dev_tools: SkipDevTools,
     reinstall_deps: ReinstallDeps,
     filter: &templating::Filter,
 ) -> Result<(), Error> {
     Target::install_all().map_err(Error::RustupFailed)?;
 
-    deps::install(wrapper, interactivity, reinstall_deps).map_err(Error::DepsInstallFailed)?;
+    deps::install(wrapper, non_interactive, skip_dev_tools, reinstall_deps)
+        .map_err(Error::DepsInstallFailed)?;
 
     let dest = config.project_dir();
     let rel_prefix = util::relativize_path(config.app().root_dir(), &dest);

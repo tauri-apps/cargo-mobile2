@@ -5,7 +5,7 @@ use super::{
 };
 use crate::{
     dot_cargo::DotCargoTarget,
-    opts::{Interactivity, NoiseLevel, Profile},
+    opts::{NoiseLevel, NonInteractive, Profile},
     target::TargetTrait,
     util::{
         cli::{Report, Reportable},
@@ -220,14 +220,14 @@ impl<'a> Target<'a> {
         metadata: &Metadata,
         env: &Env,
         noise_level: NoiseLevel,
-        interactivity: Interactivity,
+        non_interactive: NonInteractive,
         profile: Profile,
         mode: CargoMode,
     ) -> Result<(), CompileLibError> {
         let min_sdk_version = config.min_sdk_version();
         // Force color, since gradle would otherwise give us uncolored output
         // (which Android Studio makes red, which is extra gross!)
-        let color = if interactivity.none() {
+        let color = if non_interactive.no() {
             "auto"
         } else {
             "always"
@@ -319,14 +319,14 @@ impl<'a> Target<'a> {
         metadata: &Metadata,
         env: &Env,
         noise_level: NoiseLevel,
-        interactivity: Interactivity,
+        non_interactive: NonInteractive,
     ) -> Result<(), CompileLibError> {
         self.compile_lib(
             config,
             metadata,
             env,
             noise_level,
-            interactivity,
+            non_interactive,
             Profile::Debug,
             CargoMode::Check,
         )
@@ -338,7 +338,7 @@ impl<'a> Target<'a> {
         metadata: &Metadata,
         env: &Env,
         noise_level: NoiseLevel,
-        interactivity: Interactivity,
+        non_interactive: NonInteractive,
         profile: Profile,
     ) -> Result<(), BuildError> {
         self.compile_lib(
@@ -346,7 +346,7 @@ impl<'a> Target<'a> {
             metadata,
             env,
             noise_level,
-            interactivity,
+            non_interactive,
             profile,
             CargoMode::Build,
         )

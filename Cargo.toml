@@ -42,6 +42,7 @@ serde_json = { version = "1.0.50", optional = true }
 structopt = "0.3.12"
 textwrap = { version = "0.11.0", features = ["term_size"] }
 toml = { version = "0.5.6", features = ["preserve_order"] }
+yes-or-no = { git = "ssh://git@bitbucket.org/brainium/yes-or-no.git" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.20.0"

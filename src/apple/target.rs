@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     env::{Env, ExplicitEnv as _},
-    opts::{Interactivity, NoiseLevel, Profile},
+    opts::{NoiseLevel, NonInteractive, Profile},
     target::TargetTrait,
     util::{
         cli::{Report, Reportable},
@@ -235,11 +235,11 @@ impl<'a> Target<'a> {
         config: &Config,
         metadata: &Metadata,
         noise_level: NoiseLevel,
-        interactivity: Interactivity,
+        non_interactive: NonInteractive,
         profile: Profile,
     ) -> Result<(), CompileLibError> {
         // Force color when running from CLI
-        let color = if interactivity.full() {
+        let color = if non_interactive.no() {
             "always"
         } else {
             "auto"

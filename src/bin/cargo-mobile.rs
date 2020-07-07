@@ -27,13 +27,15 @@ pub enum Command {
     )]
     Init {
         #[structopt(flatten)]
+        skip_dev_tools: cli::SkipDevTools,
+        #[structopt(flatten)]
         reinstall_deps: cli::ReinstallDeps,
         #[structopt(
-            long,
+            long = "open",
             help = "Open in default code editor",
-            parse(from_flag = opts::OpenIn::from_flag),
+            parse(from_flag = opts::OpenInEditor::from_bool),
         )]
-        open: opts::OpenIn,
+        open_in_editor: opts::OpenInEditor,
         #[structopt(
             long,
             help = "Only do some steps",
@@ -85,20 +87,24 @@ impl Exec for Input {
 
     fn exec(self, wrapper: &TextWrapper) -> Result<(), Self::Report> {
         let Self {
-            flags: GlobalFlags { interactivity, .. },
+            flags: GlobalFlags {
+                non_interactive, ..
+            },
             command,
         } = self;
         match command {
             Command::Init {
+                skip_dev_tools: cli::SkipDevTools { skip_dev_tools },
                 reinstall_deps: cli::ReinstallDeps { reinstall_deps },
-                open,
+                open_in_editor,
                 only,
                 skip,
             } => init::exec(
                 wrapper,
-                interactivity,
+                non_interactive,
+                skip_dev_tools,
                 reinstall_deps,
-                open,
+                open_in_editor,
                 only,
                 skip,
                 ".",

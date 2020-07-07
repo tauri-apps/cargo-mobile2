@@ -8,7 +8,7 @@ use crate::android;
 #[cfg(feature = "apple")]
 use crate::apple;
 use crate::{
-    opts::Interactivity,
+    opts::NonInteractive,
     templating,
     util::cli::{Report, Reportable, TextWrapper},
 };
@@ -130,12 +130,13 @@ impl Config {
 
     fn gen(
         cwd: impl AsRef<Path>,
-        interactivity: Interactivity,
+        non_interactive: NonInteractive,
         wrapper: &TextWrapper,
     ) -> Result<Self, GenError> {
-        let raw = match interactivity {
-            Interactivity::Full => Raw::prompt(wrapper).map_err(GenError::PromptFailed),
-            Interactivity::None => Raw::detect().map_err(GenError::DetectFailed),
+        let raw = if non_interactive.no() {
+            Raw::prompt(wrapper).map_err(GenError::PromptFailed)
+        } else {
+            Raw::detect().map_err(GenError::DetectFailed)
         }?;
         let root_dir = cwd
             .as_ref()
@@ -150,7 +151,7 @@ impl Config {
 
     pub fn load_or_gen(
         cwd: impl AsRef<Path>,
-        interactivity: Interactivity,
+        non_interactive: NonInteractive,
         wrapper: &TextWrapper,
     ) -> Result<(Self, Origin), LoadOrGenError> {
         let cwd = cwd.as_ref();
@@ -162,7 +163,7 @@ impl Config {
                     cause,
                 })
         } else {
-            Self::gen(cwd, interactivity, wrapper)
+            Self::gen(cwd, non_interactive, wrapper)
                 .map(|config| (config, Origin::FreshlyMinted))
                 .map_err(LoadOrGenError::GenFailed)
         }

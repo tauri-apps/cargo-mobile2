@@ -3,7 +3,7 @@ use super::{
     xcode_plugin,
 };
 use crate::{
-    opts::{Interactivity, ReinstallDeps},
+    opts::{NonInteractive, ReinstallDeps, SkipDevTools},
     util::{self, cli::TextWrapper},
 };
 use std::fmt::{self, Display};
@@ -39,7 +39,8 @@ impl Display for Error {
 
 pub fn install(
     wrapper: &TextWrapper,
-    interactivity: Interactivity,
+    non_interactive: NonInteractive,
+    skip_dev_tools: SkipDevTools,
     reinstall_deps: ReinstallDeps,
 ) -> Result<(), Error> {
     let xcodegen_found =
@@ -61,9 +62,9 @@ pub fn install(
             .map_err(Error::IosDeployInstallFailed)?;
     }
     // we definitely don't want to install this on CI...
-    if interactivity.full() {
+    if skip_dev_tools.yes() {
         let tool_info = DeveloperTools::new().map_err(Error::VersionLookupFailed)?;
-        xcode_plugin::install(wrapper, interactivity, reinstall_deps, tool_info.version)
+        xcode_plugin::install(wrapper, non_interactive, reinstall_deps, tool_info.version)
             .map_err(Error::XcodeRustPluginInstallFailed)?;
     }
     Ok(())
