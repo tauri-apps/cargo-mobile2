@@ -34,7 +34,7 @@ pub struct GlobalFlags {
         long = "non-interactive",
         help = "Never prompt for input",
         global = true,
-        parse(from_flag = opts::NonInteractive::from_flag),
+        parse(from_flag = opts::NonInteractive::from_bool),
     )]
     pub non_interactive: opts::NonInteractive,
 }
