@@ -104,13 +104,14 @@ fn parse_device_list<'a>(output: &bossy::Output) -> Result<BTreeSet<Device<'a>>,
 }
 
 pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListError> {
-    let mut handle = bossy::Command::pure("ios-deploy")
-        .with_env_vars(env.explicit_env())
-        .with_args(&["--detect", "--json", "--no-wifi", "--unbuffered"])
-        .with_stdout_piped()
-        .with_stderr_piped()
-        .run()
-        .map_err(DeviceListError::DetectionFailed)?;
+    let mut handle =
+        bossy::Command::pure_parse("ios-deploy --detect --json --no-wifi --unbuffered")
+            .unwrap()
+            .with_env_vars(env.explicit_env())
+            .with_stdout_piped()
+            .with_stderr_piped()
+            .run()
+            .map_err(DeviceListError::DetectionFailed)?;
     // TODO: this feels so gross
     std::thread::sleep(std::time::Duration::from_millis(500));
     handle.kill().map_err(DeviceListError::KillFailed)?;

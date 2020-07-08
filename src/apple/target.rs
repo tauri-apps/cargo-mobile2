@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     env::{Env, ExplicitEnv as _},
-    opts::{ForceColor, NoiseLevel, Profile},
+    opts::{self, ForceColor, NoiseLevel, Profile},
     target::TargetTrait,
     util::{
         cli::{Report, Reportable},
@@ -13,6 +13,14 @@ use crate::{
 };
 use once_cell_regex::exports::once_cell::sync::OnceCell;
 use std::collections::BTreeMap;
+
+fn verbosity(noise_level: opts::NoiseLevel) -> Option<&'static str> {
+    if noise_level.pedantic() {
+        None
+    } else {
+        Some("-quiet")
+    }
+}
 
 #[derive(Debug)]
 pub enum VersionCheckError {
@@ -251,11 +259,18 @@ impl<'a> Target<'a> {
         Ok(())
     }
 
-    pub fn build(&self, config: &Config, env: &Env, profile: Profile) -> Result<(), BuildError> {
+    pub fn build(
+        &self,
+        config: &Config,
+        env: &Env,
+        noise_level: opts::NoiseLevel,
+        profile: opts::Profile,
+    ) -> Result<(), BuildError> {
         let configuration = profile.as_str();
         bossy::Command::pure("xcodebuild")
             .with_env_vars(env.explicit_env())
             .with_env_var("CLI", "1")
+            .with_args(verbosity(noise_level))
             .with_args(&["-scheme", &config.scheme()])
             .with_arg("-workspace")
             .with_arg(&config.workspace_path())
@@ -272,12 +287,14 @@ impl<'a> Target<'a> {
         &self,
         config: &Config,
         env: &Env,
-        profile: Profile,
+        noise_level: opts::NoiseLevel,
+        profile: opts::Profile,
     ) -> Result<(), ArchiveError> {
         let configuration = profile.as_str();
         let archive_path = config.archive_dir().join(&config.scheme());
         bossy::Command::pure("xcodebuild")
             .with_env_vars(env.explicit_env())
+            .with_args(verbosity(noise_level))
             .with_args(&["-scheme", &config.scheme()])
             .with_arg("-workspace")
             .with_arg(&config.workspace_path())
@@ -293,13 +310,19 @@ impl<'a> Target<'a> {
         Ok(())
     }
 
-    pub fn export(&self, config: &Config, env: &Env) -> Result<(), ExportError> {
+    pub fn export(
+        &self,
+        config: &Config,
+        env: &Env,
+        noise_level: opts::NoiseLevel,
+    ) -> Result<(), ExportError> {
         // Super fun discrepancy in expectation of `-archivePath` value
         let archive_path = config
             .archive_dir()
             .join(&format!("{}.xcarchive", config.scheme()));
         bossy::Command::pure("xcodebuild")
             .with_env_vars(env.explicit_env())
+            .with_args(verbosity(noise_level))
             .with_arg("-exportArchive")
             .with_arg("-archivePath")
             .with_arg(&archive_path)

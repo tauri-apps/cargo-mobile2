@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     env::{Env, ExplicitEnv as _},
-    opts::Profile,
+    opts,
     util::cli::{Report, Reportable},
 };
 use std::fmt::{self, Display};
@@ -58,19 +58,30 @@ impl<'a> Device<'a> {
         self.target
     }
 
-    pub fn run(&self, config: &Config, env: &Env, profile: Profile) -> Result<(), RunError> {
+    pub fn run(
+        &self,
+        config: &Config,
+        env: &Env,
+        noise_level: opts::NoiseLevel,
+        profile: opts::Profile,
+    ) -> Result<(), RunError> {
         // TODO: These steps are run unconditionally, which is slooooooow
         self.target
-            .build(config, env, profile)
+            .build(config, env, noise_level, profile)
             .map_err(RunError::BuildFailed)?;
         self.target
-            .archive(config, env, profile)
+            .archive(config, env, noise_level, profile)
             .map_err(RunError::ArchiveFailed)?;
         self.target
-            .export(config, env)
+            .export(config, env, noise_level)
             .map_err(RunError::ExportFailed)?;
         bossy::Command::pure("unzip")
             .with_env_vars(env.explicit_env())
+            .with_args(if noise_level.pedantic() {
+                None
+            } else {
+                Some("-q")
+            })
             .with_arg("-o") // -o = always overwrite
             .with_arg(&config.ipa_path())
             .with_arg("-d")

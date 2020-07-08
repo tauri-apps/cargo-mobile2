@@ -242,7 +242,7 @@ impl Exec for Input {
                     &env,
                     |target: &Target| {
                         target
-                            .build(config, &env, profile)
+                            .build(config, &env, noise_level, profile)
                             .map_err(Error::BuildFailed)
                     },
                 )
@@ -258,10 +258,10 @@ impl Exec for Input {
                     &env,
                     |target: &Target| {
                         target
-                            .build(config, &env, profile)
+                            .build(config, &env, noise_level, profile)
                             .map_err(Error::BuildFailed)?;
                         target
-                            .archive(config, &env, profile)
+                            .archive(config, &env, noise_level, profile)
                             .map_err(Error::ArchiveFailed)
                     },
                 )
@@ -272,7 +272,7 @@ impl Exec for Input {
             } => with_config(non_interactive, wrapper, |config| {
                 device_prompt(&env)
                     .map_err(Error::DevicePromptFailed)?
-                    .run(config, &env, profile)
+                    .run(config, &env, noise_level, profile)
                     .map_err(Error::RunFailed)
             }),
             Command::List => ios_deploy::device_list(&env)
