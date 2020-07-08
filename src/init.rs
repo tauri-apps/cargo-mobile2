@@ -213,6 +213,11 @@ pub fn exec(
             cause,
         })?;
     }
+    Report::victory(
+        "Project generated successfully!",
+        "Make cool games! 🌻 🐕 🎉",
+    )
+    .print(wrapper);
     if open_in_editor.yes() {
         util::open_in_editor(cwd).map_err(Error::OpenInEditorFailed)?;
     }

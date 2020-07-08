@@ -328,6 +328,7 @@ pub fn install(
     )?;
     log::info!("`rust-xcode-plugin` installation status: {:?}", status);
     if matches!(status, Status::NeedsUpdate) {
+        println!("Installing `rust-xcode-plugin`...");
         clone_plugin(&checkout_parent_dir, &checkout_dir)?;
         if check_uuid(wrapper, xcode_version, &checkout_dir, &xcode_app_dir)? {
             run_setup(

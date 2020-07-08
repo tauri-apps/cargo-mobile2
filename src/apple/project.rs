@@ -57,6 +57,7 @@ pub fn gen(
     reinstall_deps: opts::ReinstallDeps,
     filter: &templating::Filter,
 ) -> Result<(), Error> {
+    println!("Installing iOS toolchains...");
     Target::install_all().map_err(Error::RustupFailed)?;
 
     deps::install(wrapper, skip_dev_tools, reinstall_deps).map_err(Error::DepsInstallFailed)?;
@@ -92,6 +93,7 @@ pub fn gen(
         .map_err(Error::ScriptChmodFailed)?;
     // Note that Xcode doesn't always reload the project nicely; reopening is
     // often necessary.
+    println!("Generating Xcode project...");
     bossy::Command::impure("xcodegen")
         .with_args(&["generate", "--spec"])
         .with_arg(dest.join("project.yml"))

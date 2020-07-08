@@ -42,6 +42,7 @@ pub fn gen(
     bike: &bicycle::Bicycle,
     filter: &templating::Filter,
 ) -> Result<(), Error> {
+    println!("Generating base project...");
     let root = config.app().root_dir();
     let git = Git::new(&root);
     git.init().map_err(Error::GitInitFailed)?;

@@ -53,7 +53,9 @@ pub fn gen(
     filter: &templating::Filter,
     dot_cargo: &mut dot_cargo::DotCargo,
 ) -> Result<(), Error> {
+    println!("Installing Android toolchains...");
     Target::install_all().map_err(Error::RustupFailed)?;
+    println!("Generating Android Studio project...");
     let src = Pack::lookup("android-studio-project")
         .map_err(Error::MissingPack)?
         .expect_local();
