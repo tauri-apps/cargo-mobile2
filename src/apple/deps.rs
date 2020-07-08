@@ -61,7 +61,7 @@ pub fn install(
             .map_err(Error::IosDeployInstallFailed)?;
     }
     // we definitely don't want to install this on CI...
-    if skip_dev_tools.yes() {
+    if skip_dev_tools.no() {
         let tool_info = DeveloperTools::new().map_err(Error::VersionLookupFailed)?;
         xcode_plugin::install(wrapper, reinstall_deps, tool_info.version)
             .map_err(Error::XcodeRustPluginInstallFailed)?;
