@@ -222,14 +222,13 @@ fn check_uuid(
         cause,
     })?;
     if !plist.contains(uuid) {
-        let report = Report::action_request(
+        Report::action_request(
             format!(
                 "Your Xcode UUID ({}, version {}.{}) isn't supported by `rust-xcode-plugin`; skipping installation",
                 uuid, xcode_version.0, xcode_version.1,
             ),
             "You won't be able to set breakpoints in Xcode until this is resolved! Please open an issue at https://github.com/BrainiumLLC/rust-xcode-plugin",
-        );
-        eprintln!("{}", report.render(&wrapper));
+        ).print(&wrapper);
         Ok(false)
     } else {
         Ok(true)
@@ -290,11 +289,11 @@ fn run_setup(
             .run_and_wait()
             .map_err(Error::MetaCopyFailed)?;
     }
-    let report = Report::victory(
+    Report::victory(
         "`rust-xcode-plugin` installed successfully!",
         "Please restart Xcode and click \"Load Bundle\" when an alert shows about `Rust.ideplugin`",
-    );
-    println!("{}", report.render(&wrapper));
+    )
+    .print(&wrapper);
     Ok(())
 }
 

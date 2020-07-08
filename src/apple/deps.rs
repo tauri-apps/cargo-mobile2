@@ -4,7 +4,10 @@ use super::{
 };
 use crate::{
     opts,
-    util::{self, cli::TextWrapper},
+    util::{
+        self,
+        cli::{Report, TextWrapper},
+    },
 };
 use std::fmt::{self, Display};
 
@@ -15,7 +18,6 @@ pub enum Error {
     IosDeployPresenceCheckFailed(bossy::Error),
     IosDeployInstallFailed(bossy::Error),
     VersionLookupFailed(system_profile::Error),
-    XcodeRustPluginInstallFailed(xcode_plugin::Error),
 }
 
 impl Display for Error {
@@ -32,7 +34,6 @@ impl Display for Error {
                 write!(f, "Failed to install `ios-deploy`: {}", err)
             }
             Self::VersionLookupFailed(err) => write!(f, "{}", err),
-            Self::XcodeRustPluginInstallFailed(err) => write!(f, "{}", err),
         }
     }
 }
@@ -63,8 +64,15 @@ pub fn install(
     // we definitely don't want to install this on CI...
     if skip_dev_tools.no() {
         let tool_info = DeveloperTools::new().map_err(Error::VersionLookupFailed)?;
-        xcode_plugin::install(wrapper, reinstall_deps, tool_info.version)
-            .map_err(Error::XcodeRustPluginInstallFailed)?;
+        let result = xcode_plugin::install(wrapper, reinstall_deps, tool_info.version);
+        if let Err(err) = result {
+            // philosophy: never be so sturbborn as to prevent use / progress
+            Report::action_request(
+                "Failed to install Rust Xcode plugin; this component is optional, so init will continue anyway, but Xcode debugging won't work until this is resolved!",
+                err,
+            )
+            .print(wrapper);
+        }
     }
     Ok(())
 }

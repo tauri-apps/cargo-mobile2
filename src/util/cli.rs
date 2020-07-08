@@ -87,6 +87,13 @@ impl Label {
         }
     }
 
+    pub fn exit_code(&self) -> i8 {
+        match self {
+            Self::Victory => 0,
+            _ => 1,
+        }
+    }
+
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Error => "error",
@@ -124,7 +131,11 @@ impl Report {
         Self::new(Label::Victory, msg, details)
     }
 
-    pub fn render(&self, wrapper: &TextWrapper) -> String {
+    pub fn exit_code(&self) -> i8 {
+        self.label.exit_code()
+    }
+
+    fn format(&self, wrapper: &TextWrapper) -> String {
         static INDENT: &'static str = "    ";
         let head = if colored::control::SHOULD_COLORIZE.should_colorize() {
             wrapper.fill(&format!(
@@ -141,7 +152,15 @@ impl Report {
             .clone()
             .initial_indent(INDENT)
             .subsequent_indent(INDENT);
-        format!("{}\n{}", head, wrapper.fill(&self.details))
+        format!("{}\n{}\n", head, wrapper.fill(&self.details))
+    }
+
+    pub fn print(&self, wrapper: &TextWrapper) {
+        if self.exit_code() == 0 {
+            print!("{}", self.format(wrapper))
+        } else {
+            eprint!("{}", self.format(wrapper))
+        }
     }
 }
 
@@ -193,8 +212,8 @@ impl Exit {
     fn do_the_thing(self, wrapper: TextWrapper) -> ! {
         match self {
             Self::Report(report) => {
-                eprintln!("{}", report.render(&wrapper));
-                std::process::exit(1)
+                report.print(&wrapper);
+                std::process::exit(report.label.exit_code().into())
             }
             Self::Clap(err) => err.exit(),
         }
