@@ -13,7 +13,7 @@ EXE_PATH_APPLE=$(realpath "target/debug/cargo-apple")
 rm -rf ./tmp
 mkdir -p tmp
 cd ./tmp
-$EXE_PATH_MOBILE init --non-interactive --skip-dev-tools
+$EXE_PATH_MOBILE init --verbose --non-interactive --skip-dev-tools
 cargo check
 $EXE_PATH_ANDROID check aarch64
 $EXE_PATH_APPLE check aarch64
