@@ -34,8 +34,8 @@ export OBJC_INCLUDE_PATH_$MAC_ARCH="${SDKROOT:?}/usr/include"
 
 export RUST_BACKTRACE=1
 
-if [ "${CLI:?}" != "--cli=1" ]; then
-    INTERACTIVE="--non-interactive"
+if [ "${CLI:?}" = "--cli=1" ]; then
+    FORCE_COLOR="--force-color"
 fi
 
 if [ "${PLATFORM_DISPLAY_NAME:?}" = "macOS" ]; then
@@ -61,7 +61,7 @@ if [ "${CONFIGURATION:?}" = "release" ]; then
 fi
 
 for ARCH in ${ARCHS:?}; do
-    COMMAND="cargo apple compile-lib --verbose $INTERACTIVE $MACOS $ARCH $CONFIG"
+    COMMAND="cargo apple compile-lib --verbose $FORCE_COLOR $MACOS $ARCH $CONFIG"
     echo $COMMAND
     eval $COMMAND
 done

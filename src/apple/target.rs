@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     env::{Env, ExplicitEnv as _},
-    opts::{NoiseLevel, NonInteractive, Profile},
+    opts::{ForceColor, NoiseLevel, Profile},
     target::TargetTrait,
     util::{
         cli::{Report, Reportable},
@@ -235,15 +235,11 @@ impl<'a> Target<'a> {
         config: &Config,
         metadata: &Metadata,
         noise_level: NoiseLevel,
-        non_interactive: NonInteractive,
+        force_color: ForceColor,
         profile: Profile,
     ) -> Result<(), CompileLibError> {
         // Force color when running from CLI
-        let color = if non_interactive.no() {
-            "always"
-        } else {
-            "auto"
-        };
+        let color = if force_color.yes() { "always" } else { "auto" };
         self.cargo(config, metadata, "build")
             .map_err(CompileLibError::VersionCheckFailed)?
             .with_verbose(noise_level.pedantic())

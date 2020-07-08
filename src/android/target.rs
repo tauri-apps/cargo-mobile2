@@ -5,7 +5,7 @@ use super::{
 };
 use crate::{
     dot_cargo::DotCargoTarget,
-    opts::{NoiseLevel, NonInteractive, Profile},
+    opts::{ForceColor, NoiseLevel, Profile},
     target::TargetTrait,
     util::{
         cli::{Report, Reportable},
@@ -220,18 +220,14 @@ impl<'a> Target<'a> {
         metadata: &Metadata,
         env: &Env,
         noise_level: NoiseLevel,
-        non_interactive: NonInteractive,
+        force_color: ForceColor,
         profile: Profile,
         mode: CargoMode,
     ) -> Result<(), CompileLibError> {
         let min_sdk_version = config.min_sdk_version();
         // Force color, since gradle would otherwise give us uncolored output
         // (which Android Studio makes red, which is extra gross!)
-        let color = if non_interactive.no() {
-            "auto"
-        } else {
-            "always"
-        };
+        let color = if force_color.yes() { "always" } else { "auto" };
         CargoCommand::new(mode.as_str())
             .with_verbose(noise_level.pedantic())
             .with_package(Some(config.app().name()))
@@ -319,14 +315,14 @@ impl<'a> Target<'a> {
         metadata: &Metadata,
         env: &Env,
         noise_level: NoiseLevel,
-        non_interactive: NonInteractive,
+        force_color: ForceColor,
     ) -> Result<(), CompileLibError> {
         self.compile_lib(
             config,
             metadata,
             env,
             noise_level,
-            non_interactive,
+            force_color,
             Profile::Debug,
             CargoMode::Check,
         )
@@ -338,7 +334,7 @@ impl<'a> Target<'a> {
         metadata: &Metadata,
         env: &Env,
         noise_level: NoiseLevel,
-        non_interactive: NonInteractive,
+        force_color: ForceColor,
         profile: Profile,
     ) -> Result<(), BuildError> {
         self.compile_lib(
@@ -346,7 +342,7 @@ impl<'a> Target<'a> {
             metadata,
             env,
             noise_level,
-            non_interactive,
+            force_color,
             profile,
             CargoMode::Build,
         )

@@ -91,6 +91,13 @@ pub enum Command {
         arch: String,
         #[structopt(flatten)]
         profile: cli::Profile,
+        #[structopt(
+            long = "force-color",
+            help = "Force colorization of output",
+            hidden = true,
+            parse(from_flag = opts::ForceColor::from_bool),
+        )]
+        force_color: opts::ForceColor,
     },
 }
 
@@ -197,7 +204,7 @@ impl Exec for Input {
                     non_interactive,
                     skip_dev_tools,
                     reinstall_deps,
-                    opts::OpenInEditor::No,
+                    Default::default(),
                     Some(vec!["apple".into()]),
                     None,
                     ".",
@@ -277,20 +284,21 @@ impl Exec for Input {
                 macos,
                 arch,
                 profile: cli::Profile { profile },
+                force_color,
             } => with_config_and_metadata(non_interactive, wrapper, |config, metadata| {
                 match macos {
                     true => Target::macos().compile_lib(
                         config,
                         metadata,
                         noise_level,
-                        non_interactive,
+                        force_color,
                         profile,
                     ),
                     false => Target::for_arch(&arch)
                         .ok_or_else(|| Error::ArchInvalid {
                             arch: arch.to_owned(),
                         })?
-                        .compile_lib(config, metadata, noise_level, non_interactive, profile),
+                        .compile_lib(config, metadata, noise_level, force_color, profile),
                 }
                 .map_err(Error::CompileLibFailed)
             }),

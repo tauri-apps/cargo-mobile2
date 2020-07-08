@@ -38,6 +38,8 @@ impl NoiseLevel {
     }
 }
 
+yes_or_no!(ForceColor);
+
 yes_or_no!(SkipDevTools);
 
 yes_or_no!(ReinstallDeps);

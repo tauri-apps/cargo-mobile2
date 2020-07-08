@@ -170,7 +170,7 @@ impl Exec for Input {
                     non_interactive,
                     skip_dev_tools,
                     reinstall_deps,
-                    opts::OpenInEditor::No,
+                    Default::default(),
                     Some(vec!["android".into()]),
                     None,
                     ".",
@@ -185,13 +185,14 @@ impl Exec for Input {
             Command::Open => with_config(non_interactive, wrapper, open_in_android_studio),
             Command::Check { targets } => {
                 with_config_and_metadata(non_interactive, wrapper, |config, metadata| {
+                    let force_color = opts::ForceColor::Yes;
                     call_for_targets_with_fallback(
                         targets.iter(),
                         &detect_target_ok,
                         &env,
                         |target: &Target| {
                             target
-                                .check(config, metadata, &env, noise_level, non_interactive)
+                                .check(config, metadata, &env, noise_level, force_color)
                                 .map_err(Error::CheckFailed)
                         },
                     )
@@ -202,20 +203,14 @@ impl Exec for Input {
                 targets,
                 profile: cli::Profile { profile },
             } => with_config_and_metadata(non_interactive, wrapper, |config, metadata| {
+                let force_color = opts::ForceColor::Yes;
                 call_for_targets_with_fallback(
                     targets.iter(),
                     &detect_target_ok,
                     &env,
                     |target: &Target| {
                         target
-                            .build(
-                                config,
-                                metadata,
-                                &env,
-                                noise_level,
-                                non_interactive,
-                                profile,
-                            )
+                            .build(config, metadata, &env, noise_level, force_color, profile)
                             .map_err(Error::BuildFailed)
                     },
                 )
