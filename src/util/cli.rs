@@ -156,10 +156,11 @@ impl Report {
     }
 
     pub fn print(&self, wrapper: &TextWrapper) {
-        if self.exit_code() == 0 {
-            print!("{}", self.format(wrapper))
+        let s = self.format(wrapper);
+        if matches!(self.label, Label::Error) {
+            eprint!("{}", s)
         } else {
-            eprint!("{}", self.format(wrapper))
+            print!("{}", s)
         }
     }
 }

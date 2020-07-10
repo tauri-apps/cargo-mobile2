@@ -1,11 +1,12 @@
 use super::{
     config::Config,
+    ios_deploy,
     target::{ArchiveError, BuildError, ExportError, Target},
 };
 use crate::{
     env::{Env, ExplicitEnv as _},
     opts,
-    util::cli::{Report, Reportable},
+    util::cli::{Report, Reportable, TextWrapper},
 };
 use std::fmt::{self, Display};
 
@@ -15,7 +16,7 @@ pub enum RunError {
     ArchiveFailed(ArchiveError),
     ExportFailed(ExportError),
     UnzipFailed(bossy::Error),
-    DeployFailed(bossy::Error),
+    DeployFailed(ios_deploy::RunAndDebugError),
 }
 
 impl Reportable for RunError {
@@ -25,7 +26,7 @@ impl Reportable for RunError {
             Self::ArchiveFailed(err) => err.report(),
             Self::ExportFailed(err) => err.report(),
             Self::UnzipFailed(err) => Report::error("Failed to unzip archive", err),
-            Self::DeployFailed(err) => Report::error("Failed to deploy app via `ios-deploy`", err),
+            Self::DeployFailed(err) => err.report(),
         }
     }
 }
@@ -62,7 +63,9 @@ impl<'a> Device<'a> {
         &self,
         config: &Config,
         env: &Env,
+        wrapper: &TextWrapper,
         noise_level: opts::NoiseLevel,
+        non_interactive: opts::NonInteractive,
         profile: opts::Profile,
     ) -> Result<(), RunError> {
         // TODO: These steps are run unconditionally, which is slooooooow
@@ -88,23 +91,7 @@ impl<'a> Device<'a> {
             .with_arg(&config.export_dir())
             .run_and_wait()
             .map_err(RunError::UnzipFailed)?;
-        // This dies if the device is locked, and gives you no time to react to
-        // that. `ios-deploy --detect` can apparently be used to check in
-        // advance, giving us an opportunity to promt. Though, it's much more
-        // relaxing to just turn off auto-lock under Display & Brightness.
-        bossy::Command::pure("ios-deploy")
-            .with_env_vars(env.explicit_env())
-            .with_args(&["--id", &self.id])
-            .with_arg("--debug")
-            .with_arg("--bundle")
-            .with_arg(&config.app_path())
-            // This tool can apparently install over wifi, but not debug over
-            // wifi... so if your device is connected over wifi (even if it's
-            // wired as well) and we're using the `--debug` flag, then
-            // launching will fail unless we also specify the `--no-wifi` flag
-            // to keep it from trying that.
-            .with_arg("--no-wifi")
-            .run_and_wait()
+        ios_deploy::run_and_debug(config, env, wrapper, non_interactive, &self.id)
             .map_err(RunError::DeployFailed)?;
         Ok(())
     }

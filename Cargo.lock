@@ -82,7 +82,7 @@ dependencies = [
 [[package]]
 name = "bossy"
 version = "0.1.1"
-source = "git+ssh://git@bitbucket.org/brainium/bossy.git#701ff153f322fa1ea36654df890580f223b94aa8"
+source = "git+ssh://git@bitbucket.org/brainium/bossy.git#9d99925bb3eea774e041ca619fb04ed0f49ae537"
 dependencies = [
  "log",
 ]
