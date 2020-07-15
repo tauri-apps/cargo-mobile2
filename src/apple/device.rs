@@ -69,15 +69,19 @@ impl<'a> Device<'a> {
         profile: opts::Profile,
     ) -> Result<(), RunError> {
         // TODO: These steps are run unconditionally, which is slooooooow
+        println!("Building app...");
         self.target
             .build(config, env, noise_level, profile)
             .map_err(RunError::BuildFailed)?;
+        println!("Archiving app...");
         self.target
             .archive(config, env, noise_level, profile)
             .map_err(RunError::ArchiveFailed)?;
+        println!("Exporting app...");
         self.target
             .export(config, env, noise_level)
             .map_err(RunError::ExportFailed)?;
+        println!("Extracting IPA...");
         bossy::Command::pure("unzip")
             .with_env_vars(env.explicit_env())
             .with_args(if noise_level.pedantic() {
