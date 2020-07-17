@@ -62,7 +62,13 @@ impl Event {
                         log::debug!("parsed `ios-deploy` event: {:#?}", event);
                         docs.push(event)
                     }
-                    Err(err) => log::error!("failed to parse `ios-deploy` event: {}", err),
+                    Err(err) => {
+                        log::error!(
+                            "failed to parse `ios-deploy` event: {}\nraw event text:\n{}",
+                            err,
+                            s
+                        );
+                    }
                 }
             }
         }
