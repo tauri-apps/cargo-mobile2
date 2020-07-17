@@ -234,8 +234,10 @@ impl Exit {
 
 pub fn exec<E: Exec>(name: &str) {
     Exit::main(|wrapper| {
-        let input = E::from_iter_safe(get_args(name)).map_err(Exit::Clap)?;
+        let args = get_args(name);
+        let input = E::from_iter_safe(&args).map_err(Exit::Clap)?;
         init_logging(input.global_flags().noise_level);
+        log::debug!("raw args: {:#?}", args);
         input.exec(wrapper).map_err(Exit::report)
     })
 }
