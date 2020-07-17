@@ -20,7 +20,6 @@ pub enum Error {
     MissingPack(templating::LookupError),
     TemplateProcessingFailed(bicycle::ProcessingError),
     AssetDirSymlinkFailed(ln::Error),
-    ScriptChmodFailed(bossy::Error),
     XcodegenFailed(bossy::Error),
 }
 
@@ -37,9 +36,6 @@ impl Reportable for Error {
             }
             Self::AssetDirSymlinkFailed(err) => {
                 Report::error("Asset dir couldn't be symlinked into Xcode project", err)
-            }
-            Self::ScriptChmodFailed(err) => {
-                Report::error("Failed to `chmod` \"cargo-xcode.sh\"", err)
             }
             Self::XcodegenFailed(err) => Report::error("Failed to run `xcodegen`", err),
         }
@@ -86,11 +82,6 @@ pub fn gen(
     ln::force_symlink_relative(config.app().asset_dir(), &dest, ln::TargetStyle::Directory)
         .map_err(Error::AssetDirSymlinkFailed)?;
 
-    bossy::Command::impure("chmod")
-        .with_arg("+x")
-        .with_arg(dest.join("cargo-xcode.sh"))
-        .run_and_wait()
-        .map_err(Error::ScriptChmodFailed)?;
     // Note that Xcode doesn't always reload the project nicely; reopening is
     // often necessary.
     println!("Generating Xcode project...");
