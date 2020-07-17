@@ -12,7 +12,10 @@ use crate::{
     },
 };
 use once_cell_regex::exports::once_cell::sync::OnceCell;
-use std::collections::BTreeMap;
+use std::{
+    collections::{BTreeMap, HashMap},
+    ffi::OsStr,
+};
 
 fn verbosity(noise_level: opts::NoiseLevel) -> Option<&'static str> {
     if noise_level.pedantic() {
@@ -245,6 +248,8 @@ impl<'a> Target<'a> {
         noise_level: NoiseLevel,
         force_color: ForceColor,
         profile: Profile,
+        env: &Env,
+        cc_env: HashMap<&str, &OsStr>,
     ) -> Result<(), CompileLibError> {
         // Force color when running from CLI
         let color = if force_color.yes() { "always" } else { "auto" };
@@ -252,7 +257,8 @@ impl<'a> Target<'a> {
             .map_err(CompileLibError::VersionCheckFailed)?
             .with_verbose(noise_level.pedantic())
             .with_release(profile.release())
-            .into_command_impure()
+            .into_command_pure(env)
+            .with_env_vars(cc_env)
             .with_args(&["--color", color])
             .run_and_wait()
             .map_err(CompileLibError::CargoBuildFailed)?;
@@ -269,7 +275,7 @@ impl<'a> Target<'a> {
         let configuration = profile.as_str();
         bossy::Command::pure("xcodebuild")
             .with_env_vars(env.explicit_env())
-            .with_env_var("CLI", "1")
+            .with_env_var("FORCE_COLOR", "--force-color")
             .with_args(verbosity(noise_level))
             .with_args(&["-scheme", &config.scheme()])
             .with_arg("-workspace")

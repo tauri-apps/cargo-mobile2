@@ -15,7 +15,7 @@ pub struct CargoCommand<'a> {
 
 impl<'a> CargoCommand<'a> {
     pub fn new(subcommand: &'a str) -> Self {
-        CargoCommand {
+        Self {
             subcommand,
             verbose: Default::default(),
             package: Default::default(),
@@ -71,6 +71,9 @@ impl<'a> CargoCommand<'a> {
             command.add_args(&["--package", package]);
         }
         if let Some(manifest_path) = self.manifest_path {
+            if !manifest_path.exists() {
+                log::error!("manifest path {:?} doesn't exist!", manifest_path);
+            }
             command.add_arg("--manifest-path").add_arg(manifest_path);
         }
         if let Some(target) = self.target {

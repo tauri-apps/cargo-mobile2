@@ -93,6 +93,10 @@ impl Env {
             ndk: ndk::Env::new().map_err(Error::NdkEnvError)?,
         })
     }
+
+    pub fn path(&self) -> &str {
+        self.base.path()
+    }
 }
 
 impl ExplicitEnv for Env {

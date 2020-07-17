@@ -229,7 +229,10 @@ impl<'a> Device<'a> {
         let logcat_command = adb::adb(env, &self.serial_no).with_args(&["logcat", "-d"]);
         let stack_command = bossy::Command::pure("ndk-stack")
             .with_env_vars(env.explicit_env())
-            .with_env_var("PATH", util::add_to_path(env.ndk.home().display()))
+            .with_env_var(
+                "PATH",
+                util::prepend_to_path(env.ndk.home().display(), env.path()),
+            )
             .with_arg("-sym")
             .with_arg(
                 config

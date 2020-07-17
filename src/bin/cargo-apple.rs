@@ -18,10 +18,12 @@ use cargo_mobile::{
     init, opts, os,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
     util::{
+        self,
         cli::{self, Exec, GlobalFlags, Report, Reportable, TextWrapper},
         prompt,
     },
 };
+use std::{collections::HashMap, ffi::OsStr, path::PathBuf};
 use structopt::{clap::AppSettings, StructOpt};
 
 #[derive(Debug, StructOpt)]
@@ -31,6 +33,18 @@ pub struct Input {
     flags: GlobalFlags,
     #[structopt(subcommand)]
     command: Command,
+}
+
+fn macos_from_platform(platform: &str) -> bool {
+    platform == "macOS"
+}
+
+fn profile_from_configuration(configuration: &str) -> opts::Profile {
+    if configuration == "release" {
+        opts::Profile::Release
+    } else {
+        opts::Profile::Debug
+    }
 }
 
 #[derive(Debug, StructOpt)]
@@ -80,24 +94,38 @@ pub enum Command {
     #[structopt(name = "list", about = "Lists connected devices")]
     List,
     #[structopt(
-        name = "compile-lib",
+        name = "xcode-script",
         about = "Compiles static lib (should only be called by Xcode!)",
         setting = AppSettings::Hidden
     )]
-    CompileLib {
-        #[structopt(long = "macos", help = "Awkwardly special-case for macOS")]
+    XcodeScript {
+        #[structopt(
+            long = "platform",
+            help = "Value of `PLATFORM_DISPLAY_NAME` env var",
+            parse(from_str = macos_from_platform),
+        )]
         macos: bool,
-        #[structopt(name = "ARCH", index = 1, required = true)]
-        arch: String,
-        #[structopt(flatten)]
-        profile: cli::Profile,
+        #[structopt(long = "sdk-root", help = "Value of `SDKROOT` env var")]
+        sdk_root: PathBuf,
+        #[structopt(
+            long = "configuration",
+            help = "Value of `CONFIGURATION` env var",
+            parse(from_str = profile_from_configuration),
+        )]
+        profile: opts::Profile,
         #[structopt(
             long = "force-color",
-            help = "Force colorization of output",
-            hidden = true,
+            help = "Value of `FORCE_COLOR` env var",
             parse(from_flag = opts::ForceColor::from_bool),
         )]
         force_color: opts::ForceColor,
+        #[structopt(
+            name = "ARCHS",
+            help = "Value of `ARCHS` env var",
+            index = 1,
+            required = true
+        )]
+        arches: Vec<String>,
     },
 }
 
@@ -116,6 +144,11 @@ pub enum Error {
     ExportFailed(ExportError),
     RunFailed(RunError),
     ListFailed(ios_deploy::DeviceListError),
+    NoHomeDir(util::NoHomeDir),
+    CargoEnvFailed(bossy::Error),
+    SdkRootInvalid { sdk_root: PathBuf },
+    IncludeDirInvalid { include_dir: PathBuf },
+    MacosSdkRootInvalid { macos_sdk_root: PathBuf },
     ArchInvalid { arch: String },
     CompileLibFailed(CompileLibError),
 }
@@ -136,9 +169,23 @@ impl Reportable for Error {
             Self::ExportFailed(err) => err.report(),
             Self::RunFailed(err) => err.report(),
             Self::ListFailed(err) => err.report(),
+            Self::NoHomeDir(err) => Report::error("Failed to load cargo env profile", err),
+            Self::CargoEnvFailed(err) => Report::error("Failed to load cargo env profile", err),
+            Self::SdkRootInvalid { sdk_root } => Report::error(
+                "SDK root provided by Xcode was invalid",
+                format!("{:?} doesn't exist or isn't a directory", sdk_root),
+            ),
+            Self::IncludeDirInvalid { include_dir } => Report::error(
+                "Include dir was invalid",
+                format!("{:?} doesn't exist or isn't a directory", include_dir),
+            ),
+            Self::MacosSdkRootInvalid { macos_sdk_root } => Report::error(
+                "macOS SDK root was invalid",
+                format!("{:?} doesn't exist or isn't a directory", macos_sdk_root),
+            ),
             Self::ArchInvalid { arch } => Report::error(
-                "`cargo-xcode.sh` bug",
-                format!("Specified arch {:?} was invalid", arch),
+                "Arch specified by Xcode was invalid",
+                format!("{:?} isn't a known arch", arch),
             ),
             Self::CompileLibFailed(err) => err.report(),
         }
@@ -280,27 +327,91 @@ impl Exec for Input {
                 .map(|device_list| {
                     prompt::list_display_only(device_list.iter(), device_list.len());
                 }),
-            Command::CompileLib {
+            Command::XcodeScript {
                 macos,
-                arch,
-                profile: cli::Profile { profile },
+                sdk_root,
+                profile,
                 force_color,
+                arches,
             } => with_config_and_metadata(non_interactive, wrapper, |config, metadata| {
-                match macos {
-                    true => Target::macos().compile_lib(
-                        config,
-                        metadata,
-                        noise_level,
-                        force_color,
-                        profile,
-                    ),
-                    false => Target::for_arch(&arch)
-                        .ok_or_else(|| Error::ArchInvalid {
+                // The `PATH` env var Xcode gives us is missing any
+                // additions the `PATH` made by the user's profile, so
+                // we'll manually add cargo's `PATH`.
+                let env = env.prepend_to_path(
+                    util::home_dir()
+                        .map_err(Error::NoHomeDir)?
+                        .join(".cargo/bin"),
+                );
+
+                if !sdk_root.is_dir() {
+                    return Err(Error::SdkRootInvalid { sdk_root });
+                }
+                let include_dir = sdk_root.join("usr/include");
+                if !include_dir.is_dir() {
+                    return Err(Error::IncludeDirInvalid { include_dir });
+                }
+
+                let mut host_env = HashMap::<&str, &OsStr>::new();
+
+                // Host flags that are used by build scripts
+                let macos_isysroot = {
+                    let macos_sdk_root =
+                        sdk_root.join("../../../../MacOSX.platform/Developer/SDKs/MacOSX.sdk");
+                    if !macos_sdk_root.is_dir() {
+                        return Err(Error::MacosSdkRootInvalid { macos_sdk_root });
+                    }
+                    format!("-isysroot {:?}", macos_sdk_root)
+                };
+                host_env.insert("MAC_FLAGS", macos_isysroot.as_ref());
+                host_env.insert("CFLAGS_x86_64_apple_darwin", macos_isysroot.as_ref());
+                host_env.insert("CXXFLAGS_x86_64_apple_darwin", macos_isysroot.as_ref());
+
+                host_env.insert(
+                    "OBJC_INCLUDE_PATH_x86_64_apple_darwin",
+                    include_dir.as_os_str(),
+                );
+
+                host_env.insert("RUST_BACKTRACE", "1".as_ref());
+
+                let macos_target = Target::macos();
+
+                let isysroot = format!("-isysroot {:?}", sdk_root);
+
+                for arch in arches {
+                    // Set target-specific flags
+                    let triple = match arch.as_str() {
+                        "arm64" => "aarch64_apple_ios",
+                        "x86_64" => "x86_64_apple_ios",
+                        _ => return Err(Error::ArchInvalid { arch }),
+                    };
+                    let cflags = format!("CFLAGS_{}", triple);
+                    let cxxflags = format!("CFLAGS_{}", triple);
+                    let objc_include_path = format!("OBJC_INCLUDE_PATH_{}", triple);
+                    let mut target_env = host_env.clone();
+                    target_env.insert(cflags.as_ref(), isysroot.as_ref());
+                    target_env.insert(cxxflags.as_ref(), isysroot.as_ref());
+                    target_env.insert(objc_include_path.as_ref(), include_dir.as_ref());
+
+                    let target = if macos {
+                        &macos_target
+                    } else {
+                        Target::for_arch(&arch).ok_or_else(|| Error::ArchInvalid {
                             arch: arch.to_owned(),
                         })?
-                        .compile_lib(config, metadata, noise_level, force_color, profile),
+                    };
+                    target
+                        .compile_lib(
+                            config,
+                            metadata,
+                            noise_level,
+                            force_color,
+                            profile,
+                            &env,
+                            target_env,
+                        )
+                        .map_err(Error::CompileLibFailed)?;
                 }
-                .map_err(Error::CompileLibFailed)
+                Ok(())
             }),
         }
     }

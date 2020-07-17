@@ -2,6 +2,7 @@ use crate::util::cli::{Report, Reportable};
 use std::{
     ffi::OsStr,
     fmt::{self, Debug, Display},
+    path::Path,
 };
 
 pub trait ExplicitEnv: Debug {
@@ -57,6 +58,15 @@ impl Env {
             term,
             ssh_auth_sock,
         })
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    pub fn prepend_to_path(mut self, path: impl AsRef<Path>) -> Self {
+        self.path = format!("{}:{}", path.as_ref().display(), self.path);
+        self
     }
 }
 

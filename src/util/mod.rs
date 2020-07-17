@@ -11,7 +11,6 @@ use self::cli::{Report, Reportable};
 use crate::os;
 use once_cell_regex::regex;
 use std::{
-    env,
     fmt::{self, Display},
     io::{self, Write},
     path::Path,
@@ -86,8 +85,8 @@ pub fn host_target_triple() -> Result<String, HostTargetTripleError> {
         .ok_or_else(|| HostTargetTripleError::NoMatchesFound(raw.to_owned()))
 }
 
-pub fn add_to_path(path: impl Display) -> String {
-    format!("{}:{}", path, env::var("PATH").unwrap())
+pub fn prepend_to_path(path: impl Display, base_path: impl Display) -> String {
+    format!("{}:{}", path, base_path)
 }
 
 pub fn command_path(name: &str) -> bossy::Result<bossy::Output> {
