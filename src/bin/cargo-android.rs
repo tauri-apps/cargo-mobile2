@@ -22,6 +22,7 @@ use cargo_mobile::{
         prompt,
     },
 };
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -83,6 +84,7 @@ pub enum Error {
     TargetInvalid(TargetInvalid),
     ConfigFailed(LoadOrGenError),
     MetadataFailed(metadata::Error),
+    ProjectDirAbsent { project_dir: PathBuf },
     InitFailed(init::Error),
     OpenFailed(bossy::Error),
     CheckFailed(CompileLibError),
@@ -100,6 +102,13 @@ impl Reportable for Error {
             Self::TargetInvalid(err) => Report::error("Specified target was invalid", err),
             Self::ConfigFailed(err) => err.report(),
             Self::MetadataFailed(err) => err.report(),
+            Self::ProjectDirAbsent { project_dir } => Report::action_request(
+                "Please run `cargo mobile init` and try again!",
+                format!(
+                    "Android Studio project directory {:?} doesn't exist.",
+                    project_dir
+                ),
+            ),
             Self::InitFailed(err) => err.report(),
             Self::OpenFailed(err) => Report::error("Failed to open project in Android Studio", err),
             Self::CheckFailed(err) => err.report(),
@@ -146,6 +155,16 @@ impl Exec for Input {
             })
         }
 
+        fn ensure_init(config: &Config) -> Result<(), Error> {
+            if !config.project_dir_exists() {
+                Err(Error::ProjectDirAbsent {
+                    project_dir: config.project_dir(),
+                })
+            } else {
+                Ok(())
+            }
+        }
+
         fn open_in_android_studio(config: &Config) -> Result<(), Error> {
             os::open_file_with("Android Studio", config.project_dir()).map_err(Error::OpenFailed)
         }
@@ -182,7 +201,10 @@ impl Exec for Input {
                     Ok(())
                 }
             }
-            Command::Open => with_config(non_interactive, wrapper, open_in_android_studio),
+            Command::Open => with_config(non_interactive, wrapper, |config| {
+                ensure_init(config)?;
+                open_in_android_studio(config)
+            }),
             Command::Check { targets } => {
                 with_config_and_metadata(non_interactive, wrapper, |config, metadata| {
                     let force_color = opts::ForceColor::Yes;
@@ -203,6 +225,7 @@ impl Exec for Input {
                 targets,
                 profile: cli::Profile { profile },
             } => with_config_and_metadata(non_interactive, wrapper, |config, metadata| {
+                ensure_init(config)?;
                 let force_color = opts::ForceColor::Yes;
                 call_for_targets_with_fallback(
                     targets.iter(),
@@ -219,12 +242,14 @@ impl Exec for Input {
             Command::Run {
                 profile: cli::Profile { profile },
             } => with_config(non_interactive, wrapper, |config| {
+                ensure_init(config)?;
                 device_prompt(&env)
                     .map_err(Error::DevicePromptFailed)?
                     .run(config, &env, noise_level, profile)
                     .map_err(Error::RunFailed)
             }),
             Command::Stacktrace => with_config(non_interactive, wrapper, |config| {
+                ensure_init(config)?;
                 device_prompt(&env)
                     .map_err(Error::DevicePromptFailed)?
                     .stacktrace(config, &env)

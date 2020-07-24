@@ -154,6 +154,10 @@ impl Config {
         self.app.prefix_path(&self.project_dir)
     }
 
+    pub fn project_dir_exists(&self) -> bool {
+        self.project_dir().is_dir()
+    }
+
     pub fn workspace_path(&self) -> PathBuf {
         self.project_dir().join(format!(
             "{}.xcodeproj/project.xcworkspace/",

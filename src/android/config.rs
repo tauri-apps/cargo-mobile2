@@ -182,4 +182,8 @@ impl Config {
             .prefix_path(&self.project_dir)
             .join(self.app().name())
     }
+
+    pub fn project_dir_exists(&self) -> bool {
+        self.project_dir().is_dir()
+    }
 }

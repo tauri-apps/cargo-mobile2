@@ -136,6 +136,7 @@ pub enum Error {
     TargetInvalid(TargetInvalid),
     ConfigFailed(LoadOrGenError),
     MetadataFailed(metadata::Error),
+    ProjectDirAbsent { project_dir: PathBuf },
     InitFailed(init::Error),
     OpenFailed(bossy::Error),
     CheckFailed(CheckError),
@@ -161,6 +162,10 @@ impl Reportable for Error {
             Self::TargetInvalid(err) => Report::error("Specified target was invalid", err),
             Self::ConfigFailed(err) => err.report(),
             Self::MetadataFailed(err) => err.report(),
+            Self::ProjectDirAbsent { project_dir } => Report::action_request(
+                "Please run `cargo mobile init` and try again!",
+                format!("Xcode project directory {:?} doesn't exist.", project_dir),
+            ),
             Self::InitFailed(err) => err.report(),
             Self::OpenFailed(err) => Report::error("Failed to open project in Xcode", err),
             Self::CheckFailed(err) => err.report(),
@@ -227,6 +232,16 @@ impl Exec for Input {
             })
         }
 
+        fn ensure_init(config: &Config) -> Result<(), Error> {
+            if !config.project_dir_exists() {
+                Err(Error::ProjectDirAbsent {
+                    project_dir: config.project_dir(),
+                })
+            } else {
+                Ok(())
+            }
+        }
+
         fn open_in_xcode(config: &Config) -> Result<(), Error> {
             os::open_file_with("Xcode", config.project_dir()).map_err(Error::OpenFailed)
         }
@@ -263,7 +278,10 @@ impl Exec for Input {
                     Ok(())
                 }
             }
-            Command::Open => with_config(non_interactive, wrapper, open_in_xcode),
+            Command::Open => with_config(non_interactive, wrapper, |config| {
+                ensure_init(config)?;
+                open_in_xcode(config)
+            }),
             Command::Check { targets } => {
                 with_config_and_metadata(non_interactive, wrapper, |config, metadata| {
                     call_for_targets_with_fallback(
@@ -283,6 +301,7 @@ impl Exec for Input {
                 targets,
                 profile: cli::Profile { profile },
             } => with_config(non_interactive, wrapper, |config| {
+                ensure_init(config)?;
                 call_for_targets_with_fallback(
                     targets.iter(),
                     &detect_target_ok,
@@ -299,6 +318,7 @@ impl Exec for Input {
                 targets,
                 profile: cli::Profile { profile },
             } => with_config(non_interactive, wrapper, |config| {
+                ensure_init(config)?;
                 call_for_targets_with_fallback(
                     targets.iter(),
                     &detect_target_ok,
@@ -317,6 +337,7 @@ impl Exec for Input {
             Command::Run {
                 profile: cli::Profile { profile },
             } => with_config(non_interactive, wrapper, |config| {
+                ensure_init(config)?;
                 device_prompt(&env)
                     .map_err(Error::DevicePromptFailed)?
                     .run(config, &env, wrapper, noise_level, non_interactive, profile)
