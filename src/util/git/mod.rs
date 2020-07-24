@@ -38,6 +38,15 @@ impl<'a> Git<'a> {
         }
     }
 
+    pub fn modules(&self) -> io::Result<Option<String>> {
+        let path = self.root.join(".gitmodules");
+        if path.exists() {
+            fs::read_to_string(&path).map(Some)
+        } else {
+            Ok(None)
+        }
+    }
+
     pub fn user_name(&self) -> bossy::Result<bossy::Output> {
         self.command()
             .with_args(&["config", "user.name"])

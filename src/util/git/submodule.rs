@@ -10,7 +10,8 @@ use std::{
 #[derive(Debug)]
 pub enum Cause {
     NameMissing,
-    StatusFailed(io::Error),
+    IndexCheckFailed(io::Error),
+    InitCheckFailed(io::Error),
     PathInvalidUtf8,
     AddFailed(bossy::Error),
     InitFailed(bossy::Error),
@@ -30,7 +31,12 @@ impl Display for Error {
                 "Failed to infer name for submodule at remote {:?}; please specify a name explicitly.",
                 self.submodule.remote
             ),
-            Cause::StatusFailed(err) => write!(
+            Cause::IndexCheckFailed(err) => write!(
+                f,
+                "Failed to check \".gitmodules\" for submodule {:?}: {}",
+                self.submodule.name().unwrap(), err,
+            ),
+            Cause::InitCheckFailed(err) => write!(
                 f,
                 "Failed to check \".git/config\" for submodule {:?}: {}",
                 self.submodule.name().unwrap(), err,
@@ -86,7 +92,15 @@ impl Submodule {
         &self.path
     }
 
-    fn exists(&self, git: Git<'_>, name: &str) -> io::Result<bool> {
+    fn in_index(&self, git: Git<'_>, name: &str) -> io::Result<bool> {
+        git.modules().map(|modules| {
+            modules
+                .filter(|modules| modules.contains(&format!("[submodule {:?}]", name)))
+                .is_some()
+        })
+    }
+
+    fn initialized(&self, git: Git<'_>, name: &str) -> io::Result<bool> {
         git.config().map(|config| {
             config
                 .filter(|config| config.contains(&format!("[submodule {:?}]", name)))
@@ -99,16 +113,16 @@ impl Submodule {
             submodule: self.clone(),
             cause: Cause::NameMissing,
         })?;
-        let exists = self.exists(git, &name).map_err(|cause| Error {
+        let in_index = self.in_index(git, &name).map_err(|cause| Error {
             submodule: self.clone(),
-            cause: Cause::StatusFailed(cause),
+            cause: Cause::IndexCheckFailed(cause),
         })?;
-        if !exists {
-            log::info!("initializing submodule: {:#?}", self);
+        let initialized = if !in_index {
             let path_str = self.path.to_str().ok_or_else(|| Error {
                 submodule: self.clone(),
                 cause: Cause::PathInvalidUtf8,
             })?;
+            log::info!("adding submodule: {:#?}", self);
             git.command()
                 .with_args(&["submodule", "add", "--name", &name, &self.remote, path_str])
                 .run_and_wait()
@@ -116,6 +130,16 @@ impl Submodule {
                     submodule: self.clone(),
                     cause: Cause::AddFailed(cause),
                 })?;
+            false
+        } else {
+            log::info!("submodule already in index: {:#?}", self);
+            self.initialized(git, &name).map_err(|cause| Error {
+                submodule: self.clone(),
+                cause: Cause::InitCheckFailed(cause),
+            })?
+        };
+        if !initialized {
+            log::info!("initializing submodule: {:#?}", self);
             git.command()
                 .with_args(&["submodule", "update", "--init", "--recursive"])
                 .run_and_wait()
@@ -124,7 +148,7 @@ impl Submodule {
                     cause: Cause::InitFailed(cause),
                 })?;
         } else {
-            log::info!("submodule already exists: {:#?}", self);
+            log::info!("submodule already initalized: {:#?}", self);
         }
         Ok(())
     }
