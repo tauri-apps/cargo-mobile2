@@ -355,9 +355,9 @@ impl Exec for Input {
                 force_color,
                 arches,
             } => with_config_and_metadata(non_interactive, wrapper, |config, metadata| {
-                // The `PATH` env var Xcode gives us is missing any
-                // additions the `PATH` made by the user's profile, so
-                // we'll manually add cargo's `PATH`.
+                // The `PATH` env var Xcode gives us is missing any additions
+                // made by the user's profile, so we'll manually add cargo's
+                // `PATH`.
                 let env = env.prepend_to_path(
                     util::home_dir()
                         .map_err(Error::NoHomeDir)?
@@ -381,7 +381,7 @@ impl Exec for Input {
                     if !macos_sdk_root.is_dir() {
                         return Err(Error::MacosSdkRootInvalid { macos_sdk_root });
                     }
-                    format!("-isysroot {:?}", macos_sdk_root)
+                    format!("-isysroot {}", macos_sdk_root.display())
                 };
                 host_env.insert("MAC_FLAGS", macos_isysroot.as_ref());
                 host_env.insert("CFLAGS_x86_64_apple_darwin", macos_isysroot.as_ref());
@@ -396,7 +396,7 @@ impl Exec for Input {
 
                 let macos_target = Target::macos();
 
-                let isysroot = format!("-isysroot {:?}", sdk_root);
+                let isysroot = format!("-isysroot {}", sdk_root.display());
 
                 for arch in arches {
                     // Set target-specific flags
