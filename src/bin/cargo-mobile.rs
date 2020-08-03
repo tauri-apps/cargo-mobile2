@@ -56,7 +56,10 @@ pub enum Command {
     #[structopt(name = "open", about = "Open project in default code editor")]
     Open,
     #[structopt(name = "update", about = "Update `cargo-mobile`")]
-    Update,
+    Update {
+        #[structopt(long = "init", help = "Regenerate project if update succeeds")]
+        init: bool,
+    },
 }
 
 #[derive(Debug)]
@@ -112,16 +115,32 @@ impl Exec for Input {
             .map(|_| ())
             .map_err(Error::InitFailed),
             Command::Open => util::open_in_editor(".").map_err(Error::OpenFailed),
-            Command::Update => bossy::Command::impure("cargo")
-                .with_args(&[
-                    "install",
-                    "--force",
-                    "--git",
-                    "ssh://git@bitbucket.org/brainium/cargo-mobile.git",
-                ])
-                .run_and_wait()
-                .map(|_| ())
-                .map_err(Error::UpdateFailed),
+            Command::Update { init } => {
+                bossy::Command::impure("cargo")
+                    .with_args(&[
+                        "install",
+                        "--force",
+                        "--git",
+                        "ssh://git@bitbucket.org/brainium/cargo-mobile.git",
+                    ])
+                    .run_and_wait()
+                    .map(|_| ())
+                    .map_err(Error::UpdateFailed)?;
+                if init {
+                    init::exec(
+                        wrapper,
+                        non_interactive,
+                        Default::default(),
+                        Default::default(),
+                        Default::default(),
+                        Default::default(),
+                        Default::default(),
+                        ".",
+                    )
+                    .map_err(Error::InitFailed)?;
+                }
+                Ok(())
+            }
         }
     }
 }
