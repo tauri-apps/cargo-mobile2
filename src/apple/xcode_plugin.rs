@@ -16,7 +16,6 @@ use std::{
 pub enum Error {
     NoHomeDir(util::NoHomeDir),
     XcodeSelectFailed(bossy::Error),
-    GetUrlFailed(bossy::Error),
     FetchFailed(bossy::Error),
     RevParseLocalFailed(bossy::Error),
     RevParseRemoteFailed(bossy::Error),
@@ -38,7 +37,6 @@ impl Display for Error {
         match self {
             Self::NoHomeDir(err) => write!(f, "{}", err),
             Self::XcodeSelectFailed(err) => write!(f, "Failed to get path to Xcode.app: {}", err),
-            Self::GetUrlFailed(err) => write!(f, "Failed to get origin URL: {}", err),
             Self::FetchFailed(err) => write!(f, "Failed to fetch Xcode plugin repo: {}", err),
             Self::RevParseLocalFailed(err) => {
                 write!(f, "Failed to get Xcode plugin checkout revision: {}", err)
@@ -105,22 +103,6 @@ fn check_changes(checkout: &Path) -> Result<Status, Error> {
         Ok(Status::NeedsUpdate)
     } else {
         let git = Git::new(&checkout);
-        // temporary URL check to migrate from old URL
-        // we can get away with `expect` in this block, since we're going to
-        // remove this in like a week
-        {
-            let url = git
-                .command_parse("remote get-url origin")
-                .run_and_wait_for_output()
-                .map_err(Error::GetUrlFailed)?;
-            let url = url.stdout_str().expect("remote url wasn't valid utf-8");
-            if url.trim() == "https://github.com/francesca64/rust-xcode-plugin.git" {
-                log::info!("removing `rust-xcode-plugin` old URL checkout dir");
-                fs::remove_dir_all(checkout)
-                    .expect("failed to delete `rust-xcode-plugin` old URL checkout dir");
-                return Ok(Status::NeedsUpdate);
-            }
-        }
         git.command_parse("fetch origin")
             .run_and_wait()
             .map_err(Error::FetchFailed)?;
