@@ -103,7 +103,7 @@ targets:
       ARCHS: [arm64, x86_64] # rustc doesn't support arm64e yet
       VALID_ARCHS: arm64 x86_64 # rustc doesn't support arm64e yet
     legacy:
-      toolPath: cargo-apple
+      toolPath: ${HOME}/.cargo/bin/cargo-apple
       arguments: xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}
       passSettings: false # prevents evil linker errors
       workingDirectory: $(SRCROOT)/..
@@ -111,7 +111,7 @@ targets:
     type: ""
     platform: macOS
     legacy:
-      toolPath: cargo-apple
+      toolPath: ${HOME}/.cargo/bin/cargo-apple
       arguments: xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}
       passSettings: false
       workingDirectory: $(SRCROOT)/..
