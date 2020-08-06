@@ -38,7 +38,7 @@ checksum = "f8aac770f1885fd7e387acedd76065302551364496e46b3dd00860b2f8359b9d"
 [[package]]
 name = "bicycle"
 version = "0.1.0"
-source = "git+ssh://git@bitbucket.org/brainium/bicycle.git#e80b1d5f516cb14512cbfb55eb9c1986fa577a7a"
+source = "git+https://github.com/BrainiumLLC/bicycle#336572b22523d1ac4194034505dbdfcd84bf9476"
 dependencies = [
  "handlebars",
  "log",
@@ -81,8 +81,9 @@ dependencies = [
 
 [[package]]
 name = "bossy"
-version = "0.1.1"
-source = "git+ssh://git@bitbucket.org/brainium/bossy.git#d6b6479b95ce52e9bc7545222906d43d2e0e00b8"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b4fc7914708b489a50f39b10937b651fe0880e2e9ba1a5b7cdae8c79b8f9088"
 dependencies = [
  "log",
 ]
@@ -517,9 +518,9 @@ checksum = "99e85c08494b21a9054e7fe1374a732aeadaff3980b6990b94bfd3a70f690005"
 
 [[package]]
 name = "log"
-version = "0.4.8"
+version = "0.4.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14b6052be84e6b71ab17edffc2eeabf5c2c3ae1fdb464aae35ac50c67a44e1f7"
+checksum = "4fabed175da42fed1fa0746b0ea71f412aa9d35e76e95e59b192c64b9dc2bf8b"
 dependencies = [
  "cfg-if",
 ]

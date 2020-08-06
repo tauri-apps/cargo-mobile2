@@ -20,8 +20,8 @@ brainium = []
 default = ["android", "apple", "brainium"]
 
 [dependencies]
-bicycle = { git = "ssh://git@bitbucket.org/brainium/bicycle.git" }
-bossy = { git = "ssh://git@bitbucket.org/brainium/bossy.git" }
+bicycle = { git = "https://github.com/BrainiumLLC/bicycle" }
+bossy = "0.1.2"
 colored = "1.9.3"
 deunicode = "1.1.1"
 english-numbers = "0.3.3"
@@ -51,5 +51,5 @@ objc = "0.2.7"
 objc_id = "0.1.1"
 
 [build-dependencies]
-bicycle = { git = "ssh://git@bitbucket.org/brainium/bicycle.git" }
+bicycle = { git = "https://github.com/BrainiumLLC/bicycle" }
 home = "0.5.3"

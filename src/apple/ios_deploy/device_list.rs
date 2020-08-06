@@ -53,10 +53,7 @@ fn parse_device_list<'a>(output: &bossy::Output) -> Result<BTreeSet<Device<'a>>,
 pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListError> {
     parse_device_list(
         &bossy::Command::pure_parse("ios-deploy --detect --timeout 1 --json --no-wifi")
-            .unwrap()
             .with_env_vars(env.explicit_env())
-            .with_stdout_piped()
-            .with_stderr_piped()
             .run_and_wait_for_output()
             .map_err(DeviceListError::DetectionFailed)?,
     )
