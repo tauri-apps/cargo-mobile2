@@ -1,3 +1,4 @@
+pub mod repo;
 pub mod submodule;
 
 use std::{fs, io, path::Path};

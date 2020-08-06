@@ -3,7 +3,7 @@ use crate::{
     util::{
         self,
         cli::{Report, TextWrapper},
-        Git,
+        repo::{self, Repo, Status},
     },
 };
 use std::{
@@ -16,12 +16,8 @@ use std::{
 pub enum Error {
     NoHomeDir(util::NoHomeDir),
     XcodeSelectFailed(bossy::Error),
-    FetchFailed(bossy::Error),
-    RevParseLocalFailed(bossy::Error),
-    RevParseRemoteFailed(bossy::Error),
-    CheckoutsDirCreationFailed { path: PathBuf, cause: io::Error },
-    CloneFailed(bossy::Error),
-    PullFailed(bossy::Error),
+    StatusFailed(repo::Error),
+    CloneOrPullFailed(repo::Error),
     UuidLookupFailed(bossy::Error),
     UuidInvalidUtf8(std::str::Utf8Error),
     PlistReadFailed { path: PathBuf, cause: io::Error },
@@ -37,20 +33,8 @@ impl Display for Error {
         match self {
             Self::NoHomeDir(err) => write!(f, "{}", err),
             Self::XcodeSelectFailed(err) => write!(f, "Failed to get path to Xcode.app: {}", err),
-            Self::FetchFailed(err) => write!(f, "Failed to fetch Xcode plugin repo: {}", err),
-            Self::RevParseLocalFailed(err) => {
-                write!(f, "Failed to get Xcode plugin checkout revision: {}", err)
-            }
-            Self::RevParseRemoteFailed(err) => {
-                write!(f, "Failed to get Xcode plugin upstream revision: {}", err)
-            }
-            Self::CheckoutsDirCreationFailed { path, cause } => write!(
-                f,
-                "Failed to create checkouts directory {:?}: {}",
-                path, cause
-            ),
-            Self::CloneFailed(err) => write!(f, "Failed to clone Xcode plugin repo: {}", err),
-            Self::PullFailed(err) => write!(f, "Failed to update Xcode plugin repo: {}", err),
+            Self::StatusFailed(err) => write!(f, "{}", err),
+            Self::CloneOrPullFailed(err) => write!(f, "{}", err),
             Self::UuidLookupFailed(err) => write!(f, "Failed to lookup Xcode UUID: {}", err),
             Self::UuidInvalidUtf8(err) => write!(f, "Xcode UUID contained invalid UTF-8: {}", err),
             Self::PlistReadFailed { path, cause } => {
@@ -92,47 +76,17 @@ fn xcode_app_dir() -> Result<PathBuf, Error> {
         .to_owned())
 }
 
-#[derive(Clone, Copy, Debug)]
-enum Status {
-    NeedsUpdate,
-    PerfectlyLovely,
-}
-
-fn check_changes(checkout: &Path) -> Result<Status, Error> {
-    if !checkout.is_dir() {
-        Ok(Status::NeedsUpdate)
-    } else {
-        let git = Git::new(&checkout);
-        git.command_parse("fetch origin")
-            .run_and_wait()
-            .map_err(Error::FetchFailed)?;
-        let local = git
-            .command_parse("rev-parse HEAD")
-            .run_and_wait_for_output()
-            .map_err(Error::RevParseLocalFailed)?;
-        let remote = git
-            .command_parse("rev-parse @{u}")
-            .run_and_wait_for_output()
-            .map_err(Error::RevParseRemoteFailed)?;
-        if local.stdout() != remote.stdout() {
-            Ok(Status::NeedsUpdate)
-        } else {
-            Ok(Status::PerfectlyLovely)
-        }
-    }
-}
-
 // Step 1: check if installed and up-to-date
 fn check_plugin(
     reinstall_deps: opts::ReinstallDeps,
     xcode_version: (u32, u32),
-    checkout: &Path,
+    repo: &Repo,
     plugins_dir: &Path,
     spec_dst: &Path,
     meta_dst: &Path,
 ) -> Result<Status, Error> {
-    if reinstall_deps.yes() {
-        Ok(Status::NeedsUpdate)
+    let status = if reinstall_deps.yes() {
+        Status::Stale
     } else {
         let plugin_dst = plugins_dir.join("Rust.ideplugin");
         let plugin_present = plugin_dst.is_dir();
@@ -149,40 +103,15 @@ fn check_plugin(
         let all_present = plugin_present && spec_present && meta_present;
         if all_present {
             // check if anything's changed upstream
-            check_changes(checkout)
+            repo.status().map_err(Error::StatusFailed)?
         } else {
-            Ok(Status::NeedsUpdate)
+            Status::Stale
         }
-    }
+    };
+    Ok(status)
 }
 
-// Step 2: clone repo into temp dir
-fn clone_plugin(checkout_parent_dir: &Path, checkout_dir: &Path) -> Result<(), Error> {
-    if !checkout_dir.is_dir() {
-        if !checkout_parent_dir.is_dir() {
-            std::fs::create_dir_all(&checkout_parent_dir).map_err(|cause| {
-                Error::CheckoutsDirCreationFailed {
-                    path: checkout_parent_dir.to_owned(),
-                    cause,
-                }
-            })?;
-        }
-        let git = Git::new(&checkout_parent_dir);
-        git.command_parse("clone --depth 1 https://github.com/BrainiumLLC/rust-xcode-plugin.git")
-            .with_arg(&checkout_dir)
-            .run_and_wait()
-            .map_err(Error::CloneFailed)?;
-    } else {
-        println!("Checking `rust-xcode-plugin` for updates...");
-        let git = Git::new(&checkout_dir);
-        git.command_parse("pull --ff-only --depth 1")
-            .run_and_wait()
-            .map_err(Error::PullFailed)?;
-    }
-    Ok(())
-}
-
-// Step 3: check if uuid is supported, and prompt user to open issue if not
+// Step 2: check if uuid is supported, and prompt user to open issue if not
 fn check_uuid(
     wrapper: &TextWrapper,
     xcode_version: (u32, u32),
@@ -217,7 +146,7 @@ fn check_uuid(
     }
 }
 
-// Step 4: install plugin!
+// Step 3: install plugin!
 fn run_setup(
     wrapper: &TextWrapper,
     xcode_version: (u32, u32),
@@ -279,15 +208,13 @@ fn run_setup(
     Ok(())
 }
 
+// https://github.com/BrainiumLLC/rust-xcode-plugin.git
 pub fn install(
     wrapper: &TextWrapper,
     reinstall_deps: opts::ReinstallDeps,
     xcode_version: (u32, u32),
 ) -> Result<(), Error> {
-    let checkout_parent_dir = util::install_dir()
-        .map_err(Error::NoHomeDir)?
-        .join("checkouts");
-    let checkout_dir = checkout_parent_dir.join("rust-xcode-plugin");
+    let repo = Repo::checkouts_dir("rust-xcode-plugin").map_err(Error::NoHomeDir)?;
     let xcode_library_dir = xcode_library_dir()?;
     let xcode_plugins_dir = xcode_library_dir.join("Plug-ins");
     let xcode_app_dir = xcode_app_dir()?;
@@ -303,20 +230,21 @@ pub fn install(
     let status = check_plugin(
         reinstall_deps,
         xcode_version,
-        &checkout_dir,
+        &repo,
         &xcode_plugins_dir,
         &spec_dst,
         &meta_dst,
     )?;
     log::info!("`rust-xcode-plugin` installation status: {:?}", status);
-    if matches!(status, Status::NeedsUpdate) {
+    if status.stale() {
         println!("Installing `rust-xcode-plugin`...");
-        clone_plugin(&checkout_parent_dir, &checkout_dir)?;
-        if check_uuid(wrapper, xcode_version, &checkout_dir, &xcode_app_dir)? {
+        repo.clone_or_pull("https://github.com/BrainiumLLC/rust-xcode-plugin.git")
+            .map_err(Error::CloneOrPullFailed)?;
+        if check_uuid(wrapper, xcode_version, repo.path(), &xcode_app_dir)? {
             run_setup(
                 wrapper,
                 xcode_version,
-                &checkout_dir,
+                repo.path(),
                 &xcode_plugins_dir,
                 &xcode_spec_dir,
                 &spec_dst,

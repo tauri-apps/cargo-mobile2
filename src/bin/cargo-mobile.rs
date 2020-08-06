@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 
 use cargo_mobile::{
-    init, opts,
+    init, opts, update,
     util::{
         self,
         cli::{self, Exec, GlobalFlags, Report, Reportable, TextWrapper},
@@ -66,7 +66,7 @@ pub enum Command {
 pub enum Error {
     InitFailed(init::Error),
     OpenFailed(util::OpenInEditorError),
-    UpdateFailed(bossy::Error),
+    UpdateFailed(update::Error),
 }
 
 impl Reportable for Error {
@@ -116,16 +116,7 @@ impl Exec for Input {
             .map_err(Error::InitFailed),
             Command::Open => util::open_in_editor(".").map_err(Error::OpenFailed),
             Command::Update { init } => {
-                bossy::Command::impure("cargo")
-                    .with_args(&[
-                        "install",
-                        "--force",
-                        "--git",
-                        "https://github.com/BrainiumLLC/cargo-mobile",
-                    ])
-                    .run_and_wait()
-                    .map(|_| ())
-                    .map_err(Error::UpdateFailed)?;
+                update::update(wrapper).map_err(Error::UpdateFailed)?;
                 if init {
                     init::exec(
                         wrapper,

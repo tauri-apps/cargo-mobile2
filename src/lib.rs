@@ -15,6 +15,7 @@ pub mod project;
 pub mod steps;
 pub mod target;
 pub mod templating;
+pub mod update;
 pub mod util;
 
 pub static NAME: &'static str = "mobile";
