@@ -770,7 +770,7 @@ checksum = "7fe5bd57d1d7414c6b5ed48563a2c855d995ff777729dcd91c369ec7fea395ae"
 [[package]]
 name = "reserved-names"
 version = "0.1.0"
-source = "git+ssh://git@bitbucket.org/brainium/reserved-names.git#5599f282e45101985e6a5c28d4c8ea5f35341db5"
+source = "git+https://github.com/BrainiumLLC/reserved-names#42577c600124e7925d687c68cbf5bb3078aa96ac"
 
 [[package]]
 name = "ryu"
@@ -1087,7 +1087,7 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 [[package]]
 name = "yes-or-no"
 version = "0.1.0"
-source = "git+ssh://git@bitbucket.org/brainium/yes-or-no.git#759ec4672512b201661ef41cfa5c38d5664b4d6a"
+source = "git+https://github.com/BrainiumLLC/yes-or-no#88bf26ec1c8d80d86bc99c0e75853c2ff2c12ad3"
 dependencies = [
  "proc-macro2",
  "quote",

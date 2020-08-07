@@ -121,7 +121,7 @@ impl Exec for Input {
                         "install",
                         "--force",
                         "--git",
-                        "ssh://git@bitbucket.org/brainium/cargo-mobile.git",
+                        "https://github.com/BrainiumLLC/cargo-mobile",
                     ])
                     .run_and_wait()
                     .map(|_| ())

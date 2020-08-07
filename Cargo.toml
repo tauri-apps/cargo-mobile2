@@ -1,9 +1,15 @@
 [package]
 name = "cargo-mobile"
 version = "0.7.0"
-authors = ["Brainium Studios LLC"]
+authors = ["Francesca Lovebloom <francesca@brainiumstudios.com>"]
 edition = "2018"
-description = "Rust on mobile"
+description = "Rust on mobile made easy!"
+documentation = "https://docs.rs/cargo-mobile"
+repository = "https://github.com/BrainiumLLC/cargo-mobile"
+readme = "README.md"
+keywords = ["cargo", "mobile", "ios", "android"]
+categories = ["development-tools::cargo-plugins"]
+license = "Apache-2.0/MIT"
 
 [[bin]]
 name = "cargo-android"
@@ -36,13 +42,13 @@ once-cell-regex = "0.1.1"
 openssl = { version = "0.10.28", optional = true }
 path_abs = "0.5.0"
 publicsuffix = { version = "1.5.4", default-features = false }
-reserved-names = { git = "ssh://git@bitbucket.org/brainium/reserved-names.git" }
+reserved-names = { git = "https://github.com/BrainiumLLC/reserved-names" }
 serde = { version = "1.0.105", features = ["derive"] }
 serde_json = { version = "1.0.50", optional = true }
 structopt = "0.3.12"
 textwrap = { version = "0.11.0", features = ["term_size"] }
 toml = { version = "0.5.6", features = ["preserve_order"] }
-yes-or-no = { git = "ssh://git@bitbucket.org/brainium/yes-or-no.git" }
+yes-or-no = { git = "https://github.com/BrainiumLLC/yes-or-no" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.20.0"
