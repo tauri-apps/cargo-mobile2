@@ -65,7 +65,7 @@ pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
             path: marker.to_owned(),
             cause,
         })?;
-        repo.clone_or_pull("https://github.com/BrainiumLLC/cargo-mobile")
+        repo.update("https://github.com/BrainiumLLC/cargo-mobile")
             .map_err(Error::UpdateFailed)?;
         println!("Installing updated `cargo-mobile`...");
         bossy::Command::impure_parse("cargo install --force --path")
@@ -82,9 +82,9 @@ pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
         println!(" no new version available.");
         "`cargo-mobile` is already up-to-date"
     };
-    let details = match repo.date() {
-        Ok(date) => format!("Contains commits up to {}", date),
-        Err(err) => format!("But we failed to get the latest commit date: {}", err),
+    let details = match repo.latest_message() {
+        Ok(date) => format!("Contains commits up to {:?}", date),
+        Err(err) => format!("But we failed to get the latest commit message: {}", err),
     };
     Report::victory(msg, details).print(wrapper);
     Ok(())

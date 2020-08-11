@@ -17,7 +17,7 @@ pub enum Error {
     NoHomeDir(util::NoHomeDir),
     XcodeSelectFailed(bossy::Error),
     StatusFailed(repo::Error),
-    CloneOrPullFailed(repo::Error),
+    UpdateFailed(repo::Error),
     UuidLookupFailed(bossy::Error),
     UuidInvalidUtf8(std::str::Utf8Error),
     PlistReadFailed { path: PathBuf, cause: io::Error },
@@ -34,7 +34,7 @@ impl Display for Error {
             Self::NoHomeDir(err) => write!(f, "{}", err),
             Self::XcodeSelectFailed(err) => write!(f, "Failed to get path to Xcode.app: {}", err),
             Self::StatusFailed(err) => write!(f, "{}", err),
-            Self::CloneOrPullFailed(err) => write!(f, "{}", err),
+            Self::UpdateFailed(err) => write!(f, "{}", err),
             Self::UuidLookupFailed(err) => write!(f, "Failed to lookup Xcode UUID: {}", err),
             Self::UuidInvalidUtf8(err) => write!(f, "Xcode UUID contained invalid UTF-8: {}", err),
             Self::PlistReadFailed { path, cause } => {
@@ -238,8 +238,8 @@ pub fn install(
     log::info!("`rust-xcode-plugin` installation status: {:?}", status);
     if status.stale() {
         println!("Installing `rust-xcode-plugin`...");
-        repo.clone_or_pull("https://github.com/BrainiumLLC/rust-xcode-plugin.git")
-            .map_err(Error::CloneOrPullFailed)?;
+        repo.update("https://github.com/BrainiumLLC/rust-xcode-plugin.git")
+            .map_err(Error::UpdateFailed)?;
         if check_uuid(wrapper, xcode_version, repo.path(), &xcode_app_dir)? {
             run_setup(
                 wrapper,

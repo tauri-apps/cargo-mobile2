@@ -16,7 +16,8 @@ pub enum Error {
     LogOutputInvalidUtf8(std::str::Utf8Error),
     ParentDirCreationFailed { path: PathBuf, cause: io::Error },
     CloneFailed(bossy::Error),
-    PullFailed(bossy::Error),
+    ResetFailed(bossy::Error),
+    CleanFailed(bossy::Error),
 }
 
 impl Display for Error {
@@ -36,7 +37,8 @@ impl Display for Error {
                 write!(f, "Failed to create parent directory {:?}: {}", path, cause)
             }
             Self::CloneFailed(err) => write!(f, "Failed to clone repo: {}", err),
-            Self::PullFailed(err) => write!(f, "Failed to update repo: {}", err),
+            Self::ResetFailed(err) => write!(f, "Failed to reset repo: {}", err),
+            Self::CleanFailed(err) => write!(f, "Failed to clean repo: {}", err),
         }
     }
 }
@@ -102,10 +104,10 @@ impl Repo {
         Ok(status)
     }
 
-    pub fn date(&self) -> Result<String, Error> {
+    pub fn latest_message(&self) -> Result<String, Error> {
         let output = self
             .git()
-            .command_parse("log -1 --format=%cd")
+            .command_parse("log -1 --pretty=%B")
             .run_and_wait_for_output()
             .map_err(Error::LogFailed)?;
         output
@@ -114,7 +116,7 @@ impl Repo {
             .map_err(Error::LogOutputInvalidUtf8)
     }
 
-    pub fn clone_or_pull(&self, url: impl AsRef<OsStr>) -> Result<(), Error> {
+    pub fn update(&self, url: impl AsRef<OsStr>) -> Result<(), Error> {
         let path = self.path();
         if !path.is_dir() {
             let parent = self
@@ -130,7 +132,7 @@ impl Repo {
                 })?;
             }
             Git::new(parent)
-                .command_parse("clone --depth 1")
+                .command_parse("clone --depth 1 --single-branch")
                 .with_arg(url)
                 .with_arg(path)
                 .run_and_wait()
@@ -146,9 +148,17 @@ impl Repo {
                 .display()
             );
             self.git()
-                .command_parse("pull --ff-only --depth 1")
+                .command_parse("fetch --depth 1")
                 .run_and_wait()
-                .map_err(Error::PullFailed)?;
+                .map_err(Error::FetchFailed)?;
+            self.git()
+                .command_parse("reset --hard origin/master")
+                .run_and_wait()
+                .map_err(Error::ResetFailed)?;
+            self.git()
+                .command_parse("clean -dfx")
+                .run_and_wait()
+                .map_err(Error::CleanFailed)?;
         }
         Ok(())
     }
