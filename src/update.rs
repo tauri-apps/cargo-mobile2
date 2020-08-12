@@ -58,9 +58,7 @@ pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
     } else {
         log::info!("no marker file present at {:?}", marker);
     }
-    print!("Checking for updates...");
     let msg = if marker_exists || repo.status().map_err(Error::StatusFailed)?.stale() {
-        println!(" new version available!");
         File::create(&marker).map_err(|cause| Error::MarkerCreateFailed {
             path: marker.to_owned(),
             cause,
@@ -79,7 +77,6 @@ pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
         log::info!("deleted marker file at {:?}", marker);
         "installed new version of `cargo-mobile`"
     } else {
-        println!(" no new version available.");
         "`cargo-mobile` is already up-to-date"
     };
     let details = match repo.latest_message() {
