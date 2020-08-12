@@ -1,7 +1,7 @@
 [package]
 name = "cargo-mobile"
 version = "0.7.0"
-authors = ["Francesca Lovebloom <francesca@brainiumstudios.com>"]
+authors = ["Brainium Studios LLC", "Francesca Lovebloom <francesca@brainiumstudios.com>"]
 edition = "2018"
 description = "Rust on mobile made easy!"
 documentation = "https://docs.rs/cargo-mobile"
