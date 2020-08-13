@@ -116,18 +116,23 @@ pub fn exec(
     let (config, config_origin) =
         Config::load_or_gen(cwd, non_interactive, wrapper).map_err(Error::ConfigLoadOrGenFailed)?;
     let dot_first_init_path = config.app().root_dir().join(DOT_FIRST_INIT_FILE_NAME);
-    let dot_first_init_exists = dot_first_init_path.exists();
-    if config_origin.freshly_minted() && !dot_first_init_exists {
-        // indicate first init is ongoing, so that if we error out and exit
-        // the next init will know to still use `WildWest` filtering
-        log::info!("creating first init dot file at {:?}", dot_first_init_path);
-        fs::write(&dot_first_init_path, DOT_FIRST_INIT_CONTENTS).map_err(|cause| {
-            Error::DotFirstInitWriteFailed {
-                path: dot_first_init_path.clone(),
-                cause,
-            }
-        })?;
-    }
+    let dot_first_init_exists = {
+        let dot_first_init_exists = dot_first_init_path.exists();
+        if config_origin.freshly_minted() && !dot_first_init_exists {
+            // indicate first init is ongoing, so that if we error out and exit
+            // the next init will know to still use `WildWest` filtering
+            log::info!("creating first init dot file at {:?}", dot_first_init_path);
+            fs::write(&dot_first_init_path, DOT_FIRST_INIT_CONTENTS).map_err(|cause| {
+                Error::DotFirstInitWriteFailed {
+                    path: dot_first_init_path.clone(),
+                    cause,
+                }
+            })?;
+            true
+        } else {
+            dot_first_init_exists
+        }
+    };
     let bike = config.build_a_bike();
     let filter = templating::Filter::new(&config, config_origin, dot_first_init_exists)
         .map_err(Error::FilterConfigureFailed)?;
