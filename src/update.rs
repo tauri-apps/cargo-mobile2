@@ -10,6 +10,15 @@ use std::{
     path::PathBuf,
 };
 
+static ENABLED_FEATURES: &'static [&'static str] = &[
+    #[cfg(feature = "android")]
+    "android",
+    #[cfg(feature = "apple")]
+    "apple",
+    #[cfg(feature = "brainium")]
+    "brainium",
+];
+
 #[derive(Debug)]
 pub enum Error {
     NoHomeDir(util::NoHomeDir),
@@ -68,6 +77,8 @@ pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
         println!("Installing updated `cargo-mobile`...");
         bossy::Command::impure_parse("cargo install --force --path")
             .with_arg(repo.path())
+            .with_parsed_args("--no-default-features --features")
+            .with_args(ENABLED_FEATURES)
             .run_and_wait()
             .map_err(Error::InstallFailed)?;
         fs::remove_file(&marker).map_err(|cause| Error::MarkerDeleteFailed {
