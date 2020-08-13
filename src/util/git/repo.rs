@@ -156,7 +156,7 @@ impl Repo {
                 .run_and_wait()
                 .map_err(Error::ResetFailed)?;
             self.git()
-                .command_parse("clean -dfx")
+                .command_parse("clean -dfx --exclude /target")
                 .run_and_wait()
                 .map_err(Error::CleanFailed)?;
         }
