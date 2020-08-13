@@ -78,7 +78,10 @@ pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
         bossy::Command::impure_parse("cargo install --force --path")
             .with_arg(repo.path())
             .with_parsed_args("--no-default-features --features")
-            .with_args(ENABLED_FEATURES)
+            // Using `with_arg` instead of `with_args`/`with_parsed_args` here
+            // is intentional; we want the feature list to be treated as a
+            // single argument.
+            .with_arg(ENABLED_FEATURES.join(" "))
             .run_and_wait()
             .map_err(Error::InstallFailed)?;
         fs::remove_file(&marker).map_err(|cause| Error::MarkerDeleteFailed {
