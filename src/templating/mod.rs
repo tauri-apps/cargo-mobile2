@@ -16,6 +16,10 @@ use std::{
 // used as base projects.
 static HIDDEN: &'static [&'static str] = &["android-studio-project", "xcode-project"];
 
+// These packs only show show in builds using the brainium feature flag, and
+// will always be at the top of the list.
+static BRAINIUM: &'static [&'static str] = &["brainstorm", "brainstorm-demo"];
+
 fn pack_dir() -> Result<PathBuf, util::NoHomeDir> {
     util::install_dir().map(|dir| dir.join("templates"))
 }
@@ -145,12 +149,21 @@ pub fn list_packs() -> Result<Vec<String>, ListError> {
         })?;
         if let Some(name) = entry.path().file_stem() {
             let name = name.to_string_lossy();
-            if !HIDDEN.contains(&name.as_ref()) {
+            if !HIDDEN.contains(&name.as_ref()) && !BRAINIUM.contains(&name.as_ref()) {
                 packs.push(name.into_owned());
             }
         }
     }
     packs.sort_unstable();
     packs.dedup();
-    Ok(packs)
+    Ok(if cfg!(feature = "brainium") {
+        // This solution is slightly devious...
+        BRAINIUM
+            .into_iter()
+            .map(ToString::to_string)
+            .chain(packs)
+            .collect()
+    } else {
+        packs
+    })
 }

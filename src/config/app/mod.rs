@@ -15,9 +15,9 @@ pub static KEY: &'static str = "app";
 
 pub static DEFAULT_ASSET_DIR: &'static str = "assets";
 #[cfg(feature = "brainium")]
-pub static DEFAULT_TEMPLATE_PACK: &'static str = "rust-lib-app";
+pub static DEFAULT_TEMPLATE_PACK: &'static str = "brainstorm";
 #[cfg(not(feature = "brainium"))]
-pub static DEFAULT_TEMPLATE_PACK: &'static str = "wgpu-app";
+pub static DEFAULT_TEMPLATE_PACK: &'static str = "bevy";
 
 #[derive(Debug)]
 pub enum Error {
