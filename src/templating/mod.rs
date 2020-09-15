@@ -16,8 +16,8 @@ use std::{
 // used as base projects.
 static HIDDEN: &'static [&'static str] = &["android-studio-project", "xcode-project"];
 
-// These packs only show show in builds using the brainium feature flag, and
-// will always be at the top of the list.
+// These packs only show in builds using the brainium feature flag, and will
+// always be at the top of the list.
 static BRAINIUM: &'static [&'static str] = &["brainstorm", "brainstorm-demo"];
 
 fn pack_dir() -> Result<PathBuf, util::NoHomeDir> {
