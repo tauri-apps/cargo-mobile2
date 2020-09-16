@@ -13,6 +13,10 @@ impl<'a> Git<'a> {
         Self { root }
     }
 
+    pub fn root(&'a self) -> &'a Path {
+        self.root
+    }
+
     pub fn command(&self) -> bossy::Command {
         bossy::Command::impure("git")
             .with_arg("-C")

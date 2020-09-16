@@ -15,6 +15,7 @@ pub enum Cause {
     PathInvalidUtf8,
     AddFailed(bossy::Error),
     InitFailed(bossy::Error),
+    CheckoutFailed { commit: String, cause: bossy::Error },
 }
 
 #[derive(Debug)]
@@ -55,6 +56,11 @@ impl Display for Error {
                 f,
                 "Failed to init submodule {:?} with remote {:?} and path {:?}: {}",
                 self.submodule.name().unwrap(), self.submodule.remote, self.submodule.path, err
+            ),
+            Cause::CheckoutFailed { commit, cause } => write!(
+                f,
+                "Failed to checkout commit {:?} from submodule {:?} with remote {:?} and path {:?}: {}",
+                commit, self.submodule.name().unwrap(), self.submodule.remote, self.submodule.path, cause
             ),
         }
     }
@@ -108,7 +114,7 @@ impl Submodule {
         })
     }
 
-    pub fn init(&self, git: Git<'_>) -> Result<(), Error> {
+    pub fn init(&self, git: Git<'_>, commit: Option<&str>) -> Result<(), Error> {
         let name = self.name().ok_or_else(|| Error {
             submodule: self.clone(),
             cause: Cause::NameMissing,
@@ -141,7 +147,7 @@ impl Submodule {
         if !initialized {
             log::info!("initializing submodule: {:#?}", self);
             git.command()
-                .with_args(&["submodule", "update", "--init", "--recursive"])
+                .with_parsed_args("submodule update --init --recursive")
                 .run_and_wait()
                 .map_err(|cause| Error {
                     submodule: self.clone(),
@@ -149,6 +155,25 @@ impl Submodule {
                 })?;
         } else {
             log::info!("submodule already initalized: {:#?}", self);
+        }
+        if let Some(commit) = commit {
+            let path = git.root().join(self.path());
+            log::info!(
+                "checking out commit {:?} in submodule at {:?}",
+                commit,
+                path
+            );
+            Git::new(&path)
+                .command()
+                .with_args(&["checkout", commit])
+                .run_and_wait()
+                .map_err(|cause| Error {
+                    submodule: self.clone(),
+                    cause: Cause::CheckoutFailed {
+                        commit: commit.to_owned(),
+                        cause,
+                    },
+                })?;
         }
         Ok(())
     }

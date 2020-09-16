@@ -41,6 +41,7 @@ pub fn gen(
     config: &Config,
     bike: &bicycle::Bicycle,
     filter: &templating::Filter,
+    submodule_commit: Option<String>,
 ) -> Result<(), Error> {
     println!("Generating base project...");
     let root = config.app().root_dir();
@@ -49,7 +50,7 @@ pub fn gen(
     let template_pack = config
         .app()
         .template_pack()
-        .resolve(git)
+        .resolve(git, submodule_commit.as_deref())
         .map_err(Error::TemplatePackResolveFailed)?;
     log::info!("traversing template pack {:#?}", template_pack);
     bike.filter_and_process(&template_pack, &root, |_| (), filter.fun())

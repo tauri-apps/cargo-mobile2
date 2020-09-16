@@ -51,6 +51,8 @@ pub enum Command {
             parse(from_flag = opts::OpenInEditor::from_bool),
         )]
         open_in_editor: opts::OpenInEditor,
+        #[structopt(long = "submodule-commit", help = "Template pack commit to checkout")]
+        submodule_commit: Option<String>,
     },
     #[structopt(name = "open", about = "Open project in Android Studio")]
     Open,
@@ -183,6 +185,7 @@ impl Exec for Input {
                 skip_dev_tools: cli::SkipDevTools { skip_dev_tools },
                 reinstall_deps: cli::ReinstallDeps { reinstall_deps },
                 open_in_editor,
+                submodule_commit,
             } => {
                 let config = init::exec(
                     wrapper,
@@ -192,6 +195,7 @@ impl Exec for Input {
                     Default::default(),
                     Some(vec!["android".into()]),
                     None,
+                    submodule_commit,
                     ".",
                 )
                 .map_err(Error::InitFailed)?;

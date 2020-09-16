@@ -83,10 +83,14 @@ impl RemotePack {
         self.submodule.as_ref().map(|submodule| submodule.path())
     }
 
-    pub fn resolve(&self, git: Git<'_>) -> Result<&Path, RemotePackResolveError> {
+    pub fn resolve(
+        &self,
+        git: Git<'_>,
+        submodule_commit: Option<&str>,
+    ) -> Result<&Path, RemotePackResolveError> {
         if let Some(submodule) = &self.submodule {
             submodule
-                .init(git)
+                .init(git, submodule_commit)
                 .map_err(RemotePackResolveError::SubmoduleFailed)?;
         }
         if self.path.exists() {

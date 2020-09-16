@@ -110,6 +110,7 @@ pub fn exec(
     open_in_editor: opts::OpenInEditor,
     only: Option<Vec<String>>,
     skip: Option<Vec<String>>,
+    submodule_commit: Option<String>,
     cwd: impl AsRef<Path>,
 ) -> Result<Config, Error> {
     let cwd = cwd.as_ref();
@@ -151,7 +152,8 @@ pub fn exec(
         Steps::from_bits(&step_registry, only.bits() & !skip.bits())
     };
     if steps.is_set("project") {
-        project::gen(&config, &bike, &filter).map_err(Error::ProjectInitFailed)?;
+        project::gen(&config, &bike, &filter, submodule_commit)
+            .map_err(Error::ProjectInitFailed)?;
     }
     let asset_dir = config.app().asset_dir();
     if !asset_dir.is_dir() {

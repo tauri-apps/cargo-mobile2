@@ -107,10 +107,21 @@ impl Pack {
         }
     }
 
-    pub fn resolve(&self, git: Git<'_>) -> Result<&Path, RemotePackResolveError> {
+    pub fn resolve(
+        &self,
+        git: Git<'_>,
+        submodule_commit: Option<&str>,
+    ) -> Result<&Path, RemotePackResolveError> {
         match self {
-            Self::Local(path) => Ok(&path),
-            Self::Remote(pack) => pack.resolve(git),
+            Self::Local(path) => {
+                if submodule_commit.is_some() {
+                    log::warn!(
+                        "specified a submodule commit, but the template pack {:?} isn't submodule-based", path
+                    );
+                }
+                Ok(&path)
+            }
+            Self::Remote(pack) => pack.resolve(git, submodule_commit),
         }
     }
 }

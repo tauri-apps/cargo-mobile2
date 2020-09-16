@@ -52,6 +52,8 @@ pub enum Command {
             value_delimiter(" "),
         )]
         skip: Option<Vec<String>>,
+        #[structopt(long = "submodule-commit", help = "Template pack commit to checkout")]
+        submodule_commit: Option<String>,
     },
     #[structopt(name = "open", about = "Open project in default code editor")]
     Open,
@@ -102,6 +104,7 @@ impl Exec for Input {
                 open_in_editor,
                 only,
                 skip,
+                submodule_commit,
             } => init::exec(
                 wrapper,
                 non_interactive,
@@ -110,6 +113,7 @@ impl Exec for Input {
                 open_in_editor,
                 only,
                 skip,
+                submodule_commit,
                 ".",
             )
             .map(|_| ())
@@ -121,6 +125,7 @@ impl Exec for Input {
                     init::exec(
                         wrapper,
                         non_interactive,
+                        Default::default(),
                         Default::default(),
                         Default::default(),
                         Default::default(),
