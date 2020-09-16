@@ -1,6 +1,6 @@
 use crate::{
     config::Config,
-    templating::{self, RemotePackResolveError},
+    templating::{self, FancyPackResolveError},
     util::{
         cli::{Report, Reportable},
         Git,
@@ -11,7 +11,7 @@ use std::path::PathBuf;
 #[derive(Debug)]
 pub enum Error {
     GitInitFailed(bossy::Error),
-    TemplatePackResolveFailed(RemotePackResolveError),
+    TemplatePackResolveFailed(FancyPackResolveError),
     ProcessingFailed {
         src: PathBuf,
         dest: PathBuf,
@@ -47,17 +47,20 @@ pub fn gen(
     let root = config.app().root_dir();
     let git = Git::new(&root);
     git.init().map_err(Error::GitInitFailed)?;
-    let template_pack = config
+    let pack_chain = config
         .app()
         .template_pack()
         .resolve(git, submodule_commit.as_deref())
         .map_err(Error::TemplatePackResolveFailed)?;
-    log::info!("traversing template pack {:#?}", template_pack);
-    bike.filter_and_process(&template_pack, &root, |_| (), filter.fun())
-        .map_err(|cause| Error::ProcessingFailed {
-            src: template_pack.to_owned(),
-            dest: root.to_owned(),
-            cause,
-        })?;
+    log::info!("template pack chain: {:#?}", pack_chain);
+    for pack in pack_chain {
+        log::info!("traversing template pack {:#?}", pack);
+        bike.filter_and_process(&pack, &root, |_| (), filter.fun())
+            .map_err(|cause| Error::ProcessingFailed {
+                src: pack.to_owned(),
+                dest: root.to_owned(),
+                cause,
+            })?;
+    }
     Ok(())
 }

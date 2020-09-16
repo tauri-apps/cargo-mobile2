@@ -8,7 +8,7 @@ use crate::{
     templating::{self, Pack},
     util::{self, cli::Report},
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::path::{Path, PathBuf};
 
 pub static KEY: &'static str = "app";
@@ -71,7 +71,7 @@ impl Error {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct App {
     root_dir: PathBuf,
@@ -79,6 +79,7 @@ pub struct App {
     stylized_name: String,
     domain: String,
     asset_dir: PathBuf,
+    #[serde(skip)]
     template_pack: Pack,
 }
 

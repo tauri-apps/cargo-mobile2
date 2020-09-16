@@ -1,11 +1,10 @@
+mod fancy;
 mod filter;
 mod init;
-mod remote;
 
-pub use self::{filter::*, init::*, remote::*};
+pub use self::{fancy::*, filter::*, init::*};
 
 use crate::util::{self, Git};
-use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
     fs, io,
@@ -32,7 +31,7 @@ pub enum LookupError {
         tried_toml: PathBuf,
         tried: PathBuf,
     },
-    RemotePackParseFailed(RemotePackParseError),
+    FancyPackParseFailed(FancyPackParseError),
 }
 
 impl Display for LookupError {
@@ -48,19 +47,22 @@ impl Display for LookupError {
                 "Didn't find {:?} template pack at {:?} or {:?}",
                 name, tried_toml, tried
             ),
-            Self::RemotePackParseFailed(err) => write!(f, "{}", err),
+            Self::FancyPackParseFailed(err) => write!(f, "{}", err),
         }
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug)]
 pub enum Pack {
-    Local(PathBuf),
-    Remote(RemotePack),
+    Simple(PathBuf),
+    Fancy(FancyPack),
 }
 
 impl Pack {
-    fn lookup(dir: PathBuf, name: &str) -> Result<Self, LookupError> {
+    pub(super) fn lookup(
+        dir: impl AsRef<Path>,
+        name: impl AsRef<str>,
+    ) -> Result<Self, LookupError> {
         fn check_path(name: &str, path: &Path) -> Option<PathBuf> {
             log::info!("checking for template pack \"{}\" at {:?}", name, path);
             if path.exists() {
@@ -72,6 +74,8 @@ impl Pack {
         }
 
         let path = {
+            let dir = dir.as_ref();
+            let name = name.as_ref();
             let toml_path = dir.join(format!("{}.toml", name));
             let path = dir.join(name);
             check_path(name, &toml_path)
@@ -83,10 +87,10 @@ impl Pack {
                 })
         }?;
         if path.extension() == Some("toml".as_ref()) {
-            let pack = RemotePack::parse(path).map_err(LookupError::RemotePackParseFailed)?;
-            Ok(Pack::Remote(pack))
+            let pack = FancyPack::parse(path).map_err(LookupError::FancyPackParseFailed)?;
+            Ok(Pack::Fancy(pack))
         } else {
-            Ok(Pack::Local(path))
+            Ok(Pack::Simple(path))
         }
     }
 
@@ -103,15 +107,15 @@ impl Pack {
     }
 
     pub fn expect_local(self) -> PathBuf {
-        if let Self::Local(path) = self {
+        if let Self::Simple(path) = self {
             path
         } else {
-            panic!("developer error: called `expect_local` on a `Pack::Remote`")
+            panic!("developer error: called `expect_local` on a `Pack::Fancy`")
         }
     }
 
     pub fn submodule_path(&self) -> Option<&Path> {
-        if let Self::Remote(pack) = self {
+        if let Self::Fancy(pack) = self {
             pack.submodule_path()
         } else {
             None
@@ -122,17 +126,17 @@ impl Pack {
         &self,
         git: Git<'_>,
         submodule_commit: Option<&str>,
-    ) -> Result<&Path, RemotePackResolveError> {
+    ) -> Result<Vec<&Path>, FancyPackResolveError> {
         match self {
-            Self::Local(path) => {
+            Self::Simple(path) => {
                 if submodule_commit.is_some() {
                     log::warn!(
                         "specified a submodule commit, but the template pack {:?} isn't submodule-based", path
                     );
                 }
-                Ok(&path)
+                Ok(vec![&path])
             }
-            Self::Remote(pack) => pack.resolve(git, submodule_commit),
+            Self::Fancy(pack) => pack.resolve(git, submodule_commit),
         }
     }
 }

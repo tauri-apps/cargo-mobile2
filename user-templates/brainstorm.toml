@@ -1,4 +1,4 @@
-path = "rust-lib/templates/rust-lib-minimal"
+path = "rust-lib/templates/brainstorm"
 
 [submodule]
 remote = "git@bitbucket.org:brainium/rust_lib.git"
