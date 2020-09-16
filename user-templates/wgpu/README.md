@@ -1,4 +1,4 @@
-# `wgpu-app`
+# wgpu-app
 
 This is just the [`wgpu-rs` triangle example](https://github.com/gfx-rs/wgpu-rs/blob/v0.5/examples/hello-triangle/main.rs) with a handful of small changes, which I'll outline below:
 

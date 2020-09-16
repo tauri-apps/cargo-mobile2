@@ -146,16 +146,23 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
     });
 }
 
-#[mobile_entry_point]
-fn start_app() {
-    #[cfg(target_os = "android")]
+#[cfg(target_os = "android")]
+fn init_logging() {
     android_logger::init_once(
         android_logger::Config::default()
             .with_min_level(log::Level::Info)
             .with_tag("{{app.name}}"),
     );
-    #[cfg(not(target_os = "android"))]
+}
+
+#[cfg(not(target_os = "android"))]
+fn init_logging() {
     env_logger::init();
+}
+
+#[mobile_entry_point]
+fn start_app() {
+    init_logging();
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .with_title("{{app.stylized-name}}")
