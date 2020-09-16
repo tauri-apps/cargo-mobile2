@@ -11,7 +11,7 @@ use crate::{
 };
 use std::path::{Path, PathBuf};
 
-pub static TEMPLATE_PACK: &'static str = "xcode-project";
+pub static TEMPLATE_PACK: &'static str = "xcode";
 
 #[derive(Debug)]
 pub enum Error {
@@ -65,7 +65,7 @@ pub fn gen(
         .map(|path| rel_prefix.join(path))
         .collect::<Vec<PathBuf>>();
 
-    let src = Pack::lookup(TEMPLATE_PACK)
+    let src = Pack::lookup_internal(TEMPLATE_PACK)
         .map_err(Error::MissingPack)?
         .expect_local();
 

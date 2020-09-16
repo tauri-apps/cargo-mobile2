@@ -260,7 +260,7 @@ impl Raw {
     }
 
     pub fn prompt_template_pack(wrapper: &TextWrapper) -> Result<String, PromptError> {
-        let packs = templating::list_packs().map_err(PromptError::ListTemplatePacksFailed)?;
+        let packs = templating::list_user_packs().map_err(PromptError::ListTemplatePacksFailed)?;
         let mut default_pack = None;
         println!("Detected template packs:");
         for (index, pack) in packs.iter().enumerate() {

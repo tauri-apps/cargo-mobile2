@@ -12,16 +12,16 @@ use std::{
     path::{Path, PathBuf},
 };
 
-// These packs won't be returned by `list_packs`, since they can't/shouldn't be
-// used as base projects.
-static HIDDEN: &'static [&'static str] = &["android-studio-project", "xcode-project"];
-
 // These packs only show in builds using the brainium feature flag, and will
 // always be at the top of the list.
 static BRAINIUM: &'static [&'static str] = &["brainstorm", "brainstorm-demo"];
 
-fn pack_dir() -> Result<PathBuf, util::NoHomeDir> {
-    util::install_dir().map(|dir| dir.join("templates"))
+fn internal_pack_dir() -> Result<PathBuf, util::NoHomeDir> {
+    util::install_dir().map(|dir| dir.join("internal-templates"))
+}
+
+fn user_pack_dir() -> Result<PathBuf, util::NoHomeDir> {
+    util::install_dir().map(|dir| dir.join("user-templates"))
 }
 
 #[derive(Debug)]
@@ -60,7 +60,7 @@ pub enum Pack {
 }
 
 impl Pack {
-    pub fn lookup(name: &str) -> Result<Self, LookupError> {
+    fn lookup(dir: PathBuf, name: &str) -> Result<Self, LookupError> {
         fn check_path(name: &str, path: &Path) -> Option<PathBuf> {
             log::info!("checking for template pack \"{}\" at {:?}", name, path);
             if path.exists() {
@@ -71,7 +71,6 @@ impl Pack {
             }
         }
 
-        let dir = pack_dir().map_err(LookupError::NoHomeDir)?;
         let path = {
             let toml_path = dir.join(format!("{}.toml", name));
             let path = dir.join(name);
@@ -89,6 +88,18 @@ impl Pack {
         } else {
             Ok(Pack::Local(path))
         }
+    }
+
+    pub fn lookup_internal(name: &str) -> Result<Self, LookupError> {
+        internal_pack_dir()
+            .map_err(LookupError::NoHomeDir)
+            .and_then(|dir| Self::lookup(dir, name))
+    }
+
+    pub fn lookup_user(name: &str) -> Result<Self, LookupError> {
+        user_pack_dir()
+            .map_err(LookupError::NoHomeDir)
+            .and_then(|dir| Self::lookup(dir, name))
     }
 
     pub fn expect_local(self) -> PathBuf {
@@ -147,8 +158,8 @@ impl Display for ListError {
     }
 }
 
-pub fn list_packs() -> Result<Vec<String>, ListError> {
-    let dir = pack_dir().map_err(ListError::NoHomeDir)?;
+pub fn list_user_packs() -> Result<Vec<String>, ListError> {
+    let dir = user_pack_dir().map_err(ListError::NoHomeDir)?;
     let mut packs = Vec::new();
     for entry in fs::read_dir(&dir).map_err(|cause| ListError::DirReadFailed {
         dir: dir.clone(),
@@ -160,7 +171,7 @@ pub fn list_packs() -> Result<Vec<String>, ListError> {
         })?;
         if let Some(name) = entry.path().file_stem() {
             let name = name.to_string_lossy();
-            if !HIDDEN.contains(&name.as_ref()) && !BRAINIUM.contains(&name.as_ref()) {
+            if !BRAINIUM.contains(&name.as_ref()) {
                 packs.push(name.into_owned());
             }
         }
