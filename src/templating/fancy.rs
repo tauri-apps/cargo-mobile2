@@ -75,8 +75,8 @@ impl FancyPack {
             submodule: Option<Submodule>,
         }
 
+        let path = path.as_ref();
         let raw = {
-            let path = path.as_ref();
             let bytes = fs::read(path).map_err(|cause| FancyPackParseError::ReadFailed {
                 path: path.to_owned(),
                 cause,
@@ -86,25 +86,26 @@ impl FancyPack {
                 cause,
             })?
         };
-        let path = util::expand_home(&raw.path).map_err(FancyPackParseError::NoHomeDir)?;
-        let base = raw
-            .base
-            .map(|name| {
-                Pack::lookup(
-                    path.parent()
-                        .expect("developer error: fancy pack path had no parent"),
-                    &name,
-                )
-            })
-            .transpose()
-            .map_err(Box::new)
-            .map_err(FancyPackParseError::BaseFailed)?
-            .map(Box::new);
-        Ok(Self {
-            path,
-            base,
+        let real_path = util::expand_home(&raw.path).map_err(FancyPackParseError::NoHomeDir)?;
+        let this = Self {
+            path: real_path,
+            base: raw
+                .base
+                .map(|name| {
+                    Pack::lookup(
+                        path.parent()
+                            .expect("developer error: templates dir had no parent"),
+                        &name,
+                    )
+                })
+                .transpose()
+                .map_err(Box::new)
+                .map_err(FancyPackParseError::BaseFailed)?
+                .map(Box::new),
             submodule: raw.submodule,
-        })
+        };
+        log::info!("template pack {:#?}", this);
+        Ok(this)
     }
 
     pub fn submodule_path(&self) -> Option<&Path> {
