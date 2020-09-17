@@ -12,7 +12,7 @@ Everything here works and is already used internally! However, there are still s
 
 **Building for iOS is broken on Rust 1.46.0!**
 
-You'll need to stay on 1.45.2 for now. We'll be investigating this, so don't fret!
+You'll need to stay on 1.45.2 for now. We're investigating this, so don't fret!
 
 ```bash
 rustup install stable-2020-08-03
