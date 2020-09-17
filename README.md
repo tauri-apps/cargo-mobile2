@@ -23,10 +23,17 @@ Don't worry about the `'+cyclone' is not a recognized feature for this target (i
 
 ## Installation
 
-The build will probably take a bit, so feel free to go get a snack or something.
+Pick one of the commands below, depending on your needs. The build will probably take a bit, so feel free to go get a snack or something.
 
 ```bash
+# Build with both iOS and Android support
 cargo install --git https://github.com/BrainiumLLC/cargo-mobile
+
+# Build with only iOS support
+cargo install --git https://github.com/BrainiumLLC/cargo-mobile --no-default-features --features apple
+
+# Build with only Android support
+cargo install --git https://github.com/BrainiumLLC/cargo-mobile --no-default-features --features android
 ```
 
 cargo-mobile is currently only supported on macOS. Adding Linux support would likely only take a small PR, but Windows support is potentially a small nightmare. (Note that only macOS can support iOS development, so other platforms could only be used for Android development!)
