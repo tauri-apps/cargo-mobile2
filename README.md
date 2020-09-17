@@ -8,7 +8,7 @@ cargo-mobile takes care of generating Xcode and Android Studio project files, bu
 
 ## Status
 
-Everything here works and is already used internally! However, there are still some rough edges, i.e. Android runs often use the old version instead of installing the new build.
+Everything here works and is already used internally! However, there are still some rough edges, i.e. running on Android often reuses the old build instead of installing the new build.
 
 **Building for iOS is broken on Rust 1.46.0!**
 
