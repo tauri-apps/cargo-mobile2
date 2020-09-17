@@ -8,9 +8,18 @@ cargo-mobile takes care of generating Xcode and Android Studio project files, bu
 
 ## Status
 
-Everything here works and is already used internally! However, there are still some rough edges, i.e. Android build behavior is really flaky. The biggest caveat at present is likely that there's not much documentation!
+Everything here works and is already used internally! However, there are still some rough edges, i.e. Android runs often use the old version instead of installing the new build.
 
-**Actually the biggest caveat is that linking on iOS is broken right now! I'll fix it soon, I promise!**
+**Building for iOS is broken on Rust 1.46.0!**
+
+You'll need to stay on 1.45.2 for now. We'll be investigating this, so don't fret!
+
+```bash
+rustup install stable-2020-08-03
+rustup default stable-2020-08-03
+```
+
+Don't worry about the `'+cyclone' is not a recognized feature for this target (ignoring feature)` messages. They're harmless, and have since been fixed upstream.
 
 ## Installation
 
