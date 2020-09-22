@@ -167,9 +167,21 @@ pub fn exec(
     .map_err(Error::AppleInitFailed)?;
 
     // Generate Android Studio project
-    let env = android::env::Env::new().map_err(Error::AndroidEnvFailed)?;
-    android::project::gen(config.android(), &env, &bike, &filter, &mut dot_cargo)
-        .map_err(Error::AndroidInitFailed)?;
+    match android::env::Env::new() {
+        Ok(env) => android::project::gen(config.android(), &env, &bike, &filter, &mut dot_cargo)
+            .map_err(Error::AndroidInitFailed)?,
+        Err(err) => {
+            if err.sdk_or_ndk_issue() {
+                Report::action_request(
+                    "Failed to initialize Android environment; Android support will be disabled until you fix the detailed issue and re-run `cargo mobile init`!",
+                    err,
+                )
+                .print(wrapper);
+            } else {
+                Err(Error::AndroidEnvFailed(err))?;
+            }
+        }
+    }
 
     dot_cargo
         .write(config.app())

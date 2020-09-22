@@ -43,6 +43,12 @@ impl Reportable for Error {
     }
 }
 
+impl Error {
+    pub fn sdk_or_ndk_issue(&self) -> bool {
+        !matches!(self, Self::CoreEnvError(_))
+    }
+}
+
 #[derive(Debug)]
 pub struct Env {
     base: CoreEnv,
