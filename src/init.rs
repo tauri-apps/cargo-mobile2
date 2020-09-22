@@ -1,6 +1,5 @@
-#[cfg(feature = "android")]
 use crate::android;
-#[cfg(feature = "apple")]
+#[cfg(target_os = "macos")]
 use crate::apple;
 use crate::{
     config::{self, Config},
@@ -19,10 +18,9 @@ use std::{
 
 pub static STEPS: &'static [&'static str] = &[
     "project",
-    #[cfg(feature = "android")]
-    "android",
-    #[cfg(feature = "apple")]
+    #[cfg(target_os = "macos")]
     "apple",
+    "android",
 ];
 
 pub static DOT_FIRST_INIT_FILE_NAME: &'static str = ".first-init";
@@ -61,11 +59,9 @@ pub enum Error {
     LldbExtensionInstallFailed(bossy::Error),
     DotCargoLoadFailed(dot_cargo::LoadError),
     HostTargetTripleDetectionFailed(util::HostTargetTripleError),
-    #[cfg(feature = "android")]
     AndroidEnvFailed(android::env::Error),
-    #[cfg(feature = "android")]
     AndroidInitFailed(android::project::Error),
-    #[cfg(feature = "apple")]
+    #[cfg(target_os = "macos")]
     AppleInitFailed(apple::project::Error),
     DotCargoWriteFailed(dot_cargo::WriteError),
     DotFirstInitDeleteFailed {
@@ -89,11 +85,9 @@ impl Reportable for Error {
             Self::LldbExtensionInstallFailed(err) => Report::error("Failed to install CodeLLDB extension", err),
             Self::DotCargoLoadFailed(err) => err.report(),
             Self::HostTargetTripleDetectionFailed(err) => err.report(),
-            #[cfg(feature = "android")]
             Self::AndroidEnvFailed(err) => err.report(),
-            #[cfg(feature = "android")]
             Self::AndroidInitFailed(err) => err.report(),
-            #[cfg(feature = "apple")]
+            #[cfg(target_os = "macos")]
             Self::AppleInitFailed(err) => err.report(),
             Self::DotCargoWriteFailed(err) => err.report(),
             Self::DotFirstInitDeleteFailed { path, cause } => Report::action_request(format!("Failed to delete first init dot file {:?}; the project generated successfully, but `cargo mobile init` will have unexpected results unless you manually delete this file!", path), cause),
@@ -187,15 +181,7 @@ pub fn exec(
     dot_cargo.set_default_target(
         util::host_target_triple().map_err(Error::HostTargetTripleDetectionFailed)?,
     );
-    #[cfg(feature = "android")]
-    {
-        if steps.is_set("android") {
-            let env = android::env::Env::new().map_err(Error::AndroidEnvFailed)?;
-            android::project::gen(config.android(), &env, &bike, &filter, &mut dot_cargo)
-                .map_err(Error::AndroidInitFailed)?;
-        }
-    }
-    #[cfg(feature = "apple")]
+    #[cfg(target_os = "macos")]
     {
         if steps.is_set("apple") {
             apple::project::gen(
@@ -209,6 +195,11 @@ pub fn exec(
             )
             .map_err(Error::AppleInitFailed)?;
         }
+    }
+    if steps.is_set("android") {
+        let env = android::env::Env::new().map_err(Error::AndroidEnvFailed)?;
+        android::project::gen(config.android(), &env, &bike, &filter, &mut dot_cargo)
+            .map_err(Error::AndroidInitFailed)?;
     }
     dot_cargo
         .write(config.app())

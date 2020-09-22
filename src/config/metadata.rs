@@ -34,12 +34,11 @@ impl Reportable for Error {
 
 #[derive(Debug, Default, Deserialize)]
 pub struct Metadata {
-    #[cfg(feature = "android")]
-    #[serde(default, rename = "cargo-android")]
-    pub android: crate::android::config::Metadata,
-    #[cfg(feature = "apple")]
+    #[cfg(target_os = "macos")]
     #[serde(default, rename = "cargo-apple")]
     pub apple: crate::apple::config::Metadata,
+    #[serde(default, rename = "cargo-android")]
+    pub android: crate::android::config::Metadata,
 }
 
 impl Metadata {

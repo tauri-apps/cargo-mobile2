@@ -1,9 +1,10 @@
 use super::app;
-#[cfg(feature = "android")]
-use crate::android;
-#[cfg(feature = "apple")]
+#[cfg(target_os = "macos")]
 use crate::apple;
-use crate::util::cli::{Report, Reportable, TextWrapper};
+use crate::{
+    android,
+    util::cli::{Report, Reportable, TextWrapper},
+};
 use serde::{Deserialize, Serialize};
 
 use std::{
@@ -15,7 +16,7 @@ use std::{
 #[derive(Debug)]
 pub enum PromptError {
     AppFailed(app::PromptError),
-    #[cfg(feature = "apple")]
+    #[cfg(target_os = "macos")]
     AppleFailed(apple::config::PromptError),
 }
 
@@ -25,7 +26,7 @@ impl Reportable for PromptError {
             Self::AppFailed(err) => {
                 Report::error(format!("Failed to prompt for `{}` config", app::KEY), err)
             }
-            #[cfg(feature = "apple")]
+            #[cfg(target_os = "macos")]
             Self::AppleFailed(err) => Report::error(
                 format!("Failed to prompt for `{}` config", apple::NAME),
                 err,
@@ -37,7 +38,7 @@ impl Reportable for PromptError {
 #[derive(Debug)]
 pub enum DetectError {
     AppFailed(app::DetectError),
-    #[cfg(feature = "apple")]
+    #[cfg(target_os = "macos")]
     AppleFailed(apple::config::DetectError),
 }
 
@@ -47,7 +48,7 @@ impl Reportable for DetectError {
             Self::AppFailed(err) => {
                 Report::error(format!("Failed to detect `{}` config", app::KEY), err)
             }
-            #[cfg(feature = "apple")]
+            #[cfg(target_os = "macos")]
             Self::AppleFailed(err) => {
                 Report::error(format!("Failed to detect `{}` config", apple::NAME), err)
             }
@@ -105,36 +106,33 @@ impl Reportable for WriteError {
 #[serde(rename_all = "kebab-case")]
 pub struct Raw {
     pub app: app::Raw,
-    #[cfg(feature = "android")]
-    pub android: Option<android::config::Raw>,
-    #[cfg(feature = "apple")]
+    #[cfg(target_os = "macos")]
     pub apple: Option<apple::config::Raw>,
+    pub android: Option<android::config::Raw>,
 }
 
 impl Raw {
     pub fn prompt(wrapper: &TextWrapper) -> Result<Self, PromptError> {
         let app = app::Raw::prompt(wrapper).map_err(PromptError::AppFailed)?;
-        #[cfg(feature = "apple")]
+        #[cfg(target_os = "macos")]
         let apple = apple::config::Raw::prompt(wrapper).map_err(PromptError::AppleFailed)?;
         Ok(Self {
             app,
-            #[cfg(feature = "android")]
-            android: None,
-            #[cfg(feature = "apple")]
+            #[cfg(target_os = "macos")]
             apple: Some(apple),
+            android: None,
         })
     }
 
     pub fn detect() -> Result<Self, DetectError> {
         let app = app::Raw::detect().map_err(DetectError::AppFailed)?;
-        #[cfg(feature = "apple")]
+        #[cfg(target_os = "macos")]
         let apple = apple::config::Raw::detect().map_err(DetectError::AppleFailed)?;
         Ok(Self {
             app,
-            #[cfg(feature = "android")]
-            android: None,
-            #[cfg(feature = "apple")]
+            #[cfg(target_os = "macos")]
             apple: Some(apple),
+            android: None,
         })
     }
 

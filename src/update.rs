@@ -11,10 +11,6 @@ use std::{
 };
 
 static ENABLED_FEATURES: &'static [&'static str] = &[
-    #[cfg(feature = "android")]
-    "android",
-    #[cfg(feature = "apple")]
-    "apple",
     #[cfg(feature = "brainium")]
     "brainium",
 ];

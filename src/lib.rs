@@ -1,8 +1,7 @@
 #![deny(unsafe_code)]
 
-#[cfg(feature = "android")]
 pub mod android;
-#[cfg(feature = "apple")]
+#[cfg(target_os = "macos")]
 pub mod apple;
 pub mod config;
 pub mod device;

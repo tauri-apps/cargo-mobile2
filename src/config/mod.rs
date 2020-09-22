@@ -3,11 +3,10 @@ pub mod metadata;
 mod raw;
 
 use self::{app::App, raw::*};
-#[cfg(feature = "android")]
-use crate::android;
-#[cfg(feature = "apple")]
+#[cfg(target_os = "macos")]
 use crate::apple;
 use crate::{
+    android,
     opts::NonInteractive,
     templating,
     util::cli::{Report, Reportable, TextWrapper},
@@ -26,20 +25,18 @@ pub fn file_name() -> String {
 #[derive(Debug)]
 pub enum FromRawError {
     AppConfigInvalid(app::Error),
-    #[cfg(feature = "android")]
-    AndroidConfigInvalid(android::config::Error),
-    #[cfg(feature = "apple")]
+    #[cfg(target_os = "macos")]
     AppleConfigInvalid(apple::config::Error),
+    AndroidConfigInvalid(android::config::Error),
 }
 
 impl FromRawError {
     pub fn report(&self, msg: &str) -> Report {
         match self {
             Self::AppConfigInvalid(err) => err.report(msg),
-            #[cfg(feature = "android")]
-            Self::AndroidConfigInvalid(err) => err.report(msg),
-            #[cfg(feature = "apple")]
+            #[cfg(target_os = "macos")]
             Self::AppleConfigInvalid(err) => err.report(msg),
+            Self::AndroidConfigInvalid(err) => err.report(msg),
         }
     }
 }
@@ -104,27 +101,24 @@ impl Origin {
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
     app: App,
-    #[cfg(feature = "android")]
-    android: android::config::Config,
-    #[cfg(feature = "apple")]
+    #[cfg(target_os = "macos")]
     apple: apple::config::Config,
+    android: android::config::Config,
 }
 
 impl Config {
     fn from_raw(root_dir: PathBuf, raw: Raw) -> Result<Self, FromRawError> {
         let app = App::from_raw(root_dir, raw.app).map_err(FromRawError::AppConfigInvalid)?;
-        #[cfg(feature = "android")]
-        let android = android::config::Config::from_raw(app.clone(), raw.android)
-            .map_err(FromRawError::AndroidConfigInvalid)?;
-        #[cfg(feature = "apple")]
+        #[cfg(target_os = "macos")]
         let apple = apple::config::Config::from_raw(app.clone(), raw.apple)
             .map_err(FromRawError::AppleConfigInvalid)?;
+        let android = android::config::Config::from_raw(app.clone(), raw.android)
+            .map_err(FromRawError::AndroidConfigInvalid)?;
         Ok(Self {
             app,
-            #[cfg(feature = "android")]
-            android,
-            #[cfg(feature = "apple")]
+            #[cfg(target_os = "macos")]
             apple,
+            android,
         })
     }
 
@@ -177,14 +171,13 @@ impl Config {
         &self.app
     }
 
-    #[cfg(feature = "android")]
-    pub fn android(&self) -> &android::config::Config {
-        &self.android
-    }
-
-    #[cfg(feature = "apple")]
+    #[cfg(target_os = "macos")]
     pub fn apple(&self) -> &apple::config::Config {
         &self.apple
+    }
+
+    pub fn android(&self) -> &android::config::Config {
+        &self.android
     }
 
     pub fn build_a_bike(&self) -> bicycle::Bicycle {

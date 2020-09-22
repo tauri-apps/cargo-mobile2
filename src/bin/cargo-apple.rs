@@ -1,3 +1,4 @@
+#![cfg(target_os = "macos")]
 #![forbid(unsafe_code)]
 
 use cargo_mobile::{
