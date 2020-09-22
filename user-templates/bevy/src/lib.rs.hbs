@@ -1,0 +1,11 @@
+use mobile_entry_point::mobile_entry_point;
+use bevy::prelude::*;
+
+#[mobile_entry_point]
+fn main() {
+    App::build().add_system(hello_world_system.system()).run();
+}
+
+fn hello_world_system() {
+    println!("hello world");
+}
