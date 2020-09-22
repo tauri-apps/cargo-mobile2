@@ -1,5 +1,5 @@
-path = "rust-lib/templates/brainstorm"
+path = "brainstorm/templates/brainstorm"
 
 [submodule]
-remote = "git@bitbucket.org:brainium/rust_lib.git"
-path = "rust-lib"
+remote = "git@bitbucket.org:brainium/brainstorm.git"
+path = "brainstorm"
