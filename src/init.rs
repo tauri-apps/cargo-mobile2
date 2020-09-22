@@ -3,9 +3,7 @@ use crate::android;
 use crate::apple;
 use crate::{
     config::{self, Config},
-    dot_cargo, opts, project,
-    steps::{self, Steps},
-    templating,
+    dot_cargo, opts, project, templating,
     util::{
         self,
         cli::{Report, Reportable, TextWrapper},
@@ -15,13 +13,6 @@ use std::{
     fs, io,
     path::{Path, PathBuf},
 };
-
-pub static STEPS: &'static [&'static str] = &[
-    "project",
-    #[cfg(target_os = "macos")]
-    "apple",
-    "android",
-];
 
 pub static DOT_FIRST_INIT_FILE_NAME: &'static str = ".first-init";
 static DOT_FIRST_INIT_CONTENTS: &'static str = // newline
@@ -48,8 +39,6 @@ pub enum Error {
         cause: io::Error,
     },
     FilterConfigureFailed(templating::FilterError),
-    OnlyParseFailed(steps::NotRegistered),
-    SkipParseFailed(steps::NotRegistered),
     ProjectInitFailed(project::Error),
     AssetDirCreationFailed {
         asset_dir: PathBuf,
@@ -77,8 +66,6 @@ impl Reportable for Error {
             Self::ConfigLoadOrGenFailed(err) => err.report(),
             Self::DotFirstInitWriteFailed { path, cause } => Report::error(format!("Failed to write first init dot file {:?}", path), cause),
             Self::FilterConfigureFailed(err) => Report::error("Failed to configure template filter", err),
-            Self::OnlyParseFailed(err) => Report::error("Failed to parse `only` step list", err),
-            Self::SkipParseFailed(err) => Report::error("Failed to parse `skip` step list", err),
             Self::ProjectInitFailed(err) => err.report(),
             Self::AssetDirCreationFailed { asset_dir, cause } => Report::error(format!("Failed to create asset dir {:?}", asset_dir), cause),
             Self::CodeCommandPresentFailed(err) => Report::error("Failed to check for presence of `code` command", err),
@@ -102,8 +89,6 @@ pub fn exec(
     skip_dev_tools: opts::SkipDevTools,
     reinstall_deps: opts::ReinstallDeps,
     open_in_editor: opts::OpenInEditor,
-    only: Option<Vec<String>>,
-    skip: Option<Vec<String>>,
     submodule_commit: Option<String>,
     cwd: impl AsRef<Path>,
 ) -> Result<Config, Error> {
@@ -131,24 +116,10 @@ pub fn exec(
     let bike = config.build_a_bike();
     let filter = templating::Filter::new(&config, config_origin, dot_first_init_exists)
         .map_err(Error::FilterConfigureFailed)?;
-    let step_registry = steps::Registry::new(STEPS);
-    let steps = {
-        let only = only
-            .as_ref()
-            .map(|only| Steps::parse(&step_registry, only.as_slice()))
-            .unwrap_or_else(|| Ok(Steps::new_all_set(&step_registry)))
-            .map_err(Error::OnlyParseFailed)?;
-        let skip = skip
-            .as_ref()
-            .map(|skip| Steps::parse(&step_registry, skip.as_slice()))
-            .unwrap_or_else(|| Ok(Steps::new_all_unset(&step_registry)))
-            .map_err(Error::SkipParseFailed)?;
-        Steps::from_bits(&step_registry, only.bits() & !skip.bits())
-    };
-    if steps.is_set("project") {
-        project::gen(&config, &bike, &filter, submodule_commit)
-            .map_err(Error::ProjectInitFailed)?;
-    }
+
+    // Generate the base project
+    project::gen(&config, &bike, &filter, submodule_commit).map_err(Error::ProjectInitFailed)?;
+
     let asset_dir = config.app().asset_dir();
     if !asset_dir.is_dir() {
         fs::create_dir_all(&asset_dir)
@@ -181,26 +152,25 @@ pub fn exec(
     dot_cargo.set_default_target(
         util::host_target_triple().map_err(Error::HostTargetTripleDetectionFailed)?,
     );
+
+    // Generate Xcode project
     #[cfg(target_os = "macos")]
-    {
-        if steps.is_set("apple") {
-            apple::project::gen(
-                config.apple(),
-                config.app().template_pack().submodule_path(),
-                &bike,
-                wrapper,
-                skip_dev_tools,
-                reinstall_deps,
-                &filter,
-            )
-            .map_err(Error::AppleInitFailed)?;
-        }
-    }
-    if steps.is_set("android") {
-        let env = android::env::Env::new().map_err(Error::AndroidEnvFailed)?;
-        android::project::gen(config.android(), &env, &bike, &filter, &mut dot_cargo)
-            .map_err(Error::AndroidInitFailed)?;
-    }
+    apple::project::gen(
+        config.apple(),
+        config.app().template_pack().submodule_path(),
+        &bike,
+        wrapper,
+        skip_dev_tools,
+        reinstall_deps,
+        &filter,
+    )
+    .map_err(Error::AppleInitFailed)?;
+
+    // Generate Android Studio project
+    let env = android::env::Env::new().map_err(Error::AndroidEnvFailed)?;
+    android::project::gen(config.android(), &env, &bike, &filter, &mut dot_cargo)
+        .map_err(Error::AndroidInitFailed)?;
+
     dot_cargo
         .write(config.app())
         .map_err(Error::DotCargoWriteFailed)?;

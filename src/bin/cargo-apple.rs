@@ -16,7 +16,7 @@ use cargo_mobile::{
     define_device_prompt,
     device::PromptError,
     env::{Env, Error as EnvError},
-    init, opts, os,
+    opts, os,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
     util::{
         self,
@@ -50,24 +50,6 @@ fn profile_from_configuration(configuration: &str) -> opts::Profile {
 
 #[derive(Debug, StructOpt)]
 pub enum Command {
-    #[structopt(
-        name = "init",
-        about = "Creates a new project in the current working directory"
-    )]
-    Init {
-        #[structopt(flatten)]
-        skip_dev_tools: cli::SkipDevTools,
-        #[structopt(flatten)]
-        reinstall_deps: cli::ReinstallDeps,
-        #[structopt(
-            long = "open",
-            help = "Open in Xcode",
-            parse(from_flag = opts::OpenInEditor::from_bool),
-        )]
-        open_in_editor: opts::OpenInEditor,
-        #[structopt(long = "submodule-commit", help = "Template pack commit to checkout")]
-        submodule_commit: Option<String>,
-    },
     #[structopt(name = "open", about = "Open project in Xcode")]
     Open,
     #[structopt(name = "check", about = "Checks if code compiles for target(s)")]
@@ -140,7 +122,6 @@ pub enum Error {
     ConfigFailed(LoadOrGenError),
     MetadataFailed(metadata::Error),
     ProjectDirAbsent { project_dir: PathBuf },
-    InitFailed(init::Error),
     OpenFailed(bossy::Error),
     CheckFailed(CheckError),
     BuildFailed(BuildError),
@@ -169,7 +150,6 @@ impl Reportable for Error {
                 "Please run `cargo mobile init` and try again!",
                 format!("Xcode project directory {:?} doesn't exist.", project_dir),
             ),
-            Self::InitFailed(err) => err.report(),
             Self::OpenFailed(err) => Report::error("Failed to open project in Xcode", err),
             Self::CheckFailed(err) => err.report(),
             Self::BuildFailed(err) => err.report(),
@@ -259,30 +239,6 @@ impl Exec for Input {
         } = self;
         let env = Env::new().map_err(Error::EnvInitFailed)?;
         match command {
-            Command::Init {
-                skip_dev_tools: cli::SkipDevTools { skip_dev_tools },
-                reinstall_deps: cli::ReinstallDeps { reinstall_deps },
-                open_in_editor,
-                submodule_commit,
-            } => {
-                let config = init::exec(
-                    wrapper,
-                    non_interactive,
-                    skip_dev_tools,
-                    reinstall_deps,
-                    Default::default(),
-                    Some(vec!["apple".into()]),
-                    None,
-                    submodule_commit,
-                    ".",
-                )
-                .map_err(Error::InitFailed)?;
-                if open_in_editor.yes() {
-                    open_in_xcode(config.apple())
-                } else {
-                    Ok(())
-                }
-            }
             Command::Open => with_config(non_interactive, wrapper, |config| {
                 ensure_init(config)?;
                 open_in_xcode(config)

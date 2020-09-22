@@ -11,7 +11,6 @@ pub mod init;
 pub mod opts;
 pub mod os;
 pub mod project;
-pub mod steps;
 pub mod target;
 pub mod templating;
 pub mod update;

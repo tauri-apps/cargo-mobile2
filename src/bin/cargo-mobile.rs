@@ -36,22 +36,6 @@ pub enum Command {
             parse(from_flag = opts::OpenInEditor::from_bool),
         )]
         open_in_editor: opts::OpenInEditor,
-        #[structopt(
-            long,
-            help = "Only do some steps",
-            value_name = "STEPS",
-            possible_values = init::STEPS,
-            value_delimiter(" "),
-        )]
-        only: Option<Vec<String>>,
-        #[structopt(
-            long,
-            help = "Skip some steps",
-            value_name = "STEPS",
-            possible_values = init::STEPS,
-            value_delimiter(" "),
-        )]
-        skip: Option<Vec<String>>,
         #[structopt(long = "submodule-commit", help = "Template pack commit to checkout")]
         submodule_commit: Option<String>,
     },
@@ -102,8 +86,6 @@ impl Exec for Input {
                 skip_dev_tools: cli::SkipDevTools { skip_dev_tools },
                 reinstall_deps: cli::ReinstallDeps { reinstall_deps },
                 open_in_editor,
-                only,
-                skip,
                 submodule_commit,
             } => init::exec(
                 wrapper,
@@ -111,8 +93,6 @@ impl Exec for Input {
                 skip_dev_tools,
                 reinstall_deps,
                 open_in_editor,
-                only,
-                skip,
                 submodule_commit,
                 ".",
             )
@@ -125,8 +105,6 @@ impl Exec for Input {
                     init::exec(
                         wrapper,
                         non_interactive,
-                        Default::default(),
-                        Default::default(),
                         Default::default(),
                         Default::default(),
                         Default::default(),

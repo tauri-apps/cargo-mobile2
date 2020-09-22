@@ -15,7 +15,7 @@ use cargo_mobile::{
     },
     define_device_prompt,
     device::PromptError,
-    init, opts, os,
+    opts, os,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
     util::{
         cli::{self, Exec, GlobalFlags, Report, Reportable, TextWrapper},
@@ -36,24 +36,6 @@ pub struct Input {
 
 #[derive(Debug, StructOpt)]
 pub enum Command {
-    #[structopt(
-        name = "init",
-        about = "Creates a new project in the current working directory"
-    )]
-    Init {
-        #[structopt(flatten)]
-        skip_dev_tools: cli::SkipDevTools,
-        #[structopt(flatten)]
-        reinstall_deps: cli::ReinstallDeps,
-        #[structopt(
-            long = "open",
-            help = "Open in Android Studio",
-            parse(from_flag = opts::OpenInEditor::from_bool),
-        )]
-        open_in_editor: opts::OpenInEditor,
-        #[structopt(long = "submodule-commit", help = "Template pack commit to checkout")]
-        submodule_commit: Option<String>,
-    },
     #[structopt(name = "open", about = "Open project in Android Studio")]
     Open,
     #[structopt(name = "check", about = "Checks if code compiles for target(s)")]
@@ -87,7 +69,6 @@ pub enum Error {
     ConfigFailed(LoadOrGenError),
     MetadataFailed(metadata::Error),
     ProjectDirAbsent { project_dir: PathBuf },
-    InitFailed(init::Error),
     OpenFailed(bossy::Error),
     CheckFailed(CompileLibError),
     BuildFailed(BuildError),
@@ -111,7 +92,6 @@ impl Reportable for Error {
                     project_dir
                 ),
             ),
-            Self::InitFailed(err) => err.report(),
             Self::OpenFailed(err) => Report::error("Failed to open project in Android Studio", err),
             Self::CheckFailed(err) => err.report(),
             Self::BuildFailed(err) => err.report(),
@@ -181,30 +161,6 @@ impl Exec for Input {
         } = self;
         let env = Env::new().map_err(Error::EnvInitFailed)?;
         match command {
-            Command::Init {
-                skip_dev_tools: cli::SkipDevTools { skip_dev_tools },
-                reinstall_deps: cli::ReinstallDeps { reinstall_deps },
-                open_in_editor,
-                submodule_commit,
-            } => {
-                let config = init::exec(
-                    wrapper,
-                    non_interactive,
-                    skip_dev_tools,
-                    reinstall_deps,
-                    Default::default(),
-                    Some(vec!["android".into()]),
-                    None,
-                    submodule_commit,
-                    ".",
-                )
-                .map_err(Error::InitFailed)?;
-                if open_in_editor.yes() {
-                    open_in_android_studio(config.android())
-                } else {
-                    Ok(())
-                }
-            }
             Command::Open => with_config(non_interactive, wrapper, |config| {
                 ensure_init(config)?;
                 open_in_android_studio(config)
