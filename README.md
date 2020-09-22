@@ -56,14 +56,14 @@ To start a new project, all you need to do is make a directory with a cute name,
 cargo mobile init
 ```
 
-After some straightforward prompts, you'll be asked to select a template pack. Template packs are used to generate project boilerplate, i.e. using the `bevy` template pack gives you a minimal [Bevy](https://bevyengine.org/) project that runs out-of-the-box on desktop and mobile. Though, the Bevy template pack is actually currently completely empty... here's a handy table of what exists and what works:
+After some straightforward prompts, you'll be asked to select a template pack. Template packs are used to generate project boilerplate, i.e. using the `bevy` template pack gives you a minimal [Bevy](https://bevyengine.org/) project that runs out-of-the-box on desktop and mobile.
 
-| name       | status | info                                                                                                                  |
-| ---------- | ------ | --------------------------------------------------------------------------------------------------------------------- |
-| bevy       | ❌      | minimal [Bevy](https://bevyengine.org/) project                                                                       |  |
-| brainstorm | ✅      | you can't actually use this, since we didn't release it yet...                                                        |
-| wgpu       | ✅      | lightly modified wgpu [hello-triangle](https://github.com/gfx-rs/wgpu-rs/tree/master/examples/hello-triangle) example |
-| winit      | ✅      | lightly modified winit [window](https://github.com/rust-windowing/winit/tree/master/examples/window) exmaple          |
+| name      | info                                                                                                                              |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| bevy      | Minimal Bevy project derived from [sprite](https://github.com/bevyengine/bevy/blob/master/examples/2d/sprite.rs) example          |
+| bevy-demo | Bevy [breakout](https://github.com/bevyengine/bevy/blob/master/examples/game/breakout.rs) demo                                    |
+| wgpu      | Minimal wgpu project derived from [hello-triangle](https://github.com/gfx-rs/wgpu-rs/tree/master/examples/hello-triangle) example |
+| winit     | Minimal winit project derived from [window](https://github.com/rust-windowing/winit/tree/master/examples/window) exmaple          |
 
 **Template pack contribution is encouraged**; we'd love to have very nice template packs for Bevy, Amethyst, and whatever else people find helpful! We'll write up a guide for template pack creation soon, but in the mean time, the existing ones are a great reference point. Any template pack placed into `~./cargo-mobile/user-templates/` will appear as an option in `cargo mobile init`.
 
