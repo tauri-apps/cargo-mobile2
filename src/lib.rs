@@ -5,14 +5,14 @@ pub mod android;
 pub mod apple;
 pub mod config;
 pub mod device;
-pub mod dot_cargo;
+mod dot_cargo;
 pub mod env;
 pub mod init;
 pub mod opts;
 pub mod os;
-pub mod project;
+mod project;
 pub mod target;
-pub mod templating;
+mod templating;
 pub mod update;
 pub mod util;
 
