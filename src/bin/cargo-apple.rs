@@ -121,6 +121,7 @@ pub enum Error {
     TargetInvalid(TargetInvalid),
     ConfigFailed(LoadOrGenError),
     MetadataFailed(metadata::Error),
+    Unsupported,
     ProjectDirAbsent { project_dir: PathBuf },
     OpenFailed(bossy::Error),
     CheckFailed(CheckError),
@@ -146,6 +147,7 @@ impl Reportable for Error {
             Self::TargetInvalid(err) => Report::error("Specified target was invalid", err),
             Self::ConfigFailed(err) => err.report(),
             Self::MetadataFailed(err) => err.report(),
+            Self::Unsupported => Report::error("iOS is marked as unsupported in your Cargo.toml metadata", "If your project should support Android, modify your Cargo.toml, then run `cargo mobile init` and try again."),
             Self::ProjectDirAbsent { project_dir } => Report::action_request(
                 "Please run `cargo mobile init` and try again!",
                 format!("Xcode project directory {:?} doesn't exist.", project_dir),
@@ -196,23 +198,17 @@ impl Exec for Input {
         fn with_config(
             non_interactive: opts::NonInteractive,
             wrapper: &TextWrapper,
-            f: impl FnOnce(&Config) -> Result<(), Error>,
+            f: impl FnOnce(&Config, &Metadata) -> Result<(), Error>,
         ) -> Result<(), Error> {
             let (config, _origin) = OmniConfig::load_or_gen(".", non_interactive, wrapper)
                 .map_err(Error::ConfigFailed)?;
-            f(config.apple())
-        }
-
-        fn with_config_and_metadata(
-            non_interactive: opts::NonInteractive,
-            wrapper: &TextWrapper,
-            f: impl FnOnce(&Config, &Metadata) -> Result<(), Error>,
-        ) -> Result<(), Error> {
-            with_config(non_interactive, wrapper, |config| {
-                let metadata =
-                    OmniMetadata::load(&config.app().root_dir()).map_err(Error::MetadataFailed)?;
-                f(config, &metadata.apple)
-            })
+            let metadata =
+                OmniMetadata::load(&config.app().root_dir()).map_err(Error::MetadataFailed)?;
+            if metadata.apple().supported() {
+                f(config.apple(), metadata.apple())
+            } else {
+                Err(Error::Unsupported)
+            }
         }
 
         fn ensure_init(config: &Config) -> Result<(), Error> {
@@ -239,12 +235,12 @@ impl Exec for Input {
         } = self;
         let env = Env::new().map_err(Error::EnvInitFailed)?;
         match command {
-            Command::Open => with_config(non_interactive, wrapper, |config| {
+            Command::Open => with_config(non_interactive, wrapper, |config, _| {
                 ensure_init(config)?;
                 open_in_xcode(config)
             }),
             Command::Check { targets } => {
-                with_config_and_metadata(non_interactive, wrapper, |config, metadata| {
+                with_config(non_interactive, wrapper, |config, metadata| {
                     call_for_targets_with_fallback(
                         targets.iter(),
                         &detect_target_ok,
@@ -261,7 +257,7 @@ impl Exec for Input {
             Command::Build {
                 targets,
                 profile: cli::Profile { profile },
-            } => with_config(non_interactive, wrapper, |config| {
+            } => with_config(non_interactive, wrapper, |config, _| {
                 ensure_init(config)?;
                 call_for_targets_with_fallback(
                     targets.iter(),
@@ -278,7 +274,7 @@ impl Exec for Input {
             Command::Archive {
                 targets,
                 profile: cli::Profile { profile },
-            } => with_config(non_interactive, wrapper, |config| {
+            } => with_config(non_interactive, wrapper, |config, _| {
                 ensure_init(config)?;
                 call_for_targets_with_fallback(
                     targets.iter(),
@@ -297,7 +293,7 @@ impl Exec for Input {
             }),
             Command::Run {
                 profile: cli::Profile { profile },
-            } => with_config(non_interactive, wrapper, |config| {
+            } => with_config(non_interactive, wrapper, |config, _| {
                 ensure_init(config)?;
                 device_prompt(&env)
                     .map_err(Error::DevicePromptFailed)?
@@ -315,7 +311,7 @@ impl Exec for Input {
                 profile,
                 force_color,
                 arches,
-            } => with_config_and_metadata(non_interactive, wrapper, |config, metadata| {
+            } => with_config(non_interactive, wrapper, |config, metadata| {
                 // The `PATH` env var Xcode gives us is missing any additions
                 // made by the user's profile, so we'll manually add cargo's
                 // `PATH`.

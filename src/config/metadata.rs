@@ -36,9 +36,9 @@ impl Reportable for Error {
 pub struct Metadata {
     #[cfg(target_os = "macos")]
     #[serde(default, rename = "cargo-apple")]
-    pub apple: crate::apple::config::Metadata,
+    apple: crate::apple::config::Metadata,
     #[serde(default, rename = "cargo-android")]
-    pub android: crate::android::config::Metadata,
+    android: crate::android::config::Metadata,
 }
 
 impl Metadata {
@@ -62,5 +62,13 @@ impl Metadata {
         let cargo_toml = toml::from_slice::<CargoToml>(&bytes)
             .map_err(|cause| Error::ParseFailed { path, cause })?;
         Ok(cargo_toml.package.metadata.unwrap_or_default())
+    }
+
+    pub fn apple(&self) -> &crate::apple::config::Metadata {
+        &self.apple
+    }
+
+    pub fn android(&self) -> &crate::android::config::Metadata {
+        &self.android
     }
 }

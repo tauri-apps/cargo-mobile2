@@ -163,7 +163,7 @@ pub fn exec(
 
     // Generate Xcode project
     #[cfg(target_os = "macos")]
-    if metadata.apple.supported() {
+    if metadata.apple().supported() {
         apple::project::gen(
             config.apple(),
             config.app().template_pack().submodule_path(),
@@ -179,7 +179,7 @@ pub fn exec(
     }
 
     // Generate Android Studio project
-    if metadata.android.supported() {
+    if metadata.android().supported() {
         match android::env::Env::new() {
             Ok(env) => android::project::gen(config.android(), &env, &bike, &filter, &mut dot_cargo)
                 .map_err(Error::AndroidInitFailed)?,
