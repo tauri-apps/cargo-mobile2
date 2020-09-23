@@ -9,11 +9,15 @@ use bevy::{
 #[mobile_entry_point]
 fn main() {
     App::build()
-        .add_system(hello_world_system.system()).run();
-}
-
-fn hello_world_system() {
-    println!("hello world");
+        .add_default_plugins()
+        .add_resource(Scoreboard { score: 0 })
+        .add_resource(ClearColor(Color::rgb(0.7, 0.7, 0.7)))
+        .add_startup_system(setup.system())
+        .add_system(paddle_movement_system.system())
+        .add_system(ball_collision_system.system())
+        .add_system(ball_movement_system.system())
+        .add_system(scoreboard_system.system())
+        .run();
 }
 
 struct Paddle {
