@@ -173,7 +173,7 @@ pub fn exec(
         Err(err) => {
             if err.sdk_or_ndk_issue() {
                 Report::action_request(
-                    "Failed to initialize Android environment; Android support will be disabled until you fix the detailed issue and re-run `cargo mobile init`!",
+                    "Failed to initialize Android environment; Android support won't be usable until you fix the issue below and re-run `cargo mobile init`!",
                     err,
                 )
                 .print(wrapper);
