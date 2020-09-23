@@ -1,11 +1,11 @@
 pub mod config;
-pub mod deps;
+mod deps;
 pub mod device;
 pub mod ios_deploy;
-pub mod project;
-pub mod system_profile;
+pub(crate) mod project;
+mod system_profile;
 pub mod target;
-pub mod teams;
+mod teams;
 mod xcode_plugin;
 
 pub static NAME: &'static str = "apple";
