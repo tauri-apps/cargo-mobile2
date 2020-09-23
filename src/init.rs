@@ -2,7 +2,11 @@ use crate::android;
 #[cfg(target_os = "macos")]
 use crate::apple;
 use crate::{
-    config::{self, Config},
+    config::{
+        self,
+        metadata::{self, Metadata},
+        Config,
+    },
     dot_cargo, opts, project, templating,
     util::{
         self,
@@ -48,10 +52,11 @@ pub enum Error {
     LldbExtensionInstallFailed(bossy::Error),
     DotCargoLoadFailed(dot_cargo::LoadError),
     HostTargetTripleDetectionFailed(util::HostTargetTripleError),
-    AndroidEnvFailed(android::env::Error),
-    AndroidInitFailed(android::project::Error),
+    MetadataFailed(metadata::Error),
     #[cfg(target_os = "macos")]
     AppleInitFailed(apple::project::Error),
+    AndroidEnvFailed(android::env::Error),
+    AndroidInitFailed(android::project::Error),
     DotCargoWriteFailed(dot_cargo::WriteError),
     DotFirstInitDeleteFailed {
         path: PathBuf,
@@ -72,6 +77,7 @@ impl Reportable for Error {
             Self::LldbExtensionInstallFailed(err) => Report::error("Failed to install CodeLLDB extension", err),
             Self::DotCargoLoadFailed(err) => err.report(),
             Self::HostTargetTripleDetectionFailed(err) => err.report(),
+            Self::MetadataFailed(err) => err.report(),
             Self::AndroidEnvFailed(err) => err.report(),
             Self::AndroidInitFailed(err) => err.report(),
             #[cfg(target_os = "macos")]
@@ -153,34 +159,44 @@ pub fn exec(
         util::host_target_triple().map_err(Error::HostTargetTripleDetectionFailed)?,
     );
 
+    let metadata = Metadata::load(&config.app().root_dir()).map_err(Error::MetadataFailed)?;
+
     // Generate Xcode project
     #[cfg(target_os = "macos")]
-    apple::project::gen(
-        config.apple(),
-        config.app().template_pack().submodule_path(),
-        &bike,
-        wrapper,
-        skip_dev_tools,
-        reinstall_deps,
-        &filter,
-    )
-    .map_err(Error::AppleInitFailed)?;
+    if metadata.apple.supported() {
+        apple::project::gen(
+            config.apple(),
+            config.app().template_pack().submodule_path(),
+            &bike,
+            wrapper,
+            skip_dev_tools,
+            reinstall_deps,
+            &filter,
+        )
+        .map_err(Error::AppleInitFailed)?;
+    } else {
+        println!("Skipping iOS init, since it's marked as unsupported in your Cargo.toml metadata");
+    }
 
     // Generate Android Studio project
-    match android::env::Env::new() {
-        Ok(env) => android::project::gen(config.android(), &env, &bike, &filter, &mut dot_cargo)
-            .map_err(Error::AndroidInitFailed)?,
-        Err(err) => {
-            if err.sdk_or_ndk_issue() {
-                Report::action_request(
-                    "Failed to initialize Android environment; Android support won't be usable until you fix the issue below and re-run `cargo mobile init`!",
-                    err,
-                )
-                .print(wrapper);
-            } else {
-                Err(Error::AndroidEnvFailed(err))?;
+    if metadata.android.supported() {
+        match android::env::Env::new() {
+            Ok(env) => android::project::gen(config.android(), &env, &bike, &filter, &mut dot_cargo)
+                .map_err(Error::AndroidInitFailed)?,
+            Err(err) => {
+                if err.sdk_or_ndk_issue() {
+                    Report::action_request(
+                        "Failed to initialize Android environment; Android support won't be usable until you fix the issue below and re-run `cargo mobile init`!",
+                        err,
+                    )
+                    .print(wrapper);
+                } else {
+                    Err(Error::AndroidEnvFailed(err))?;
+                }
             }
         }
+    } else {
+        println!("Skipping Android init, since it's marked as unsupported in your Cargo.toml metadata");
     }
 
     dot_cargo

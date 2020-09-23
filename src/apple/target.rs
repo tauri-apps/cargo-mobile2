@@ -208,9 +208,9 @@ impl<'a> Target<'a> {
         subcommand: &'a str,
     ) -> Result<CargoCommand<'a>, VersionCheckError> {
         let metadata = if self.is_macos() {
-            &metadata.macos
+            metadata.macos()
         } else {
-            &metadata.ios
+            metadata.ios()
         };
         self.min_xcode_version_satisfied().map(|()| {
             CargoCommand::new(subcommand)

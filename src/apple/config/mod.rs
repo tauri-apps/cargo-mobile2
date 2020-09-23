@@ -30,12 +30,42 @@ impl Features {
     }
 }
 
-#[derive(Debug, Default, Deserialize)]
+const fn default_true() -> bool {
+    true
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Metadata {
+    #[serde(default = "default_true")]
+    supported: bool,
     #[serde(default)]
-    pub ios: Features,
+    ios: Features,
     #[serde(default)]
-    pub macos: Features,
+    macos: Features,
+}
+
+impl Default for Metadata {
+    fn default() -> Self {
+        Self {
+            supported: true,
+            ios: Default::default(),
+            macos: Default::default(),
+        }
+    }
+}
+
+impl Metadata {
+    pub const fn supported(&self) -> bool {
+        self.supported
+    }
+
+    pub fn ios(&self) -> &Features {
+        &self.ios
+    }
+
+    pub fn macos(&self) -> &Features {
+        &self.macos
+    }
 }
 
 #[derive(Debug)]

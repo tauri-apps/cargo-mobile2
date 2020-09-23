@@ -12,13 +12,32 @@ const DEFAULT_MIN_SDK_VERSION: u32 = 24;
 const DEFAULT_VULKAN_VALIDATION: bool = true;
 static DEFAULT_PROJECT_DIR: &'static str = "gen/android";
 
-#[derive(Debug, Default, Deserialize)]
+const fn default_true() -> bool {
+    true
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Metadata {
+    #[serde(default = "default_true")]
+    supported: bool,
     #[serde(default)]
     features: Option<Vec<String>>,
 }
 
+impl Default for Metadata {
+    fn default() -> Self {
+        Self {
+            supported: true,
+            features: None,
+        }
+    }
+}
+
 impl Metadata {
+    pub const fn supported(&self) -> bool {
+        self.supported
+    }
+
     pub fn no_default_features(&self) -> bool {
         self.features.is_some()
     }
