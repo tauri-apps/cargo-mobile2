@@ -105,8 +105,7 @@ impl Raw {
             if development_teams.is_empty() {
                 println!("  -- none --");
             }
-            let mut development_team = None;
-            while let None = development_team {
+            loop {
                 println!(
                     "  Enter an {} for a team above, or enter a {} manually.",
                     "index".green(),
@@ -125,7 +124,7 @@ impl Raw {
                     .map(|team| team.id.clone())
                     .unwrap_or_else(|| team_input);
                 if !team_id.is_empty() {
-                    development_team = Some(team_id);
+                    break team_id;
                 } else {
                     println!(
                         "{}",
@@ -135,7 +134,6 @@ impl Raw {
                     );
                 }
             }
-            development_team.unwrap()
         };
         Ok(Self {
             development_team,

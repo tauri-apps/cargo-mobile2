@@ -189,10 +189,9 @@ impl Raw {
         defaults: &Defaults,
     ) -> Result<(String, Option<String>), PromptError> {
         let mut default_name = defaults.name.clone();
-        let mut name = None;
         let mut rejected = None;
         let mut default_stylized = None;
-        while let None = name {
+        let name = loop {
             let response = prompt::default(
                 "Project name",
                 default_name.as_ref().map(|s| s.as_str()),
@@ -208,7 +207,7 @@ impl Raw {
                             default_stylized = Some(defaults.stylized_name.clone());
                         }
                     }
-                    name = Some(response);
+                    break response;
                 }
                 Err(err) => {
                     rejected = Some(response);
@@ -223,8 +222,8 @@ impl Raw {
                     }
                 }
             }
-        }
-        Ok((name.unwrap(), default_stylized))
+        };
+        Ok((name, default_stylized))
     }
 
     fn prompt_stylized_name(
@@ -238,12 +237,11 @@ impl Raw {
     }
 
     fn prompt_domain(wrapper: &TextWrapper, defaults: &Defaults) -> Result<String, PromptError> {
-        let mut domain = None;
-        while let None = domain {
+        Ok(loop {
             let response = prompt::default("Domain", Some(&defaults.domain), None)
                 .map_err(PromptError::DomainPromptFailed)?;
             if publicsuffix::Domain::has_valid_syntax(&response) {
-                domain = Some(response);
+                break response;
             } else {
                 println!(
                     "{}",
@@ -255,8 +253,7 @@ impl Raw {
                         .bright_magenta()
                 );
             }
-        }
-        Ok(domain.unwrap())
+        })
     }
 
     pub fn prompt_template_pack(wrapper: &TextWrapper) -> Result<String, PromptError> {
