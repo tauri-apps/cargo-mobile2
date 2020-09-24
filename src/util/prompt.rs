@@ -3,6 +3,7 @@ use std::{
     fmt::Display,
     io::{self, Write},
 };
+use yes_or_no::yes_or_no;
 
 pub fn minimal(msg: impl Display) -> io::Result<String> {
     let mut input = String::new();
@@ -37,11 +38,7 @@ pub fn default(
     })
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum YesOrNo {
-    Yes,
-    No,
-}
+yes_or_no!(YesOrNo);
 
 pub fn yes_no(msg: impl Display, default: Option<YesOrNo>) -> io::Result<Option<YesOrNo>> {
     let y_n = match default {

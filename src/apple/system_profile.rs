@@ -1,52 +1,25 @@
 use once_cell_regex::regex;
-use std::{
-    fmt::{self, Display},
-    str,
-};
+use std::str;
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
-    SystemProfilerFailed(bossy::Error),
-    OutputInvalidUtf8(str::Utf8Error),
-    VersionNotMatched {
-        data: String,
-    },
+    #[error("`system_profiler` call failed: {0}")]
+    SystemProfilerFailed(#[from] bossy::Error),
+    #[error("`system_profiler` output contained invalid UTF-8: {0}")]
+    OutputInvalidUtf8(#[from] str::Utf8Error),
+    #[error("No version number was found within the `SPDeveloperToolsDataType` data: {data:?}")]
+    VersionNotMatched { data: String },
+    #[error("The major version {major:?} wasn't a valid number: {source}")]
     MajorVersionInvalid {
         major: String,
-        cause: std::num::ParseIntError,
+        source: std::num::ParseIntError,
     },
+    #[error("The minor version {minor:?} wasn't a valid number: {source}")]
     MinorVersionInvalid {
         minor: String,
-        cause: std::num::ParseIntError,
+        source: std::num::ParseIntError,
     },
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::SystemProfilerFailed(err) => write!(f, "`system_profiler` call failed: {}", err),
-            Self::OutputInvalidUtf8(err) => write!(
-                f,
-                "`system_profiler` output contained invalid UTF-8: {}",
-                err
-            ),
-            Self::VersionNotMatched { data } => write!(
-                f,
-                "No version number was found within the `SPDeveloperToolsDataType` data: {:?}",
-                data
-            ),
-            Self::MajorVersionInvalid { major, cause } => write!(
-                f,
-                "The major version {:?} wasn't a valid number: {}",
-                major, cause
-            ),
-            Self::MinorVersionInvalid { minor, cause } => write!(
-                f,
-                "The minor version {:?} wasn't a valid number: {}",
-                minor, cause
-            ),
-        }
-    }
 }
 
 // There's a bunch more info available, but the version is all we need for now.
@@ -74,17 +47,17 @@ impl DeveloperTools {
         let major = {
             let raw = &caps["major"];
             raw.parse::<u32>()
-                .map_err(|cause| Error::MajorVersionInvalid {
+                .map_err(|source| Error::MajorVersionInvalid {
                     major: raw.to_owned(),
-                    cause,
+                    source,
                 })?
         };
         let minor = {
             let raw = &caps["minor"];
             raw.parse::<u32>()
-                .map_err(|cause| Error::MinorVersionInvalid {
+                .map_err(|source| Error::MinorVersionInvalid {
                     minor: raw.to_owned(),
-                    cause,
+                    source,
                 })?
         };
         Ok(Self {

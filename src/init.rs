@@ -169,6 +169,7 @@ pub fn exec(
             config.app().template_pack().submodule_path(),
             &bike,
             wrapper,
+            non_interactive,
             skip_dev_tools,
             reinstall_deps,
             &filter,
