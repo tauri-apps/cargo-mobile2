@@ -1,4 +1,4 @@
-use super::{config::Config, deps, target::Target};
+use super::{config::Config, deps, rust_version_check, target::Target};
 use crate::{
     opts,
     target::TargetTrait as _,
@@ -16,6 +16,7 @@ pub static TEMPLATE_PACK: &'static str = "xcode";
 #[derive(Debug)]
 pub enum Error {
     RustupFailed(bossy::Error),
+    RustVersionCheckFailed(util::RustVersionError),
     DepsInstallFailed(deps::Error),
     MissingPack(templating::LookupError),
     TemplateProcessingFailed(bicycle::ProcessingError),
@@ -27,6 +28,7 @@ impl Reportable for Error {
     fn report(&self) -> Report {
         match self {
             Self::RustupFailed(err) => Report::error("Failed to `rustup` Apple toolchains", err),
+            Self::RustVersionCheckFailed(err) => err.report(),
             Self::DepsInstallFailed(err) => {
                 Report::error("Failed to install Apple dependencies", err)
             }
@@ -56,6 +58,7 @@ pub fn gen(
 ) -> Result<(), Error> {
     println!("Installing iOS toolchains...");
     Target::install_all().map_err(Error::RustupFailed)?;
+    rust_version_check(wrapper).map_err(Error::RustVersionCheckFailed)?;
 
     deps::install(wrapper, non_interactive, skip_dev_tools, reinstall_deps)
         .map_err(Error::DepsInstallFailed)?;

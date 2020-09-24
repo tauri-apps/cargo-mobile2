@@ -5,7 +5,7 @@ use cargo_mobile::{
     apple::{
         config::{Config, Metadata},
         device::{Device, RunError},
-        ios_deploy,
+        ios_deploy, rust_version_check,
         target::{ArchiveError, BuildError, CheckError, CompileLibError, ExportError, Target},
         NAME,
     },
@@ -117,6 +117,7 @@ pub enum Command {
 #[derive(Debug)]
 pub enum Error {
     EnvInitFailed(EnvError),
+    RustVersionCheckFailed(util::RustVersionError),
     DevicePromptFailed(PromptError<ios_deploy::DeviceListError>),
     TargetInvalid(TargetInvalid),
     ConfigFailed(LoadOrGenError),
@@ -143,6 +144,7 @@ impl Reportable for Error {
     fn report(&self) -> Report {
         match self {
             Self::EnvInitFailed(err) => err.report(),
+            Self::RustVersionCheckFailed(err) => err.report(),
             Self::DevicePromptFailed(err) => err.report(),
             Self::TargetInvalid(err) => Report::error("Specified target was invalid", err),
             Self::ConfigFailed(err) => err.report(),
@@ -234,6 +236,7 @@ impl Exec for Input {
             command,
         } = self;
         let env = Env::new().map_err(Error::EnvInitFailed)?;
+        rust_version_check(wrapper).map_err(Error::RustVersionCheckFailed)?;
         match command {
             Command::Open => with_config(non_interactive, wrapper, |config, _| {
                 ensure_init(config)?;

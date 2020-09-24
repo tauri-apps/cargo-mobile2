@@ -15,6 +15,7 @@ use std::{
     io::{self, Write},
     path::Path,
 };
+use thiserror::Error;
 
 pub fn list_display(list: &[impl Display]) -> String {
     if list.len() == 1 {
@@ -83,6 +84,92 @@ pub fn host_target_triple() -> Result<String, HostTargetTripleError> {
             triple
         })
         .ok_or_else(|| HostTargetTripleError::NoMatchesFound(raw.to_owned()))
+}
+
+#[derive(Debug, Error)]
+pub enum RustVersionError {
+    #[error("Failed to check rustc version: {0}")]
+    CommandFailed(#[from] bossy::Error),
+    #[error("Failed to parse rustc version info: {0:?}")]
+    InvalidUtf8(#[from] std::str::Utf8Error),
+    #[error("Failed to parse rustc version info: {0:?}")]
+    ParseFailed(String),
+    #[error("Failed to parse rustc major version from {version:?}: {source}")]
+    MajorInvalid {
+        version: String,
+        source: std::num::ParseIntError,
+    },
+    #[error("Failed to parse rustc minor version from {version:?}: {source}")]
+    MinorInvalid {
+        version: String,
+        source: std::num::ParseIntError,
+    },
+    #[error("Failed to parse rustc patch version from {version:?}: {source}")]
+    PatchInvalid {
+        version: String,
+        source: std::num::ParseIntError,
+    },
+}
+
+impl Reportable for RustVersionError {
+    fn report(&self) -> Report {
+        Report::error("Failed to check Rust version", self)
+    }
+}
+
+#[derive(Debug)]
+pub struct RustVersion {
+    pub triple: (u32, u32, u32),
+    pub flavor: Option<String>,
+}
+
+impl Display for RustVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{}.{}", self.triple.0, self.triple.1, self.triple.2)?;
+        if let Some(flavor) = &self.flavor {
+            write!(f, "-{}", flavor)?;
+        }
+        Ok(())
+    }
+}
+
+impl RustVersion {
+    pub fn check() -> Result<Self, RustVersionError> {
+        let output = bossy::Command::impure_parse("rustc --version").run_and_wait_for_output()?;
+        let output = output.stdout_str()?;
+        let re = regex!(
+            r"rustc (?P<version>(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(-(?P<flavor>\w+))?)"
+        );
+        let caps = re
+            .captures(output)
+            .ok_or_else(|| RustVersionError::ParseFailed(output.to_owned()))?;
+        let version_str = &caps["version"];
+        let this = Self {
+            triple: (
+                caps["major"]
+                    .parse::<u32>()
+                    .map_err(|source| RustVersionError::MajorInvalid {
+                        version: version_str.to_owned(),
+                        source,
+                    })?,
+                caps["minor"]
+                    .parse::<u32>()
+                    .map_err(|source| RustVersionError::MinorInvalid {
+                        version: version_str.to_owned(),
+                        source,
+                    })?,
+                caps["patch"]
+                    .parse::<u32>()
+                    .map_err(|source| RustVersionError::PatchInvalid {
+                        version: version_str.to_owned(),
+                        source,
+                    })?,
+            ),
+            flavor: caps.name("flavor").map(|flavor| flavor.as_str().to_owned()),
+        };
+        log::info!("detected rustc version {}", this);
+        Ok(this)
+    }
 }
 
 pub fn prepend_to_path(path: impl Display, base_path: impl Display) -> String {
