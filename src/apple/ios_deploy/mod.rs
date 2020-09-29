@@ -6,18 +6,6 @@ pub use self::{device_list::*, run::*};
 use serde::Deserialize;
 use std::path::PathBuf;
 
-mod error {
-    const ESCROW_LOCKED: u32 = 0xe8000081;
-    const PASSWORD_PROTECTED: u32 = 0xe800001a;
-    const MOBILE_IMAGE_MOUNTER_DEVICE_LOCKED: u32 = 0xe80000e2;
-
-    pub fn locked(code: u32) -> bool {
-        code == ESCROW_LOCKED
-            || code == PASSWORD_PROTECTED
-            || code == MOBILE_IMAGE_MOUNTER_DEVICE_LOCKED
-    }
-}
-
 #[derive(Clone, Debug, Deserialize)]
 struct DeviceInfo {
     #[serde(rename = "DeviceIdentifier")]
@@ -87,14 +75,6 @@ impl Event {
     fn device_info(&self) -> Option<&DeviceInfo> {
         if let Self::DeviceDetected { device } = self {
             Some(device)
-        } else {
-            None
-        }
-    }
-
-    fn error(&self) -> Option<(u32, &str)> {
-        if let Self::Error { code, status } = self {
-            Some((*code, status))
         } else {
             None
         }

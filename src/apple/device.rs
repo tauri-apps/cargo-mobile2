@@ -6,7 +6,7 @@ use super::{
 use crate::{
     env::{Env, ExplicitEnv as _},
     opts,
-    util::cli::{Report, Reportable, TextWrapper},
+    util::cli::{Report, Reportable},
 };
 use std::fmt::{self, Display};
 
@@ -63,7 +63,6 @@ impl<'a> Device<'a> {
         &self,
         config: &Config,
         env: &Env,
-        wrapper: &TextWrapper,
         noise_level: opts::NoiseLevel,
         non_interactive: opts::NonInteractive,
         profile: opts::Profile,
@@ -95,7 +94,7 @@ impl<'a> Device<'a> {
             .with_arg(&config.export_dir())
             .run_and_wait()
             .map_err(RunError::UnzipFailed)?;
-        ios_deploy::run_and_debug(config, env, wrapper, non_interactive, &self.id)
+        ios_deploy::run_and_debug(config, env, non_interactive, &self.id)
             .map_err(RunError::DeployFailed)?;
         Ok(())
     }
