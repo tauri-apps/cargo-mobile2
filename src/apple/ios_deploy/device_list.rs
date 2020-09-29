@@ -51,10 +51,21 @@ fn parse_device_list<'a>(output: &bossy::Output) -> Result<BTreeSet<Device<'a>>,
 }
 
 pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListError> {
-    parse_device_list(
-        &bossy::Command::pure_parse("ios-deploy --detect --timeout 1 --json --no-wifi")
-            .with_env_vars(env.explicit_env())
-            .run_and_wait_for_output()
-            .map_err(DeviceListError::DetectionFailed)?,
-    )
+    let result = bossy::Command::pure_parse("ios-deploy --detect --timeout 1 --json --no-wifi")
+        .with_env_vars(env.explicit_env())
+        .run_and_wait_for_output();
+    match result {
+        Ok(output) => parse_device_list(&output),
+        Err(err) => {
+            let output = err
+                .output()
+                .expect("developer error: `ios-deploy --detect` output wasn't collected");
+            if output.stdout().is_empty() && output.stderr().is_empty() {
+                log::info!("device detection returned a non-zero exit code, but stdout and stderr are both empty; interpreting as a successful run with no devices connected");
+                Ok(Default::default())
+            } else {
+                Err(DeviceListError::DetectionFailed(err))
+            }
+        }
+    }
 }
