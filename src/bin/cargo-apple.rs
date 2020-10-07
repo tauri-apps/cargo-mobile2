@@ -227,6 +227,8 @@ impl Exec for Input {
             os::open_file_with("Xcode", config.project_dir()).map_err(Error::OpenFailed)
         }
 
+        let version_check = || rust_version_check(wrapper).map_err(Error::RustVersionCheckFailed);
+
         let Self {
             flags:
                 GlobalFlags {
@@ -236,13 +238,16 @@ impl Exec for Input {
             command,
         } = self;
         let env = Env::new().map_err(Error::EnvInitFailed)?;
-        rust_version_check(wrapper).map_err(Error::RustVersionCheckFailed)?;
         match command {
-            Command::Open => with_config(non_interactive, wrapper, |config, _| {
-                ensure_init(config)?;
-                open_in_xcode(config)
-            }),
+            Command::Open => {
+                version_check()?;
+                with_config(non_interactive, wrapper, |config, _| {
+                    ensure_init(config)?;
+                    open_in_xcode(config)
+                })
+            }
             Command::Check { targets } => {
+                version_check()?;
                 with_config(non_interactive, wrapper, |config, metadata| {
                     call_for_targets_with_fallback(
                         targets.iter(),
@@ -261,6 +266,7 @@ impl Exec for Input {
                 targets,
                 profile: cli::Profile { profile },
             } => with_config(non_interactive, wrapper, |config, _| {
+                version_check()?;
                 ensure_init(config)?;
                 call_for_targets_with_fallback(
                     targets.iter(),
@@ -278,6 +284,7 @@ impl Exec for Input {
                 targets,
                 profile: cli::Profile { profile },
             } => with_config(non_interactive, wrapper, |config, _| {
+                version_check()?;
                 ensure_init(config)?;
                 call_for_targets_with_fallback(
                     targets.iter(),
@@ -297,6 +304,7 @@ impl Exec for Input {
             Command::Run {
                 profile: cli::Profile { profile },
             } => with_config(non_interactive, wrapper, |config, _| {
+                version_check()?;
                 ensure_init(config)?;
                 device_prompt(&env)
                     .map_err(Error::DevicePromptFailed)?
