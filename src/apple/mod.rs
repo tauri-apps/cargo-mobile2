@@ -14,7 +14,7 @@ use crate::util::{
 
 pub static NAME: &'static str = "apple";
 
-// This will be removed when the upstream regression is fixed...
+// These checks will have to be refined when this is resolved upstream...
 pub fn rust_version_check(wrapper: &TextWrapper) -> Result<(), util::RustVersionError> {
     util::RustVersion::check().map(|version| {
         const MAX: (u32, u32, u32) = (1, 45, 2);

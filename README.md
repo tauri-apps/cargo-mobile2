@@ -10,9 +10,9 @@ cargo-mobile takes care of generating Xcode and Android Studio project files, bu
 
 Everything here works and is already used internally! However, there are still some rough edges, i.e. running on Android often reuses the old build instead of installing the new build, so you might have to run a second time to ensure the correct build is used.
 
-**Building for iOS is broken on Rust 1.46.0!**
+**Building for iOS is broken on Rust versions later than 1.45.2!**
 
-You'll need to stay on 1.45.2 for now. We're investigating this, so don't fret!
+You'll need to stay on 1.45.2 for now. Upstream PR: [rust-lang/rust#77716](https://github.com/rust-lang/rust/pull/77716)
 
 ```bash
 rustup install stable-2020-08-03
