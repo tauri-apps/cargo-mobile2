@@ -11,13 +11,13 @@ use crate::{
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 
-pub static KEY: &'static str = "app";
+pub static KEY: &str = "app";
 
-pub static DEFAULT_ASSET_DIR: &'static str = "assets";
+pub static DEFAULT_ASSET_DIR: &str = "assets";
 #[cfg(feature = "brainium")]
-pub static DEFAULT_TEMPLATE_PACK: &'static str = "brainstorm";
+pub static DEFAULT_TEMPLATE_PACK: &str = "brainstorm";
 #[cfg(not(feature = "brainium"))]
-pub static DEFAULT_TEMPLATE_PACK: &'static str = "bevy";
+pub static DEFAULT_TEMPLATE_PACK: &str = "bevy";
 
 #[derive(Debug)]
 pub enum Error {

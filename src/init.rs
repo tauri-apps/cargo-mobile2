@@ -18,8 +18,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub static DOT_FIRST_INIT_FILE_NAME: &'static str = ".first-init";
-static DOT_FIRST_INIT_CONTENTS: &'static str = // newline
+pub static DOT_FIRST_INIT_FILE_NAME: &str = ".first-init";
+static DOT_FIRST_INIT_CONTENTS: &str = // newline
 r#"The presence of this file indicates `cargo mobile init` has been called for
 the first time on a new project, but hasn't yet completed successfully once. As
 long as this file is here, `cargo mobile init` will use a more aggressive

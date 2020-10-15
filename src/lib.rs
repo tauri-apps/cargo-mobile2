@@ -16,4 +16,4 @@ mod templating;
 pub mod update;
 pub mod util;
 
-pub static NAME: &'static str = "mobile";
+pub static NAME: &str = "mobile";

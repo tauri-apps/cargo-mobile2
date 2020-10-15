@@ -12,7 +12,7 @@ use std::{
     path::PathBuf,
 };
 
-static DEFAULT_PROJECT_DIR: &'static str = "gen/apple";
+static DEFAULT_PROJECT_DIR: &str = "gen/apple";
 
 #[derive(Debug, Default, Deserialize)]
 pub struct Features {

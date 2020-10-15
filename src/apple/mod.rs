@@ -12,7 +12,7 @@ use crate::util::{
     cli::{Report, TextWrapper},
 };
 
-pub static NAME: &'static str = "apple";
+pub static NAME: &str = "apple";
 
 // These checks will have to be refined when this is resolved upstream...
 pub fn rust_version_check(wrapper: &TextWrapper) -> Result<(), util::RustVersionError> {

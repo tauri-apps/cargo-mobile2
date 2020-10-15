@@ -10,7 +10,7 @@ use std::{
     path::PathBuf,
 };
 
-static ENABLED_FEATURES: &'static [&'static str] = &[
+static ENABLED_FEATURES: &[&str] = &[
     #[cfg(feature = "brainium")]
     "brainium",
 ];

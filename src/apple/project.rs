@@ -11,7 +11,7 @@ use crate::{
 };
 use std::path::{Path, PathBuf};
 
-pub static TEMPLATE_PACK: &'static str = "xcode";
+pub static TEMPLATE_PACK: &str = "xcode";
 
 #[derive(Debug)]
 pub enum Error {

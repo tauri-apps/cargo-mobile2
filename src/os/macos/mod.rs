@@ -15,7 +15,7 @@ use std::{
 };
 
 // This can hopefully be relied upon... https://stackoverflow.com/q/8003919
-static RUST_UTI: &'static str = "dyn.ah62d4rv4ge81e62";
+static RUST_UTI: &str = "dyn.ah62d4rv4ge81e62";
 
 #[derive(Debug)]
 pub enum DetectEditorError {

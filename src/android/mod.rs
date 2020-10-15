@@ -6,4 +6,4 @@ mod ndk;
 pub(crate) mod project;
 pub mod target;
 
-pub static NAME: &'static str = "android";
+pub static NAME: &str = "android";

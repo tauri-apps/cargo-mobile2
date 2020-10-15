@@ -11,7 +11,7 @@ use crate::{
 };
 use std::{fs, path::PathBuf};
 
-pub static TEMPLATE_PACK: &'static str = "android-studio";
+pub static TEMPLATE_PACK: &str = "android-studio";
 
 #[derive(Debug)]
 pub enum Error {

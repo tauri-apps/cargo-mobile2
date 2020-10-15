@@ -13,7 +13,7 @@ use crate::{
 };
 use thiserror::Error;
 
-static PACKAGES: &'static [&'static str] = &["xcodegen", "ios-deploy"];
+static PACKAGES: &[&str] = &["xcodegen", "ios-deploy"];
 
 #[derive(Debug, Error)]
 pub enum Error {

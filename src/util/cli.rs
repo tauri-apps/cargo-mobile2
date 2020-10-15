@@ -6,13 +6,13 @@ use structopt::{
     StructOpt,
 };
 
-pub static GLOBAL_SETTINGS: &'static [AppSettings] = &[
+pub static GLOBAL_SETTINGS: &[AppSettings] = &[
     AppSettings::ColoredHelp,
     AppSettings::DeriveDisplayOrder,
     AppSettings::VersionlessSubcommands,
 ];
 
-pub static SETTINGS: &'static [AppSettings] = &[AppSettings::SubcommandRequiredElseHelp];
+pub static SETTINGS: &[AppSettings] = &[AppSettings::SubcommandRequiredElseHelp];
 
 pub fn bin_name(name: &str) -> String {
     format!("cargo {}", name)
@@ -136,7 +136,7 @@ impl Report {
     }
 
     fn format(&self, wrapper: &TextWrapper) -> String {
-        static INDENT: &'static str = "    ";
+        static INDENT: &str = "    ";
         let head = if colored::control::SHOULD_COLORIZE.should_colorize() {
             wrapper.fill(&format!(
                 "{} {}",

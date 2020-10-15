@@ -10,7 +10,7 @@ use std::{
 
 const DEFAULT_MIN_SDK_VERSION: u32 = 24;
 const DEFAULT_VULKAN_VALIDATION: bool = true;
-static DEFAULT_PROJECT_DIR: &'static str = "gen/android";
+static DEFAULT_PROJECT_DIR: &str = "gen/android";
 
 const fn default_true() -> bool {
     true
