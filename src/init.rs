@@ -182,8 +182,10 @@ pub fn exec(
     // Generate Android Studio project
     if metadata.android().supported() {
         match android::env::Env::new() {
-            Ok(env) => android::project::gen(config.android(), &env, &bike, &filter, &mut dot_cargo)
-                .map_err(Error::AndroidInitFailed)?,
+            Ok(env) => {
+                android::project::gen(config.android(), &env, &bike, &filter, &mut dot_cargo)
+                    .map_err(Error::AndroidInitFailed)?
+            }
             Err(err) => {
                 if err.sdk_or_ndk_issue() {
                     Report::action_request(
@@ -197,7 +199,9 @@ pub fn exec(
             }
         }
     } else {
-        println!("Skipping Android init, since it's marked as unsupported in your Cargo.toml metadata");
+        println!(
+            "Skipping Android init, since it's marked as unsupported in your Cargo.toml metadata"
+        );
     }
 
     dot_cargo
