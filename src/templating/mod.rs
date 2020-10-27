@@ -16,11 +16,11 @@ use std::{
 static BRAINIUM: &[&str] = &["brainstorm", "brainstorm-demo"];
 
 fn platform_pack_dir() -> Result<PathBuf, util::NoHomeDir> {
-    util::install_dir().map(|dir| dir.join("platform-templates"))
+    util::install_dir().map(|dir| dir.join("templates/platforms"))
 }
 
 fn app_pack_dir() -> Result<PathBuf, util::NoHomeDir> {
-    util::install_dir().map(|dir| dir.join("app-templates"))
+    util::install_dir().map(|dir| dir.join("templates/apps"))
 }
 
 #[derive(Debug)]

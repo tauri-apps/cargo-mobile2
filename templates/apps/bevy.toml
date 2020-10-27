@@ -1,0 +1,2 @@
+path = "~/.cargo-mobile/templates/apps/bevy"
+base = "bevy-demo"
