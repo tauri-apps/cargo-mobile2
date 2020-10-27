@@ -9,7 +9,7 @@ fn main() {
         std::fs::remove_dir_all(old).expect("failed to delete obsolete templates directory");
     }
     let bike = bicycle::Bicycle::default();
-    for prefix in &["internal", "user"] {
+    for prefix in &["platform", "app"] {
         let dir_name = format!("{}-templates", prefix);
         let src = manifest_dir.join(&dir_name);
         println!("cargo:rerun-if-changed={}", src.display());

@@ -15,12 +15,12 @@ use std::{
 // always be at the top of the list.
 static BRAINIUM: &[&str] = &["brainstorm", "brainstorm-demo"];
 
-fn internal_pack_dir() -> Result<PathBuf, util::NoHomeDir> {
-    util::install_dir().map(|dir| dir.join("internal-templates"))
+fn platform_pack_dir() -> Result<PathBuf, util::NoHomeDir> {
+    util::install_dir().map(|dir| dir.join("platform-templates"))
 }
 
-fn user_pack_dir() -> Result<PathBuf, util::NoHomeDir> {
-    util::install_dir().map(|dir| dir.join("user-templates"))
+fn app_pack_dir() -> Result<PathBuf, util::NoHomeDir> {
+    util::install_dir().map(|dir| dir.join("app-templates"))
 }
 
 #[derive(Debug)]
@@ -94,14 +94,14 @@ impl Pack {
         }
     }
 
-    pub fn lookup_internal(name: &str) -> Result<Self, LookupError> {
-        internal_pack_dir()
+    pub fn lookup_platform(name: &str) -> Result<Self, LookupError> {
+        platform_pack_dir()
             .map_err(LookupError::NoHomeDir)
             .and_then(|dir| Self::lookup(dir, name))
     }
 
-    pub fn lookup_user(name: &str) -> Result<Self, LookupError> {
-        user_pack_dir()
+    pub fn lookup_app(name: &str) -> Result<Self, LookupError> {
+        app_pack_dir()
             .map_err(LookupError::NoHomeDir)
             .and_then(|dir| Self::lookup(dir, name))
     }
@@ -162,8 +162,8 @@ impl Display for ListError {
     }
 }
 
-pub fn list_user_packs() -> Result<Vec<String>, ListError> {
-    let dir = user_pack_dir().map_err(ListError::NoHomeDir)?;
+pub fn list_app_packs() -> Result<Vec<String>, ListError> {
+    let dir = app_pack_dir().map_err(ListError::NoHomeDir)?;
     let mut packs = Vec::new();
     for entry in fs::read_dir(&dir).map_err(|cause| ListError::DirReadFailed {
         dir: dir.clone(),

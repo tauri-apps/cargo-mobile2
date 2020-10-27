@@ -146,8 +146,7 @@ impl App {
         #[cfg(not(feature = "brainium"))]
         let template_pack = &raw.template_pack;
 
-        let template_pack =
-            Pack::lookup_user(template_pack).map_err(Error::TemplatePackNotFound)?;
+        let template_pack = Pack::lookup_app(template_pack).map_err(Error::TemplatePackNotFound)?;
 
         Ok(Self {
             root_dir,

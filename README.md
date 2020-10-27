@@ -58,7 +58,7 @@ After some straightforward prompts, you'll be asked to select a template pack. T
 | wgpu      | Minimal wgpu project derived from [hello-triangle](https://github.com/gfx-rs/wgpu-rs/tree/master/examples/hello-triangle) example |
 | winit     | Minimal winit project derived from [window](https://github.com/rust-windowing/winit/tree/master/examples/window) exmaple          |
 
-**Template pack contribution is encouraged**; we'd love to have very nice template packs for Bevy, Amethyst, and whatever else people find helpful! We'll write up a guide for template pack creation soon, but in the mean time, the existing ones are a great reference point. Any template pack placed into `~./cargo-mobile/user-templates/` will appear as an option in `cargo mobile init`.
+**Template pack contribution is encouraged**; we'd love to have very nice template packs for Bevy, Amethyst, and whatever else people find helpful! We'll write up a guide for template pack creation soon, but in the mean time, the existing ones are a great reference point. Any template pack placed into `~./cargo-mobile/app-templates/` will appear as an option in `cargo mobile init`.
 
 Once you've generated your project, you can run `cargo run` as usual to run your app on desktop. However, now you can also do `cargo apple run` and `cargo android run` to run on connected iOS and Android devices respectively!
 

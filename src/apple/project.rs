@@ -70,7 +70,7 @@ pub fn gen(
         .map(|path| rel_prefix.join(path))
         .collect::<Vec<PathBuf>>();
 
-    let src = Pack::lookup_internal(TEMPLATE_PACK)
+    let src = Pack::lookup_platform(TEMPLATE_PACK)
         .map_err(Error::MissingPack)?
         .expect_local();
 

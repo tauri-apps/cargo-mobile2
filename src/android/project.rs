@@ -58,7 +58,7 @@ pub fn gen(
     println!("Installing Android toolchains...");
     Target::install_all().map_err(Error::RustupFailed)?;
     println!("Generating Android Studio project...");
-    let src = Pack::lookup_internal(TEMPLATE_PACK)
+    let src = Pack::lookup_platform(TEMPLATE_PACK)
         .map_err(Error::MissingPack)?
         .expect_local();
     let dest = config.project_dir();
