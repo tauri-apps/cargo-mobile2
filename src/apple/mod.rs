@@ -1,10 +1,11 @@
-pub mod config;
+pub mod cli;
+pub(crate) mod config;
 mod deps;
-pub mod device;
-pub mod ios_deploy;
+mod device;
+mod ios_deploy;
 pub(crate) mod project;
 mod system_profile;
-pub mod target;
+mod target;
 mod teams;
 
 use crate::util::{

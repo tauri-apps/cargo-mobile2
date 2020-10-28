@@ -46,6 +46,10 @@ pub enum Command {
         #[structopt(long = "init", help = "Regenerate project if update succeeds")]
         init: bool,
     },
+    #[cfg_attr(target_os = "macos", structopt(name = "apple", about = "iOS commands"))]
+    Apple(cargo_mobile::apple::cli::Command),
+    #[structopt(name = "android", about = "Android commands")]
+    Android(cargo_mobile::android::cli::Command),
 }
 
 #[derive(Debug)]
@@ -53,6 +57,9 @@ pub enum Error {
     InitFailed(init::Error),
     OpenFailed(util::OpenInEditorError),
     UpdateFailed(update::Error),
+    #[cfg(target_os = "macos")]
+    AppleFailed(cargo_mobile::apple::cli::Error),
+    AndroidFailed(cargo_mobile::android::cli::Error),
 }
 
 impl Reportable for Error {
@@ -63,6 +70,9 @@ impl Reportable for Error {
                 Report::error("Failed to open project in default code editor", err)
             }
             Self::UpdateFailed(err) => Report::error("Failed to update `cargo-mobile`", err),
+            #[cfg(target_os = "macos")]
+            Self::AppleFailed(err) => err.report(),
+            Self::AndroidFailed(err) => err.report(),
         }
     }
 }
@@ -75,12 +85,10 @@ impl Exec for Input {
     }
 
     fn exec(self, wrapper: &TextWrapper) -> Result<(), Self::Report> {
-        let Self {
-            flags: GlobalFlags {
-                non_interactive, ..
-            },
-            command,
-        } = self;
+        let Self { flags, command } = self;
+        let GlobalFlags {
+            non_interactive, ..
+        } = flags;
         match command {
             Command::Init {
                 skip_dev_tools: cli::SkipDevTools { skip_dev_tools },
@@ -115,6 +123,13 @@ impl Exec for Input {
                 }
                 Ok(())
             }
+            #[cfg(target_os = "macos")]
+            Command::Apple(command) => cargo_mobile::apple::cli::Input::new(flags, command)
+                .exec(wrapper)
+                .map_err(Error::AppleFailed),
+            Command::Android(command) => cargo_mobile::android::cli::Input::new(flags, command)
+                .exec(wrapper)
+                .map_err(Error::AndroidFailed),
         }
     }
 }

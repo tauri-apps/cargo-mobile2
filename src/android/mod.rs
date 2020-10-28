@@ -1,9 +1,10 @@
-pub mod adb;
-pub mod config;
-pub mod device;
-pub mod env;
+mod adb;
+pub mod cli;
+pub(crate) mod config;
+mod device;
+pub(crate) mod env;
 mod ndk;
 pub(crate) mod project;
-pub mod target;
+mod target;
 
 pub static NAME: &str = "android";
