@@ -19,15 +19,14 @@ pub fn bin_name(name: &str) -> String {
     format!("cargo {}", name)
 }
 
-pub static VERSION_INFO: Lazy<String> = Lazy::new(|| {
-    static VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
-    match util::installed_commit_msg() {
-        Ok(Some(msg)) => format!("{}\nContains commits up to {:?}", VERSION, msg),
-        Ok(None) => VERSION.to_owned(),
-        Err(err) => {
-            log::error!("failed to get current commit msg: {}", err);
-            VERSION.to_owned()
-        }
+pub static VERSION_SHORT: &str = concat!("v", env!("CARGO_PKG_VERSION"));
+
+pub static VERSION_LONG: Lazy<String> = Lazy::new(|| match util::installed_commit_msg() {
+    Ok(Some(msg)) => format!("{}\nContains commits up to {:?}", VERSION_SHORT, msg),
+    Ok(None) => VERSION_SHORT.to_owned(),
+    Err(err) => {
+        log::error!("failed to get current commit msg: {}", err);
+        VERSION_SHORT.to_owned()
     }
 });
 

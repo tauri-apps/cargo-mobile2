@@ -16,7 +16,9 @@ use crate::{
     opts, os,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
     util::{
-        cli::{self, Exec, GlobalFlags, Report, Reportable, TextWrapper, VERSION_INFO},
+        cli::{
+            self, Exec, GlobalFlags, Report, Reportable, TextWrapper, VERSION_LONG, VERSION_SHORT,
+        },
         prompt,
     },
 };
@@ -26,7 +28,8 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 #[structopt(
     bin_name = cli::bin_name(NAME),
-    version = VERSION_INFO.as_str(),
+    version = VERSION_SHORT,
+    long_version = VERSION_LONG.as_str(),
     global_settings = cli::GLOBAL_SETTINGS,
     settings = cli::SETTINGS,
 )]
