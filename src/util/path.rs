@@ -4,15 +4,11 @@ use std::{
     io,
     path::{Path, PathBuf},
 };
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
+#[error("Failed to get user's home directory!")]
 pub struct NoHomeDir;
-
-impl Display for NoHomeDir {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Failed to get user's home directory!")
-    }
-}
 
 pub fn home_dir() -> Result<PathBuf, NoHomeDir> {
     home::home_dir().ok_or(NoHomeDir)

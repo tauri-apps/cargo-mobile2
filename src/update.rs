@@ -90,7 +90,7 @@ pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
         "`cargo-mobile` is already up-to-date"
     };
     let details = match repo.latest_message() {
-        Ok(date) => format!("Contains commits up to {:?}", date),
+        Ok(msg) => format!("Contains commits up to {:?}", msg),
         Err(err) => format!("But we failed to get the latest commit message: {}", err),
     };
     Report::victory(msg, details).print(wrapper);

@@ -1,10 +1,15 @@
-use crate::opts;
+use crate::{opts, util};
 use colored::Colorize as _;
-use std::fmt::{Debug, Display};
+use once_cell_regex::exports::once_cell::sync::Lazy;
+use std::{
+    fmt::{Debug, Display},
+    path::PathBuf,
+};
 use structopt::{
     clap::{self, AppSettings},
     StructOpt,
 };
+use thiserror::Error;
 
 pub static GLOBAL_SETTINGS: &[AppSettings] = &[
     AppSettings::ColoredHelp,
@@ -16,6 +21,40 @@ pub static SETTINGS: &[AppSettings] = &[AppSettings::SubcommandRequiredElseHelp]
 
 pub fn bin_name(name: &str) -> String {
     format!("cargo {}", name)
+}
+
+pub static VERSION_INFO: Lazy<String> = Lazy::new(|| {
+    static VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
+    match installed_commit() {
+        Ok(Some(msg)) => format!("{}\nContains commits up to {:?}", VERSION, msg),
+        Ok(None) => VERSION.to_owned(),
+        Err(err) => {
+            log::error!("failed to get current commit msg: {}", err);
+            VERSION.to_owned()
+        }
+    }
+});
+
+#[derive(Debug, Error)]
+pub enum InstalledCommitError {
+    #[error(transparent)]
+    NoHomeDir(#[from] util::NoHomeDir),
+    #[error("Failed to read version info from {path:?}: {source}")]
+    ReadFailed {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+}
+
+pub fn installed_commit() -> Result<Option<String>, InstalledCommitError> {
+    let path = util::install_dir()?.join("commit");
+    if path.is_file() {
+        std::fs::read_to_string(&path)
+            .map(Some)
+            .map_err(|source| InstalledCommitError::ReadFailed { path, source })
+    } else {
+        Ok(None)
+    }
 }
 
 #[derive(Clone, Copy, Debug, StructOpt)]
@@ -192,10 +231,10 @@ fn init_logging(noise_level: opts::NoiseLevel) {
     let default_level = match noise_level {
         opts::NoiseLevel::Polite => "warn",
         opts::NoiseLevel::LoudAndProud => {
-            "cargo_mobile=info,cargo_android=info,cargo_apple=info,bossy=info"
+            "cargo_mobile=info,cargo_android=info,cargo_apple=info,bossy=info,hit=info"
         }
         opts::NoiseLevel::FranklyQuitePedantic => {
-            "info,cargo_mobile=debug,cargo_android=debug,cargo_apple=debug,bossy=debug"
+            "info,cargo_mobile=debug,cargo_android=debug,cargo_apple=debug,bossy=debug,hit=debug"
         }
     };
     let env = Env::default().default_filter_or(default_level);

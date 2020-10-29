@@ -16,7 +16,7 @@ use crate::{
     opts, os,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
     util::{
-        cli::{self, Exec, GlobalFlags, Report, Reportable, TextWrapper},
+        cli::{self, Exec, GlobalFlags, Report, Reportable, TextWrapper, VERSION_INFO},
         prompt,
     },
 };
@@ -24,7 +24,12 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
-#[structopt(bin_name = cli::bin_name(NAME), global_settings = cli::GLOBAL_SETTINGS, settings = cli::SETTINGS)]
+#[structopt(
+    bin_name = cli::bin_name(NAME),
+    version = VERSION_INFO.as_str(),
+    global_settings = cli::GLOBAL_SETTINGS,
+    settings = cli::SETTINGS,
+)]
 pub struct Input {
     #[structopt(flatten)]
     flags: GlobalFlags,

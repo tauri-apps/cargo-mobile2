@@ -1,9 +1,31 @@
+use hit::repo::Repo;
 use std::path::{Path, PathBuf};
 
 fn main() {
     let pkg_name = std::env::var("CARGO_PKG_NAME").unwrap();
     let manifest_dir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
-    let home_dir = home::home_dir().expect("failed to get user's home dir");
+    let install_dir = home::home_dir()
+        .expect("failed to get user's home dir")
+        .join(format!(".{}", pkg_name));
+    std::fs::create_dir_all(&install_dir).expect("failed to create install dir");
+
+    // Copy version info
+    match Repo::from_path(&manifest_dir).latest_message() {
+        Ok(msg) => {
+            if let Err(err) = std::fs::write(install_dir.join("commit"), msg) {
+                println!(
+                    "cargo:warning=failed to write current commit message: {}",
+                    err
+                )
+            }
+        }
+        Err(err) => println!(
+            "cargo:warning=failed to get current commit message: {}",
+            err
+        ),
+    }
+
+    // Copy templates
     let bike = bicycle::Bicycle::default();
     for rel in ["platforms", "apps"]
         .iter()
@@ -11,7 +33,7 @@ fn main() {
     {
         let src = manifest_dir.join(&rel);
         println!("cargo:rerun-if-changed={}", src.display());
-        let dest = home_dir.join(format!(".{}", pkg_name)).join(rel);
+        let dest = install_dir.join(rel);
         let actions = bicycle::traverse(&src, &dest, bicycle::no_transform, None)
             .expect("failed to traverse src templates dir");
         if dest.is_dir() {
