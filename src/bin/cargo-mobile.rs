@@ -51,9 +51,18 @@ pub enum Command {
         #[structopt(long = "init", help = "Regenerate project if update succeeds")]
         init: bool,
     },
-    #[cfg_attr(target_os = "macos", structopt(name = "apple", about = "iOS commands"))]
+    #[cfg_attr(
+        target_os = "macos",
+        structopt(
+            name = "apple",
+            about = "iOS commands (tip: type less by running `cargo apple` instead!)"
+        )
+    )]
     Apple(cargo_mobile::apple::cli::Command),
-    #[structopt(name = "android", about = "Android commands")]
+    #[structopt(
+        name = "android",
+        about = "Android commands (tip: type less by running `cargo android` instead!)"
+    )]
     Android(cargo_mobile::android::cli::Command),
 }
 
