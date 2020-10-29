@@ -9,7 +9,7 @@ pub use self::{cargo::*, git::*, path::*};
 
 use self::cli::{Report, Reportable};
 use crate::os;
-use once_cell_regex::regex;
+use once_cell_regex::{exports::regex::Captures, regex};
 use std::{
     fmt::{self, Display},
     io::{self, Write},
@@ -109,6 +109,21 @@ pub enum RustVersionError {
         version: String,
         source: std::num::ParseIntError,
     },
+    #[error("Failed to parse rustc release year from {date:?}: {source}")]
+    YearInvalid {
+        date: String,
+        source: std::num::ParseIntError,
+    },
+    #[error("Failed to parse rustc release month from {date:?}: {source}")]
+    MonthInvalid {
+        date: String,
+        source: std::num::ParseIntError,
+    },
+    #[error("Failed to parse rustc release day from {date:?}: {source}")]
+    DayInvalid {
+        date: String,
+        source: std::num::ParseIntError,
+    },
 }
 
 impl Reportable for RustVersionError {
@@ -121,6 +136,8 @@ impl Reportable for RustVersionError {
 pub struct RustVersion {
     pub triple: (u32, u32, u32),
     pub flavor: Option<String>,
+    pub hash: String,
+    pub date: (u32, u32, u32),
 }
 
 impl Display for RustVersion {
@@ -129,43 +146,52 @@ impl Display for RustVersion {
         if let Some(flavor) = &self.flavor {
             write!(f, "-{}", flavor)?;
         }
-        Ok(())
+        write!(
+            f,
+            " ({} {}-{}-{})",
+            self.hash, self.date.0, self.date.1, self.date.2
+        )
     }
 }
 
 impl RustVersion {
     pub fn check() -> Result<Self, RustVersionError> {
+        macro_rules! parse {
+            ($key:expr, $var:ident, $field:ident) => {
+                |caps: &Captures<'_>, context: &str| {
+                    caps[$key]
+                        .parse::<u32>()
+                        .map_err(|source| RustVersionError::$var {
+                            $field: context.to_owned(),
+                            source,
+                        })
+                }
+            };
+        }
+
         let output = bossy::Command::impure_parse("rustc --version").run_and_wait_for_output()?;
         let output = output.stdout_str()?;
         let re = regex!(
-            r"rustc (?P<version>(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(-(?P<flavor>\w+))?)"
+            r"rustc (?P<version>(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(-(?P<flavor>\w+))?) \((?P<hash>\w{9}) (?P<date>(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2}))\)"
         );
         let caps = re
             .captures(output)
             .ok_or_else(|| RustVersionError::ParseFailed(output.to_owned()))?;
         let version_str = &caps["version"];
+        let date_str = &caps["date"];
         let this = Self {
             triple: (
-                caps["major"]
-                    .parse::<u32>()
-                    .map_err(|source| RustVersionError::MajorInvalid {
-                        version: version_str.to_owned(),
-                        source,
-                    })?,
-                caps["minor"]
-                    .parse::<u32>()
-                    .map_err(|source| RustVersionError::MinorInvalid {
-                        version: version_str.to_owned(),
-                        source,
-                    })?,
-                caps["patch"]
-                    .parse::<u32>()
-                    .map_err(|source| RustVersionError::PatchInvalid {
-                        version: version_str.to_owned(),
-                        source,
-                    })?,
+                parse!("major", MajorInvalid, version)(&caps, version_str)?,
+                parse!("minor", MinorInvalid, version)(&caps, version_str)?,
+                parse!("patch", PatchInvalid, version)(&caps, version_str)?,
             ),
             flavor: caps.name("flavor").map(|flavor| flavor.as_str().to_owned()),
+            hash: caps["hash"].to_owned(),
+            date: (
+                parse!("year", YearInvalid, date)(&caps, date_str)?,
+                parse!("month", MonthInvalid, date)(&caps, date_str)?,
+                parse!("day", DayInvalid, date)(&caps, date_str)?,
+            ),
         };
         log::info!("detected rustc version {}", this);
         Ok(this)
