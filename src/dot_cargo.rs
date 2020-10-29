@@ -11,6 +11,11 @@ pub enum LoadError {
         path: PathBuf,
         cause: io::Error,
     },
+    MigrateFailed {
+        from: PathBuf,
+        to: PathBuf,
+        cause: io::Error,
+    },
     ReadFailed {
         path: PathBuf,
         cause: io::Error,
@@ -26,6 +31,13 @@ impl Reportable for LoadError {
         match self {
             Self::DirCreationFailed { path, cause } => Report::error(
                 format!("Failed to create \".cargo\" directory at {:?}", path),
+                cause,
+            ),
+            Self::MigrateFailed { from, to, cause } => Report::error(
+                format!(
+                    "Failed to rename cargo config from old style {:?} to new style {:?}",
+                    from, to
+                ),
                 cause,
             ),
             Self::ReadFailed { path, cause } => Report::error(
@@ -98,13 +110,25 @@ impl DotCargo {
     fn create_dir_and_get_path(app: &App) -> Result<PathBuf, (PathBuf, io::Error)> {
         let dir = app.prefix_path(".cargo");
         fs::create_dir_all(&dir)
-            .map(|()| dir.join("config"))
+            .map(|()| dir.join("config.toml"))
             .map_err(|cause| (dir, cause))
     }
 
     pub fn load(app: &App) -> Result<Self, LoadError> {
         let path = Self::create_dir_and_get_path(app)
             .map_err(|(path, cause)| LoadError::DirCreationFailed { path, cause })?;
+        let old_style = path
+            .parent()
+            .expect("developer error: cargo config path had no parent")
+            .join("config");
+        if old_style.is_file() {
+            // Migrate from old-style cargo config
+            std::fs::rename(&old_style, &path).map_err(|cause| LoadError::MigrateFailed {
+                from: old_style,
+                to: path.clone(),
+                cause,
+            })?;
+        }
         if path.is_file() {
             let bytes = fs::read(&path).map_err(|cause| LoadError::ReadFailed {
                 path: path.clone(),
