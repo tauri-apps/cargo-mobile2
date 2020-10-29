@@ -1,15 +1,11 @@
 use crate::{opts, util};
 use colored::Colorize as _;
 use once_cell_regex::exports::once_cell::sync::Lazy;
-use std::{
-    fmt::{Debug, Display},
-    path::PathBuf,
-};
+use std::fmt::{Debug, Display};
 use structopt::{
     clap::{self, AppSettings},
     StructOpt,
 };
-use thiserror::Error;
 
 pub static GLOBAL_SETTINGS: &[AppSettings] = &[
     AppSettings::ColoredHelp,
@@ -25,7 +21,7 @@ pub fn bin_name(name: &str) -> String {
 
 pub static VERSION_INFO: Lazy<String> = Lazy::new(|| {
     static VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
-    match installed_commit() {
+    match util::installed_commit_msg() {
         Ok(Some(msg)) => format!("{}\nContains commits up to {:?}", VERSION, msg),
         Ok(None) => VERSION.to_owned(),
         Err(err) => {
@@ -34,28 +30,6 @@ pub static VERSION_INFO: Lazy<String> = Lazy::new(|| {
         }
     }
 });
-
-#[derive(Debug, Error)]
-pub enum InstalledCommitError {
-    #[error(transparent)]
-    NoHomeDir(#[from] util::NoHomeDir),
-    #[error("Failed to read version info from {path:?}: {source}")]
-    ReadFailed {
-        path: PathBuf,
-        source: std::io::Error,
-    },
-}
-
-pub fn installed_commit() -> Result<Option<String>, InstalledCommitError> {
-    let path = util::install_dir()?.join("commit");
-    if path.is_file() {
-        std::fs::read_to_string(&path)
-            .map(Some)
-            .map_err(|source| InstalledCommitError::ReadFailed { path, source })
-    } else {
-        Ok(None)
-    }
-}
 
 #[derive(Clone, Copy, Debug, StructOpt)]
 pub struct GlobalFlags {

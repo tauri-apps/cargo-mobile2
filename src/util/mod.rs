@@ -13,7 +13,7 @@ use once_cell_regex::regex;
 use std::{
     fmt::{self, Display},
     io::{self, Write},
-    path::Path,
+    path::{Path, PathBuf},
 };
 use thiserror::Error;
 
@@ -260,4 +260,23 @@ pub fn open_in_editor(path: impl AsRef<Path>) -> Result<(), OpenInEditorError> {
         .map_err(OpenInEditorError::DetectFailed)?
         .open_file(path)
         .map_err(OpenInEditorError::OpenFailed)
+}
+
+#[derive(Debug, Error)]
+pub enum InstalledCommitError {
+    #[error(transparent)]
+    NoHomeDir(#[from] NoHomeDir),
+    #[error("Failed to read version info from {path:?}: {source}")]
+    ReadFailed { path: PathBuf, source: io::Error },
+}
+
+pub fn installed_commit_msg() -> Result<Option<String>, InstalledCommitError> {
+    let path = install_dir()?.join("commit");
+    if path.is_file() {
+        std::fs::read_to_string(&path)
+            .map(Some)
+            .map_err(|source| InstalledCommitError::ReadFailed { path, source })
+    } else {
+        Ok(None)
+    }
 }
