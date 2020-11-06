@@ -4,7 +4,7 @@ use mobile_entry_point::mobile_entry_point;
 #[mobile_entry_point]
 fn main() {
     App::build()
-        .add_default_plugins()
+        .add_plugins(DefaultPlugins)
         .add_startup_system(setup.system())
         .run();
 }
@@ -14,7 +14,7 @@ fn setup(
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let texture_handle = asset_server.load("assets/branding/icon.png").unwrap();
+    let texture_handle = asset_server.load("icon.png");
     commands
         .spawn(Camera2dComponents::default())
         .spawn(SpriteComponents {

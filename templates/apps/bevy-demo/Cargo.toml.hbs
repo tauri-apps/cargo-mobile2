@@ -12,8 +12,8 @@ name = "{{app.name}}-desktop"
 path = "gen/bin/desktop.rs"
 
 [dependencies]
-mobile-entry-point = { git = "https://github.com/BrainiumLLC/mobile-entry-point", rev = "053a5b4266be5439da711dd8e7cfb91c8e9e0f22" }
-bevy = "0.2.1"
+mobile-entry-point = "0.1.1"
+bevy = "0.3.0"
 
 [target.'cfg(target_os = "android")'.dependencies]
-ndk-glue = "0.1.0"
+ndk-glue = "0.2.1"
