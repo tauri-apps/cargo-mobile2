@@ -216,7 +216,7 @@ pub fn exec(
     }
     Report::victory(
         "Project generated successfully!",
-        "Make cool games! 🌻 🐕 🎉",
+        "Make cool apps! 🌻 🐕 🎉",
     )
     .print(wrapper);
     if open_in_editor.yes() {
