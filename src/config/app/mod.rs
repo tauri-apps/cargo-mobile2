@@ -14,10 +14,11 @@ use std::path::{Path, PathBuf};
 pub static KEY: &str = "app";
 
 pub static DEFAULT_ASSET_DIR: &str = "assets";
-#[cfg(feature = "brainium")]
-pub static DEFAULT_TEMPLATE_PACK: &str = "brainstorm";
-#[cfg(not(feature = "brainium"))]
-pub static DEFAULT_TEMPLATE_PACK: &str = "bevy";
+pub static DEFAULT_TEMPLATE_PACK: &str = if cfg!(feature = "brainium") {
+    "brainstorm"
+} else {
+    "winit"
+};
 
 #[derive(Debug)]
 pub enum Error {
