@@ -207,8 +207,21 @@ impl Config {
         self.project_dir().join("ExportOptions.plist")
     }
 
-    pub fn ipa_path(&self) -> PathBuf {
-        self.export_dir().join(format!("{}.ipa", self.scheme()))
+    pub fn ipa_path(&self) -> Result<PathBuf, (PathBuf, PathBuf)> {
+        let path = |tail: &str| self.export_dir().join(format!("{}.ipa", tail));
+        let old = path(&self.scheme());
+        // It seems like the format changed recently?
+        let new = path(self.app.name());
+        std::iter::once(&old)
+            .chain(std::iter::once(&new))
+            .filter(|path| {
+                let found = path.is_file();
+                log::info!("IPA {}found at {:?}", if found { "" } else { "not " }, path);
+                found
+            })
+            .next()
+            .cloned()
+            .ok_or_else(|| (old, new))
     }
 
     pub fn app_path(&self) -> PathBuf {

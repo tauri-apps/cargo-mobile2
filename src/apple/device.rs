@@ -8,13 +8,17 @@ use crate::{
     opts,
     util::cli::{Report, Reportable},
 };
-use std::fmt::{self, Display};
+use std::{
+    fmt::{self, Display},
+    path::PathBuf,
+};
 
 #[derive(Debug)]
 pub enum RunError {
     BuildFailed(BuildError),
     ArchiveFailed(ArchiveError),
     ExportFailed(ExportError),
+    IpaMissing { old: PathBuf, new: PathBuf },
     UnzipFailed(bossy::Error),
     DeployFailed(ios_deploy::RunAndDebugError),
 }
@@ -25,6 +29,10 @@ impl Reportable for RunError {
             Self::BuildFailed(err) => err.report(),
             Self::ArchiveFailed(err) => err.report(),
             Self::ExportFailed(err) => err.report(),
+            Self::IpaMissing { old, new } => Report::error(
+                "IPA appears to be missing",
+                format!("Not found at either {:?} or {:?}", old, new),
+            ),
             Self::UnzipFailed(err) => Report::error("Failed to unzip archive", err),
             Self::DeployFailed(err) => err.report(),
         }
@@ -89,7 +97,11 @@ impl<'a> Device<'a> {
                 Some("-q")
             })
             .with_arg("-o") // -o = always overwrite
-            .with_arg(&config.ipa_path())
+            .with_arg(
+                &config
+                    .ipa_path()
+                    .map_err(|(old, new)| RunError::IpaMissing { old, new })?,
+            )
             .with_arg("-d")
             .with_arg(&config.export_dir())
             .run_and_wait()
