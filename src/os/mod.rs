@@ -7,4 +7,4 @@ mod macos;
 pub use self::macos::*;
 
 #[cfg(not(target_os = "macos"))]
-compile_error!("Host platform not yet supported by cargo-mobile");
+compile_error!("Host platform not yet supported by cargo-mobile! We'd love if you made a PR to add support for this platform ❤️");
