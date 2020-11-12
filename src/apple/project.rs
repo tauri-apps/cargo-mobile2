@@ -1,4 +1,8 @@
-use super::{config::Config, deps, rust_version_check, target::Target};
+use super::{
+    config::{Config, Metadata},
+    deps, rust_version_check,
+    target::Target,
+};
 use crate::{
     opts,
     target::TargetTrait as _,
@@ -48,6 +52,7 @@ impl Reportable for Error {
 // TODO: figure out what I meant by that
 pub fn gen(
     config: &Config,
+    metadata: &Metadata,
     submodule_path: Option<&Path>,
     bike: &bicycle::Bicycle,
     wrapper: &TextWrapper,
@@ -78,7 +83,9 @@ pub fn gen(
         src,
         &dest,
         |map| {
-            map.insert("file-groups", source_dirs.clone());
+            map.insert("file-groups", &source_dirs);
+            map.insert("ios-frameworks", metadata.ios().frameworks());
+            map.insert("macos-frameworks", metadata.macos().frameworks());
         },
         filter.fun(),
     )

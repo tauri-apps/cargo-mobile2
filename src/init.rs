@@ -166,6 +166,7 @@ pub fn exec(
     if metadata.apple().supported() {
         apple::project::gen(
             config.apple(),
+            metadata.apple(),
             config.app().template_pack().submodule_path(),
             &bike,
             wrapper,

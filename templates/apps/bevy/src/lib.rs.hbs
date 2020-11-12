@@ -14,7 +14,7 @@ fn setup(
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let texture_handle = asset_server.load("icon.png");
+    let texture_handle = asset_server.load("branding/icon.png");
     commands
         .spawn(Camera2dComponents::default())
         .spawn(SpriteComponents {

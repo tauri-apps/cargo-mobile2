@@ -15,18 +15,24 @@ use std::{
 static DEFAULT_PROJECT_DIR: &str = "gen/apple";
 
 #[derive(Debug, Default, Deserialize)]
-pub struct Features {
+pub struct Platform {
     #[serde(default)]
     features: Option<Vec<String>>,
+    #[serde(default)]
+    frameworks: Option<Vec<String>>,
 }
 
-impl Features {
+impl Platform {
     pub fn no_default_features(&self) -> bool {
         self.features.is_some()
     }
 
     pub fn features(&self) -> Option<&[String]> {
         self.features.as_deref()
+    }
+
+    pub fn frameworks(&self) -> &[String] {
+        self.frameworks.as_deref().unwrap_or_else(|| &[])
     }
 }
 
@@ -39,9 +45,9 @@ pub struct Metadata {
     #[serde(default = "default_true")]
     supported: bool,
     #[serde(default)]
-    ios: Features,
+    ios: Platform,
     #[serde(default)]
-    macos: Features,
+    macos: Platform,
 }
 
 impl Default for Metadata {
@@ -59,11 +65,11 @@ impl Metadata {
         self.supported
     }
 
-    pub fn ios(&self) -> &Features {
+    pub fn ios(&self) -> &Platform {
         &self.ios
     }
 
-    pub fn macos(&self) -> &Features {
+    pub fn macos(&self) -> &Platform {
         &self.macos
     }
 }

@@ -72,6 +72,8 @@ targets:
       - sdk: QuartzCore.framework
       - sdk: Security.framework
       - sdk: UIKit.framework
+      {{~#each ios-frameworks}}
+      - sdk: {{this}}.framework{{/each}}
   {{app.name}}_macOS:
     type: application
     platform: macOS
@@ -95,6 +97,8 @@ targets:
       - framework: lib{{snake-case app.name}}.a
         embed: false
       - sdk: Metal.framework
+      {{~#each macos-frameworks}}
+      - sdk: {{this}}.framework{{/each}}
   lib_{{app.name}}_iOS:
     type: ""
     platform: iOS
