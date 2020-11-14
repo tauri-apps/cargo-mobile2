@@ -4,6 +4,10 @@ use mobile_entry_point::mobile_entry_point;
 #[mobile_entry_point]
 fn main() {
     App::build()
+        .add_resource(WindowDescriptor {
+            title: "{{app.stylized-name}}".to_string(),
+            ..Default::default()
+        })
         .add_plugins(DefaultPlugins)
         .add_startup_system(setup.system())
         .run();

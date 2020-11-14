@@ -9,6 +9,10 @@ use mobile_entry_point::mobile_entry_point;
 #[mobile_entry_point]
 fn main() {
     App::build()
+        .add_resource(WindowDescriptor {
+            title: "{{app.stylized-name}}".to_string(),
+            ..Default::default()
+        })
         .add_plugins(DefaultPlugins)
         .add_resource(Scoreboard { score: 0 })
         .add_resource(ClearColor(Color::rgb(0.9, 0.9, 0.9)))
