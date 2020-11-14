@@ -1,6 +1,6 @@
 # cargo-mobile
 
-*The answer to "how do I use Rust on iOS/Android?"*
+*The answer to "how do I use Rust on iOS and Android?"*
 
 **This project hasn't been announced yet. Please don't make any posts about it on reddit/etc!**
 
