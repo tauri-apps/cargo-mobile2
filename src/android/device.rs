@@ -2,6 +2,7 @@ use super::{
     adb,
     config::Config,
     env::Env,
+    jnilibs::{self, JniLibs},
     target::{BuildError, Target},
 };
 use crate::{
@@ -140,7 +141,7 @@ impl<'a> Device<'a> {
         profile: Profile,
     ) -> Result<(), ApkBuildError> {
         use heck::CamelCase as _;
-        Target::clean_jnilibs(config).map_err(ApkBuildError::LibSymlinkCleaningFailed)?;
+        JniLibs::remove_broken_links(config).map_err(ApkBuildError::LibSymlinkCleaningFailed)?;
         let flavor = self.target.arch.to_camel_case();
         let build_ty = profile.as_str().to_camel_case();
         gradlew(config, env)
@@ -241,7 +242,7 @@ impl<'a> Device<'a> {
                     // how I try to quote or escape them... so, instead of
                     // mandating that the entire path not contain spaces, we'll
                     // just use a relative path!
-                    .unprefix_path(self.target.get_jnilibs_subdir(config))
+                    .unprefix_path(jnilibs::path(config, *self.target))
                     .expect("developer error: jnilibs subdir not prefixed"),
             );
         if !util::pipe(logcat_command, stack_command).map_err(StacktraceError::PipeFailed)? {

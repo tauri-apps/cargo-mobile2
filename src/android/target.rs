@@ -1,6 +1,7 @@
 use super::{
     config::{Config, Metadata},
     env::Env,
+    jnilibs::{self, JniLibs},
     ndk,
 };
 use crate::{
@@ -9,16 +10,12 @@ use crate::{
     target::TargetTrait,
     util::{
         cli::{Report, Reportable},
-        ln, CargoCommand,
+        CargoCommand,
     },
 };
 use once_cell_regex::exports::once_cell::sync::OnceCell;
 use serde::Serialize;
-use std::{collections::BTreeMap, fmt, fs, io, path::PathBuf, str};
-
-fn so_name(config: &Config) -> String {
-    format!("lib{}.so", config.app().name_snake())
-}
+use std::{collections::BTreeMap, fmt, io, str};
 
 #[derive(Clone, Copy, Debug)]
 pub enum CargoMode {
@@ -65,23 +62,24 @@ impl Reportable for CompileLibError {
 }
 
 #[derive(Debug)]
-pub enum LibSymlinkError {
-    JniLibsSubDirCreationFailed(io::Error),
-    SourceMissing { src: PathBuf },
-    SymlinkFailed(ln::Error),
+pub enum SymlinkLibsError {
+    JniLibsCreationFailed(io::Error),
+    SymlinkFailed(jnilibs::SymlinkLibError),
+    RequiredLibsFailed(ndk::RequiredLibsError),
+    LibcxxSharedPathFailed(ndk::MissingToolError),
 }
 
-impl Reportable for LibSymlinkError {
+impl Reportable for SymlinkLibsError {
     fn report(&self) -> Report {
         match self {
-            Self::JniLibsSubDirCreationFailed(err) => {
-                Report::error("Failed to create \"jniLibs\" subdirectory", err)
+            Self::JniLibsCreationFailed(err) => {
+                Report::error("Failed to create \"jniLibs\" directory", err)
             }
-            Self::SourceMissing { src } => Report::error(
-                "Failed to symlink built lib",
-                format!("The symlink source is {:?}, but nothing exists there", src),
-            ),
-            Self::SymlinkFailed(err) => Report::error("Failed to symlink built lib", err),
+            Self::SymlinkFailed(err) => err.report(),
+            Self::RequiredLibsFailed(err) => err.report(),
+            Self::LibcxxSharedPathFailed(err) => {
+                Report::error("Failed to locate \"libc++_shared.so\"", err)
+            }
         }
     }
 }
@@ -89,14 +87,14 @@ impl Reportable for LibSymlinkError {
 #[derive(Debug)]
 pub enum BuildError {
     BuildFailed(CompileLibError),
-    LibSymlinkFailed(LibSymlinkError),
+    SymlinkLibsFailed(SymlinkLibsError),
 }
 
 impl Reportable for BuildError {
     fn report(&self) -> Report {
         match self {
             Self::BuildFailed(err) => err.report(),
-            Self::LibSymlinkFailed(err) => err.report(),
+            Self::SymlinkLibsFailed(err) => err.report(),
         }
     }
 }
@@ -262,53 +260,6 @@ impl<'a> Target<'a> {
         Ok(())
     }
 
-    pub(super) fn get_jnilibs_subdir(&self, config: &Config) -> PathBuf {
-        config
-            .project_dir()
-            .join(format!("app/src/main/jniLibs/{}", &self.abi))
-    }
-
-    fn make_jnilibs_subdir(&self, config: &Config) -> Result<(), io::Error> {
-        let path = self.get_jnilibs_subdir(config);
-        fs::create_dir_all(path)
-    }
-
-    pub(super) fn clean_jnilibs(config: &Config) -> io::Result<()> {
-        for target in Self::all().values() {
-            let link = target.get_jnilibs_subdir(config).join(so_name(config));
-            if let Ok(path) = fs::read_link(&link) {
-                if !path.exists() {
-                    log::info!(
-                        "deleting broken symlink {:?} (points to {:?}, which doesn't exist)",
-                        link,
-                        path
-                    );
-                    fs::remove_file(link)?;
-                }
-            }
-        }
-        Ok(())
-    }
-
-    fn symlink_lib(&self, config: &Config, profile: Profile) -> Result<(), LibSymlinkError> {
-        self.make_jnilibs_subdir(config)
-            .map_err(LibSymlinkError::JniLibsSubDirCreationFailed)?;
-        let so_name = so_name(config);
-        let src = config.app().prefix_path(format!(
-            "target/{}/{}/{}",
-            &self.triple,
-            profile.as_str(),
-            &so_name
-        ));
-        if src.exists() {
-            let dest = self.get_jnilibs_subdir(config).join(&so_name);
-            ln::force_symlink(src, dest, ln::TargetStyle::File)
-                .map_err(LibSymlinkError::SymlinkFailed)
-        } else {
-            Err(LibSymlinkError::SourceMissing { src })
-        }
-    }
-
     pub fn check(
         &self,
         config: &Config,
@@ -326,6 +277,42 @@ impl<'a> Target<'a> {
             Profile::Debug,
             CargoMode::Check,
         )
+    }
+
+    pub fn symlink_libs(
+        &self,
+        config: &Config,
+        ndk: &ndk::Env,
+        profile: Profile,
+    ) -> Result<(), SymlinkLibsError> {
+        let jnilibs =
+            JniLibs::create(config, *self).map_err(SymlinkLibsError::JniLibsCreationFailed)?;
+
+        let src = config.app().prefix_path(format!(
+            "target/{}/{}/{}",
+            &self.triple,
+            profile.as_str(),
+            config.so_name(),
+        ));
+        jnilibs
+            .symlink_lib(&src)
+            .map_err(SymlinkLibsError::SymlinkFailed)?;
+
+        let needs_cxx_shared = ndk
+            .required_libs(&src, self.binutils_triple())
+            .map_err(SymlinkLibsError::RequiredLibsFailed)?
+            .contains("libc++_shared.so");
+        if needs_cxx_shared {
+            log::info!("lib {:?} requires \"libc++_shared.so\"", src);
+            let cxx_shared = ndk
+                .libcxx_shared_path(*self)
+                .map_err(SymlinkLibsError::LibcxxSharedPathFailed)?;
+            jnilibs
+                .symlink_lib(&cxx_shared)
+                .map_err(SymlinkLibsError::SymlinkFailed)?;
+        }
+
+        Ok(())
     }
 
     pub fn build(
@@ -347,7 +334,7 @@ impl<'a> Target<'a> {
             CargoMode::Build,
         )
         .map_err(BuildError::BuildFailed)?;
-        self.symlink_lib(config, profile)
-            .map_err(BuildError::LibSymlinkFailed)
+        self.symlink_libs(config, &env.ndk, profile)
+            .map_err(BuildError::SymlinkLibsFailed)
     }
 }

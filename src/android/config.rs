@@ -192,6 +192,10 @@ impl Config {
         &self.app
     }
 
+    pub fn so_name(&self) -> String {
+        format!("lib{}.so", self.app().name_snake())
+    }
+
     pub fn min_sdk_version(&self) -> u32 {
         self.min_sdk_version
     }

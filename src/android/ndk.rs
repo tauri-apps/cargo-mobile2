@@ -1,11 +1,15 @@
+use super::target::Target;
 use crate::util::cli::{Report, Reportable};
+use once_cell_regex::regex_multi_line;
 use std::{
+    collections::HashSet,
     fmt::{self, Display},
     fs::File,
     io,
     num::ParseIntError,
     path::{Path, PathBuf},
 };
+use thiserror::Error;
 
 const MIN_NDK_VERSION: Version = Version {
     major: 19,
@@ -63,19 +67,34 @@ impl Binutil {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
+#[error("Missing tool `{name}`; tried at {tried_path:?}.")]
 pub struct MissingToolError {
     name: &'static str,
     tried_path: PathBuf,
 }
 
-impl Display for MissingToolError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Missing tool `{}`; tried at {:?}.",
-            self.name, self.tried_path
-        )
+impl MissingToolError {
+    fn check_file(path: PathBuf, name: &'static str) -> Result<PathBuf, Self> {
+        if path.is_file() {
+            Ok(path)
+        } else {
+            Err(Self {
+                name,
+                tried_path: path,
+            })
+        }
+    }
+
+    fn check_dir(path: PathBuf, name: &'static str) -> Result<PathBuf, Self> {
+        if path.is_dir() {
+            Ok(path)
+        } else {
+            Err(Self {
+                name,
+                tried_path: path,
+            })
+        }
     }
 }
 
@@ -195,6 +214,22 @@ impl Reportable for Error {
     }
 }
 
+#[derive(Debug, Error)]
+pub enum RequiredLibsError {
+    #[error(transparent)]
+    MissingTool(#[from] MissingToolError),
+    #[error(transparent)]
+    ReadElfFailed(#[from] bossy::Error),
+    #[error("`readelf` output contained invalid UTF-8: {0}")]
+    InvalidUtf8(#[from] std::str::Utf8Error),
+}
+
+impl Reportable for RequiredLibsError {
+    fn report(&self) -> Report {
+        Report::error("Failed to get list of required libs", self)
+    }
+}
+
 #[derive(Debug)]
 pub struct Env {
     ndk_home: PathBuf,
@@ -271,19 +306,17 @@ impl Env {
         }
     }
 
+    pub fn prebuilt_dir(&self) -> Result<PathBuf, MissingToolError> {
+        MissingToolError::check_dir(
+            self.ndk_home
+                .join(format!("toolchains/llvm/prebuilt/{}", host_tag())),
+            // TODO: shove this square peg into a squarer hole
+            "prebuilt toolchain",
+        )
+    }
+
     pub fn tool_dir(&self) -> Result<PathBuf, MissingToolError> {
-        let path = self
-            .ndk_home
-            .join(format!("toolchains/llvm/prebuilt/{}/bin", host_tag()));
-        if path.is_dir() {
-            Ok(path)
-        } else {
-            // TODO: this might be too silly
-            Err(MissingToolError {
-                name: "literally all of them",
-                tried_path: path,
-            })
-        }
+        MissingToolError::check_dir(self.prebuilt_dir()?.join("bin"), "tools")
     }
 
     pub fn compiler_path(
@@ -292,17 +325,11 @@ impl Env {
         triple: &str,
         min_api: u32,
     ) -> Result<PathBuf, MissingToolError> {
-        let path = self
-            .tool_dir()?
-            .join(format!("{}{}-{}", triple, min_api, compiler.as_str()));
-        if path.is_file() {
-            Ok(path)
-        } else {
-            Err(MissingToolError {
-                name: compiler.as_str(),
-                tried_path: path,
-            })
-        }
+        MissingToolError::check_file(
+            self.tool_dir()?
+                .join(format!("{}{}-{}", triple, min_api, compiler.as_str())),
+            compiler.as_str(),
+        )
     }
 
     pub fn binutil_path(
@@ -310,16 +337,52 @@ impl Env {
         binutil: Binutil,
         triple: &str,
     ) -> Result<PathBuf, MissingToolError> {
-        let path = self
-            .tool_dir()?
-            .join(format!("{}-{}", triple, binutil.as_str()));
-        if path.is_file() {
-            Ok(path)
-        } else {
-            Err(MissingToolError {
-                name: binutil.as_str(),
-                tried_path: path,
+        MissingToolError::check_file(
+            self.tool_dir()?
+                .join(format!("{}-{}", triple, binutil.as_str())),
+            binutil.as_str(),
+        )
+    }
+
+    pub fn libcxx_shared_path(&self, target: Target<'_>) -> Result<PathBuf, MissingToolError> {
+        static LIB: &str = "libc++_shared.so";
+        MissingToolError::check_file(
+            self.ndk_home
+                .join("sources/cxx-stl/llvm-libc++/libs")
+                .join(target.abi)
+                .join(LIB),
+            LIB,
+        )
+    }
+
+    fn readelf_path(&self, triple: &str) -> Result<PathBuf, MissingToolError> {
+        MissingToolError::check_file(
+            self.tool_dir()?.join(format!("{}-readelf", triple)),
+            "readelf",
+        )
+    }
+
+    pub fn required_libs(
+        &self,
+        elf: &Path,
+        triple: &str,
+    ) -> Result<HashSet<String>, RequiredLibsError> {
+        Ok(regex_multi_line!(r"\(NEEDED\)\s+Shared library: \[(.+)\]")
+            .captures_iter(
+                bossy::Command::impure(self.readelf_path(triple)?)
+                    .with_arg("-d")
+                    .with_arg(elf)
+                    .run_and_wait_for_output()?
+                    .stdout_str()?,
+            )
+            .map(|caps| {
+                let lib = caps
+                    .get(1)
+                    .expect("developer error: regex match had no captures")
+                    .as_str();
+                log::info!("{:?} requires shared lib {:?}", elf, lib);
+                lib.to_owned()
             })
-        }
+            .collect())
     }
 }
