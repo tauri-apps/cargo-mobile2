@@ -17,7 +17,7 @@ pub static DEFAULT_ASSET_DIR: &str = "assets";
 pub static DEFAULT_TEMPLATE_PACK: &str = if cfg!(feature = "brainium") {
     "brainstorm"
 } else {
-    "winit"
+    "bevy"
 };
 
 #[derive(Debug)]
