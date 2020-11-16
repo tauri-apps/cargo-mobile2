@@ -13,10 +13,7 @@ use crate::{
         cli::{Report, Reportable},
     },
 };
-use std::{
-    fmt::{self, Display},
-    io,
-};
+use std::fmt::{self, Display};
 
 fn gradlew(config: &Config, env: &Env) -> bossy::Command {
     let gradlew_path = config.project_dir().join("gradlew");
@@ -28,7 +25,7 @@ fn gradlew(config: &Config, env: &Env) -> bossy::Command {
 
 #[derive(Debug)]
 pub enum ApkBuildError {
-    LibSymlinkCleaningFailed(io::Error),
+    LibSymlinkCleaningFailed(jnilibs::RemoveBrokenLinksError),
     LibBuildFailed(BuildError),
     AssembleFailed(bossy::Error),
 }
@@ -36,9 +33,7 @@ pub enum ApkBuildError {
 impl Reportable for ApkBuildError {
     fn report(&self) -> Report {
         match self {
-            Self::LibSymlinkCleaningFailed(err) => {
-                Report::error("Failed to delete broken symlink", err)
-            }
+            Self::LibSymlinkCleaningFailed(err) => err.report(),
             Self::LibBuildFailed(err) => err.report(),
             Self::AssembleFailed(err) => Report::error("Failed to assemble APK", err),
         }

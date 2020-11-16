@@ -9,6 +9,41 @@ use crate::{
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
+pub enum RemoveBrokenLinksError {
+    ReadDirFailed {
+        dir: PathBuf,
+        source: std::io::Error,
+    },
+    EntryFailed {
+        dir: PathBuf,
+        source: std::io::Error,
+    },
+    RemoveFailed {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+}
+
+impl Reportable for RemoveBrokenLinksError {
+    fn report(&self) -> Report {
+        match self {
+            Self::ReadDirFailed { dir, source } => Report::error(
+                format!("Failed to list contents of jniLibs directory {:?}", dir),
+                source,
+            ),
+            Self::EntryFailed { dir, source } => Report::error(
+                format!("Failed to get entry in jniLibs directory {:?}", dir),
+                source,
+            ),
+            Self::RemoveFailed { path, source } => Report::error(
+                format!("Failed to remove broken symlink {:?}", path),
+                source,
+            ),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum SymlinkLibError {
     SourceMissing(PathBuf),
     SymlinkFailed(ln::Error),
@@ -44,14 +79,24 @@ impl JniLibs {
         std::fs::create_dir_all(&path).map(|()| Self { path })
     }
 
-    pub fn remove_broken_links(config: &Config) -> std::io::Result<()> {
+    pub fn remove_broken_links(config: &Config) -> Result<(), RemoveBrokenLinksError> {
         for abi_dir in Target::all()
             .values()
             .map(|target| path(config, *target))
             .filter(|path| path.is_dir())
         {
-            for entry in std::fs::read_dir(abi_dir)? {
-                let entry = entry?.path();
+            for entry in std::fs::read_dir(&abi_dir).map_err(|source| {
+                RemoveBrokenLinksError::ReadDirFailed {
+                    dir: abi_dir.clone(),
+                    source,
+                }
+            })? {
+                let entry = entry
+                    .map_err(|source| RemoveBrokenLinksError::EntryFailed {
+                        dir: abi_dir.clone(),
+                        source,
+                    })?
+                    .path();
                 if let Ok(path) = std::fs::read_link(&entry) {
                     if !path.exists() {
                         log::info!(
@@ -59,7 +104,9 @@ impl JniLibs {
                             entry,
                             path
                         );
-                        std::fs::remove_file(entry)?;
+                        std::fs::remove_file(entry).map_err(|source| {
+                            RemoveBrokenLinksError::RemoveFailed { path, source }
+                        })?;
                     }
                 }
             }
