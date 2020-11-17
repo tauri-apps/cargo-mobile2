@@ -98,6 +98,7 @@ impl JniLibs {
                     })?
                     .path();
                 if let Ok(path) = std::fs::read_link(&entry) {
+                    log::info!("symlink at {:?} points to {:?}", entry, path);
                     if !path.exists() {
                         log::info!(
                             "deleting broken symlink {:?} (points to {:?}, which doesn't exist)",
