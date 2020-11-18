@@ -12,15 +12,15 @@ name = "{{app.name}}-desktop"
 path = "gen/bin/desktop.rs"
 
 [dependencies]
-futures = "0.3.4"
-mobile-entry-point = { git = "https://github.com/BrainiumLLC/mobile-entry-point" }
-wgpu = { git = "https://github.com/francesca64/wgpu-rs" }
-winit = { git = "https://github.com/francesca64/winit", branch = "android-pause" }
+futures = "0.3.8"
+mobile-entry-point = "0.1.0"
+wgpu = "0.6.0"
+winit = "0.23.0"
 
 [target.'cfg(target_os = "android")'.dependencies]
-android_logger = "0.8.6"
-log = "0.4.8"
-ndk-glue = "0.1.0"
+android_logger = "0.9.0"
+log = "0.4.11"
+ndk-glue = "0.2.1"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-env_logger = "0.7.1"
+wgpu-subscriber = "0.1.0"
