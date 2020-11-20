@@ -10,7 +10,7 @@ cargo-mobile takes care of generating Xcode and Android Studio project files, bu
 
 Everything here works and is already used internally! However, this hasn't seen a lot of external use yet, so there could still be some rough edges.
 
-**Building for iOS is broken on Rust 1.46.0, 1.47.0, and the upcoming 1.48.0!**
+**Building for iOS is broken on Rust 1.46.0, 1.47.0, and 1.48.0!**
 
 Sorry for the inconvenience! This is resolved in Rust 1.49.0, but that won't be out for a bit. For now, you can do one of the following:
 
