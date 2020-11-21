@@ -48,8 +48,6 @@ Whenever you want to update:
 cargo mobile update
 ```
 
-Note that until cargo-mobile's official release, breaking changes may be common.
-
 ## Usage
 
 To start a new project, all you need to do is make a directory with a cute name, `cd` into it, and then run this command:
@@ -74,5 +72,3 @@ Once you've generated your project, you can run `cargo run` as usual to run your
 If you prefer to work in the usual IDEs, you can use `cargo apple open` and `cargo android open` to open your project in Xcode and Android Studio respectively.
 
 For more commands, run `cargo mobile`, `cargo apple`, or `cargo android` to see help information.
-
-A more comprehensive guide will come soon!
