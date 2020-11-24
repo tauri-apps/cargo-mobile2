@@ -2,9 +2,9 @@
 
 *The answer to "how do I use Rust on iOS and Android?"*
 
-**This project hasn't been announced yet. Please don't make any posts about it on reddit/etc!**
-
 cargo-mobile takes care of generating Xcode and Android Studio project files, building and running on device, generating project boilerplate, and a few other things!
+
+Check out the [announcment post](https://dev.brainiumstudios.com/2020/11/24/cargo-mobile.html)!
 
 ## Status
 
