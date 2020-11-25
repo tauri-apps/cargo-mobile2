@@ -64,6 +64,7 @@ impl Metadata {
         Ok(cargo_toml.package.metadata.unwrap_or_default())
     }
 
+    #[cfg(target_os = "macos")]
     pub fn apple(&self) -> &crate::apple::config::Metadata {
         &self.apple
     }

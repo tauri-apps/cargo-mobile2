@@ -26,12 +26,12 @@ pub fn host_tag() -> &'static str {
     "linux-x86_64"
 }
 
-#[cfg(all(target_os = "window", target_pointer_width = "32"))]
+#[cfg(all(windows, target_pointer_width = "32"))]
 pub fn host_tag() -> &'static str {
     "windows"
 }
 
-#[cfg(all(target_os = "window", target_pointer_width = "64"))]
+#[cfg(all(windows, target_pointer_width = "64"))]
 pub fn host_tag() -> &'static str {
     "windows-x86_64"
 }
