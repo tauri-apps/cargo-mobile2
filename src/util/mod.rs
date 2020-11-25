@@ -172,7 +172,7 @@ impl RustVersion {
         let output = bossy::Command::impure_parse("rustc --version").run_and_wait_for_output()?;
         let output = output.stdout_str()?;
         let re = regex!(
-            r"rustc (?P<version>(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(-(?P<flavor>\w+))?) \((?P<hash>\w{9}) (?P<date>(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2}))\)"
+            r"rustc (?P<version>(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(-(?P<flavor>\w+))?(.(?P<candidate>\d+))?) \((?P<hash>\w{9}) (?P<date>(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2}))\)"
         );
         let caps = re
             .captures(output)
