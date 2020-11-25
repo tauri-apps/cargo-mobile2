@@ -12,22 +12,11 @@ Everything here works and is already used internally! However, this hasn't seen 
 
 **Building for iOS is broken on Rust 1.46.0, 1.47.0, and 1.48.0!**
 
-Sorry for the inconvenience! This is resolved in Rust 1.49.0, but that won't be out for a bit. For now, you can do one of the following:
-
-### A. Downgrade to 1.45.2
+Sorry for the inconvenience! This is resolved in Rust 1.49.0, but that won't be out for a lil bit. For now, you can use the current beta:
 
 ```bash
-rustup install stable-2020-08-03
-rustup default stable-2020-08-03
-```
-
-Don't worry about the `'+cyclone' is not a recognized feature for this target (ignoring feature)` messages. They're harmless, and have since been fixed upstream.
-
-### B. Update to a nightly from 2020-10-24 or later
-
-```bash
-rustup update nightly
-rustup default nightly
+rustup update beta
+rustup default beta
 ```
 
 ## Installation
