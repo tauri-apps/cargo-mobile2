@@ -135,7 +135,7 @@ impl Reportable for RustVersionError {
 #[derive(Debug)]
 pub struct RustVersion {
     pub triple: (u32, u32, u32),
-    pub flavor: Option<String>,
+    pub flavor: Option<(String, Option<String>)>
     pub hash: String,
     pub date: (u32, u32, u32),
 }
@@ -143,8 +143,11 @@ pub struct RustVersion {
 impl Display for RustVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}.{}.{}", self.triple.0, self.triple.1, self.triple.2)?;
-        if let Some(flavor) = &self.flavor {
+        if let Some((flavor, candidate)) = &self.flavor {
             write!(f, "-{}", flavor)?;
+            if let Some(candidate) = candidate {
+                write!(f, ".{}", candidate)?;
+            }
         }
         write!(
             f,
@@ -172,7 +175,7 @@ impl RustVersion {
         let output = bossy::Command::impure_parse("rustc --version").run_and_wait_for_output()?;
         let output = output.stdout_str()?;
         let re = regex!(
-            r"rustc (?P<version>(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(-(?P<flavor>\w+))?) \((?P<hash>\w{9}) (?P<date>(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2}))\)"
+            r"rustc (?P<version>(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(-(?P<flavor>\w+)(.(?P<candidate>\d+))?)?) \((?P<hash>\w{9}) (?P<date>(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2}))\)"
         );
         let caps = re
             .captures(output)
@@ -185,7 +188,13 @@ impl RustVersion {
                 parse!("minor", MinorInvalid, version)(&caps, version_str)?,
                 parse!("patch", PatchInvalid, version)(&caps, version_str)?,
             ),
-            flavor: caps.name("flavor").map(|flavor| flavor.as_str().to_owned()),
+            flavor: caps.name("flavor").map(|flavor| {
+                (
+                    flavor.as_str().to_owned(),
+                    caps.name("candidate")
+                        .map(|candidate| candidate.as_str().to_owned()),
+                )
+            }),
             hash: caps["hash"].to_owned(),
             date: (
                 parse!("year", YearInvalid, date)(&caps, date_str)?,
