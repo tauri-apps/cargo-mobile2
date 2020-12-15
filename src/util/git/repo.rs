@@ -116,6 +116,18 @@ impl Repo {
             .map_err(Error::LogOutputInvalidUtf8)
     }
 
+    pub fn latest_hash(&self) -> Result<String, Error> {
+        let output = self
+            .git()
+            .command_parse("log -1 --pretty=%H")
+            .run_and_wait_for_output()
+            .map_err(Error::LogFailed)?;
+        output
+            .stdout_str()
+            .map(|s| s.trim().to_owned())
+            .map_err(Error::LogOutputInvalidUtf8)
+    }
+
     pub fn update(&self, url: impl AsRef<OsStr>) -> Result<(), Error> {
         let path = self.path();
         if !path.is_dir() {

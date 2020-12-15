@@ -9,9 +9,9 @@ pub use self::{cargo::*, git::*, path::*};
 
 use self::cli::{Report, Reportable};
 use crate::os;
-use once_cell_regex::{exports::regex::Captures, regex};
+use once_cell_regex::{exports::regex::Captures, exports::regex::Regex, regex};
 use std::{
-    fmt::{self, Display},
+    fmt::{self, Debug, Display},
     io::{self, Write},
     path::{Path, PathBuf},
 };
@@ -135,7 +135,7 @@ impl Reportable for RustVersionError {
 #[derive(Debug)]
 pub struct RustVersion {
     pub triple: (u32, u32, u32),
-    pub flavor: Option<(String, Option<String>)>,
+    pub flavor: Option<String>,
     pub hash: String,
     pub date: (u32, u32, u32),
 }
@@ -143,11 +143,8 @@ pub struct RustVersion {
 impl Display for RustVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}.{}.{}", self.triple.0, self.triple.1, self.triple.2)?;
-        if let Some((flavor, candidate)) = &self.flavor {
+        if let Some(flavor) = &self.flavor {
             write!(f, "-{}", flavor)?;
-            if let Some(candidate) = candidate {
-                write!(f, ".{}", candidate)?;
-            }
         }
         write!(
             f,
@@ -175,7 +172,7 @@ impl RustVersion {
         let output = bossy::Command::impure_parse("rustc --version").run_and_wait_for_output()?;
         let output = output.stdout_str()?;
         let re = regex!(
-            r"rustc (?P<version>(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(-(?P<flavor>\w+)(.(?P<candidate>\d+))?)?) \((?P<hash>\w{9}) (?P<date>(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2}))\)"
+            r"rustc (?P<version>(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(-(?P<flavor>\w+))?) \((?P<hash>\w{9}) (?P<date>(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2}))\)"
         );
         let caps = re
             .captures(output)
@@ -188,13 +185,7 @@ impl RustVersion {
                 parse!("minor", MinorInvalid, version)(&caps, version_str)?,
                 parse!("patch", PatchInvalid, version)(&caps, version_str)?,
             ),
-            flavor: caps.name("flavor").map(|flavor| {
-                (
-                    flavor.as_str().to_owned(),
-                    caps.name("candidate")
-                        .map(|candidate| candidate.as_str().to_owned()),
-                )
-            }),
+            flavor: caps.name("flavor").map(|flavor| flavor.as_str().to_owned()),
             hash: caps["hash"].to_owned(),
             date: (
                 parse!("year", YearInvalid, date)(&caps, date_str)?,
@@ -204,6 +195,21 @@ impl RustVersion {
         };
         log::info!("detected rustc version {}", this);
         Ok(this)
+    }
+
+    pub fn valid(&self) -> bool {
+        if cfg!(target_os = "macos") {
+            const LAST_GOOD_STABLE: (u32, u32, u32) = (1, 45, 2);
+            const NEXT_GOOD_STABLE: (u32, u32, u32) = (1, 49, 0);
+            const FIRST_GOOD_NIGHTLY: (u32, u32, u32) = (2020, 10, 24);
+
+            let old_good = self.triple <= LAST_GOOD_STABLE;
+            let new_good = self.triple >= NEXT_GOOD_STABLE && self.date >= FIRST_GOOD_NIGHTLY;
+
+            old_good || new_good
+        } else {
+            true
+        }
     }
 }
 
@@ -272,6 +278,40 @@ pub fn pipe(mut tx_command: bossy::Command, rx_command: bossy::Command) -> Resul
     } else {
         Ok(false)
     }
+}
+
+#[derive(Debug, Error)]
+pub enum CommandSearchError {
+    #[error(transparent)]
+    CommandFailed(#[from] bossy::Error),
+    #[error("{command:?} output contained invalid UTF-8: {source}")]
+    OutputInvalidUtf8 {
+        command: String,
+        source: std::str::Utf8Error,
+    },
+    #[error("{command:?} output failed to match regex: {output:?}")]
+    SearchFailed { command: String, output: String },
+}
+
+pub fn command_search<T>(
+    mut command_to_search: bossy::Command,
+    re: &Regex,
+    closure: impl FnOnce(&str, Captures<'_>) -> T,
+) -> Result<T, CommandSearchError> {
+    let output = command_to_search.run_and_wait_for_output()?;
+    let output = output
+        .stdout_str()
+        .map_err(|source| CommandSearchError::OutputInvalidUtf8 {
+            command: command_to_search.display().to_owned(),
+            source,
+        })?;
+
+    re.captures(output)
+        .ok_or_else(|| CommandSearchError::SearchFailed {
+            command: command_to_search.display().to_owned(),
+            output: output.to_owned(),
+        })
+        .map(|caps| closure(output, caps))
 }
 
 #[derive(Debug)]
