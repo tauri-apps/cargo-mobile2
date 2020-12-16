@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - "**.rs"
+      - "**.toml"
+      - ".github/workflows/ci.yml"
+  push:
+    branches: [master]
+    paths:
+      - "**.rs"
+      - "**.toml"
+      - ".github/workflows/ci.yml"
+
+jobs:
+  Check_Formatting:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: stable
+          components: rustfmt
+      - name: Check Formatting
+        run: cargo +stable fmt --all -- --check
+
+  Tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        rust_version: [stable, beta, nightly]
+        platform:
+          # - { target: x86_64-pc-windows-msvc, os: windows-latest }
+          # - { target: x86_64-unknown-linux-gnu, os: ubuntu-latest }
+          - { target: x86_64-apple-darwin, os: macos-latest }
+
+    env:
+      RUST_BACKTRACE: 1
+      CARGO_INCREMENTAL: 0
+      RUSTFLAGS: "-C debuginfo=0"
+
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust_version }}${{ matrix.platform.host }}
+          targets: ${{ matrix.platform.target }}
+
+      - name: Check documentation
+        shell: bash
+        run: cargo doc --no-deps --target ${{ matrix.platform.target }}
+
+      - name: Build
+        shell: bash
+        run: cargo build --verbose --target ${{ matrix.platform.target }}
+
+      - name: Build tests
+        shell: bash
+        run: cargo test --no-run --verbose --target ${{ matrix.platform.target }}
+
+      - name: Run tests
+        shell: bash
+        run: cargo test --verbose --target ${{ matrix.platform.target }}
