@@ -135,7 +135,7 @@ impl Reportable for RustVersionError {
 #[derive(Debug)]
 pub struct RustVersion {
     pub triple: (u32, u32, u32),
-    pub flavor: Option<(String, Option<String>)>
+    pub flavor: Option<(String, Option<String>)>,
     pub hash: String,
     pub date: (u32, u32, u32),
 }
