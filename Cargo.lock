@@ -92,6 +92,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bossy"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bea74aa397fbe938260310be0517b82579ff849e9e9454369e8425fadab3443c"
+dependencies = [
+ "libc",
+ "log",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "bstr"
 version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -117,7 +128,7 @@ name = "cargo-mobile"
 version = "0.1.0"
 dependencies = [
  "bicycle",
- "bossy",
+ "bossy 0.2.0",
  "cocoa",
  "colored",
  "core-foundation",
@@ -433,7 +444,7 @@ version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93b337f79d4b00458950f3d20136dfb9d1816a1d458601e025170a50d087192a"
 dependencies = [
- "bossy",
+ "bossy 0.1.4",
  "log",
  "once-cell-regex 0.1.1",
  "thiserror",

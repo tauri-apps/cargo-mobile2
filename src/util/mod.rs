@@ -49,51 +49,35 @@ pub fn rustup_add(triple: &str) -> bossy::Result<bossy::ExitStatus> {
 
 #[derive(Debug)]
 pub enum HostTargetTripleError {
-    CommandFailed(bossy::Error),
-    Utf8Invalid(std::str::Utf8Error),
-    NoMatchesFound(String),
+    CommandFailed(RunAndSearchError),
 }
 
 impl Reportable for HostTargetTripleError {
     fn report(&self) -> Report {
-        let msg = "Failed to detect host target triple";
         match self {
-            Self::CommandFailed(err) => Report::error(msg, err),
-            Self::Utf8Invalid(err) => Report::error(msg, err),
-            Self::NoMatchesFound(output) => {
-                Report::error(msg, format!("No matches found in output {:?}", output))
-            }
+            Self::CommandFailed(err) => Report::error("Failed to detect host target triple", err),
         }
     }
 }
 
 pub fn host_target_triple() -> Result<String, HostTargetTripleError> {
     // TODO: add fast paths
-    let output = bossy::Command::impure("rustc")
-        .with_args(&["--verbose", "--version"])
-        .run_and_wait_for_output()
-        .map_err(HostTargetTripleError::CommandFailed)?;
-    let raw = output
-        .stdout_str()
-        .map_err(HostTargetTripleError::Utf8Invalid)?;
-    regex!(r"host: ([\w-]+)")
-        .captures(raw)
-        .map(|caps| {
+    run_and_search(
+        &mut bossy::Command::impure_parse("rustc --verbose --version"),
+        regex!(r"host: ([\w-]+)"),
+        |_text, caps| {
             let triple = caps[1].to_owned();
             log::info!("detected host target triple {:?}", triple);
             triple
-        })
-        .ok_or_else(|| HostTargetTripleError::NoMatchesFound(raw.to_owned()))
+        },
+    )
+    .map_err(HostTargetTripleError::CommandFailed)
 }
 
 #[derive(Debug, Error)]
 pub enum RustVersionError {
     #[error("Failed to check rustc version: {0}")]
-    CommandFailed(#[from] bossy::Error),
-    #[error("Failed to parse rustc version info: {0:?}")]
-    InvalidUtf8(#[from] std::str::Utf8Error),
-    #[error("Failed to parse rustc version info: {0:?}")]
-    ParseFailed(String),
+    CommandFailed(#[from] RunAndSearchError),
     #[error("Failed to parse rustc major version from {version:?}: {source}")]
     MajorInvalid {
         version: String,
@@ -172,38 +156,38 @@ impl RustVersion {
             };
         }
 
-        let output = bossy::Command::impure_parse("rustc --version").run_and_wait_for_output()?;
-        let output = output.stdout_str()?;
-        let re = regex!(
-            r"rustc (?P<version>(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(-(?P<flavor>\w+)(.(?P<candidate>\d+))?)?) \((?P<hash>\w{9}) (?P<date>(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2}))\)"
-        );
-        let caps = re
-            .captures(output)
-            .ok_or_else(|| RustVersionError::ParseFailed(output.to_owned()))?;
-        let version_str = &caps["version"];
-        let date_str = &caps["date"];
-        let this = Self {
-            triple: (
-                parse!("major", MajorInvalid, version)(&caps, version_str)?,
-                parse!("minor", MinorInvalid, version)(&caps, version_str)?,
-                parse!("patch", PatchInvalid, version)(&caps, version_str)?,
+        run_and_search(
+            &mut bossy::Command::impure_parse("rustc --version"),
+            regex!(
+                r"rustc (?P<version>(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(-(?P<flavor>\w+)(.(?P<candidate>\d+))?)?) \((?P<hash>\w{9}) (?P<date>(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2}))\)"
             ),
-            flavor: caps.name("flavor").map(|flavor| {
-                (
-                    flavor.as_str().to_owned(),
-                    caps.name("candidate")
-                        .map(|candidate| candidate.as_str().to_owned()),
-                )
-            }),
-            hash: caps["hash"].to_owned(),
-            date: (
-                parse!("year", YearInvalid, date)(&caps, date_str)?,
-                parse!("month", MonthInvalid, date)(&caps, date_str)?,
-                parse!("day", DayInvalid, date)(&caps, date_str)?,
-            ),
-        };
-        log::info!("detected rustc version {}", this);
-        Ok(this)
+            |_text, caps| {
+                let version_str = &caps["version"];
+                let date_str = &caps["date"];
+                let this = Self {
+                    triple: (
+                        parse!("major", MajorInvalid, version)(&caps, version_str)?,
+                        parse!("minor", MinorInvalid, version)(&caps, version_str)?,
+                        parse!("patch", PatchInvalid, version)(&caps, version_str)?,
+                    ),
+                    flavor: caps.name("flavor").map(|flavor| {
+                        (
+                            flavor.as_str().to_owned(),
+                            caps.name("candidate")
+                                .map(|candidate| candidate.as_str().to_owned()),
+                        )
+                    }),
+                    hash: caps["hash"].to_owned(),
+                    date: (
+                        parse!("year", YearInvalid, date)(&caps, date_str)?,
+                        parse!("month", MonthInvalid, date)(&caps, date_str)?,
+                        parse!("day", DayInvalid, date)(&caps, date_str)?,
+                    ),
+                };
+                log::info!("detected rustc version {}", this);
+                Ok(this)
+            },
+        )?
     }
 
     pub fn valid(&self) -> bool {
@@ -290,37 +274,29 @@ pub fn pipe(mut tx_command: bossy::Command, rx_command: bossy::Command) -> Resul
 }
 
 #[derive(Debug, Error)]
-pub enum CommandSearchError {
+pub enum RunAndSearchError {
     #[error(transparent)]
     CommandFailed(#[from] bossy::Error),
-    #[error("{command:?} output contained invalid UTF-8: {source}")]
-    OutputInvalidUtf8 {
-        command: String,
-        source: std::str::Utf8Error,
-    },
     #[error("{command:?} output failed to match regex: {output:?}")]
     SearchFailed { command: String, output: String },
 }
 
-pub fn command_search<T>(
-    mut command_to_search: bossy::Command,
+pub fn run_and_search<T>(
+    command: &mut bossy::Command,
     re: &Regex,
-    closure: impl FnOnce(&str, Captures<'_>) -> T,
-) -> Result<T, CommandSearchError> {
-    let output = command_to_search.run_and_wait_for_output()?;
-    let output = output
-        .stdout_str()
-        .map_err(|source| CommandSearchError::OutputInvalidUtf8 {
-            command: command_to_search.display().to_owned(),
-            source,
-        })?;
-
-    re.captures(output)
-        .ok_or_else(|| CommandSearchError::SearchFailed {
-            command: command_to_search.display().to_owned(),
-            output: output.to_owned(),
+    f: impl FnOnce(&str, Captures<'_>) -> T,
+) -> Result<T, RunAndSearchError> {
+    let command_string = command.display().to_owned();
+    Ok(command
+        .run_and_wait_for_str(|output| {
+            re.captures(output)
+                .ok_or_else(|| RunAndSearchError::SearchFailed {
+                    command: command_string,
+                    output: output.to_owned(),
+                })
+                .map(|caps| f(output, caps))
         })
-        .map(|caps| closure(output, caps))
+        .map_err(RunAndSearchError::from)??)
 }
 
 #[derive(Debug)]

@@ -19,7 +19,6 @@ pub enum Error {
     StatusFailed(repo::Error),
     UpdateFailed(repo::Error),
     UuidLookupFailed(bossy::Error),
-    UuidInvalidUtf8(std::str::Utf8Error),
     PlistReadFailed { path: PathBuf, cause: io::Error },
     PluginsDirCreationFailed { path: PathBuf, cause: io::Error },
     PluginCopyFailed(bossy::Error),
@@ -36,7 +35,6 @@ impl Display for Error {
             Self::StatusFailed(err) => write!(f, "{}", err),
             Self::UpdateFailed(err) => write!(f, "{}", err),
             Self::UuidLookupFailed(err) => write!(f, "Failed to lookup Xcode UUID: {}", err),
-            Self::UuidInvalidUtf8(err) => write!(f, "Xcode UUID contained invalid UTF-8: {}", err),
             Self::PlistReadFailed { path, cause } => {
                 write!(f, "Failed to read plist at {:?}: {}", path, cause)
             }
@@ -119,20 +117,18 @@ fn check_uuid(
     xcode_app_dir: &Path,
 ) -> Result<bool, Error> {
     let info_path = xcode_app_dir.join("Info");
-    let uuid_output = bossy::Command::impure("defaults")
+    let uuid = bossy::Command::impure("defaults")
         .with_arg("read")
         .with_arg(info_path)
         .with_arg("DVTPlugInCompatibilityUUID")
-        .run_and_wait_for_output()
+        .run_and_wait_for_str(|s| s.trim().to_owned())
         .map_err(Error::UuidLookupFailed)?;
-    let uuid_output = uuid_output.stdout_str().map_err(Error::UuidInvalidUtf8)?;
-    let uuid = uuid_output.trim();
     let plist_path = checkout.join("Plug-ins/Rust.ideplugin/Contents/Info.plist");
     let plist = fs::read_to_string(&plist_path).map_err(|cause| Error::PlistReadFailed {
         path: plist_path,
         cause,
     })?;
-    if !plist.contains(uuid) {
+    if !plist.contains(&uuid) {
         Report::action_request(
             format!(
                 "Your Xcode UUID ({}, version {}.{}) isn't supported by `rust-xcode-plugin`; skipping installation",

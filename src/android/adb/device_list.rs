@@ -5,12 +5,11 @@ use crate::{
     util::cli::{Report, Reportable},
 };
 use once_cell_regex::regex_multi_line;
-use std::{collections::BTreeSet, str};
+use std::collections::BTreeSet;
 
 #[derive(Debug)]
 pub enum Error {
     DevicesFailed(super::RunCheckedError),
-    InvalidUtf8(str::Utf8Error),
     NameFailed(device_name::Error),
     ModelFailed(get_prop::Error),
     AbiFailed(get_prop::Error),
@@ -22,9 +21,6 @@ impl Reportable for Error {
         let msg = "Failed to detect connected Android devices";
         match self {
             Self::DevicesFailed(err) => err.report("Failed to run `adb devices`"),
-            Self::InvalidUtf8(err) => {
-                Report::error(msg, format!("Device list contained invalid UTF-8: {}", err))
-            }
             Self::NameFailed(err) => err.report(),
             Self::ModelFailed(err) | Self::AbiFailed(err) => err.report(),
             Self::AbiInvalid(abi) => {
@@ -35,25 +31,27 @@ impl Reportable for Error {
 }
 
 pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, Error> {
-    let serial_re = regex_multi_line!(r"^([\w\d]{6,20})	\b");
-    let output = super::run_checked(
-        &mut bossy::Command::pure("adb")
+    super::check_authorized(
+        bossy::Command::pure("adb")
             .with_env_vars(env.explicit_env())
-            .with_args(&["devices"]),
+            .with_args(&["devices"])
+            .run_and_wait_for_str(|raw_list| {
+                regex_multi_line!(r"^([\w\d]{6,20})	\b")
+                    .captures_iter(raw_list)
+                    .map(|caps| {
+                        assert_eq!(caps.len(), 2);
+                        let serial_no = caps.get(1).unwrap().as_str().to_owned();
+                        let name = device_name(env, &serial_no).map_err(Error::NameFailed)?;
+                        let model = get_prop(env, &serial_no, "ro.product.model")
+                            .map_err(Error::ModelFailed)?;
+                        let abi = get_prop(env, &serial_no, "ro.product.cpu.abi")
+                            .map_err(Error::AbiFailed)?;
+                        let target =
+                            Target::for_abi(&abi).ok_or_else(|| Error::AbiInvalid(abi.clone()))?;
+                        Ok(Device::new(serial_no, name, model, target))
+                    })
+                    .collect()
+            }),
     )
-    .map_err(Error::DevicesFailed)?;
-    let raw_list = output.stdout_str().map_err(Error::InvalidUtf8)?;
-    serial_re
-        .captures_iter(raw_list)
-        .map(|caps| {
-            assert_eq!(caps.len(), 2);
-            let serial_no = caps.get(1).unwrap().as_str().to_owned();
-            let name = device_name(env, &serial_no).map_err(Error::NameFailed)?;
-            let model =
-                get_prop(env, &serial_no, "ro.product.model").map_err(Error::ModelFailed)?;
-            let abi = get_prop(env, &serial_no, "ro.product.cpu.abi").map_err(Error::AbiFailed)?;
-            let target = Target::for_abi(&abi).ok_or_else(|| Error::AbiInvalid(abi.clone()))?;
-            Ok(Device::new(serial_no, name, model, target))
-        })
-        .collect()
+    .map_err(Error::DevicesFailed)?
 }

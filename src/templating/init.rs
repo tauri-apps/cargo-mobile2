@@ -150,14 +150,10 @@ fn unprefix_path(
 fn detect_author() -> String {
     let git = Git::new(".".as_ref());
     let name_output = git.user_name().ok();
-    let name = name_output
-        .as_ref()
-        .and_then(|output| output.stdout_str().ok())
-        .unwrap_or_else(|| "Watashi");
+    let name = name_output.as_deref().unwrap_or_else(|| "Watashi");
     let email_output = git.user_email().ok();
     let email = email_output
-        .as_ref()
-        .and_then(|output| output.stdout_str().ok())
+        .as_deref()
         .unwrap_or_else(|| "watashi@example.com");
     format!("{} <{}>", name.trim(), email.trim())
 }

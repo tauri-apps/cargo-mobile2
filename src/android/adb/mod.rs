@@ -16,7 +16,7 @@ pub fn adb(env: &Env, serial_no: &str) -> bossy::Command {
 
 #[derive(Debug)]
 pub enum RunCheckedError {
-    InvalidUtf8(str::Utf8Error),
+    InvalidUtf8(bossy::Error),
     Unauthorized,
     CommandFailed(bossy::Error),
 }
@@ -24,17 +24,14 @@ pub enum RunCheckedError {
 impl RunCheckedError {
     pub fn report(&self, msg: &str) -> Report {
         match self {
-            Self::InvalidUtf8(err) => {
-                Report::error(msg, format!("stderr contained invalid UTF-8: {}", err))
-            }
+            Self::InvalidUtf8(err) => Report::error(msg, err),
             Self::Unauthorized => Report::action_request(msg, "This device doesn't yet trust this computer. On the device, you should see a prompt like \"Allow USB debugging?\". Pressing \"Allow\" should fix this."),
             Self::CommandFailed(err) => Report::error(msg, err),
         }
     }
 }
 
-fn run_checked(command: &mut bossy::Command) -> Result<bossy::Output, RunCheckedError> {
-    let result = command.run_and_wait_for_output();
+fn check_authorized<T>(result: bossy::Result<T>) -> Result<T, RunCheckedError> {
     if let Err(err) = &result {
         if let Some(stderr) = err
             .stderr_str()

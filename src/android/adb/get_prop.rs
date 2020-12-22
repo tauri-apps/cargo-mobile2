@@ -11,16 +11,12 @@ pub enum Error {
         prop: String,
         cause: super::RunCheckedError,
     },
-    InvalidUtf8 {
-        prop: String,
-        cause: str::Utf8Error,
-    },
 }
 
 impl Error {
     fn prop(&self) -> &str {
         match self {
-            Self::LookupFailed { prop, .. } | Self::InvalidUtf8 { prop, .. } => prop,
+            Self::LookupFailed { prop, .. } => prop,
         }
     }
 }
@@ -30,25 +26,18 @@ impl Reportable for Error {
         let msg = format!("Failed to run `adb shell getprop {}`", self.prop());
         match self {
             Self::LookupFailed { cause, .. } => cause.report(&msg),
-            Self::InvalidUtf8 { cause, .. } => {
-                Report::error(msg, format!("Output contained invalid UTF-8: {}", cause))
-            }
         }
     }
 }
 
 pub fn get_prop(env: &Env, serial_no: &str, prop: &str) -> Result<String, Error> {
-    let output =
-        super::run_checked(&mut adb(env, serial_no).with_args(&["shell", "getprop", prop]))
-            .map_err(|cause| Error::LookupFailed {
-                prop: prop.to_owned(),
-                cause,
-            })?;
-    output
-        .stdout_str()
-        .map_err(|cause| Error::InvalidUtf8 {
-            prop: prop.to_owned(),
-            cause,
-        })
-        .map(|raw| raw.trim().to_owned())
+    super::check_authorized(
+        adb(env, serial_no)
+            .with_args(&["shell", "getprop", prop])
+            .run_and_wait_for_str(|s| s.trim().to_owned()),
+    )
+    .map_err(|cause| Error::LookupFailed {
+        prop: prop.to_owned(),
+        cause,
+    })
 }

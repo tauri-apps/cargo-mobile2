@@ -23,7 +23,7 @@ default = []
 
 [dependencies]
 bicycle = { git = "https://github.com/BrainiumLLC/bicycle", rev = "28080e0c6fa4067d9dd1b0f2b7322b6b32178e1f" }
-bossy = "0.1.3"
+bossy = "0.2.0"
 colored = "1.9.3"
 deunicode = "1.1.1"
 english-numbers = "0.3.3"

@@ -16,17 +16,13 @@ use std::{
 #[derive(Debug)]
 enum DefaultDomainError {
     FailedToGetGitEmailAddr(bossy::Error),
-    EmailAddrInvalidUtf8(std::str::Utf8Error),
     FailedToParseEmailAddr,
 }
 
 fn default_domain() -> Result<Option<String>, DefaultDomainError> {
-    let output = Git::new(".".as_ref())
+    let email = Git::new(".".as_ref())
         .user_email()
         .map_err(DefaultDomainError::FailedToGetGitEmailAddr)?;
-    let email = output
-        .stdout_str()
-        .map_err(DefaultDomainError::EmailAddrInvalidUtf8)?;
     let domain = email
         .trim()
         .split('@')

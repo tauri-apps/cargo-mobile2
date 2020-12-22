@@ -13,7 +13,6 @@ pub enum Error {
     RevParseLocalFailed(bossy::Error),
     RevParseRemoteFailed(bossy::Error),
     LogFailed(bossy::Error),
-    LogOutputInvalidUtf8(std::str::Utf8Error),
     ParentDirCreationFailed { path: PathBuf, cause: io::Error },
     CloneFailed(bossy::Error),
     ResetFailed(bossy::Error),
@@ -30,9 +29,6 @@ impl Display for Error {
                 write!(f, "Failed to get upstream revision: {}", err)
             }
             Self::LogFailed(err) => write!(f, "Failed to get commit log: {}", err),
-            Self::LogOutputInvalidUtf8(err) => {
-                write!(f, "Commit log contained invalid utf-8: {}", err)
-            }
             Self::ParentDirCreationFailed { path, cause } => {
                 write!(f, "Failed to create parent directory {:?}: {}", path, cause)
             }
@@ -105,27 +101,17 @@ impl Repo {
     }
 
     pub fn latest_message(&self) -> Result<String, Error> {
-        let output = self
-            .git()
+        self.git()
             .command_parse("log -1 --pretty=%B")
-            .run_and_wait_for_output()
-            .map_err(Error::LogFailed)?;
-        output
-            .stdout_str()
-            .map(|s| s.trim().to_owned())
-            .map_err(Error::LogOutputInvalidUtf8)
+            .run_and_wait_for_str(|s| s.trim().to_owned())
+            .map_err(Error::LogFailed)
     }
 
     pub fn latest_hash(&self) -> Result<String, Error> {
-        let output = self
-            .git()
+        self.git()
             .command_parse("log -1 --pretty=%H")
-            .run_and_wait_for_output()
-            .map_err(Error::LogFailed)?;
-        output
-            .stdout_str()
-            .map(|s| s.trim().to_owned())
-            .map_err(Error::LogOutputInvalidUtf8)
+            .run_and_wait_for_str(|s| s.trim().to_owned())
+            .map_err(Error::LogFailed)
     }
 
     pub fn update(&self, url: impl AsRef<OsStr>) -> Result<(), Error> {
