@@ -12,11 +12,11 @@ Everything here works and is already used internally! However, this hasn't seen 
 
 **Building for iOS is broken on Rust 1.46.0, 1.47.0, and 1.48.0!**
 
-Sorry for the inconvenience! This is resolved in Rust 1.49.0, but that won't be out for a lil bit. For now, you can use the current beta:
+Sorry for the inconvenience! This is resolved in Rust 1.49.0, so please update to that if you haven't already:
 
 ```bash
-rustup update beta
-rustup default beta
+rustup update stable
+rustup default stable
 ```
 
 ## Installation
