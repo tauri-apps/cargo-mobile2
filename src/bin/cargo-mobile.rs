@@ -61,6 +61,7 @@ pub enum Command {
             about = "iOS commands (tip: type less by running `cargo apple` instead!)"
         )
     )]
+    #[cfg(target_os = "macos")]
     Apple(cargo_mobile::apple::cli::Command),
     #[structopt(
         name = "android",

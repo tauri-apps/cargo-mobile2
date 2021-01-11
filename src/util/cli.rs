@@ -215,7 +215,7 @@ fn init_logging(noise_level: opts::NoiseLevel) {
 }
 
 #[derive(Debug)]
-enum Exit {
+pub enum Exit {
     Report(Report),
     Clap(clap::Error),
 }
@@ -236,7 +236,7 @@ impl Exit {
         }
     }
 
-    fn main(inner: impl FnOnce(&TextWrapper) -> Result<(), Self>) {
+    pub fn main(inner: impl FnOnce(&TextWrapper) -> Result<(), Self>) {
         let wrapper = TextWrapper::with_splitter(textwrap::termwidth(), textwrap::NoHyphenation);
         if let Err(exit) = inner(&wrapper) {
             exit.do_the_thing(wrapper)

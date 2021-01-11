@@ -129,7 +129,9 @@ impl<'a> Call<'a> {
 
     pub fn exec(self) -> Result<(), Error> {
         let mut command = bossy::Command::impure("ln");
-        command.add_arg("-h"); // don't follow symlinks
+
+        command.add_arg("-n"); // don't follow symlinks
+
         if let LinkType::Symbolic = self.link_type {
             command.add_arg("-s");
         }

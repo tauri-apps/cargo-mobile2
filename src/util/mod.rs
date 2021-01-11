@@ -8,7 +8,7 @@ pub mod prompt;
 pub use self::{cargo::*, git::*, path::*};
 
 use self::cli::{Report, Reportable};
-use crate::os;
+use crate::os::{self, command_path};
 use once_cell_regex::{exports::regex::Captures, exports::regex::Regex, regex};
 use std::{
     fmt::{self, Debug, Display},
@@ -210,15 +210,9 @@ pub fn prepend_to_path(path: impl Display, base_path: impl Display) -> String {
     format!("{}:{}", path, base_path)
 }
 
-pub fn command_path(name: &str) -> bossy::Result<bossy::Output> {
-    bossy::Command::impure("command")
-        .with_args(&["-v", name])
-        .run_and_wait_for_output()
-}
-
 pub fn command_present(name: &str) -> bossy::Result<bool> {
     command_path(name).map(|_path| true).or_else(|err| {
-        if let Some(1) = err.status().and_then(|status| status.code()) {
+        if err.code().is_some() {
             Ok(false)
         } else {
             Err(err)

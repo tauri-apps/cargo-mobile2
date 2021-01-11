@@ -102,3 +102,10 @@ pub fn open_file_with(
         .run_and_wait()?;
     Ok(())
 }
+
+#[cfg(target_os = "macos")]
+pub fn command_path(name: &str) -> bossy::Result<bossy::Output> {
+    bossy::Command::impure("command")
+        .with_args(&["-v", name])
+        .run_and_wait_for_output()
+}
