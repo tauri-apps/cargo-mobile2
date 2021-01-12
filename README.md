@@ -27,7 +27,9 @@ The build will probably take a bit, so feel free to go get a snack or something.
 cargo install --git https://github.com/BrainiumLLC/cargo-mobile
 ```
 
-cargo-mobile is currently only supported on macOS. Adding Linux support would likely only take a small PR, but Windows support is potentially a small nightmare. (Note that only macOS can support iOS development, so other platforms could only be used for Android development!)
+cargo-mobile is currently supported on macOS and Linux. Note that it's not possible to target iOS on platforms other than macOS! You'll still get to target Android either way.
+
+A PR adding Windows support would be hugely appreciated!
 
 You'll need to have Xcode and the Android SDK/NDK installed. Some of this will ideally be automated in the future, or at least we'll provide a helpful guide and diagnostics.
 
