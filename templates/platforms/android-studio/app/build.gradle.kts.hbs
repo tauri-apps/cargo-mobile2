@@ -56,7 +56,7 @@ afterEvaluate {
         val buildType = "${buildType.name.capitalize()}"
         productFlavors.forEach {
             val archAndBuildType = name.capitalize()
-            tasks["assemble${archAndBuildType}"].dependsOn(tasks["rustBuild${archAndBuildType}"])
+            tasks["merge${archAndBuildType}JniLibFolders"].dependsOn(tasks["rustBuild${archAndBuildType}"])
         }
     }
 }
