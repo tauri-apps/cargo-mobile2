@@ -36,7 +36,6 @@ java-properties = { version = "1.2.0" }
 log = "0.4.8"
 once-cell-regex = "0.2.1"
 path_abs = "0.5.0"
-publicsuffix = { version = "1.5.4", default-features = false }
 reserved-names = { git = "https://github.com/BrainiumLLC/reserved-names" }
 serde = { version = "1.0.105", features = ["derive"] }
 structopt = "0.3.12"
@@ -44,6 +43,9 @@ textwrap = { version = "0.11.0", features = ["term_size"] }
 thiserror = "1.0.20"
 toml = { version = "0.5.6", features = ["preserve_order"] }
 yes-or-no = { git = "https://github.com/BrainiumLLC/yes-or-no" }
+
+[dev-dependencies]
+rstest = "0.6"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.20.0"

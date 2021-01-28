@@ -1,4 +1,4 @@
-use super::{common_email_providers::COMMON_EMAIL_PROVIDERS, name};
+use super::{common_email_providers::COMMON_EMAIL_PROVIDERS, domain, name};
 use crate::{
     templating,
     util::{cli::TextWrapper, prompt, Git},
@@ -29,8 +29,7 @@ fn default_domain() -> Result<Option<String>, DefaultDomainError> {
         .last()
         .ok_or(DefaultDomainError::FailedToParseEmailAddr)?;
     Ok(
-        if !COMMON_EMAIL_PROVIDERS.contains(&domain)
-            && publicsuffix::Domain::has_valid_syntax(&domain)
+        if !COMMON_EMAIL_PROVIDERS.contains(&domain) && domain::check_domain_syntax(&domain).is_ok()
         {
             Some(domain.to_owned())
         } else {
@@ -236,18 +235,14 @@ impl Raw {
         Ok(loop {
             let response = prompt::default("Domain", Some(&defaults.domain), None)
                 .map_err(PromptError::DomainPromptFailed)?;
-            if publicsuffix::Domain::has_valid_syntax(&response) {
-                break response;
-            } else {
-                println!(
-                    "{}",
-                    wrapper
-                        .fill(&format!(
-                            "Sorry, but {:?} isn't valid domain syntax.",
-                            response
-                        ))
-                        .bright_magenta()
-                );
+            match domain::check_domain_syntax(response.as_str()) {
+                Ok(_) => break response,
+                Err(err) => {
+                    println!(
+                        "{}",
+                        wrapper.fill(&format!("Sorry! {}", err)).bright_magenta()
+                    )
+                }
             }
         })
     }
