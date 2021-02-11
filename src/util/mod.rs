@@ -117,27 +117,43 @@ impl Reportable for RustVersionError {
 }
 
 #[derive(Debug)]
-pub struct RustVersion {
-    pub triple: (u32, u32, u32),
-    pub flavor: Option<(String, Option<String>)>,
+pub struct RustVersionFlavor {
+    pub flavor: String,
+    pub candidate: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct RustVersionDetails {
     pub hash: String,
     pub date: (u32, u32, u32),
+}
+
+#[derive(Debug)]
+pub struct RustVersion {
+    pub triple: (u32, u32, u32),
+    pub flavor: Option<RustVersionFlavor>,
+    /// This section can be absent if Rust is installed using something other
+    /// than `rustup` (i.e. Homebrew)
+    pub details: Option<RustVersionDetails>,
 }
 
 impl Display for RustVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}.{}.{}", self.triple.0, self.triple.1, self.triple.2)?;
-        if let Some((flavor, candidate)) = &self.flavor {
-            write!(f, "-{}", flavor)?;
-            if let Some(candidate) = candidate {
+        if let Some(flavor) = &self.flavor {
+            write!(f, "-{}", flavor.flavor)?;
+            if let Some(candidate) = &flavor.candidate {
                 write!(f, ".{}", candidate)?;
             }
         }
-        write!(
-            f,
-            " ({} {}-{}-{})",
-            self.hash, self.date.0, self.date.1, self.date.2
-        )
+        if let Some(details) = &self.details {
+            write!(
+                f,
+                " ({} {}-{}-{})",
+                details.hash, details.date.0, details.date.1, details.date.2
+            )?;
+        }
+        Ok(())
     }
 }
 
@@ -159,30 +175,36 @@ impl RustVersion {
         run_and_search(
             &mut bossy::Command::impure_parse("rustc --version"),
             regex!(
-                r"rustc (?P<version>(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(-(?P<flavor>\w+)(.(?P<candidate>\d+))?)?) \((?P<hash>\w{9}) (?P<date>(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2}))\)"
+                r"rustc (?P<version>(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(-(?P<flavor>\w+)(.(?P<candidate>\d+))?)?)(?P<details> \((?P<hash>\w{9}) (?P<date>(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2}))\))?"
             ),
             |_text, caps| {
                 let version_str = &caps["version"];
-                let date_str = &caps["date"];
                 let this = Self {
                     triple: (
                         parse!("major", MajorInvalid, version)(&caps, version_str)?,
                         parse!("minor", MinorInvalid, version)(&caps, version_str)?,
                         parse!("patch", PatchInvalid, version)(&caps, version_str)?,
                     ),
-                    flavor: caps.name("flavor").map(|flavor| {
-                        (
-                            flavor.as_str().to_owned(),
-                            caps.name("candidate")
-                                .map(|candidate| candidate.as_str().to_owned()),
-                        )
+                    flavor: caps.name("flavor").map(|flavor| RustVersionFlavor {
+                        flavor: flavor.as_str().to_owned(),
+                        candidate: caps
+                            .name("candidate")
+                            .map(|candidate| candidate.as_str().to_owned()),
                     }),
-                    hash: caps["hash"].to_owned(),
-                    date: (
-                        parse!("year", YearInvalid, date)(&caps, date_str)?,
-                        parse!("month", MonthInvalid, date)(&caps, date_str)?,
-                        parse!("day", DayInvalid, date)(&caps, date_str)?,
-                    ),
+                    details: caps
+                        .name("details")
+                        .map(|_details| -> Result<_, RustVersionError> {
+                            let date_str = &caps["date"];
+                            Ok(RustVersionDetails {
+                                hash: caps["hash"].to_owned(),
+                                date: (
+                                    parse!("year", YearInvalid, date)(&caps, date_str)?,
+                                    parse!("month", MonthInvalid, date)(&caps, date_str)?,
+                                    parse!("day", DayInvalid, date)(&caps, date_str)?,
+                                ),
+                            })
+                        })
+                        .transpose()?,
                 };
                 log::info!("detected rustc version {}", this);
                 Ok(this)
@@ -197,7 +219,15 @@ impl RustVersion {
             const FIRST_GOOD_NIGHTLY: (u32, u32, u32) = (2020, 10, 24);
 
             let old_good = self.triple <= LAST_GOOD_STABLE;
-            let new_good = self.triple >= NEXT_GOOD_STABLE && self.date >= FIRST_GOOD_NIGHTLY;
+            let new_good = self.triple >= NEXT_GOOD_STABLE
+                && self
+                    .details
+                    .as_ref()
+                    .map(|details| details.date >= FIRST_GOOD_NIGHTLY)
+                    .unwrap_or_else(|| {
+                        log::warn!("output of `rustc --version` didn't contain date info; continuing with the assumption that the release date is at least 2020-10-24");
+                        true
+                    });
 
             old_good || new_good
         } else {
