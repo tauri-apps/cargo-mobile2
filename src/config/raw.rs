@@ -124,8 +124,8 @@ impl Raw {
         })
     }
 
-    pub fn detect() -> Result<Self, DetectError> {
-        let app = app::Raw::detect().map_err(DetectError::AppFailed)?;
+    pub fn detect(wrapper: &TextWrapper) -> Result<Self, DetectError> {
+        let app = app::Raw::detect(wrapper).map_err(DetectError::AppFailed)?;
         #[cfg(target_os = "macos")]
         let apple = apple::config::Raw::detect().map_err(DetectError::AppleFailed)?;
         Ok(Self {

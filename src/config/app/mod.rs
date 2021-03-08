@@ -15,10 +15,12 @@ use std::path::{Path, PathBuf};
 pub static KEY: &str = "app";
 
 pub static DEFAULT_ASSET_DIR: &str = "assets";
-#[cfg(feature = "brainium")]
-pub static DEFAULT_TEMPLATE_PACK: &str = "brainstorm";
-#[cfg(not(feature = "brainium"))]
-pub static DEFAULT_TEMPLATE_PACK: &str = "bevy";
+pub static IMPLIED_TEMPLATE_PACK: &str = "brainstorm";
+pub static DEFAULT_TEMPLATE_PACK: &str = if cfg!(feature = "brainium") {
+    IMPLIED_TEMPLATE_PACK
+} else {
+    "bevy"
+};
 
 #[derive(Debug)]
 pub enum Error {
@@ -126,11 +128,10 @@ impl App {
             });
         }
 
-        #[cfg(feature = "brainium")]
         let template_pack = {
-            if raw.template_pack.as_deref() == Some(DEFAULT_TEMPLATE_PACK) {
+            if raw.template_pack.as_deref() == Some(IMPLIED_TEMPLATE_PACK) {
                 log::warn!(
-                    "`{}.template-pack` is set to the default value; you can remove it from your config",
+                    "`{}.template-pack` is set to the implied value; you can remove it from your config",
                     KEY
                 );
             }
@@ -138,14 +139,11 @@ impl App {
                 log::info!(
                     "`{}.template-pack` not set; defaulting to {}",
                     KEY,
-                    DEFAULT_TEMPLATE_PACK
+                    IMPLIED_TEMPLATE_PACK
                 );
-                DEFAULT_TEMPLATE_PACK
+                IMPLIED_TEMPLATE_PACK
             })
         };
-        #[cfg(not(feature = "brainium"))]
-        let template_pack = &raw.template_pack;
-
         let template_pack = Pack::lookup_app(template_pack).map_err(Error::TemplatePackNotFound)?;
 
         Ok(Self {

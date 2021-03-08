@@ -130,7 +130,7 @@ impl Config {
         let raw = if non_interactive.no() {
             Raw::prompt(wrapper).map_err(GenError::PromptFailed)
         } else {
-            Raw::detect().map_err(GenError::DetectFailed)
+            Raw::detect(wrapper).map_err(GenError::DetectFailed)
         }?;
         let root_dir = cwd
             .as_ref()

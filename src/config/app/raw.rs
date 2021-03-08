@@ -19,7 +19,7 @@ enum DefaultDomainError {
     FailedToParseEmailAddr,
 }
 
-fn default_domain() -> Result<Option<String>, DefaultDomainError> {
+fn default_domain(_wrapper: &TextWrapper) -> Result<Option<String>, DefaultDomainError> {
     let email = Git::new(".".as_ref())
         .user_email()
         .map_err(DefaultDomainError::FailedToGetGitEmailAddr)?;
@@ -31,6 +31,13 @@ fn default_domain() -> Result<Option<String>, DefaultDomainError> {
     Ok(
         if !COMMON_EMAIL_PROVIDERS.contains(&domain) && domain::check_domain_syntax(&domain).is_ok()
         {
+            #[cfg(not(feature = "brainium"))]
+            if domain == "brainiumstudios.com" {
+                crate::util::cli::Report::action_request(
+                    "You have a Brainium email address, but you're using a non-Brainium installation of cargo-mobile!",
+                    "If that's not intentional, run `cargo install --force --git https://github.com/BrainiumLLC/cargo-mobile --features brainium`",
+                ).print(_wrapper);
+            }
             Some(domain.to_owned())
         } else {
             None
@@ -71,7 +78,7 @@ struct Defaults {
 }
 
 impl Defaults {
-    fn new() -> Result<Self, DefaultsError> {
+    fn new(wrapper: &TextWrapper) -> Result<Self, DefaultsError> {
         let cwd = env::current_dir().map_err(DefaultsError::CurrentDirFailed)?;
         let dir_name = cwd
             .file_name()
@@ -82,7 +89,7 @@ impl Defaults {
         Ok(Self {
             name: name::transliterate(&dir_name.to_kebab_case()),
             stylized_name: dir_name.to_title_case(),
-            domain: default_domain()
+            domain: default_domain(wrapper)
                 .ok()
                 .flatten()
                 .unwrap_or_else(|| "example.com".to_owned()),
@@ -139,35 +146,29 @@ pub struct Raw {
     pub stylized_name: Option<String>,
     pub domain: String,
     pub asset_dir: Option<String>,
-    #[cfg(feature = "brainium")]
     pub template_pack: Option<String>,
-    #[cfg(not(feature = "brainium"))]
-    pub template_pack: String,
 }
 
 impl Raw {
-    pub fn detect() -> Result<Self, DetectError> {
-        let defaults = Defaults::new().map_err(DetectError::DefaultsFailed)?;
+    pub fn detect(wrapper: &TextWrapper) -> Result<Self, DetectError> {
+        let defaults = Defaults::new(wrapper).map_err(DetectError::DefaultsFailed)?;
         Ok(Self {
             name: defaults.name.ok_or_else(|| DetectError::NameNotDetected)?,
             stylized_name: Some(defaults.stylized_name),
             domain: defaults.domain,
             asset_dir: None,
-            #[cfg(feature = "brainium")]
-            template_pack: None,
-            #[cfg(not(feature = "brainium"))]
-            template_pack: super::DEFAULT_TEMPLATE_PACK.to_owned(),
+            template_pack: Some(super::DEFAULT_TEMPLATE_PACK.to_owned())
+                .filter(|pack| pack != super::IMPLIED_TEMPLATE_PACK),
         })
     }
 
     pub fn prompt(wrapper: &TextWrapper) -> Result<Self, PromptError> {
-        let defaults = Defaults::new().map_err(PromptError::DefaultsFailed)?;
+        let defaults = Defaults::new(wrapper).map_err(PromptError::DefaultsFailed)?;
         let (name, default_stylized) = Self::prompt_name(wrapper, &defaults)?;
         let stylized_name = Self::prompt_stylized_name(&name, default_stylized)?;
         let domain = Self::prompt_domain(wrapper, &defaults)?;
-        let template_pack = Self::prompt_template_pack(wrapper)?;
-        #[cfg(feature = "brainium")]
-        let template_pack = Some(template_pack).filter(|pack| pack != super::DEFAULT_TEMPLATE_PACK);
+        let template_pack = Some(Self::prompt_template_pack(wrapper)?)
+            .filter(|pack| pack != super::IMPLIED_TEMPLATE_PACK);
         Ok(Self {
             name,
             stylized_name: Some(stylized_name),
