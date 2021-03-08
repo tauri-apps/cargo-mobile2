@@ -1,12 +1,11 @@
+use once_cell_regex::regex;
 use openssl::{
     error::ErrorStack as OpenSslError,
     nid::Nid,
     x509::{X509NameRef, X509},
 };
-use std::{
-    collections::BTreeSet,
-    fmt::{self, Display},
-};
+use std::collections::BTreeSet;
+use thiserror::Error;
 
 pub fn get_pem_list(name_substr: &str) -> bossy::Result<bossy::Output> {
     bossy::Command::impure("security")
@@ -22,31 +21,30 @@ pub fn get_pem_list_new_name_scheme() -> bossy::Result<bossy::Output> {
     get_pem_list("Development:")
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
-    SecurityCommandFailed(bossy::Error),
-    X509ParseFailed(OpenSslError),
-    X509FieldMissing(Nid),
-    FieldNotValidUtf8(OpenSslError),
+    #[error("Failed to call `security` command: {0}")]
+    SecurityCommandFailed(#[from] bossy::Error),
+    #[error("Failed to parse X509 cert: {0}")]
+    X509ParseFailed(#[source] OpenSslError),
+    #[error("Missing X509 field {name:?} ({id:?})")]
+    X509FieldMissing { name: &'static str, id: Nid },
+    #[error("Field contained invalid UTF-8: {0}")]
+    FieldNotValidUtf8(#[source] OpenSslError),
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::SecurityCommandFailed(err) => {
-                write!(f, "Failed to call `security` command: {}", err)
-            }
-            Self::X509ParseFailed(err) => write!(f, "Failed to parse X509 cert: {}", err),
-            Self::X509FieldMissing(nid) => write!(f, "Missing X509 field: {:?}", nid),
-            Self::FieldNotValidUtf8(err) => write!(f, "Field contained invalid UTF-8: {}", err),
-        }
-    }
-}
-
-pub fn get_x509_field(name: &X509NameRef, nid: Nid) -> Result<String, Error> {
-    name.entries_by_nid(nid)
+pub fn get_x509_field(
+    subject_name: &X509NameRef,
+    field_name: &'static str,
+    field_nid: Nid,
+) -> Result<String, Error> {
+    subject_name
+        .entries_by_nid(field_nid)
         .nth(0)
-        .ok_or(Error::X509FieldMissing(nid))?
+        .ok_or(Error::X509FieldMissing {
+            name: field_name,
+            id: field_nid,
+        })?
         .data()
         .as_utf8()
         .map_err(Error::FieldNotValidUtf8)
@@ -62,8 +60,29 @@ pub struct Team {
 impl Team {
     pub fn from_x509(cert: X509) -> Result<Self, Error> {
         let subj = cert.subject_name();
-        let name = get_x509_field(subj, Nid::ORGANIZATIONNAME)?;
-        let id = get_x509_field(subj, Nid::ORGANIZATIONALUNITNAME)?;
+        let common_name = get_x509_field(subj, "Common Name", Nid::COMMONNAME)?;
+        let organization = get_x509_field(subj, "Organization", Nid::ORGANIZATIONNAME);
+        let name = if let Ok(organization) = organization {
+            log::info!(
+                "found cert {:?} with organization {:?}",
+                common_name,
+                organization
+            );
+            organization
+        } else {
+            log::error!(
+                "found cert {:?} but failed to get organization; falling back to displaying common name",
+                common_name
+            );
+            regex!(r"Apple Develop\w+: (.*) \(.+\)")
+                .captures(&common_name)
+                .map(|caps| caps[1].to_owned())
+                .unwrap_or_else(|| {
+                    log::error!("regex failed to capture nice part of name in cert {:?}; falling back to displaying full name", common_name);
+                    common_name
+                })
+        };
+        let id = get_x509_field(subj, "Organizationl Unit", Nid::ORGANIZATIONALUNITNAME)?;
         Ok(Self { name, id })
     }
 }
