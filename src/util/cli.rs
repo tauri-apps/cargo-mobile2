@@ -35,7 +35,7 @@ pub struct GlobalFlags {
     #[structopt(
         short = "v",
         long = "verbose",
-        help = "Vomit out extensive logging",
+        help = "Vomit out extensive logging (-vv for more)",
         global = true,
         multiple = true,
         parse(from_occurrences = opts::NoiseLevel::from_occurrences),
@@ -79,6 +79,18 @@ pub struct Profile {
         parse(from_flag = opts::Profile::from_flag),
     )]
     pub profile: opts::Profile,
+}
+
+#[derive(Clone, Copy, Debug, StructOpt)]
+pub struct Filter {
+    #[structopt(
+        short = "f",
+        long = "filter",
+        help = "Filter logs by level",
+        possible_values = &opts::FilterLevel::variants(),
+        case_insensitive = true,
+    )]
+    pub filter: Option<opts::FilterLevel>,
 }
 
 pub type TextWrapper = textwrap::Wrapper<'static, textwrap::NoHyphenation>;

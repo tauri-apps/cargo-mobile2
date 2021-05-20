@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use structopt::clap::arg_enum;
 use yes_or_no::yes_or_no;
 
 yes_or_no!(NonInteractive);
@@ -73,6 +74,31 @@ impl Profile {
         match self {
             Self::Debug => "debug",
             Self::Release => "release",
+        }
+    }
+}
+
+arg_enum! {
+    /// Android device logging filter level, used as an argument for run
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+    pub enum FilterLevel {
+        Error,
+        Warn,
+        Info,
+        Debug,
+        Verbose,
+    }
+}
+
+impl FilterLevel {
+    /// Filter level for logcat
+    pub fn logcat(&self) -> &'static str {
+        match self {
+            Self::Error => "E",
+            Self::Warn => "W",
+            Self::Info => "I",
+            Self::Debug => "D",
+            Self::Verbose => "V",
         }
     }
 }

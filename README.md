@@ -63,3 +63,14 @@ Once you've generated your project, you can run `cargo run` as usual to run your
 If you prefer to work in the usual IDEs, you can use `cargo apple open` and `cargo android open` to open your project in Xcode and Android Studio respectively.
 
 For more commands, run `cargo mobile`, `cargo apple`, or `cargo android` to see help information.
+
+### Android
+
+`cargo android run` will build, install and run the app and follows device logs emitted by the app.
+
+By default, warn and error logs are displayed. Additional logging of increasing verbosity can be shown by use of the `-v` or `-vv` options. These also provide more verbose logging for the build and install steps.
+
+For fine-grained control of logging, use the `--filter` (or `-f`) option, which takes an Android log level, such as `debug`. This option overrides
+the default device logging level set by `-v` or `-vv`.
+
+If using the `android_logger` crate to handle Rust log messages, `trace` logs from Rust are mapped to `verbose` logs in Android.

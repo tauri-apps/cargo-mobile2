@@ -66,6 +66,8 @@ pub enum Command {
     Run {
         #[structopt(flatten)]
         profile: cli::Profile,
+        #[structopt(flatten)]
+        filter: cli::Filter,
     },
     #[structopt(name = "st", about = "Displays a detailed stacktrace for a device")]
     Stacktrace,
@@ -209,11 +211,12 @@ impl Exec for Input {
             }),
             Command::Run {
                 profile: cli::Profile { profile },
+                filter: cli::Filter { filter },
             } => with_config(non_interactive, wrapper, |config, _| {
                 ensure_init(config)?;
                 device_prompt(&env)
                     .map_err(Error::DevicePromptFailed)?
-                    .run(config, &env, noise_level, profile)
+                    .run(config, &env, noise_level, profile, filter)
                     .map_err(Error::RunFailed)
             }),
             Command::Stacktrace => with_config(non_interactive, wrapper, |config, _| {

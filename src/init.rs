@@ -20,7 +20,7 @@ use std::{
 
 pub static DOT_FIRST_INIT_FILE_NAME: &str = ".first-init";
 static DOT_FIRST_INIT_CONTENTS: &str = // newline
-r#"The presence of this file indicates `cargo mobile init` has been called for
+    r#"The presence of this file indicates `cargo mobile init` has been called for
 the first time on a new project, but hasn't yet completed successfully once. As
 long as this file is here, `cargo mobile init` will use a more aggressive
 template generation strategy that allows it to place files that it wouldn't

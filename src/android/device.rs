@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{
     env::ExplicitEnv as _,
-    opts::{NoiseLevel, Profile},
+    opts::{FilterLevel, NoiseLevel, Profile},
     util::{
         self,
         cli::{Report, Reportable},
@@ -189,6 +189,7 @@ impl<'a> Device<'a> {
         env: &Env,
         noise_level: NoiseLevel,
         profile: Profile,
+        filter_level: Option<FilterLevel>,
     ) -> Result<(), RunError> {
         self.build_apk(config, env, noise_level, profile)
             .map_err(RunError::ApkBuildFailed)?;
@@ -207,11 +208,13 @@ impl<'a> Device<'a> {
         let filter = format!(
             "{}:{}",
             config.app().name(),
-            match noise_level {
-                NoiseLevel::Polite => "W",
-                NoiseLevel::LoudAndProud => "I",
-                NoiseLevel::FranklyQuitePedantic => "V",
-            },
+            filter_level
+                .unwrap_or(match noise_level {
+                    NoiseLevel::Polite => FilterLevel::Warn,
+                    NoiseLevel::LoudAndProud => FilterLevel::Info,
+                    NoiseLevel::FranklyQuitePedantic => FilterLevel::Verbose,
+                })
+                .logcat()
         );
         adb::adb(env, &self.serial_no)
             .with_args(&["logcat", "-v", "color", "-s", &filter])
