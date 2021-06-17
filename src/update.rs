@@ -48,15 +48,22 @@ impl Display for Error {
     }
 }
 
-pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
-    let repo = Repo::checkouts_dir("cargo-mobile").map_err(Error::NoHomeDir)?;
-    let marker = repo
-        .path()
+pub(crate) fn cargo_mobile_repo() -> Result<Repo, util::NoHomeDir> {
+    Repo::checkouts_dir("cargo-mobile")
+}
+
+pub(crate) fn updating_marker_path(repo: &Repo) -> PathBuf {
+    repo.path()
         .parent()
         .expect("developer error: repo path had no parent")
         .parent()
         .expect("developer error: checkouts dir had no parent")
-        .join(".updating");
+        .join(".updating")
+}
+
+pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
+    let repo = cargo_mobile_repo().map_err(Error::NoHomeDir)?;
+    let marker = updating_marker_path(&repo);
     let marker_exists = marker.is_file();
     if marker_exists {
         log::info!("marker file present at {:?}", marker);
@@ -89,10 +96,11 @@ pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
     } else {
         "`cargo-mobile` is already up-to-date"
     };
-    let details = match repo.latest_message() {
-        Ok(msg) => format!("Contains commits up to {:?}", msg),
-        Err(err) => format!("But we failed to get the latest commit message: {}", err),
-    };
+    let details = util::unwrap_either(
+        repo.latest_message()
+            .map(util::format_commit_msg)
+            .map_err(|err| format!("But we failed to get the latest commit message: {}", err)),
+    );
     Report::victory(msg, details).print(wrapper);
     Ok(())
 }

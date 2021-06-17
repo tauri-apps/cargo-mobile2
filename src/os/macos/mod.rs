@@ -1,4 +1,5 @@
 mod ffi;
+pub(super) mod info;
 
 use core_foundation::{
     array::CFArray,

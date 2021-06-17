@@ -1,36 +1,25 @@
-use super::ndk;
+use super::{
+    ndk,
+    source_props::{self, SourceProps},
+};
 use crate::{
     env::{Env as CoreEnv, Error as CoreError, ExplicitEnv},
     util::cli::{Report, Reportable},
 };
-use std::{
-    fmt::{self, Display},
-    path::PathBuf,
-};
+use std::path::{Path, PathBuf};
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
-    CoreEnvError(CoreError),
+    #[error(transparent)]
+    CoreEnvError(#[from] CoreError),
     // TODO: we should be nice and provide a platform-specific suggestion
-    AndroidSdkRootNotSet(std::env::VarError),
+    #[error("Have you installed the Android SDK? The `ANDROID_SDK_ROOT` environment variable isn't set, and is required: {0}")]
+    AndroidSdkRootNotSet(#[from] std::env::VarError),
+    #[error("Have you installed the Android SDK? The `ANDROID_SDK_ROOT` environment variable is set, but doesn't point to an existing directory.")]
     AndroidSdkRootNotADir,
-    NdkEnvError(ndk::Error),
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::CoreEnvError(err) => write!(f, "{}", err),
-            Self::AndroidSdkRootNotSet(err) => {
-                write!(f, "Have you installed the Android SDK? The `ANDROID_SDK_ROOT` environment variable isn't set, and is required: {}", err)
-            }
-            Self::AndroidSdkRootNotADir => write!(
-                f,
-                "Have you installed the Android SDK? The `ANDROID_SDK_ROOT` environment variable is set, but doesn't point to an existing directory."
-            ),
-            Self::NdkEnvError(err) => write!(f, "{}", err),
-        }
-    }
+    #[error(transparent)]
+    NdkEnvError(#[from] ndk::Error),
 }
 
 impl Reportable for Error {
@@ -58,7 +47,10 @@ pub struct Env {
 
 impl Env {
     pub fn new() -> Result<Self, Error> {
-        let base = CoreEnv::new().map_err(Error::CoreEnvError)?;
+        Self::from_env(CoreEnv::new()?)
+    }
+
+    pub fn from_env(base: CoreEnv) -> Result<Self, Error> {
         let sdk_root = std::env::var("ANDROID_SDK_ROOT")
             .map_err(Error::AndroidSdkRootNotSet)
             .map(PathBuf::from)
@@ -96,12 +88,21 @@ impl Env {
         Ok(Self {
             base,
             sdk_root,
-            ndk: ndk::Env::new().map_err(Error::NdkEnvError)?,
+            ndk: ndk::Env::new()?,
         })
     }
 
     pub fn path(&self) -> &str {
         self.base.path()
+    }
+
+    pub fn sdk_root(&self) -> &str {
+        self.sdk_root.as_path().to_str().unwrap()
+    }
+
+    pub fn sdk_version(&self) -> Result<source_props::Revision, source_props::Error> {
+        SourceProps::from_path(Path::new(self.sdk_root()).join("tools/source.properties"))
+            .map(|props| props.pkg.revision)
     }
 }
 

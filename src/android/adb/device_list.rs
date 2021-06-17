@@ -6,13 +6,19 @@ use crate::{
 };
 use once_cell_regex::regex_multi_line;
 use std::collections::BTreeSet;
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
-    DevicesFailed(super::RunCheckedError),
-    NameFailed(device_name::Error),
+    #[error("Failed to run `adb devices`: {0}")]
+    DevicesFailed(#[from] super::RunCheckedError),
+    #[error(transparent)]
+    NameFailed(#[from] device_name::Error),
+    #[error(transparent)]
     ModelFailed(get_prop::Error),
+    #[error(transparent)]
     AbiFailed(get_prop::Error),
+    #[error("{0:?} isn't a valid target ABI.")]
     AbiInvalid(String),
 }
 
@@ -23,9 +29,7 @@ impl Reportable for Error {
             Self::DevicesFailed(err) => err.report("Failed to run `adb devices`"),
             Self::NameFailed(err) => err.report(),
             Self::ModelFailed(err) | Self::AbiFailed(err) => err.report(),
-            Self::AbiInvalid(abi) => {
-                Report::error(msg, format!("{:?} isn't a valid target ABI.", abi))
-            }
+            Self::AbiInvalid(_) => Report::error(msg, self),
         }
     }
 }

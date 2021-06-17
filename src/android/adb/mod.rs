@@ -7,6 +7,7 @@ pub use self::{device_list::device_list, device_name::device_name, get_prop::get
 use super::env::Env;
 use crate::{env::ExplicitEnv as _, util::cli::Report};
 use std::str;
+use thiserror::Error;
 
 pub fn adb(env: &Env, serial_no: &str) -> bossy::Command {
     bossy::Command::pure("adb")
@@ -14,10 +15,13 @@ pub fn adb(env: &Env, serial_no: &str) -> bossy::Command {
         .with_args(&["-s", serial_no])
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum RunCheckedError {
+    #[error(transparent)]
     InvalidUtf8(bossy::Error),
+    #[error("This device doesn't yet trust this computer. On the device, you should see a prompt like \"Allow USB debugging?\". Pressing \"Allow\" should fix this.")]
     Unauthorized,
+    #[error(transparent)]
     CommandFailed(bossy::Error),
 }
 
@@ -25,7 +29,7 @@ impl RunCheckedError {
     pub fn report(&self, msg: &str) -> Report {
         match self {
             Self::InvalidUtf8(err) => Report::error(msg, err),
-            Self::Unauthorized => Report::action_request(msg, "This device doesn't yet trust this computer. On the device, you should see a prompt like \"Allow USB debugging?\". Pressing \"Allow\" should fix this."),
+            Self::Unauthorized => Report::action_request(msg, self),
             Self::CommandFailed(err) => Report::error(msg, err),
         }
     }

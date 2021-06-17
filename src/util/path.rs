@@ -24,6 +24,26 @@ pub fn expand_home(path: impl AsRef<Path>) -> Result<PathBuf, NoHomeDir> {
     }
 }
 
+#[derive(Debug, Error)]
+pub enum ContractHomeError {
+    #[error(transparent)]
+    NoHomeDir(#[from] NoHomeDir),
+    #[error("User's home directory path wasn't valid UTF-8.")]
+    HomeInvalidUtf8,
+    #[error("Supplied path wasn't valid UTF-8.")]
+    PathInvalidUtf8,
+}
+
+pub fn contract_home(path: impl AsRef<Path>) -> Result<String, ContractHomeError> {
+    let path = path
+        .as_ref()
+        .to_str()
+        .ok_or(ContractHomeError::PathInvalidUtf8)?;
+    let home = home_dir()?;
+    let home = home.to_str().ok_or(ContractHomeError::HomeInvalidUtf8)?;
+    Ok(path.replace(home, "~").to_owned())
+}
+
 pub fn install_dir() -> Result<PathBuf, NoHomeDir> {
     home_dir().map(|home| home.join(concat!(".", env!("CARGO_PKG_NAME"))))
 }

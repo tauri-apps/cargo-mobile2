@@ -22,7 +22,7 @@ pub fn bin_name(name: &str) -> String {
 pub static VERSION_SHORT: &str = concat!("v", env!("CARGO_PKG_VERSION"));
 
 pub static VERSION_LONG: Lazy<String> = Lazy::new(|| match util::installed_commit_msg() {
-    Ok(Some(msg)) => format!("{}\nContains commits up to {:?}", VERSION_SHORT, msg),
+    Ok(Some(msg)) => format!("{}\n{}", VERSION_SHORT, util::format_commit_msg(msg)),
     Ok(None) => VERSION_SHORT.to_owned(),
     Err(err) => {
         log::error!("failed to get current commit msg: {}", err);
@@ -95,6 +95,15 @@ pub struct Filter {
 
 pub type TextWrapper = textwrap::Wrapper<'static, textwrap::NoHyphenation>;
 
+pub mod colors {
+    use colored::Color::{self, *};
+
+    pub const ERROR: Color = BrightRed;
+    pub const WARNING: Color = BrightYellow;
+    pub const ACTION_REQUEST: Color = BrightMagenta;
+    pub const VICTORY: Color = BrightGreen;
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum Label {
     Error,
@@ -105,9 +114,9 @@ pub enum Label {
 impl Label {
     pub fn color(&self) -> colored::Color {
         match self {
-            Self::Error => colored::Color::BrightRed,
-            Self::ActionRequest => colored::Color::BrightMagenta,
-            Self::Victory => colored::Color::BrightGreen,
+            Self::Error => colors::ERROR,
+            Self::ActionRequest => colors::ACTION_REQUEST,
+            Self::Victory => colors::VICTORY,
         }
     }
 

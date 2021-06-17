@@ -1,5 +1,5 @@
 mod update;
-mod xcode_plugin;
+pub(crate) mod xcode_plugin;
 
 use self::update::{Outdated, OutdatedError};
 use super::system_profile::{self, DeveloperTools};

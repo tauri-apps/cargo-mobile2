@@ -5,6 +5,7 @@ pub mod android;
 pub mod apple;
 pub mod config;
 pub mod device;
+pub mod doctor;
 mod dot_cargo;
 pub mod env;
 pub mod init;

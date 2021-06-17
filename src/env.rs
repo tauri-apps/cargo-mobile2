@@ -1,35 +1,17 @@
 use crate::util::cli::{Report, Reportable};
-use std::{
-    ffi::OsStr,
-    fmt::{self, Debug, Display},
-    path::Path,
-};
+use std::{ffi::OsStr, fmt::Debug, path::Path};
+use thiserror::Error;
 
 pub trait ExplicitEnv: Debug {
     fn explicit_env(&self) -> Vec<(&str, &OsStr)>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
-    HomeNotSet(std::env::VarError),
-    PathNotSet(std::env::VarError),
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::HomeNotSet(err) => write!(
-                f,
-                "The `HOME` environment variable isn't set, which is pretty weird: {}",
-                err
-            ),
-            Self::PathNotSet(err) => write!(
-                f,
-                "The `PATH` environment variable isn't set, which is super weird: {}",
-                err
-            ),
-        }
-    }
+    #[error("The `HOME` environment variable isn't set, which is pretty weird: {0}")]
+    HomeNotSet(#[source] std::env::VarError),
+    #[error("The `PATH` environment variable isn't set, which is super weird: {0}")]
+    PathNotSet(#[source] std::env::VarError),
 }
 
 impl Reportable for Error {
@@ -38,7 +20,7 @@ impl Reportable for Error {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Env {
     home: String,
     path: String,

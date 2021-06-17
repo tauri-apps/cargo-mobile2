@@ -1,3 +1,4 @@
+pub(super) mod info;
 mod xdg;
 
 use std::{

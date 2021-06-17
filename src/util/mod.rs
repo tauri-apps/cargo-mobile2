@@ -75,24 +75,86 @@ pub fn host_target_triple() -> Result<String, HostTargetTripleError> {
 }
 
 #[derive(Debug, Error)]
-pub enum RustVersionError {
-    #[error("Failed to check rustc version: {0}")]
-    CommandFailed(#[from] RunAndSearchError),
-    #[error("Failed to parse rustc major version from {version:?}: {source}")]
+pub enum VersionTripleError {
+    #[error("Failed to parse major version from {version:?}: {source}")]
     MajorInvalid {
         version: String,
         source: std::num::ParseIntError,
     },
-    #[error("Failed to parse rustc minor version from {version:?}: {source}")]
+    #[error("Failed to parse minor version from {version:?}: {source}")]
     MinorInvalid {
         version: String,
         source: std::num::ParseIntError,
     },
-    #[error("Failed to parse rustc patch version from {version:?}: {source}")]
+    #[error("Failed to parse patch version from {version:?}: {source}")]
     PatchInvalid {
         version: String,
         source: std::num::ParseIntError,
     },
+}
+
+macro_rules! parse {
+    ($key:expr, $err:ident, $variant:ident, $field:ident) => {
+        |caps: &Captures<'_>, context: &str| {
+            caps[$key].parse::<u32>().map_err(|source| $err::$variant {
+                $field: context.to_owned(),
+                source,
+            })
+        }
+    };
+}
+
+// Generic version triple
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct VersionTriple {
+    pub major: u32,
+    pub minor: u32,
+    pub patch: u32,
+}
+
+impl Display for VersionTriple {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
+
+impl VersionTriple {
+    pub const fn new(major: u32, minor: u32, patch: u32) -> Self {
+        Self {
+            major,
+            minor,
+            patch,
+        }
+    }
+
+    pub fn from_caps<'a>(caps: &'a Captures<'a>) -> Result<(Self, &'a str), VersionTripleError> {
+        let version_str = &caps["version"];
+        Ok((
+            Self {
+                major: parse!("major", VersionTripleError, MajorInvalid, version)(
+                    &caps,
+                    version_str,
+                )?,
+                minor: parse!("minor", VersionTripleError, MinorInvalid, version)(
+                    &caps,
+                    version_str,
+                )?,
+                patch: parse!("patch", VersionTripleError, PatchInvalid, version)(
+                    &caps,
+                    version_str,
+                )?,
+            },
+            version_str,
+        ))
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum RustVersionError {
+    #[error("Failed to check rustc version: {0}")]
+    CommandFailed(#[from] RunAndSearchError),
+    #[error(transparent)]
+    TripleInvalid(#[from] VersionTripleError),
     #[error("Failed to parse rustc release year from {date:?}: {source}")]
     YearInvalid {
         date: String,
@@ -130,7 +192,7 @@ pub struct RustVersionDetails {
 
 #[derive(Debug)]
 pub struct RustVersion {
-    pub triple: (u32, u32, u32),
+    pub triple: VersionTriple,
     pub flavor: Option<RustVersionFlavor>,
     /// This section can be absent if Rust is installed using something other
     /// than `rustup` (i.e. Homebrew)
@@ -139,7 +201,7 @@ pub struct RustVersion {
 
 impl Display for RustVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{}.{}", self.triple.0, self.triple.1, self.triple.2)?;
+        write!(f, "{}", self.triple)?;
         if let Some(flavor) = &self.flavor {
             write!(f, "-{}", flavor.flavor)?;
             if let Some(candidate) = &flavor.candidate {
@@ -159,32 +221,15 @@ impl Display for RustVersion {
 
 impl RustVersion {
     pub fn check() -> Result<Self, RustVersionError> {
-        macro_rules! parse {
-            ($key:expr, $var:ident, $field:ident) => {
-                |caps: &Captures<'_>, context: &str| {
-                    caps[$key]
-                        .parse::<u32>()
-                        .map_err(|source| RustVersionError::$var {
-                            $field: context.to_owned(),
-                            source,
-                        })
-                }
-            };
-        }
-
         run_and_search(
             &mut bossy::Command::impure_parse("rustc --version"),
             regex!(
                 r"rustc (?P<version>(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(-(?P<flavor>\w+)(.(?P<candidate>\d+))?)?)(?P<details> \((?P<hash>\w{9}) (?P<date>(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2}))\))?"
             ),
             |_text, caps| {
-                let version_str = &caps["version"];
+                let (triple, _version_str) = VersionTriple::from_caps(&caps)?;
                 let this = Self {
-                    triple: (
-                        parse!("major", MajorInvalid, version)(&caps, version_str)?,
-                        parse!("minor", MinorInvalid, version)(&caps, version_str)?,
-                        parse!("patch", PatchInvalid, version)(&caps, version_str)?,
-                    ),
+                    triple,
                     flavor: caps.name("flavor").map(|flavor| RustVersionFlavor {
                         flavor: flavor.as_str().to_owned(),
                         candidate: caps
@@ -198,9 +243,15 @@ impl RustVersion {
                             Ok(RustVersionDetails {
                                 hash: caps["hash"].to_owned(),
                                 date: (
-                                    parse!("year", YearInvalid, date)(&caps, date_str)?,
-                                    parse!("month", MonthInvalid, date)(&caps, date_str)?,
-                                    parse!("day", DayInvalid, date)(&caps, date_str)?,
+                                    parse!("year", RustVersionError, YearInvalid, date)(
+                                        &caps, date_str,
+                                    )?,
+                                    parse!("month", RustVersionError, MonthInvalid, date)(
+                                        &caps, date_str,
+                                    )?,
+                                    parse!("day", RustVersionError, DayInvalid, date)(
+                                        &caps, date_str,
+                                    )?,
                                 ),
                             })
                         })
@@ -214,8 +265,8 @@ impl RustVersion {
 
     pub fn valid(&self) -> bool {
         if cfg!(target_os = "macos") {
-            const LAST_GOOD_STABLE: (u32, u32, u32) = (1, 45, 2);
-            const NEXT_GOOD_STABLE: (u32, u32, u32) = (1, 49, 0);
+            const LAST_GOOD_STABLE: VersionTriple = VersionTriple::new(1, 45, 2);
+            const NEXT_GOOD_STABLE: VersionTriple = VersionTriple::new(1, 49, 0);
             const FIRST_GOOD_NIGHTLY: (u32, u32, u32) = (2020, 10, 24);
 
             let old_good = self.triple <= LAST_GOOD_STABLE;
@@ -362,5 +413,15 @@ pub fn installed_commit_msg() -> Result<Option<String>, InstalledCommitMsgError>
             .map_err(|source| InstalledCommitMsgError::ReadFailed { path, source })
     } else {
         Ok(None)
+    }
+}
+
+pub fn format_commit_msg(msg: String) -> String {
+    format!("Contains commits up to {:?}", msg)
+}
+
+pub fn unwrap_either<T>(result: Result<T, T>) -> T {
+    match result {
+        Ok(t) | Err(t) => t,
     }
 }

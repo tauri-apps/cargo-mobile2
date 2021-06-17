@@ -4,10 +4,13 @@ use crate::{
     util::cli::{Report, Reportable},
 };
 use once_cell_regex::regex;
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
-    DumpsysFailed(super::RunCheckedError),
+    #[error("Failed to run `adb shell dumpsys bluetooth_manager`: {0}")]
+    DumpsysFailed(#[source] super::RunCheckedError),
+    #[error("Name regex didn't match anything.")]
     NotMatched,
 }
 
@@ -18,7 +21,7 @@ impl Reportable for Error {
             Self::DumpsysFailed(err) => {
                 err.report("Failed to run `adb shell dumpsys bluetooth_manager`")
             }
-            Self::NotMatched => Report::error(msg, "Name regex didn't match anything"),
+            Self::NotMatched => Report::error(msg, self),
         }
     }
 }

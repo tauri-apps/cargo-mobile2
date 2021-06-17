@@ -49,6 +49,10 @@ impl Status {
     pub fn stale(self) -> bool {
         matches!(self, Self::Stale)
     }
+
+    pub fn fresh(self) -> bool {
+        matches!(self, Self::Fresh)
+    }
 }
 
 #[derive(Clone, Debug)]
