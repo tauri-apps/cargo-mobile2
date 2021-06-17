@@ -10,6 +10,7 @@ use cargo_mobile::{
     },
     NAME,
 };
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -47,6 +48,28 @@ pub enum Command {
         #[structopt(long = "submodule-commit", help = "Template pack commit to checkout")]
         submodule_commit: Option<String>,
     },
+    #[structopt(name = "new", about = "Creates a new project in a new directory")]
+    New {
+        #[structopt(flatten)]
+        skip_dev_tools: cli::SkipDevTools,
+        #[structopt(flatten)]
+        reinstall_deps: cli::ReinstallDeps,
+        #[structopt(
+            long = "open",
+            help = "Open in default code editor",
+            parse(from_flag = opts::OpenInEditor::from_bool),
+        )]
+        open_in_editor: opts::OpenInEditor,
+        #[structopt(long = "submodule-commit", help = "Template pack commit to checkout")]
+        submodule_commit: Option<String>,
+        #[structopt(
+            name = "DIRECTORY",
+            help = "New directory to create project in",
+            index = 1,
+            required = true
+        )]
+        directory: PathBuf,
+    },
     #[structopt(name = "open", about = "Open project in default code editor")]
     Open,
     #[structopt(name = "update", about = "Update `cargo-mobile`")]
@@ -78,6 +101,14 @@ pub enum Command {
 #[derive(Debug)]
 pub enum Error {
     InitFailed(init::Error),
+    DirCreationFailed {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+    DirChangeFailed {
+        path: PathBuf,
+        source: std::io::Error,
+    },
     OpenFailed(util::OpenInEditorError),
     UpdateFailed(update::Error),
     #[cfg(target_os = "macos")]
@@ -90,6 +121,13 @@ impl Reportable for Error {
     fn report(&self) -> Report {
         match self {
             Self::InitFailed(err) => err.report(),
+            Self::DirCreationFailed { path, source } => {
+                Report::error(format!("Failed to create directory {:?}", path), source)
+            }
+            Self::DirChangeFailed { path, source } => Report::error(
+                format!("Failed to change current directory {:?}", path),
+                source,
+            ),
             Self::OpenFailed(err) => {
                 Report::error("Failed to open project in default code editor", err)
             }
@@ -131,6 +169,33 @@ impl Exec for Input {
             )
             .map(|_| ())
             .map_err(Error::InitFailed),
+            Command::New {
+                skip_dev_tools: cli::SkipDevTools { skip_dev_tools },
+                reinstall_deps: cli::ReinstallDeps { reinstall_deps },
+                open_in_editor,
+                submodule_commit,
+                directory,
+            } => {
+                std::fs::create_dir_all(&directory).map_err(|source| Error::DirCreationFailed {
+                    path: directory.clone(),
+                    source,
+                })?;
+                std::env::set_current_dir(&directory).map_err(|source| Error::DirChangeFailed {
+                    path: directory,
+                    source,
+                })?;
+                init::exec(
+                    wrapper,
+                    non_interactive,
+                    skip_dev_tools,
+                    reinstall_deps,
+                    open_in_editor,
+                    submodule_commit,
+                    ".",
+                )
+                .map(|_| ())
+                .map_err(Error::InitFailed)
+            }
             Command::Open => util::open_in_editor(".").map_err(Error::OpenFailed),
             Command::Update { init } => {
                 update::update(wrapper).map_err(Error::UpdateFailed)?;
