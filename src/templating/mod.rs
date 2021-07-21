@@ -13,7 +13,7 @@ use std::{
 
 // These packs only show in builds using the brainium feature flag, and will
 // always be at the top of the list.
-static BRAINIUM: &[&str] = &["brainstorm", "brainstorm-demo"];
+static BRAINIUM: &[&str] = &["brainstorm"];
 
 fn platform_pack_dir() -> Result<PathBuf, util::NoHomeDir> {
     util::install_dir().map(|dir| dir.join("templates/platforms"))
