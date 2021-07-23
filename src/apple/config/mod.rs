@@ -131,8 +131,8 @@ impl Error {
     }
 }
 
-#[serde(rename_all = "kebab-case")]
 #[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Config {
     #[serde(skip_serializing)]
     app: App,
