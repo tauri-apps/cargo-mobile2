@@ -31,35 +31,39 @@ impl DeveloperTools {
         // The `-xml` flag can be used to get this info in plist format, but
         // there don't seem to be any high quality plist crates, and parsing
         // XML sucks, we'll be lazy for now.
-        util::run_and_search(
-            &mut bossy::Command::impure_parse("system_profiler SPDeveloperToolsDataType"),
-            regex!(r"\bVersion: (?P<major>\d+)\.(?P<minor>\d+)\b"),
-            |text, caps| {
-                if text.is_empty() {
-                    Err(Error::XcodeNotInstalled)
-                } else {
-                    let major = {
-                        let raw = &caps["major"];
-                        raw.parse::<u32>()
-                            .map_err(|source| Error::MajorVersionInvalid {
-                                major: raw.to_owned(),
-                                source,
-                            })?
-                    };
-                    let minor = {
-                        let raw = &caps["minor"];
-                        raw.parse::<u32>()
-                            .map_err(|source| Error::MinorVersionInvalid {
-                                minor: raw.to_owned(),
-                                source,
-                            })?
-                    };
-                    Ok(Self {
-                        version: (major, minor),
-                    })
-                }
-            },
-        )
-        .map_err(Error::SystemProfilerFailed)?
+        let mut command = bossy::Command::impure_parse("system_profiler SPDeveloperToolsDataType");
+        let command_string = command.display().to_owned();
+        let output = command
+            .run_and_wait_for_string()
+            .map_err(util::RunAndSearchError::from)?;
+        if output.is_empty() {
+            Err(Error::XcodeNotInstalled)
+        } else {
+            let caps = regex!(r"\bVersion: (?P<major>\d+)\.(?P<minor>\d+)\b")
+                .captures(&output)
+                .ok_or_else(|| util::RunAndSearchError::SearchFailed {
+                    command: command_string,
+                    output: output.to_owned(),
+                })?;
+            let major = {
+                let raw = &caps["major"];
+                raw.parse::<u32>()
+                    .map_err(|source| Error::MajorVersionInvalid {
+                        major: raw.to_owned(),
+                        source,
+                    })?
+            };
+            let minor = {
+                let raw = &caps["minor"];
+                raw.parse::<u32>()
+                    .map_err(|source| Error::MinorVersionInvalid {
+                        minor: raw.to_owned(),
+                        source,
+                    })?
+            };
+            Ok(Self {
+                version: (major, minor),
+            })
+        }
     }
 }
