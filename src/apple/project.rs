@@ -65,7 +65,7 @@ pub fn gen(
     Target::install_all().map_err(Error::RustupFailed)?;
     rust_version_check(wrapper).map_err(Error::RustVersionCheckFailed)?;
 
-    deps::install(wrapper, non_interactive, skip_dev_tools, reinstall_deps)
+    deps::install_all(wrapper, non_interactive, skip_dev_tools, reinstall_deps)
         .map_err(Error::DepsInstallFailed)?;
 
     let dest = config.project_dir();

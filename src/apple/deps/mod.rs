@@ -35,24 +35,32 @@ pub enum Error {
     VersionLookupFailed(#[from] system_profile::Error),
 }
 
-pub fn install(
+pub fn install(package: &'static str, reinstall_deps: opts::ReinstallDeps) -> Result<bool, Error> {
+    let found = util::command_present(package)
+        .map_err(|source| Error::PresenceCheckFailed { package, source })?;
+    log::info!("package `{}` present: {}", package, found);
+    if !found || reinstall_deps.yes() {
+        println!("Installing `{}`...", package);
+        // reinstall works even if it's not installed yet, and will upgrade
+        // if it's already installed!
+        bossy::Command::impure_parse("brew reinstall")
+            .with_arg(package)
+            .run_and_wait()
+            .map_err(|source| Error::InstallFailed { package, source })?;
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
+pub fn install_all(
     wrapper: &TextWrapper,
     non_interactive: opts::NonInteractive,
     skip_dev_tools: opts::SkipDevTools,
     reinstall_deps: opts::ReinstallDeps,
 ) -> Result<(), Error> {
     for package in PACKAGES {
-        let found = util::command_present(package)
-            .map_err(|source| Error::PresenceCheckFailed { package, source })?;
-        if !found || reinstall_deps.yes() {
-            println!("Installing `{}`...", package);
-            // reinstall works even if it's not installed yet, and will upgrade
-            // if it's already installed!
-            bossy::Command::impure_parse("brew reinstall")
-                .with_arg(package)
-                .run_and_wait()
-                .map_err(|source| Error::InstallFailed { package, source })?;
-        }
+        install(package, reinstall_deps)?;
     }
     let outdated = Outdated::load()?;
     outdated.print_notice();

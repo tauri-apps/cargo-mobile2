@@ -1,4 +1,4 @@
-use super::Git;
+use super::{lfs, Git};
 use once_cell_regex::regex;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -10,6 +10,7 @@ use std::{
 #[derive(Debug)]
 pub enum Cause {
     NameMissing,
+    LfsFailed(lfs::Error),
     IndexCheckFailed(io::Error),
     InitCheckFailed(io::Error),
     PathInvalidUtf8,
@@ -31,6 +32,11 @@ impl Display for Error {
                 f,
                 "Failed to infer name for submodule at remote {:?}; please specify a name explicitly.",
                 self.submodule.remote
+            ),
+            Cause::LfsFailed(err) => write!(
+                f,
+                "Failed to ensure presence of Git LFS for submodule {:?}: {}",
+                self.submodule.name().unwrap(), err,
             ),
             Cause::IndexCheckFailed(err) => write!(
                 f,
@@ -71,6 +77,8 @@ pub struct Submodule {
     name: Option<String>,
     remote: String,
     path: PathBuf,
+    #[serde(default)]
+    lfs: bool,
 }
 
 impl Submodule {
@@ -79,6 +87,7 @@ impl Submodule {
             name: None,
             remote: remote.into(),
             path: path.into(),
+            lfs: false,
         }
     }
 
@@ -119,6 +128,12 @@ impl Submodule {
             submodule: self.clone(),
             cause: Cause::NameMissing,
         })?;
+        if self.lfs {
+            lfs::ensure_present().map_err(|cause| Error {
+                submodule: self.clone(),
+                cause: Cause::LfsFailed(cause),
+            })?;
+        }
         let in_index = self.in_index(git, &name).map_err(|cause| Error {
             submodule: self.clone(),
             cause: Cause::IndexCheckFailed(cause),

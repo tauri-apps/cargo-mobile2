@@ -1,3 +1,4 @@
+pub mod lfs;
 pub mod repo;
 pub mod submodule;
 
