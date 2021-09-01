@@ -33,6 +33,8 @@ targets:
       - path: {{app.asset-dir}}
         buildPhase: resources
         type: folder
+      {{~#each asset-catalogs}}
+      - {{prefix-path this}}{{/each}}
     info:
       path: {{app.name}}_iOS/Info.plist
       properties:

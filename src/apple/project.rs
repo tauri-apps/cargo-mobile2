@@ -25,6 +25,10 @@ pub enum Error {
     MissingPack(templating::LookupError),
     TemplateProcessingFailed(bicycle::ProcessingError),
     AssetDirSymlinkFailed(ln::Error),
+    DirectoryCreationFailed {
+        path: PathBuf,
+        cause: std::io::Error,
+    },
     XcodegenFailed(bossy::Error),
 }
 
@@ -43,6 +47,10 @@ impl Reportable for Error {
             Self::AssetDirSymlinkFailed(err) => {
                 Report::error("Asset dir couldn't be symlinked into Xcode project", err)
             }
+            Self::DirectoryCreationFailed { path, cause } => Report::error(
+                format!("Failed to create iOS assets directory at {:?}", path),
+                cause,
+            ),
             Self::XcodegenFailed(err) => Report::error("Failed to run `xcodegen`", err),
         }
     }
@@ -79,6 +87,8 @@ pub fn gen(
         .map_err(Error::MissingPack)?
         .expect_local();
 
+    let asset_catalogs = metadata.ios().asset_catalogs().unwrap_or_default();
+
     bike.filter_and_process(
         src,
         &dest,
@@ -86,6 +96,7 @@ pub fn gen(
             map.insert("file-groups", &source_dirs);
             map.insert("ios-frameworks", metadata.ios().frameworks());
             map.insert("macos-frameworks", metadata.macos().frameworks());
+            map.insert("asset-catalogs", asset_catalogs);
         },
         filter.fun(),
     )
@@ -93,6 +104,14 @@ pub fn gen(
 
     ln::force_symlink_relative(config.app().asset_dir(), &dest, ln::TargetStyle::Directory)
         .map_err(Error::AssetDirSymlinkFailed)?;
+
+    // Create all asset catalog directories if they don't already exist
+    for dir in asset_catalogs {
+        std::fs::create_dir_all(dir).map_err(|cause| Error::DirectoryCreationFailed {
+            path: dest.clone(),
+            cause,
+        })?;
+    }
 
     // Note that Xcode doesn't always reload the project nicely; reopening is
     // often necessary.

@@ -15,11 +15,11 @@ use std::{
 static DEFAULT_PROJECT_DIR: &str = "gen/apple";
 
 #[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Platform {
-    #[serde(default)]
     features: Option<Vec<String>>,
-    #[serde(default)]
     frameworks: Option<Vec<String>>,
+    asset_catalogs: Option<Vec<PathBuf>>,
 }
 
 impl Platform {
@@ -33,6 +33,10 @@ impl Platform {
 
     pub fn frameworks(&self) -> &[String] {
         self.frameworks.as_deref().unwrap_or_else(|| &[])
+    }
+
+    pub fn asset_catalogs(&self) -> Option<&[PathBuf]> {
+        self.asset_catalogs.as_deref()
     }
 }
 
