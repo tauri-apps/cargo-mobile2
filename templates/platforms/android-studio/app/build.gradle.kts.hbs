@@ -4,28 +4,27 @@ plugins {
 }
 
 android {
-    compileSdkVersion(28)
+    compileSdk = 31
     defaultConfig {
         applicationId = "{{reverse-domain app.domain}}.{{snake-case app.name}}"
-        minSdkVersion({{android.min-sdk-version}})
-        targetSdkVersion(28)
+        minSdk = {{android.min-sdk-version}}
+        targetSdk = 31
         versionCode = 1
         versionName = "1.0"
     }
-    sourceSets {
+    sourceSets.getByName("main") {
         {{#if android.vulkan-validation}}// Vulkan validation layers
         val ndkHome = System.getenv("NDK_HOME")
-        getByName("main").jniLibs.srcDir("${ndkHome}/sources/third_party/vulkan/src/build-android/jniLibs"){{/if}}
+        jniLibs.srcDir("${ndkHome}/sources/third_party/vulkan/src/build-android/jniLibs"){{/if}}
     }
     buildTypes {
         getByName("debug") {
             isDebuggable = true
             isJniDebuggable = true
             isMinifyEnabled = false
-            isUseProguard = false
             packagingOptions {
                 {{~#each targets}}
-                doNotStrip("*/{{this.abi}}/*.so"){{/each}}
+                jniLibs.keepDebugSymbols.add("*/{{this.abi}}/*.so"){{/each}}
             }
         }
         getByName("release") {
@@ -33,13 +32,13 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
         }
     }
-    flavorDimensions("abi")
+    flavorDimensions.add("abi")
     productFlavors {
         {{~#each targets}}
         create("{{this.arch}}") {
             dimension = "abi"
             ndk {
-                setAbiFilters(listOf("{{this.abi}}"))
+                abiFilters += listOf("{{this.abi}}")
             }
         }{{/each}}
     }
