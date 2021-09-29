@@ -95,7 +95,12 @@ pub fn gen(
         |map| {
             map.insert("file-groups", &source_dirs);
             map.insert("ios-frameworks", metadata.ios().frameworks());
+            map.insert("ios-vendor-frameworks", metadata.ios().vendor_frameworks());
             map.insert("macos-frameworks", metadata.macos().frameworks());
+            map.insert(
+                "macos-vendor-frameworks",
+                metadata.macos().vendor_frameworks(),
+            );
             map.insert("asset-catalogs", asset_catalogs);
         },
         filter.fun(),

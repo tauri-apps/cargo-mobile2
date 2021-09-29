@@ -19,6 +19,7 @@ static DEFAULT_PROJECT_DIR: &str = "gen/apple";
 pub struct Platform {
     features: Option<Vec<String>>,
     frameworks: Option<Vec<String>>,
+    vendor_frameworks: Option<Vec<String>>,
     asset_catalogs: Option<Vec<PathBuf>>,
 }
 
@@ -33,6 +34,10 @@ impl Platform {
 
     pub fn frameworks(&self) -> &[String] {
         self.frameworks.as_deref().unwrap_or_else(|| &[])
+    }
+
+    pub fn vendor_frameworks(&self) -> &[String] {
+        self.vendor_frameworks.as_deref().unwrap_or_else(|| &[])
     }
 
     pub fn asset_catalogs(&self) -> Option<&[PathBuf]> {

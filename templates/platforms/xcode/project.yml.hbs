@@ -68,6 +68,8 @@ targets:
         link: false
       - framework: lib{{snake-case app.name}}.a
         embed: false
+      {{~#each ios-vendor-frameworks}}
+      - framework: {{prefix-path this}}{{/each}}
       - sdk: CoreGraphics.framework
       - sdk: Metal.framework
       - sdk: MetalKit.framework
@@ -98,6 +100,8 @@ targets:
         link: false
       - framework: lib{{snake-case app.name}}.a
         embed: false
+      {{~#each macos-vendor-frameworks}}
+      - framework: {{prefix-path this}}{{/each}}
       - sdk: Metal.framework
       {{~#each macos-frameworks}}
       - sdk: {{this}}.framework{{/each}}
