@@ -102,6 +102,14 @@ pub fn gen(
                 metadata.macos().vendor_frameworks(),
             );
             map.insert("asset-catalogs", asset_catalogs);
+            map.insert(
+                "ios-additional-targets",
+                metadata.ios().additional_targets(),
+            );
+            map.insert(
+                "macos-additional-targets",
+                metadata.macos().additional_targets(),
+            );
         },
         filter.fun(),
     )

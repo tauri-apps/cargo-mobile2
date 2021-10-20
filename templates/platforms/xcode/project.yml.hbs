@@ -35,6 +35,8 @@ targets:
         type: folder
       {{~#each asset-catalogs}}
       - {{prefix-path this}}{{/each}}
+      {{~#each ios-additional-targets}}
+      - path: {{prefix-path this}}{{/each}}
     info:
       path: {{app.name}}_iOS/Info.plist
       properties:
@@ -82,6 +84,8 @@ targets:
     type: application
     platform: macOS
     sources: Sources
+      {{~#each macos-additional-targets}}
+      - path: {{prefix-path this}}{{/each}}
     info:
       path: {{app.name}}_macOS/Info.plist
       properties:
