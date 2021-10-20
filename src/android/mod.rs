@@ -1,4 +1,5 @@
 pub(crate) mod adb;
+mod bundletool;
 pub mod cli;
 pub(crate) mod config;
 mod device;

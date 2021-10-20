@@ -32,6 +32,7 @@ open class RustPlugin : Plugin<Project> {
                     group = TASK_GROUP
                     description = "Build dynamic library in ${profile} mode for all targets"
                 }
+                project.tasks.findByName("preBuild")?.dependsOn(buildTask)
                 for (targetPair in config.targets!!.withIndex()) {
                     val targetName = targetPair.value
                     val targetArch = config.arches!![targetPair.index]

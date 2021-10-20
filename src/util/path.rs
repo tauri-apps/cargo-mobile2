@@ -52,6 +52,10 @@ pub fn checkouts_dir() -> Result<PathBuf, NoHomeDir> {
     install_dir().map(|install_dir| install_dir.join("checkouts"))
 }
 
+pub fn tools_dir() -> Result<PathBuf, NoHomeDir> {
+    install_dir().map(|install_dir| install_dir.join("tools"))
+}
+
 pub fn temp_dir() -> PathBuf {
     std::env::temp_dir().join("com.brainiumstudios.cargo-mobile")
 }

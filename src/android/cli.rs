@@ -68,6 +68,8 @@ pub enum Command {
         profile: cli::Profile,
         #[structopt(flatten)]
         filter: cli::Filter,
+        #[structopt(flatten)]
+        reinstall_deps: cli::ReinstallDeps,
     },
     #[structopt(name = "st", about = "Displays a detailed stacktrace for a device")]
     Stacktrace,
@@ -212,11 +214,21 @@ impl Exec for Input {
             Command::Run {
                 profile: cli::Profile { profile },
                 filter: cli::Filter { filter },
-            } => with_config(non_interactive, wrapper, |config, _| {
+                reinstall_deps: cli::ReinstallDeps { reinstall_deps },
+            } => with_config(non_interactive, wrapper, |config, metadata| {
+                let build_app_bundle = metadata.asset_packs().is_some();
                 ensure_init(config)?;
                 device_prompt(&env)
                     .map_err(Error::DevicePromptFailed)?
-                    .run(config, &env, noise_level, profile, filter)
+                    .run(
+                        config,
+                        &env,
+                        noise_level,
+                        profile,
+                        filter,
+                        build_app_bundle,
+                        reinstall_deps,
+                    )
                     .map_err(Error::RunFailed)
             }),
             Command::Stacktrace => with_config(non_interactive, wrapper, |config, _| {

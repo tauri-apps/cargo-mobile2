@@ -71,6 +71,23 @@ fn quote_and_join(
     .map_err(Into::into)
 }
 
+fn quote_and_join_colon_prefix(
+    helper: &Helper,
+    _: &Handlebars,
+    _: &Context,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    out.write(
+        &get_str_array(helper, |s| format!("{:?}", format!(":{}", s)))
+            .ok_or_else(|| {
+                RenderError::new("`quote-and-join-colon-prefix` helper wasn't given an array")
+            })?
+            .join(", "),
+    )
+    .map_err(Into::into)
+}
+
 fn snake_case(
     helper: &Helper,
     _: &Handlebars,
@@ -166,6 +183,10 @@ pub fn init(config: Option<&Config>) -> Bicycle {
             helpers.insert("html-escape", Box::new(html_escape));
             helpers.insert("join", Box::new(join));
             helpers.insert("quote-and-join", Box::new(quote_and_join));
+            helpers.insert(
+                "quote-and-join-colon-prefix",
+                Box::new(quote_and_join_colon_prefix),
+            );
             helpers.insert("snake-case", Box::new(snake_case));
             helpers.insert("reverse-domain", Box::new(reverse_domain));
             if config.is_some() {
