@@ -82,6 +82,7 @@ impl Metadata {
 
     pub fn app_dependencies_platform(&self) -> Option<&[String]> {
         self.app_dependencies_platform.as_deref()
+    }
 
     pub fn asset_packs(&self) -> Option<&[AssetPackInfo]> {
         self.asset_packs.as_deref()
