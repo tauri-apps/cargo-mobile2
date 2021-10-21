@@ -1,6 +1,8 @@
 plugins {
     id("com.android.application")
     id("rustPlugin")
+    {{~#each android-app-plugins}}
+    id("{{this}}"){{/each}}
 }
 
 android {
@@ -50,6 +52,13 @@ rust {
     rootDirRel = "{{root-dir-rel}}"
     targets = listOf({{quote-and-join target-names}})
     arches = listOf({{quote-and-join arches}})
+}
+
+dependencies {
+    {{~#each android-app-dependencies-platform}}
+    implementation(platform("{{this}}")){{/each}}
+    {{~#each android-app-dependencies}}
+    implementation("{{this}}"){{/each}}
 }
 
 afterEvaluate {

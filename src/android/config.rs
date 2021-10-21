@@ -28,6 +28,11 @@ pub struct Metadata {
     #[serde(default = "default_true")]
     supported: bool,
     features: Option<Vec<String>>,
+    app_sources: Option<Vec<String>>,
+    app_plugins: Option<Vec<String>>,
+    project_dependencies: Option<Vec<String>>,
+    app_dependencies: Option<Vec<String>>,
+    app_dependencies_platform: Option<Vec<String>>,
     asset_packs: Option<Vec<AssetPackInfo>>,
 }
 
@@ -36,6 +41,11 @@ impl Default for Metadata {
         Self {
             supported: true,
             features: None,
+            app_sources: None,
+            app_plugins: None,
+            project_dependencies: None,
+            app_dependencies: None,
+            app_dependencies_platform: None,
             asset_packs: None,
         }
     }
@@ -53,6 +63,25 @@ impl Metadata {
     pub fn features(&self) -> Option<&[String]> {
         self.features.as_deref()
     }
+
+    pub fn app_sources(&self) -> &[String] {
+        self.app_sources.as_deref().unwrap_or_else(|| &[])
+    }
+
+    pub fn app_plugins(&self) -> Option<&[String]> {
+        self.app_plugins.as_deref()
+    }
+
+    pub fn project_dependencies(&self) -> Option<&[String]> {
+        self.project_dependencies.as_deref()
+    }
+
+    pub fn app_dependencies(&self) -> Option<&[String]> {
+        self.app_dependencies.as_deref()
+    }
+
+    pub fn app_dependencies_platform(&self) -> Option<&[String]> {
+        self.app_dependencies_platform.as_deref()
 
     pub fn asset_packs(&self) -> Option<&[AssetPackInfo]> {
         self.asset_packs.as_deref()
