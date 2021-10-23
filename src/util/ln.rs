@@ -54,6 +54,7 @@ impl Display for TargetStyle {
 pub enum ErrorCause {
     MissingFileName,
     CommandFailed(bossy::Error),
+    IOError(std::io::Error),
 }
 
 impl Display for ErrorCause {
@@ -63,6 +64,7 @@ impl Display for ErrorCause {
                 write!(f, "Neither the source nor target contained a file name.",)
             }
             Self::CommandFailed(err) => write!(f, "`ln` command failed: {}", err),
+            Self::IOError(err) => write!(f, "IO error: {}", err),
         }
     }
 }
@@ -75,6 +77,26 @@ pub struct Error {
     target: PathBuf,
     target_style: TargetStyle,
     cause: ErrorCause,
+}
+
+impl Error {
+    pub fn new(
+        link_type: LinkType,
+        force: Clobber,
+        source: PathBuf,
+        target: PathBuf,
+        target_style: TargetStyle,
+        cause: ErrorCause,
+    ) -> Self {
+        Self {
+            link_type,
+            force,
+            source,
+            target,
+            target_style,
+            cause,
+        }
+    }
 }
 
 impl Display for Error {

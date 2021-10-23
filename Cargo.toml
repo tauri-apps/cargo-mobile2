@@ -26,6 +26,7 @@ bicycle = { git = "https://github.com/BrainiumLLC/bicycle", rev = "28080e0c6fa40
 bossy = "0.2.1"
 colored = "1.9.3"
 deunicode = "1.1.1"
+dunce = "1.0.2"
 english-numbers = "0.3.3"
 env_logger = "0.7.1"
 heck = "0.3.1"
@@ -62,7 +63,15 @@ ureq = "2.2.0"
 freedesktop_entry_parser = "1.1"
 lexical-core = "0.7.6"
 
+[target.'cfg(windows)'.dependencies]
+const-utf16 = "0.2.1"
+windows = "0.21.1"
+
 [build-dependencies]
 bicycle = { git = "https://github.com/BrainiumLLC/bicycle", rev = "28080e0c6fa4067d9dd1b0f2b7322b6b32178e1f" }
 hit = "0.1.0"
 home = "0.5.3"
+
+[target.'cfg(windows)'.build-dependencies]
+embed-resource = "1.6.4"
+windows = "0.21.1"

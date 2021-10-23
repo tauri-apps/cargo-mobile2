@@ -8,6 +8,7 @@ use super::{
 use crate::{
     env::ExplicitEnv as _,
     opts::{self, FilterLevel, NoiseLevel, Profile},
+    os::{consts, gradlew_command},
     util::{
         self,
         cli::{Report, Reportable},
@@ -19,11 +20,7 @@ use std::{
 };
 
 fn gradlew(config: &Config, env: &Env) -> bossy::Command {
-    let gradlew_path = config.project_dir().join("gradlew");
-    bossy::Command::pure(&gradlew_path)
-        .with_env_vars(env.explicit_env())
-        .with_arg("--project-dir")
-        .with_arg(config.project_dir())
+    gradlew_command(&config.project_dir()).with_env_vars(env.explicit_env())
 }
 
 #[derive(Debug)]
@@ -371,7 +368,7 @@ impl<'a> Device<'a> {
     pub fn stacktrace(&self, config: &Config, env: &Env) -> Result<(), StacktraceError> {
         // -d = print and exit
         let logcat_command = adb::adb(env, &self.serial_no).with_args(&["logcat", "-d"]);
-        let stack_command = bossy::Command::pure("ndk-stack")
+        let stack_command = bossy::Command::pure(env.ndk.home().join(consts::NDK_STACK))
             .with_env_vars(env.explicit_env())
             .with_env_var(
                 "PATH",

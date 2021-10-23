@@ -26,6 +26,9 @@ pub struct Env {
     path: String,
     term: Option<String>,
     ssh_auth_sock: Option<String>,
+    system_root: Option<String>,
+    tmp: Option<String>,
+    temp: Option<String>,
 }
 
 impl Env {
@@ -34,11 +37,17 @@ impl Env {
         let path = std::env::var("PATH").map_err(Error::PathNotSet)?;
         let term = std::env::var("TERM").ok();
         let ssh_auth_sock = std::env::var("SSH_AUTH_SOCK").ok();
+        let system_root = std::env::var("SystemRoot").ok();
+        let tmp = std::env::var("TMP").ok();
+        let temp = std::env::var("TEMP").ok();
         Ok(Self {
             home,
             path,
             term,
             ssh_auth_sock,
+            system_root,
+            tmp,
+            temp,
         })
     }
 
@@ -60,6 +69,15 @@ impl ExplicitEnv for Env {
         }
         if let Some(ssh_auth_sock) = self.ssh_auth_sock.as_ref() {
             env.push(("SSH_AUTH_SOCK", ssh_auth_sock.as_ref()));
+        }
+        if let Some(system_root) = self.system_root.as_ref() {
+            env.push(("SystemRoot", system_root.as_ref()));
+        }
+        if let Some(tmp) = self.tmp.as_ref() {
+            env.push(("TMP", tmp.as_ref()));
+        }
+        if let Some(temp) = self.temp.as_ref() {
+            env.push(("TEMP", temp.as_ref()));
         }
         env
     }

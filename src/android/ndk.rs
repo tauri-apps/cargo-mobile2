@@ -2,7 +2,10 @@ use super::{
     source_props::{self, SourceProps},
     target::Target,
 };
-use crate::util::cli::{Report, Reportable};
+use crate::{
+    os::consts,
+    util::cli::{Report, Reportable},
+};
 use once_cell_regex::regex_multi_line;
 use std::{
     collections::HashSet,
@@ -45,8 +48,8 @@ pub enum Compiler {
 impl Compiler {
     fn as_str(&self) -> &'static str {
         match self {
-            Compiler::Clang => "clang",
-            Compiler::Clangxx => "clang++",
+            Compiler::Clang => consts::CLANG,
+            Compiler::Clangxx => consts::CLANGXX,
         }
     }
 }
@@ -61,8 +64,8 @@ pub enum Binutil {
 impl Binutil {
     fn as_str(&self) -> &'static str {
         match self {
-            Binutil::Ar => "ar",
-            Binutil::Ld => "ld",
+            Binutil::Ar => consts::AR,
+            Binutil::Ld => consts::LD,
         }
     }
 }
@@ -260,7 +263,8 @@ impl Env {
 
     fn readelf_path(&self, triple: &str) -> Result<PathBuf, MissingToolError> {
         MissingToolError::check_file(
-            self.tool_dir()?.join(format!("{}-readelf", triple)),
+            self.tool_dir()?
+                .join(format!("{}-{}", triple, consts::READELF)),
             "readelf",
         )
     }

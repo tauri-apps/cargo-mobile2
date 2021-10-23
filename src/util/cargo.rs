@@ -38,7 +38,9 @@ impl<'a> CargoCommand<'a> {
     }
 
     pub fn with_manifest_path(mut self, manifest_path: Option<PathBuf>) -> Self {
-        self.manifest_path = manifest_path;
+        self.manifest_path = manifest_path.map(|manifest_path| {
+            dunce::canonicalize(manifest_path).expect("Failed to canonicalize manifest path")
+        });
         self
     }
 

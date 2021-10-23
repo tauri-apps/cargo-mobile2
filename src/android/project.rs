@@ -6,6 +6,7 @@ use super::{
 };
 use crate::{
     dot_cargo,
+    os::replace_path_separator,
     target::TargetTrait as _,
     templating::{self, Pack},
     util::{
@@ -93,7 +94,10 @@ pub fn gen(
         |map| {
             map.insert(
                 "root-dir-rel",
-                util::relativize_path(config.app().root_dir(), config.project_dir()),
+                replace_path_separator(
+                    util::relativize_path(config.app().root_dir(), config.project_dir())
+                        .into_os_string(),
+                ),
             );
             map.insert("root-dir", config.app().root_dir());
             map.insert("targets", Target::all().values().collect::<Vec<_>>());
@@ -128,6 +132,7 @@ pub fn gen(
                     .map(|p| p.name.as_str())
                     .collect::<Vec<_>>(),
             );
+            map.insert("windows", cfg!(windows));
         },
         filter.fun(),
     )
@@ -175,6 +180,7 @@ pub fn gen(
         path: dest.clone(),
         cause,
     })?;
+    #[cfg(not(windows))]
     ln::force_symlink_relative(config.app().asset_dir(), dest, ln::TargetStyle::Directory)
         .map_err(Error::AssetDirSymlinkFailed)?;
 
