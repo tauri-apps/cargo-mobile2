@@ -16,7 +16,10 @@ use crate::{
     },
 };
 use path_abs::PathOps;
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 pub static TEMPLATE_PACK: &str = "android-studio";
 pub static ASSET_PACK_TEMPLATE_PACK: &str = "android-studio-asset-pack";
@@ -94,10 +97,10 @@ pub fn gen(
         |map| {
             map.insert(
                 "root-dir-rel",
-                replace_path_separator(
+                Path::new(&replace_path_separator(
                     util::relativize_path(config.app().root_dir(), config.project_dir())
                         .into_os_string(),
-                ),
+                )),
             );
             map.insert("root-dir", config.app().root_dir());
             map.insert("targets", Target::all().values().collect::<Vec<_>>());
