@@ -22,32 +22,42 @@ impl Reportable for Error {
 
 #[derive(Clone, Debug)]
 pub struct Env {
-    home: String,
+    home: Option<String>,
+    userprofile: Option<String>,
     path: String,
     term: Option<String>,
     ssh_auth_sock: Option<String>,
     system_root: Option<String>,
     tmp: Option<String>,
     temp: Option<String>,
+    program_data: Option<String>,
 }
 
 impl Env {
     pub fn new() -> Result<Self, Error> {
-        let home = std::env::var("HOME").map_err(Error::HomeNotSet)?;
+        let home = std::env::var("HOME");
+        let userprofile = std::env::var("USERPROFILE");
+        let (home, userprofile) = match (home, userprofile) {
+            (Err(home_err), Err(_)) => return Err(Error::HomeNotSet(home_err)),
+            (home, userprofile) => (home.ok(), userprofile.ok()),
+        };
         let path = std::env::var("PATH").map_err(Error::PathNotSet)?;
         let term = std::env::var("TERM").ok();
         let ssh_auth_sock = std::env::var("SSH_AUTH_SOCK").ok();
         let system_root = std::env::var("SystemRoot").ok();
         let tmp = std::env::var("TMP").ok();
         let temp = std::env::var("TEMP").ok();
+        let program_data = std::env::var("ProgramData").ok();
         Ok(Self {
             home,
+            userprofile,
             path,
             term,
             ssh_auth_sock,
             system_root,
             tmp,
             temp,
+            program_data,
         })
     }
 
@@ -63,7 +73,13 @@ impl Env {
 
 impl ExplicitEnv for Env {
     fn explicit_env(&self) -> Vec<(&str, &std::ffi::OsStr)> {
-        let mut env = vec![("HOME", self.home.as_ref()), ("PATH", self.path.as_ref())];
+        let mut env = vec![("PATH", self.path.as_ref())];
+        if let Some(home) = self.home.as_ref() {
+            env.push(("HOME", home.as_ref()));
+        }
+        if let Some(userprofile) = self.userprofile.as_ref() {
+            env.push(("USERPROFILE", userprofile.as_ref()));
+        }
         if let Some(term) = self.term.as_ref() {
             env.push(("TERM", term.as_ref()));
         }
@@ -78,6 +94,9 @@ impl ExplicitEnv for Env {
         }
         if let Some(temp) = self.temp.as_ref() {
             env.push(("TEMP", temp.as_ref()));
+        }
+        if let Some(program_data) = self.program_data.as_ref() {
+            env.push(("ProgramData", program_data.as_ref()));
         }
         env
     }
