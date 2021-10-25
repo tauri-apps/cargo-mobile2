@@ -48,9 +48,9 @@ fn main() {
         .with_decorations(true)
         .with_transparent(false)
         .with_title("A fantastic window!")
-        .with_inner_size(winit::dpi::LogicalSize {
-            width: 128.0,
-            height: 128.0,
+        .with_inner_size(winit::dpi::PhysicalSize {
+            width: 1280.0,
+            height: 720.0,
         })
         .build(&event_loop)
         .unwrap();
@@ -108,6 +108,8 @@ fn main() {
     let mut ctx = egui::CtxRef::default();
 
     event_loop.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Wait;
+
         let mut redraw = || {
             let output_frame = match surface.get_current_texture() {
                 Ok(frame) => frame,
@@ -180,11 +182,8 @@ fn main() {
             output_frame.present();
         };
         match event {
-            RedrawRequested(..) | UserEvent(Event::RequestRedraw) => {
+            RedrawRequested(..) | UserEvent(Event::RequestRedraw) | MainEventsCleared => {
                 redraw();
-            }
-            MainEventsCleared => {
-                repaint_signal.request_repaint();
             }
             WindowEvent { event, .. } => {
                 match event {
@@ -196,10 +195,10 @@ fn main() {
                     winit::event::WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit;
                     },
-                    _ => ()
+                    _ => {
+                        state.on_event(&ctx, &event);
+                    }
                 };
-                state.on_event(&ctx, &event);
-                repaint_signal.request_repaint();
             },
             _ => (),
         }
