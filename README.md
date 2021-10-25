@@ -53,6 +53,7 @@ After some straightforward prompts, you'll be asked to select a template pack. T
 | --------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | bevy      | Minimal Bevy project derived from [sprite](https://github.com/bevyengine/bevy/blob/master/examples/2d/sprite.rs) example          |
 | bevy-demo | Bevy [breakout](https://github.com/bevyengine/bevy/blob/master/examples/game/breakout.rs) demo                                    |
+| egui      | Full egui + winit + wgpu example inspired by [egui_example](https://github.com/hasenbanck/egui_example)                           |
 | wgpu      | Minimal wgpu project derived from [hello-triangle](https://github.com/gfx-rs/wgpu-rs/tree/master/examples/hello-triangle) example |
 | winit     | Minimal winit project derived from [window](https://github.com/rust-windowing/winit/tree/master/examples/window) example          |
 

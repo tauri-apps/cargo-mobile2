@@ -1,0 +1,29 @@
+[package]
+name = "{{app.name}}"
+version = "0.1.0"
+authors = ["{{author}}"]
+edition = "2018"
+resolver = "2"
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "{{app.name}}-desktop"
+path = "gen/bin/desktop.rs"
+
+[dependencies]
+egui_wgpu_backend = { git = "https://github.com/hasenbanck/egui_wgpu_backend.git", rev = "961125e7bd2c71c5ead1d61a7ca7ffa8c0d17f48" }
+chrono = "0.4"
+pollster = "0.2"
+egui = "0.15"
+epi = "0.15"
+wgpu = "0.11"
+winit = "0.25"
+egui_demo_lib = "0.15"
+mobile-entry-point = "0.1"
+egui-winit = "0.15"
+
+[target.'cfg(target_os = "android")'.dependencies]
+log = "0.4.11"
+ndk-glue = "0.3.0"
