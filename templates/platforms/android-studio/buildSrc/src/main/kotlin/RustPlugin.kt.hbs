@@ -32,17 +32,18 @@ open class RustPlugin : Plugin<Project> {
                     group = TASK_GROUP
                     description = "Build dynamic library in ${profile} mode for all targets"
                 }
-                project.tasks.findByName("preBuild")?.dependsOn(buildTask)
                 for (targetPair in config.targets!!.withIndex()) {
                     val targetName = targetPair.value
                     val targetArch = config.arches!![targetPair.index]
-                    buildTask.dependsOn(project.tasks.maybeCreate("rustBuild${targetArch.capitalize()}${profile.capitalize()}", BuildTask::class.java).apply {
+                    val targetBuildTask = project.tasks.maybeCreate("rustBuild${targetArch.capitalize()}${profile.capitalize()}", BuildTask::class.java).apply {
                         group = TASK_GROUP
                         description = "Build dynamic library in ${profile} mode for $targetArch"
                         rootDirRel = File(config.rootDirRel)
                         target = targetName
                         release = profile == "release"
-                    })
+                    }
+                    buildTask.dependsOn(targetBuildTask)
+                    project.tasks.findByName("preBuild")?.mustRunAfter(targetBuildTask)
                 }
             }
         }
