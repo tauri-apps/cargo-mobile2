@@ -25,5 +25,9 @@ mobile-entry-point = "0.1"
 egui-winit = "0.15"
 
 [target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.10"
 log = "0.4.11"
 ndk-glue = "0.3.0"
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+simple_logger = "1.11.0"
