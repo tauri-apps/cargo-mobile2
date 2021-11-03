@@ -1,4 +1,6 @@
 use super::{config::Config, target::Target};
+#[cfg(windows)]
+use crate::os;
 use crate::{
     target::TargetTrait as _,
     util::{
@@ -118,15 +120,17 @@ impl JniLibs {
     pub fn symlink_lib(&self, src: &Path) -> Result<(), SymlinkLibError> {
         log::info!("symlinking lib {:?} in jniLibs dir {:?}", src, self.path);
         if src.is_file() {
-            ln::force_symlink(
-                src,
-                self.path.join(
-                    src.file_name()
-                        .expect("developer error: file had no file name"),
-                ),
-                ln::TargetStyle::File,
-            )
-            .map_err(SymlinkLibError::SymlinkFailed)
+            let dest = self.path.join(
+                src.file_name()
+                    .expect("developer error: file had no file name"),
+            );
+            #[cfg(not(windows))]
+            ln::force_symlink(src, &dest, ln::TargetStyle::File)
+                .map_err(SymlinkLibError::SymlinkFailed)?;
+            #[cfg(windows)]
+            os::ln::force_hard_link_or_copy_file(src, &dest)
+                .map_err(SymlinkLibError::SymlinkFailed)?;
+            Ok(())
         } else {
             Err(SymlinkLibError::SourceMissing(src.to_owned()))
         }

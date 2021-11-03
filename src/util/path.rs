@@ -39,9 +39,16 @@ pub fn contract_home(path: impl AsRef<Path>) -> Result<String, ContractHomeError
         .as_ref()
         .to_str()
         .ok_or(ContractHomeError::PathInvalidUtf8)?;
-    let home = home_dir()?;
-    let home = home.to_str().ok_or(ContractHomeError::HomeInvalidUtf8)?;
-    Ok(path.replace(home, "~").to_owned())
+    #[cfg(not(windows))]
+    {
+        let home = home_dir()?;
+        let home = home.to_str().ok_or(ContractHomeError::HomeInvalidUtf8)?;
+        Ok(path.replace(home, "~").to_owned())
+    }
+    #[cfg(windows)]
+    {
+        Ok(path.to_owned())
+    }
 }
 
 pub fn install_dir() -> Result<PathBuf, NoHomeDir> {
