@@ -35,7 +35,7 @@ impl Display for DetectEditorError {
 pub enum OpenFileError {
     PathToUrlFailed { path: PathBuf },
     LaunchFailed(OSStatus),
-    BossyLaouchFailed(bossy::Error),
+    BossyLaunchFailed(bossy::Error),
 }
 
 impl Display for OpenFileError {

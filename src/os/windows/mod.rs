@@ -179,7 +179,7 @@ fn open_file_with_android_studio(path: impl AsRef<OsStr>) -> Result<(), OpenFile
     if lstatus.0 as u32 != ERROR_SUCCESS.0 {
         return Err(OpenFileError::OSError(windows::Error::from_win32()));
     }
-    let len = NullTerminatedWTF16Iterator(buffer.as_slice().as_ptr()).count();
+    let len = NullTerminatedWTF16Iterator(buffer.as_ptr()).count();
     let uninstaller_path = OsString::from_wide(&buffer[..len]);
     let application_path = Path::new(&uninstaller_path)
         .parent()
