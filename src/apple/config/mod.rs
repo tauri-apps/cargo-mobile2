@@ -20,6 +20,7 @@ pub struct Platform {
     features: Option<Vec<String>>,
     frameworks: Option<Vec<String>>,
     vendor_frameworks: Option<Vec<String>>,
+    vendor_sdks: Option<Vec<String>>,
     asset_catalogs: Option<Vec<PathBuf>>,
     additional_targets: Option<Vec<PathBuf>>,
 }
@@ -39,6 +40,10 @@ impl Platform {
 
     pub fn vendor_frameworks(&self) -> &[String] {
         self.vendor_frameworks.as_deref().unwrap_or_else(|| &[])
+    }
+
+    pub fn vendor_sdks(&self) -> &[String] {
+        self.vendor_sdks.as_deref().unwrap_or_else(|| &[])
     }
 
     pub fn asset_catalogs(&self) -> Option<&[PathBuf]> {
