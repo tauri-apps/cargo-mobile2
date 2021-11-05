@@ -2,7 +2,7 @@ use path_abs::PathAbs;
 use std::{
     fmt::{self, Display},
     io,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
 };
 use thiserror::Error;
 
@@ -84,7 +84,33 @@ impl Display for PathNotPrefixed {
 }
 
 pub fn prefix_path(root: impl AsRef<Path>, path: impl AsRef<Path>) -> PathBuf {
-    root.as_ref().join(path)
+    let root = root.as_ref();
+    let path = path.as_ref();
+    let is_verbatim = if let Some(Component::Prefix(prefix)) = root.components().next() {
+        prefix.kind().is_verbatim()
+    } else {
+        false
+    };
+    if !is_verbatim {
+        return root.join(path);
+    }
+    let mut buf = root.components().collect::<Vec<_>>();
+    for component in path.components() {
+        match component {
+            Component::RootDir => {
+                buf.truncate(1);
+                buf.push(component);
+            }
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if let Some(_) = buf.last() {
+                    buf.pop();
+                }
+            }
+            _ => buf.push(component),
+        };
+    }
+    buf.into_iter().collect()
 }
 
 pub fn unprefix_path(
