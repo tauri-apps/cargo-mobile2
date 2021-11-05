@@ -12,7 +12,6 @@ use crate::{
     util::{
         self,
         cli::{Report, Reportable, TextWrapper},
-        ln,
     },
 };
 use path_abs::PathOps;
@@ -33,7 +32,6 @@ pub enum Error {
         path: PathBuf,
         cause: std::io::Error,
     },
-    AssetDirSymlinkFailed(ln::Error),
     DotCargoGenFailed(ndk::MissingToolError),
     FileCopyFailed {
         src: PathBuf,
@@ -55,9 +53,6 @@ impl Reportable for Error {
                 format!("Failed to create Android assets directory at {:?}", path),
                 cause,
             ),
-            Self::AssetDirSymlinkFailed(err) => {
-                Report::error("Asset dir couldn't be symlinked into Android project", err)
-            }
             Self::DotCargoGenFailed(err) => {
                 Report::error("Failed to generate Android cargo config", err)
             }
@@ -183,9 +178,6 @@ pub fn gen(
         path: dest.clone(),
         cause,
     })?;
-    #[cfg(not(windows))]
-    ln::force_symlink_relative(config.app().asset_dir(), dest, ln::TargetStyle::Directory)
-        .map_err(Error::AssetDirSymlinkFailed)?;
 
     {
         for target in Target::all().values() {
