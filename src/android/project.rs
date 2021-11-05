@@ -12,6 +12,7 @@ use crate::{
     util::{
         self,
         cli::{Report, Reportable, TextWrapper},
+        prefix_path,
     },
 };
 use path_abs::PathOps;
@@ -173,7 +174,7 @@ pub fn gen(
         })?;
     }
 
-    let dest = dest.join("app/src/main/assets/");
+    let dest = prefix_path(dest, "app/src/main/assets/");
     fs::create_dir_all(&dest).map_err(|cause| Error::DirectoryCreationFailed {
         path: dest.clone(),
         cause,

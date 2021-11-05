@@ -5,7 +5,7 @@ use crate::{
     target::TargetTrait as _,
     util::{
         cli::{Report, Reportable},
-        ln,
+        ln, prefix_path,
     },
 };
 use std::path::{Path, PathBuf};
@@ -65,9 +65,10 @@ impl Reportable for SymlinkLibError {
 }
 
 pub fn path(config: &Config, target: Target<'_>) -> PathBuf {
-    config
-        .project_dir()
-        .join(format!("app/src/main/jniLibs/{}", &target.abi))
+    prefix_path(
+        config.project_dir(),
+        format!("app/src/main/jniLibs/{}", &target.abi),
+    )
 }
 
 #[derive(Debug)]

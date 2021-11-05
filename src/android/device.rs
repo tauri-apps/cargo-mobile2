@@ -12,6 +12,7 @@ use crate::{
     util::{
         self,
         cli::{Report, Reportable},
+        prefix_path,
     },
 };
 use std::{
@@ -180,10 +181,13 @@ impl<'a> Device<'a> {
         flavor: &str,
     ) -> PathBuf {
         let suffix = Self::suffix(profile);
-        config.project_dir().join(format!(
-            "app/build/outputs/{}/app-{}-{}.{}",
-            output_dir, flavor, suffix, file_extension
-        ))
+        prefix_path(
+            config.project_dir(),
+            format!(
+                "app/build/outputs/{}/app-{}-{}.{}",
+                output_dir, flavor, suffix, file_extension
+            ),
+        )
     }
 
     fn apk_path(config: &Config, profile: Profile, flavor: &str) -> PathBuf {
