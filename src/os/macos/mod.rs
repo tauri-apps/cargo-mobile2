@@ -9,7 +9,7 @@ use core_foundation::{
     url::CFURL,
 };
 use std::{
-    ffi::OsStr,
+    ffi::{OsStr, OsString},
     fmt::{self, Display},
     path::{Path, PathBuf},
     ptr,
