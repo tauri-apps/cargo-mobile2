@@ -16,13 +16,12 @@ open class LinkTask : DefaultTask() {
         val srcFile = project.file(src)
         val destFile = project.file(dest ?: throw GradleException("dest cannot be null"))
         val destPath = Paths.get(destFile.absolutePath)
-        if (destFile.exists()) {
+        if (destFile.isDirectory) {
             destFile.deleteRecursively()
         }
         // Try creation soft link
         try {
-            val target = srcFile.toRelativeString(destFile);
-            Files.createSymbolicLink(destPath, Paths.get(target));
+            Files.createSymbolicLink(destPath, Paths.get(src))
         } catch (e: FileSystemException) {
             project.fileTree(src).forEach { file ->
                 if (file.isFile) {
