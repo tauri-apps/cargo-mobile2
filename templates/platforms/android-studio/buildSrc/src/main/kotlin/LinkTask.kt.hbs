@@ -21,7 +21,7 @@ open class LinkTask : DefaultTask() {
         }
         // Try creation soft link
         try {
-            val target = srcFile.toRelativeString(destFile.parentFile);
+            val target = srcFile.toRelativeString(destFile);
             Files.createSymbolicLink(destPath, Paths.get(target));
         } catch (e: FileSystemException) {
             project.fileTree(src).forEach { file ->
