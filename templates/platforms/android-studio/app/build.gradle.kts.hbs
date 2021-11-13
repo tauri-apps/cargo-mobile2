@@ -61,29 +61,12 @@ dependencies {
     implementation("{{this}}"){{/each}}
 }
 
-{{#if windows}}tasks.register<Sync>("syncAssets") {
-    val root = "{{root-dir-rel}}../assets"
-    val absoluteRoot = file(root).absoluteFile
-    into("src/main/assets")
-    fileTree(root).forEach() { file ->
-        if (file.isFile) {
-            val relativeDir = file.parentFile.toRelativeString(absoluteRoot)
-            from(file) {
-                into(relativeDir)
-            }
-        }
-    }
-}{{/if}}
-
 afterEvaluate {
     android.applicationVariants.all {
         val buildType = "${buildType.name.capitalize()}"
         productFlavors.forEach {
             val archAndBuildType = name.capitalize()
             tasks["merge${archAndBuildType}JniLibFolders"].dependsOn(tasks["rustBuild${archAndBuildType}"])
-            {{#if windows}}
-            tasks["rustBuild${archAndBuildType}"].dependsOn(tasks["syncAssets"])
-            tasks["merge${archAndBuildType}Assets"].dependsOn("syncAssets"){{/if}}
         }
     }
 }
