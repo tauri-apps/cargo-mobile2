@@ -66,22 +66,5 @@ fn main() {
         println!("cargo:rerun-if-changed={}", resource_path.display());
         println!("cargo:rerun-if-changed={}", manifest_path.display());
         embed_resource::compile("cargo-mobile-manifest.rc");
-
-        // Build winapi bindings
-        windows::build! {
-            Windows::Win32::{
-                Foundation::MAX_PATH,
-                System::{
-                    Diagnostics::Debug::{GetLastError, WIN32_ERROR},
-                    Memory::LocalFree,
-                    SystemInformation::{VerifyVersionInfoW, VerSetConditionMask},
-                    SystemServices::{VER_EQUAL, VER_GREATER_EQUAL},
-                    Registry::HKEY_LOCAL_MACHINE,
-
-                },
-                UI::Shell::{ASSOCF_INIT_IGNOREUNKNOWN, AssocQueryStringW, CommandLineToArgvW, SHRegGetPathW},
-                Storage::FileSystem::CreateHardLinkW,
-            },
-        }
     }
 }

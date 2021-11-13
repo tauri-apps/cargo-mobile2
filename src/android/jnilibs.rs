@@ -1,7 +1,6 @@
 use super::{config::Config, target::Target};
-#[cfg(windows)]
-use crate::os;
 use crate::{
+    os,
     target::TargetTrait as _,
     util::{
         cli::{Report, Reportable},
@@ -125,11 +124,7 @@ impl JniLibs {
                 src.file_name()
                     .expect("developer error: file had no file name"),
             );
-            #[cfg(not(windows))]
-            ln::force_symlink(src, &dest, ln::TargetStyle::File)
-                .map_err(SymlinkLibError::SymlinkFailed)?;
-            #[cfg(windows)]
-            os::ln::force_hard_link_or_copy_file(src, &dest)
+            os::ln::force_symlink(src, &dest, ln::TargetStyle::File)
                 .map_err(SymlinkLibError::SymlinkFailed)?;
             Ok(())
         } else {

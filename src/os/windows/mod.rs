@@ -8,18 +8,15 @@ use std::{
     slice::from_raw_parts,
 };
 use thiserror::Error;
-
-windows::include_bindings!();
-
-use Windows::Win32::{
-    Foundation::{MAX_PATH, PWSTR},
-    System::{
-        Diagnostics::Debug::ERROR_NO_ASSOCIATION, Diagnostics::Debug::ERROR_SUCCESS,
-        Memory::LocalFree, Registry::HKEY_LOCAL_MACHINE,
-    },
-    UI::Shell::{
-        AssocQueryStringW, CommandLineToArgvW, SHRegGetPathW, ASSOCF_INIT_IGNOREUNKNOWN,
-        ASSOCSTR_COMMAND,
+use windows::{
+    runtime,
+    Win32::{
+        Foundation::{ERROR_NO_ASSOCIATION, ERROR_SUCCESS, MAX_PATH, PWSTR},
+        System::{Memory::LocalFree, Registry::HKEY_LOCAL_MACHINE},
+        UI::Shell::{
+            AssocQueryStringW, CommandLineToArgvW, SHRegGetPathW, ASSOCF_INIT_IGNOREUNKNOWN,
+            ASSOCSTR_COMMAND,
+        },
     },
 };
 
@@ -28,12 +25,12 @@ pub enum DetectEditorError {
     #[error("No default editor is set: AssocQueryStringW for \".rs\" and \".txt\" both failed")]
     NoDefaultEditorSet,
     #[error("An error occured while calling AssocQueryStringW: {0}")]
-    OSError(#[source] windows::Error),
+    IOError(#[source] std::io::Error),
 }
 
-impl From<windows::Error> for DetectEditorError {
-    fn from(err: windows::Error) -> Self {
-        Self::OSError(err)
+impl From<runtime::Error> for DetectEditorError {
+    fn from(err: runtime::Error) -> Self {
+        Self::IOError(err.into())
     }
 }
 
@@ -42,7 +39,7 @@ pub enum OpenFileError {
     #[error("Launch Failed: {0}")]
     LaunchFailed(#[source] bossy::Error),
     #[error("An error occured while calling OS API: {0}")]
-    OSError(#[source] windows::Error),
+    IOError(#[source] std::io::Error),
 }
 
 pub struct Application {
@@ -91,7 +88,7 @@ impl Application {
             if e.code().0 == 0x80070000 | ERROR_NO_ASSOCIATION.0 {
                 return Err(DetectEditorError::NoDefaultEditorSet);
             }
-            return Err(DetectEditorError::OSError(e));
+            return Err(DetectEditorError::IOError(e.into()));
         }
         let mut command: Vec<u16> = vec![0; len as usize];
         unsafe {
@@ -177,7 +174,7 @@ fn open_file_with_android_studio(path: impl AsRef<OsStr>) -> Result<(), OpenFile
         )
     };
     if lstatus.0 as u32 != ERROR_SUCCESS.0 {
-        return Err(OpenFileError::OSError(windows::Error::from_win32()));
+        return Err(OpenFileError::IOError(runtime::Error::from_win32().into()));
     }
     let len = NullTerminatedWTF16Iterator(buffer.as_ptr()).count();
     let uninstaller_path = OsString::from_wide(&buffer[..len]);

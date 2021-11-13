@@ -1,12 +1,13 @@
-use super::Windows::Win32::System::{
+use thiserror::Error;
+use windows::Win32::System::{
     SystemInformation::{
         VerSetConditionMask, VerifyVersionInfoW, OSVERSIONINFOEXW, VER_BUILDNUMBER,
         VER_MAJORVERSION, VER_MINORVERSION, VER_PRODUCT_TYPE, VER_SERVICEPACKMAJOR,
     },
     SystemServices::{VER_EQUAL, VER_GREATER_EQUAL},
 };
+
 use crate::os::Info;
-use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {

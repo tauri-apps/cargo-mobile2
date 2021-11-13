@@ -8,6 +8,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+pub use crate::util::ln;
+
 #[derive(Debug)]
 pub enum DetectEditorError {
     NoDefaultEditorSet,

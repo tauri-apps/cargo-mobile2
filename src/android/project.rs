@@ -6,7 +6,7 @@ use super::{
 };
 use crate::{
     dot_cargo,
-    os::replace_path_separator,
+    os::{self, replace_path_separator},
     target::TargetTrait as _,
     templating::{self, Pack},
     util::{
@@ -183,8 +183,7 @@ pub fn gen(
         path: dest.clone(),
         cause,
     })?;
-    #[cfg(not(windows))]
-    ln::force_symlink_relative(config.app().asset_dir(), dest, ln::TargetStyle::Directory)
+    os::ln::force_symlink_relative(config.app().asset_dir(), dest, ln::TargetStyle::Directory)
         .map_err(Error::AssetDirSymlinkFailed)?;
 
     {

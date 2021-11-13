@@ -15,6 +15,8 @@ use std::{
     ptr,
 };
 
+pub use crate::util::ln;
+
 // This can hopefully be relied upon... https://stackoverflow.com/q/8003919
 static RUST_UTI: &str = "dyn.ah62d4rv4ge81e62";
 
