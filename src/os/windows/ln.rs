@@ -1,17 +1,20 @@
-use crate::util::ln::{Clobber, Error, ErrorCause, LinkType, TargetStyle};
+use crate::util::{
+    ln::{Clobber, Error, ErrorCause, LinkType, TargetStyle},
+    prefix_path,
+};
 use std::{borrow::Cow, fs::remove_file, os::windows::ffi::OsStrExt, path::Path};
 use windows::{
     runtime,
     Win32::{
         Foundation::{
-            CloseHandle, GetLastError, BOOLEAN, ERROR_MORE_DATA, HANDLE, INVALID_HANDLE_VALUE,
-            PWSTR,
+            CloseHandle, GetLastError, BOOLEAN, ERROR_MORE_DATA, ERROR_PRIVILEGE_NOT_HELD, HANDLE,
+            INVALID_HANDLE_VALUE, PWSTR,
         },
         Storage::FileSystem::{
             CreateFileW, CreateSymbolicLinkW, GetFileAttributesW, FILE_ACCESS_FLAGS,
             FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_DELETE_ON_CLOSE,
             FILE_FLAG_OPEN_REPARSE_POINT, FILE_SHARE_READ, OPEN_EXISTING, REPARSE_GUID_DATA_BUFFER,
-            SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE,
+            SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE, SYMBOLIC_LINK_FLAG_DIRECTORY,
         },
         System::{
             Ioctl::FSCTL_GET_REPARSE_POINT,
@@ -47,6 +50,10 @@ pub fn force_symlink(
     } else {
         Cow::Borrowed(target)
     };
+    let is_directory = target
+        .parent()
+        .map(|parent| prefix_path(parent, source).is_dir())
+        .unwrap_or(false);
     let target_wtf16 = target
         .as_os_str()
         .encode_wide()
@@ -62,8 +69,13 @@ pub fn force_symlink(
         .encode_wide()
         .chain([0])
         .collect::<Vec<_>>();
-    create_symlink(&target_wtf16, &source_wtf16)
-        .map_err(|err| error(ErrorCause::IOError(err.into())))?;
+    create_symlink(&source_wtf16, &target_wtf16, is_directory).map_err(|err| {
+        if err.win32_error() == Some(ERROR_PRIVILEGE_NOT_HELD.0) {
+            error(ErrorCause::SymlinkNotAllowed)
+        } else {
+            error(ErrorCause::IOError(err.into()))
+        }
+    })?;
     Ok(())
 }
 
@@ -92,12 +104,21 @@ pub fn force_symlink_relative(
     }
 }
 
-fn create_symlink(target: &[u16], source: &[u16]) -> Result<(), runtime::Error> {
+fn create_symlink(
+    source: &[u16],
+    target: &[u16],
+    is_directory: bool,
+) -> Result<(), runtime::Error> {
+    let flags = if is_directory {
+        SYMBOLIC_LINK_FLAG_DIRECTORY
+    } else {
+        Default::default()
+    } | SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
     if unsafe {
         CreateSymbolicLinkW(
             PWSTR(target.as_ptr() as _),
             PWSTR(source.as_ptr() as _),
-            SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE,
+            flags,
         )
     } == BOOLEAN(0)
     {

@@ -55,6 +55,7 @@ pub enum ErrorCause {
     MissingFileName,
     CommandFailed(bossy::Error),
     IOError(std::io::Error),
+    SymlinkNotAllowed,
 }
 
 impl Display for ErrorCause {
@@ -65,6 +66,21 @@ impl Display for ErrorCause {
             }
             Self::CommandFailed(err) => write!(f, "`ln` command failed: {}", err),
             Self::IOError(err) => write!(f, "IO error: {}", err),
+            Self::SymlinkNotAllowed => {
+                write!(
+                    f,
+                    r"
+Creation symbolic link is not allowed for this system.
+
+For Windows 10 or newer:
+You should use developer mode.
+See https://docs.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development
+
+For Window 8.1 or older:
+You need `SeCreateSymbolicLinkPrivilege` security policy.
+See https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links"
+                )
+            }
         }
     }
 }
