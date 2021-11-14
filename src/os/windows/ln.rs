@@ -4,11 +4,11 @@ use crate::util::{
 };
 use std::{borrow::Cow, fs::remove_file, os::windows::ffi::OsStrExt, path::Path};
 use windows::{
-    runtime,
+    runtime::{self, Handle as _},
     Win32::{
         Foundation::{
             CloseHandle, GetLastError, BOOLEAN, ERROR_MORE_DATA, ERROR_PRIVILEGE_NOT_HELD, HANDLE,
-            INVALID_HANDLE_VALUE, PWSTR,
+            PWSTR,
         },
         Storage::FileSystem::{
             CreateFileW, CreateSymbolicLinkW, GetFileAttributesW, FILE_ACCESS_FLAGS,
@@ -114,14 +114,14 @@ fn create_symlink(
     } else {
         Default::default()
     } | SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
-    if unsafe {
+    let result = unsafe {
         CreateSymbolicLinkW(
             PWSTR(target.as_ptr() as _),
             PWSTR(source.as_ptr() as _),
             flags,
         )
-    } == BOOLEAN(0)
-    {
+    };
+    if result == BOOLEAN(0) {
         return Err(runtime::Error::from_win32().into());
     }
     Ok(())
@@ -158,13 +158,13 @@ fn is_symlink(filename: &[u16]) -> bool {
             std::ptr::null(),
             OPEN_EXISTING,
             FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
-            HANDLE(0),
+            HANDLE::default(),
         )
     });
-    if h_file.0 == INVALID_HANDLE_VALUE {
+    if h_file.is_invalid() {
         return false;
     }
-    let mut buffer: REPARSE_GUID_DATA_BUFFER = unsafe { std::mem::zeroed() };
+    let mut buffer = REPARSE_GUID_DATA_BUFFER::default();
     let mut bytes = 0u32;
     let result = unsafe {
         DeviceIoControl(
@@ -188,7 +188,7 @@ struct FileHandle(HANDLE);
 
 impl FileHandle {
     fn is_invalid(&self) -> bool {
-        self.0 == INVALID_HANDLE_VALUE
+        self.0.is_invalid()
     }
 }
 
