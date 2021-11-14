@@ -2,7 +2,12 @@ use crate::util::{
     ln::{Clobber, Error, ErrorCause, LinkType, TargetStyle},
     prefix_path,
 };
-use std::{borrow::Cow, fs::remove_file, os::windows::ffi::OsStrExt, path::Path};
+use std::{
+    borrow::Cow,
+    fs::{remove_dir_all, remove_file},
+    os::windows::ffi::OsStrExt,
+    path::Path,
+};
 use windows::{
     runtime::{self, Handle as _},
     Win32::{
@@ -63,6 +68,8 @@ pub fn force_symlink(
         delete_symlink(&target_wtf16).map_err(|err| error(ErrorCause::IOError(err.into())))?;
     } else if target.is_file() {
         remove_file(&target).map_err(|err| error(ErrorCause::IOError(err)))?;
+    } else if target.is_dir() {
+        remove_dir_all(&target).map_err(|err| error(ErrorCause::IOError(err)))?;
     }
     let source_wtf16 = source
         .as_os_str()

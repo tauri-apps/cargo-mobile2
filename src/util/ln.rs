@@ -1,5 +1,7 @@
 use std::{
+    borrow::Cow,
     fmt::{self, Display},
+    fs::remove_dir_all,
     path::{Path, PathBuf},
 };
 
@@ -130,7 +132,7 @@ pub struct Call<'a> {
     link_type: LinkType,
     force: Clobber,
     source: &'a Path,
-    target: &'a Path,
+    target: Cow<'a, Path>,
     target_style: TargetStyle,
 }
 
@@ -142,10 +144,12 @@ impl<'a> Call<'a> {
         target: &'a Path,
         target_style: TargetStyle,
     ) -> Result<Self, Error> {
-        if let TargetStyle::Directory = target_style {
+        let target = if let TargetStyle::Directory = target_style {
             // If the target is a directory, then the link name has to come from
             // the last component of the source.
-            if source.file_name().is_none() {
+            if let Some(file_name) = source.file_name() {
+                Cow::Owned(target.join(file_name))
+            } else {
                 return Err(Error {
                     link_type,
                     force,
@@ -155,7 +159,9 @@ impl<'a> Call<'a> {
                     cause: ErrorCause::MissingFileName,
                 });
             }
-        }
+        } else {
+            Cow::Borrowed(target)
+        };
         Ok(Self {
             link_type,
             force,
@@ -178,40 +184,31 @@ impl<'a> Call<'a> {
                 command.add_arg("-f");
             }
             Clobber::FileOrDirectory => {
-                command.add_arg("-F");
+                if self.target.is_dir() {
+                    remove_dir_all(&self.target)
+                        .map_err(|err| self.make_error(ErrorCause::IOError(err)))?;
+                }
+                command.add_arg("-f");
             }
             _ => (),
         }
-        // For the target to be interpreted as a directory, it must end in a
-        // trailing slash. We can't append one using `join` or `push`, since it
-        // would be interpreted as an absolute path and result in the target
-        // being replaced with it: https://github.com/rust-lang/rust/issues/16507
-        let target_override = if self.target_style == TargetStyle::Directory
-            && (!self.target.ends_with("/") || self.target.as_os_str().is_empty())
-        {
-            Some(format!("{}/", self.target.display()))
-        } else {
-            None
-        };
         command.add_arg(self.source);
-        if let Some(target) = target_override.as_ref() {
-            command.add_arg(target);
-        } else {
-            command.add_arg(self.target);
-        }
-        command.run_and_wait().map_err(|err| Error {
+        command.add_arg(self.target.as_ref());
+        command
+            .run_and_wait()
+            .map_err(|err| self.make_error(ErrorCause::CommandFailed(err)))?;
+        Ok(())
+    }
+
+    fn make_error(&self, cause: ErrorCause) -> Error {
+        Error {
             link_type: self.link_type,
             force: self.force,
             source: self.source.to_owned(),
-            target: if let Some(target) = target_override {
-                target.into()
-            } else {
-                self.target.to_owned()
-            },
+            target: self.target.to_path_buf(),
             target_style: self.target_style,
-            cause: ErrorCause::CommandFailed(err),
-        })?;
-        Ok(())
+            cause,
+        }
     }
 }
 
@@ -222,7 +219,7 @@ pub fn force_symlink(
 ) -> Result<(), Error> {
     Call::new(
         LinkType::Symbolic,
-        Clobber::FileOnly,
+        Clobber::FileOrDirectory,
         source.as_ref(),
         target.as_ref(),
         target_style,
@@ -243,7 +240,7 @@ pub fn force_symlink_relative(
         } else {
             Err(Error {
                 link_type: LinkType::Symbolic,
-                force: Clobber::FileOnly,
+                force: Clobber::FileOrDirectory,
                 source: rel_source,
                 target: abs_target.to_owned(),
                 target_style,
