@@ -178,7 +178,7 @@ pub fn gen(
         })?;
     }
 
-    let dest = prefix_path(dest, "app/src/main/assets/");
+    let dest = prefix_path(dest, "app/src/main/");
     fs::create_dir_all(&dest).map_err(|cause| Error::DirectoryCreationFailed {
         path: dest.clone(),
         cause,
