@@ -157,6 +157,7 @@ pub struct Config {
     app: App,
     development_team: String,
     project_dir: String,
+    use_legacy_build_system: bool,
 }
 
 impl Config {
@@ -193,11 +194,11 @@ impl Config {
                 );
                 Ok(DEFAULT_PROJECT_DIR.to_owned())
             })?;
-
         Ok(Self {
             app,
             development_team: raw.development_team,
             project_dir,
+            use_legacy_build_system: raw.use_legacy_build_system.unwrap_or(true),
         })
     }
 
