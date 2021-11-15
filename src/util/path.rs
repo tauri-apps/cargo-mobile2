@@ -218,3 +218,43 @@ pub fn under_root(
 ) -> Result<bool, NormalizationError> {
     normalize_path(root.as_ref().join(path)).map(|norm| norm.starts_with(root))
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest(root, path, result,
+        // UNIX
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        case(
+            "/home/user/cargo-mobile-project/gen/android/cargo-mobile-project",
+            "app/build/outputs/apk/arm64/debug/app-arm64-debug.apk",
+            "/home/user/cargo-mobile-project/gen/android/cargo-mobile-project/app/build/outputs/apk/arm64/debug/app-arm64-debug.apk"
+        ),
+        // UNIX but the second path contains root
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        case(
+            "/home/user/cargo-mobile-project/gen/android/cargo-mobile-project",
+            "/home/other/project/gen/android/app/build/outputs/apk/arm64/debug/app-arm64-debug.apk",
+            "/home/other/project/gen/android/app/build/outputs/apk/arm64/debug/app-arm64-debug.apk"
+        ),
+        // Windows UNC
+        #[cfg(windows)]
+        case(
+            "\\\\?\\C:\\Users\\user\\cargo-mobile-project\\gen\\android\\cargo-mobile-project",
+            "app\\..\\app\\build\\outputs\\.\\apk\\arm64\\debug\\app-arm64-debug.apk",
+            "\\\\?\\C:\\Users\\user\\cargo-mobile-project\\gen\\android\\cargo-mobile-project\\app\\build\\outputs\\apk\\arm64\\debug\\app-arm64-debug.apk"
+        ),
+        // Windows legacy
+        #[cfg(windows)]
+        case (
+            "D:\\Users\\user\\cargo-mobile-project\\gen\\android\\cargo-mobile-project",
+            "app\\build\\outputs\\apk\\arm64\\debug\\app-arm64-debug.apk",
+            "D:\\Users\\user\\cargo-mobile-project\\gen\\android\\cargo-mobile-project\\app\\build\\outputs\\apk\\arm64\\debug\\app-arm64-debug.apk"
+        )
+    )]
+    fn test_prefix_path(root: impl AsRef<Path>, path: impl AsRef<Path>, result: &str) {
+        assert_eq!(prefix_path(root, path), PathBuf::from(result));
+    }
+}
