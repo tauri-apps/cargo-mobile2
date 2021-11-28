@@ -132,7 +132,8 @@ pub struct Call<'a> {
     link_type: LinkType,
     force: Clobber,
     source: &'a Path,
-    target: Cow<'a, Path>,
+    target: &'a Path,
+    target_override: Cow<'a, Path>,
     target_style: TargetStyle,
 }
 
@@ -144,7 +145,7 @@ impl<'a> Call<'a> {
         target: &'a Path,
         target_style: TargetStyle,
     ) -> Result<Self, Error> {
-        let target = if let TargetStyle::Directory = target_style {
+        let target_override = if let TargetStyle::Directory = target_style {
             // If the target is a directory, then the link name has to come from
             // the last component of the source.
             if let Some(file_name) = source.file_name() {
@@ -167,6 +168,7 @@ impl<'a> Call<'a> {
             force,
             source,
             target,
+            target_override,
             target_style,
         })
     }
@@ -184,7 +186,7 @@ impl<'a> Call<'a> {
                 command.add_arg("-f");
             }
             Clobber::FileOrDirectory => {
-                if self.target.is_dir() {
+                if self.target_override.is_dir() {
                     remove_dir_all(&self.target)
                         .map_err(|err| self.make_error(ErrorCause::IOError(err)))?;
                 }
@@ -193,7 +195,7 @@ impl<'a> Call<'a> {
             _ => (),
         }
         command.add_arg(self.source);
-        command.add_arg(self.target.as_ref());
+        command.add_arg(self.target_override.as_ref());
         command
             .run_and_wait()
             .map_err(|err| self.make_error(ErrorCause::CommandFailed(err)))?;
@@ -205,7 +207,7 @@ impl<'a> Call<'a> {
             link_type: self.link_type,
             force: self.force,
             source: self.source.to_owned(),
-            target: self.target.to_path_buf(),
+            target: self.target.to_owned(),
             target_style: self.target_style,
             cause,
         }
