@@ -1,3 +1,4 @@
+mod env;
 pub(super) mod info;
 pub mod ln;
 
@@ -19,6 +20,8 @@ use windows::{
         },
     },
 };
+
+pub use env::Env;
 
 #[derive(Debug, Error)]
 pub enum DetectEditorError {

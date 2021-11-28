@@ -1,5 +1,5 @@
 use super::Section;
-use crate::{android, doctor::Unrecoverable, env::Env, util};
+use crate::{android, doctor::Unrecoverable, os::Env, util};
 
 pub fn check(env: &Env) -> Result<Section, Unrecoverable> {
     let section = Section::new("Android developer tools");

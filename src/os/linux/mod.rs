@@ -8,7 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub use crate::util::ln;
+pub use crate::{env::Env, util::ln};
 
 #[derive(Debug)]
 pub enum DetectEditorError {

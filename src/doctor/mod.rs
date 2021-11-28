@@ -1,7 +1,8 @@
 mod section;
 
 use crate::{
-    env::{self, Env},
+    env,
+    os::Env,
     util::{self, cli::TextWrapper},
 };
 use thiserror::Error;
