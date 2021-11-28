@@ -11,21 +11,12 @@ use std::{
 use windows::{
     runtime::{self, Handle as _},
     Win32::{
-        Foundation::{
-            CloseHandle, GetLastError, BOOLEAN, ERROR_MORE_DATA, ERROR_PRIVILEGE_NOT_HELD, HANDLE,
-            PWSTR,
-        },
+        Foundation::{CloseHandle, ERROR_PRIVILEGE_NOT_HELD, HANDLE, PWSTR},
         Storage::FileSystem::{
-            CreateFileW, CreateSymbolicLinkW, GetFileAttributesW, FILE_ACCESS_FLAGS,
-            FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_DELETE_ON_CLOSE,
-            FILE_FLAG_OPEN_REPARSE_POINT, FILE_SHARE_READ, OPEN_EXISTING, REPARSE_GUID_DATA_BUFFER,
-            SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE, SYMBOLIC_LINK_FLAG_DIRECTORY,
+            CreateFileW, FILE_ACCESS_FLAGS, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_DELETE_ON_CLOSE,
+            FILE_FLAG_OPEN_REPARSE_POINT, FILE_SHARE_READ, OPEN_EXISTING,
         },
-        System::{
-            Ioctl::FSCTL_GET_REPARSE_POINT,
-            SystemServices::{GENERIC_READ, IO_REPARSE_TAG_SYMLINK},
-            IO::DeviceIoControl,
-        },
+        System::SystemServices::GENERIC_READ,
     },
 };
 
@@ -59,28 +50,23 @@ pub fn force_symlink(
         .parent()
         .map(|parent| prefix_path(parent, source).is_dir())
         .unwrap_or(false);
-    let target_wtf16 = target
-        .as_os_str()
-        .encode_wide()
-        .chain([0])
-        .collect::<Vec<_>>();
-    if is_symlink(&target_wtf16) {
-        delete_symlink(&target_wtf16).map_err(|err| error(ErrorCause::IOError(err.into())))?;
+    if is_symlink(&target) {
+        delete_symlink(&target).map_err(|err| error(ErrorCause::IOError(err.into())))?;
     } else if target.is_file() {
         remove_file(&target).map_err(|err| error(ErrorCause::IOError(err)))?;
     } else if target.is_dir() {
         remove_dir_all(&target).map_err(|err| error(ErrorCause::IOError(err)))?;
     }
-    let source_wtf16 = source
-        .as_os_str()
-        .encode_wide()
-        .chain([0])
-        .collect::<Vec<_>>();
-    create_symlink(&source_wtf16, &target_wtf16, is_directory).map_err(|err| {
-        if err.win32_error() == Some(ERROR_PRIVILEGE_NOT_HELD.0) {
+    let result = if is_directory {
+        std::os::windows::fs::symlink_dir(source, target)
+    } else {
+        std::os::windows::fs::symlink_file(source, target)
+    };
+    result.map_err(|err| {
+        if err.raw_os_error() == Some(ERROR_PRIVILEGE_NOT_HELD.0 as i32) {
             error(ErrorCause::SymlinkNotAllowed)
         } else {
-            error(ErrorCause::IOError(err.into()))
+            error(ErrorCause::IOError(err))
         }
     })?;
     Ok(())
@@ -111,30 +97,12 @@ pub fn force_symlink_relative(
     }
 }
 
-fn create_symlink(
-    source: &[u16],
-    target: &[u16],
-    is_directory: bool,
-) -> Result<(), runtime::Error> {
-    let flags = if is_directory {
-        SYMBOLIC_LINK_FLAG_DIRECTORY
-    } else {
-        Default::default()
-    } | SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
-    let result = unsafe {
-        CreateSymbolicLinkW(
-            PWSTR(target.as_ptr() as _),
-            PWSTR(source.as_ptr() as _),
-            flags,
-        )
-    };
-    if result == BOOLEAN(0) {
-        return Err(runtime::Error::from_win32().into());
-    }
-    Ok(())
-}
-
-fn delete_symlink(filename: &[u16]) -> Result<(), runtime::Error> {
+fn delete_symlink(filename: &Path) -> Result<(), runtime::Error> {
+    let filename = filename
+        .as_os_str()
+        .encode_wide()
+        .chain([0])
+        .collect::<Vec<_>>();
     let handle = FileHandle(unsafe {
         CreateFileW(
             PWSTR(filename.as_ptr() as _),
@@ -152,43 +120,12 @@ fn delete_symlink(filename: &[u16]) -> Result<(), runtime::Error> {
     Ok(())
 }
 
-fn is_symlink(filename: &[u16]) -> bool {
-    let attr = unsafe { GetFileAttributesW(PWSTR(filename.as_ptr() as _)) };
-    if attr & FILE_ATTRIBUTE_REPARSE_POINT.0 == 0 {
-        return false;
+fn is_symlink(filename: &Path) -> bool {
+    if let Ok(metadata) = std::fs::symlink_metadata(filename) {
+        metadata.file_type().is_symlink()
+    } else {
+        false
     }
-    let h_file = FileHandle(unsafe {
-        CreateFileW(
-            PWSTR(filename.as_ptr() as _),
-            FILE_ACCESS_FLAGS(GENERIC_READ),
-            FILE_SHARE_READ,
-            std::ptr::null(),
-            OPEN_EXISTING,
-            FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
-            HANDLE::default(),
-        )
-    });
-    if h_file.is_invalid() {
-        return false;
-    }
-    let mut buffer = REPARSE_GUID_DATA_BUFFER::default();
-    let mut bytes = 0u32;
-    let result = unsafe {
-        DeviceIoControl(
-            h_file.0,
-            FSCTL_GET_REPARSE_POINT,
-            std::ptr::null(),
-            0,
-            &mut buffer as *mut _ as _,
-            std::mem::size_of::<REPARSE_GUID_DATA_BUFFER>() as _,
-            (&mut bytes) as _,
-            std::ptr::null_mut(),
-        )
-    };
-    if !result.as_bool() && unsafe { GetLastError() } != ERROR_MORE_DATA {
-        return false;
-    }
-    return buffer.ReparseTag as i32 == IO_REPARSE_TAG_SYMLINK;
 }
 
 struct FileHandle(HANDLE);
