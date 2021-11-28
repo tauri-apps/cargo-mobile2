@@ -38,7 +38,7 @@ pub fn default(
     })
 }
 
-yes_or_no!(YesOrNo);
+yes_or_no!(pub YesOrNo);
 
 pub fn yes_no(msg: impl Display, default: Option<YesOrNo>) -> io::Result<Option<YesOrNo>> {
     let y_n = match default {
