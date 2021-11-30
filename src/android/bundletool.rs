@@ -125,7 +125,10 @@ pub fn install(reinstall_deps: opts::ReinstallDeps) -> Result<(), InstallError> 
     }
     #[cfg(target_os = "macos")]
     {
-        crate::apple::deps::install("bundletool", reinstall_deps).map_err(InstallError)?;
+        use crate::apple::deps::{GemCache, PackageSpec};
+        PackageSpec::brew("bundletool")
+            .install(reinstall_deps, &mut GemCache::new())
+            .map_err(InstallError)?;
     }
     Ok(())
 }

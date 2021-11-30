@@ -10,6 +10,7 @@ pub use self::{cargo::*, git::*, path::*};
 use self::cli::{Report, Reportable};
 use crate::os::{self, command_path};
 use once_cell_regex::{exports::regex::Captures, exports::regex::Regex, regex};
+use serde::{ser::Serializer, Serialize};
 use std::{
     fmt::{self, Debug, Display},
     io::{self, Write},
@@ -146,6 +147,86 @@ impl VersionTriple {
             },
             version_str,
         ))
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum VersionDoubleError {
+    #[error("Failed to parse major version from {version:?}: {source}")]
+    MajorInvalid {
+        version: String,
+        source: std::num::ParseIntError,
+    },
+    #[error("Failed to parse minor version from {version:?}: {source}")]
+    MinorInvalid {
+        version: String,
+        source: std::num::ParseIntError,
+    },
+    #[error(
+        "Failed to parse version string {version:?}: string must be in format <major>[.minor]"
+    )]
+    VersionStringInvalid { version: String },
+}
+
+// Generic version double
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct VersionDouble {
+    pub major: u32,
+    pub minor: u32,
+}
+
+impl Display for VersionDouble {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{}", self.major, self.minor)
+    }
+}
+
+impl Serialize for VersionDouble {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.collect_str(self)
+    }
+}
+
+impl VersionDouble {
+    pub const fn new(major: u32, minor: u32) -> Self {
+        Self { major, minor }
+    }
+
+    pub fn from_str(v: &str) -> Result<Self, VersionDoubleError> {
+        match v.split(".").count() {
+            0 => Ok(VersionDouble {
+                major: v
+                    .parse()
+                    .map_err(|source| VersionDoubleError::MajorInvalid {
+                        version: v.to_owned(),
+                        source,
+                    })?,
+                minor: 0,
+            }),
+            1 => {
+                let mut s = v.split(".");
+                Ok(VersionDouble {
+                    major: s.next().unwrap().parse().map_err(|source| {
+                        VersionDoubleError::MajorInvalid {
+                            version: v.to_owned(),
+                            source,
+                        }
+                    })?,
+                    minor: s.next().unwrap().parse().map_err(|source| {
+                        VersionDoubleError::MinorInvalid {
+                            version: v.to_owned(),
+                            source,
+                        }
+                    })?,
+                })
+            }
+            _ => Err(VersionDoubleError::VersionStringInvalid {
+                version: v.to_owned(),
+            }),
+        }
     }
 }
 
@@ -372,6 +453,27 @@ pub fn run_and_search<T>(
                 .map(|caps| f(output, caps))
         })
         .map_err(RunAndSearchError::from)??)
+}
+
+#[derive(Debug, Error)]
+pub enum CaptureGroupError {
+    #[error("Capture group {group:?} missing from string {string:?}")]
+    InvalidCaptureGroup { group: String, string: String },
+}
+
+pub fn get_string_for_group(
+    caps: &Captures<'_>,
+    group: &str,
+    string: &str,
+) -> Result<String, CaptureGroupError> {
+    Ok(caps
+        .name(group)
+        .ok_or_else(|| CaptureGroupError::InvalidCaptureGroup {
+            group: group.to_string(),
+            string: string.to_string(),
+        })?
+        .as_str()
+        .to_owned())
 }
 
 #[derive(Debug)]

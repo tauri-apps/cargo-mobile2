@@ -4,7 +4,7 @@ pub use self::raw::*;
 
 use crate::{
     config::app::App,
-    util::{self, cli::Report},
+    util::{self, cli::Report, VersionDouble, VersionDoubleError},
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -13,6 +13,8 @@ use std::{
 };
 
 static DEFAULT_PROJECT_DIR: &str = "gen/apple";
+const DEFAULT_IOS_VERSION: VersionDouble = VersionDouble::new(9, 0);
+const DEFAULT_MACOS_VERSION: VersionDouble = VersionDouble::new(11, 0);
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -22,6 +24,7 @@ pub struct Platform {
     vendor_frameworks: Option<Vec<String>>,
     vendor_sdks: Option<Vec<String>>,
     asset_catalogs: Option<Vec<PathBuf>>,
+    pods: Option<Vec<PathBuf>>,
     additional_targets: Option<Vec<PathBuf>>,
 }
 
@@ -48,6 +51,10 @@ impl Platform {
 
     pub fn asset_catalogs(&self) -> Option<&[PathBuf]> {
         self.asset_catalogs.as_deref()
+    }
+
+    pub fn pods(&self) -> Option<&[PathBuf]> {
+        self.pods.as_deref()
     }
 
     pub fn additional_targets(&self) -> Option<&[PathBuf]> {
@@ -130,6 +137,8 @@ pub enum Error {
     DevelopmentTeamMissing,
     DevelopmentTeamEmpty,
     ProjectDirInvalid(ProjectDirInvalid),
+    IosVersionInvalid(VersionDoubleError),
+    MacOsVersionInvalid(VersionDoubleError),
 }
 
 impl Error {
@@ -146,6 +155,14 @@ impl Error {
                 msg,
                 format!("`{}.project-dir` invalid: {}", super::NAME, err),
             ),
+            Self::IosVersionInvalid(err) => Report::error(
+                msg,
+                format!("`{}.ios-version` invalid: {}", super::NAME, err),
+            ),
+            Self::MacOsVersionInvalid(err) => Report::error(
+                msg,
+                format!("`{}.macos-version` invalid: {}", super::NAME, err),
+            ),
         }
     }
 }
@@ -157,6 +174,8 @@ pub struct Config {
     app: App,
     development_team: String,
     project_dir: String,
+    ios_version: VersionDouble,
+    macos_version: VersionDouble,
     use_legacy_build_system: bool,
 }
 
@@ -198,6 +217,18 @@ impl Config {
             app,
             development_team: raw.development_team,
             project_dir,
+            ios_version: raw
+                .ios_version
+                .map(|str| VersionDouble::from_str(&str))
+                .transpose()
+                .map_err(Error::IosVersionInvalid)?
+                .unwrap_or(DEFAULT_IOS_VERSION),
+            macos_version: raw
+                .macos_version
+                .map(|str| VersionDouble::from_str(&str))
+                .transpose()
+                .map_err(Error::IosVersionInvalid)?
+                .unwrap_or(DEFAULT_MACOS_VERSION),
             use_legacy_build_system: raw.use_legacy_build_system.unwrap_or(true),
         })
     }
@@ -215,10 +246,17 @@ impl Config {
     }
 
     pub fn workspace_path(&self) -> PathBuf {
-        self.project_dir().join(format!(
-            "{}.xcodeproj/project.xcworkspace/",
-            self.app.name()
-        ))
+        let root_workspace = self
+            .project_dir()
+            .join(format!("{}.xcworkspace/", self.app.name()));
+        if root_workspace.exists() {
+            root_workspace
+        } else {
+            self.project_dir().join(format!(
+                "{}.xcodeproj/project.xcworkspace/",
+                self.app.name()
+            ))
+        }
     }
 
     pub fn archive_dir(&self) -> PathBuf {
