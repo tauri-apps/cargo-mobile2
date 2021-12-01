@@ -2,8 +2,8 @@ name: {{app.name}}
 options:
   bundleIdPrefix: {{reverse-domain app.domain}}
   deploymentTarget:
-    iOS: {{apple.ios-version-double}}
-    macOS: {{apple.macos-version-double}}
+    iOS: {{apple.ios-version}}
+    macOS: {{apple.macos-version}}
 fileGroups: [{{join file-groups}}]
 configs:
   debug: debug
