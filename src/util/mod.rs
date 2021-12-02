@@ -197,7 +197,7 @@ impl VersionDouble {
 
     pub fn from_str(v: &str) -> Result<Self, VersionDoubleError> {
         match v.split(".").count() {
-            0 => Ok(VersionDouble {
+            1 => Ok(VersionDouble {
                 major: v
                     .parse()
                     .map_err(|source| VersionDoubleError::MajorInvalid {
@@ -206,7 +206,7 @@ impl VersionDouble {
                     })?,
                 minor: 0,
             }),
-            1 => {
+            2 => {
                 let mut s = v.split(".");
                 Ok(VersionDouble {
                     major: s.next().unwrap().parse().map_err(|source| {
