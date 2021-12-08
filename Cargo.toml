@@ -64,5 +64,5 @@ lexical-core = "0.7.6"
 
 [build-dependencies]
 bicycle = { git = "https://github.com/BrainiumLLC/bicycle", rev = "28080e0c6fa4067d9dd1b0f2b7322b6b32178e1f" }
-hit = "0.1.0"
+hit = "0.2.0"
 home = "0.5.3"

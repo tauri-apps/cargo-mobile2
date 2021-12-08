@@ -108,17 +108,6 @@ dependencies = [
 
 [[package]]
 name = "bossy"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f8e713528ed43b023c8200cdcf9be59b264f96953497cb8bea5ab1a65b0fa8c"
-dependencies = [
- "libc",
- "log",
- "winapi",
-]
-
-[[package]]
-name = "bossy"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c004d74bd688ab2f7ed4d8e3db0c4cc4db8eec9e4f44bd82221ddc31deeedbec"
@@ -160,7 +149,7 @@ name = "cargo-mobile"
 version = "0.1.0"
 dependencies = [
  "bicycle",
- "bossy 0.2.1",
+ "bossy",
  "cocoa",
  "colored",
  "core-foundation",
@@ -178,7 +167,7 @@ dependencies = [
  "log",
  "objc",
  "objc_id",
- "once-cell-regex 0.2.1",
+ "once-cell-regex",
  "openssl",
  "path_abs",
  "reserved-names",
@@ -509,13 +498,13 @@ dependencies = [
 
 [[package]]
 name = "hit"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93b337f79d4b00458950f3d20136dfb9d1816a1d458601e025170a50d087192a"
+checksum = "0a8b280c3c6e2a2a51b3dde2f1071b28afff0ebce59e29443b1b391e7efe32fd"
 dependencies = [
- "bossy 0.1.4",
+ "bossy",
  "log",
- "once-cell-regex 0.1.1",
+ "once-cell-regex",
  "thiserror",
 ]
 
@@ -692,16 +681,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c92d4ddb4bd7b50d730c215ff871754d0da6b2178849f8a2a2ab69712d0c073b"
 dependencies = [
  "objc",
-]
-
-[[package]]
-name = "once-cell-regex"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba1c3682eb819e01547e12b4c31875ac95f3f9ff440ee0c03d17e6d47ececaea"
-dependencies = [
- "once_cell",
- "regex",
 ]
 
 [[package]]
