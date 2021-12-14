@@ -1,0 +1,15 @@
+# Uncomment the next line to define a global platform for your project
+
+target '{{app.name}}_iOS' do
+platform :ios, '{{apple.ios-version}}'
+  # Pods for {{app.name}}_iOS
+  {{~#each ios-pods}}
+  pod '{{this}}'{{/each}}
+end
+
+target '{{app.name}}_macOS' do
+platform :osx, '{{apple.macos-version}}'
+  # Pods for {{app.name}}_macOS
+  {{~#each macos-pods}}
+  pod '{{this}}'{{/each}}
+end

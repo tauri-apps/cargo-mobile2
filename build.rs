@@ -10,7 +10,7 @@ fn main() {
     std::fs::create_dir_all(&install_dir).expect("failed to create install dir");
 
     // Copy version info
-    match Repo::from_path(&manifest_dir).latest_message() {
+    match Repo::from_path(&manifest_dir).latest_subject() {
         Ok(msg) => {
             if let Err(err) = std::fs::write(install_dir.join("commit"), msg) {
                 println!(

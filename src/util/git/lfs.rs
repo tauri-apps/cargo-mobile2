@@ -25,9 +25,13 @@ pub fn ensure_present() -> Result<(), Error> {
     }
     #[cfg(target_os = "macos")]
     {
+        use crate::apple::deps;
         // This only installs if not already present, so there's no need for us
         // to check here.
-        if crate::apple::deps::install("git-lfs", Default::default()).map_err(Error::from)? {
+        if deps::PackageSpec::brew("git-lfs")
+            .install(Default::default(), &mut deps::GemCache::new())
+            .map_err(Error::from)?
+        {
             println!("Running `git lfs install` for you...");
         }
     }

@@ -97,7 +97,7 @@ pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
         "`cargo-mobile` is already up-to-date"
     };
     let details = util::unwrap_either(
-        repo.latest_message()
+        repo.latest_subject()
             .map(util::format_commit_msg)
             .map_err(|err| format!("But we failed to get the latest commit message: {}", err)),
     );

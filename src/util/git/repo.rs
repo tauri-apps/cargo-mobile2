@@ -104,9 +104,9 @@ impl Repo {
         Ok(status)
     }
 
-    pub fn latest_message(&self) -> Result<String, Error> {
+    pub fn latest_subject(&self) -> Result<String, Error> {
         self.git()
-            .command_parse("log -1 --pretty=%B")
+            .command_parse("log -1 --pretty=%s")
             .run_and_wait_for_str(|s| s.trim().to_owned())
             .map_err(Error::LogFailed)
     }
