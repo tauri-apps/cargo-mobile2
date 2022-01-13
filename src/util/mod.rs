@@ -92,6 +92,10 @@ pub enum VersionTripleError {
         version: String,
         source: std::num::ParseIntError,
     },
+    #[error(
+        "Failed to parse version string {version:?}: string must be in format <major>[.minor][.patch]"
+    )]
+    VersionStringInvalid { version: String },
 }
 
 macro_rules! parse {
@@ -106,7 +110,7 @@ macro_rules! parse {
 }
 
 // Generic version triple
-#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct VersionTriple {
     pub major: u32,
     pub minor: u32,
@@ -116,6 +120,15 @@ pub struct VersionTriple {
 impl Display for VersionTriple {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
+
+impl Serialize for VersionTriple {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.collect_str(self)
     }
 }
 
@@ -147,6 +160,65 @@ impl VersionTriple {
             },
             version_str,
         ))
+    }
+
+    pub fn from_str(v: &str) -> Result<Self, VersionTripleError> {
+        match v.split(".").count() {
+            1 => Ok(VersionTriple {
+                major: v
+                    .parse()
+                    .map_err(|source| VersionTripleError::MajorInvalid {
+                        version: v.to_owned(),
+                        source,
+                    })?,
+                minor: 0,
+                patch: 0,
+            }),
+            2 => {
+                let mut s = v.split(".");
+                Ok(VersionTriple {
+                    major: s.next().unwrap().parse().map_err(|source| {
+                        VersionTripleError::MajorInvalid {
+                            version: v.to_owned(),
+                            source,
+                        }
+                    })?,
+                    minor: s.next().unwrap().parse().map_err(|source| {
+                        VersionTripleError::MinorInvalid {
+                            version: v.to_owned(),
+                            source,
+                        }
+                    })?,
+                    patch: 0,
+                })
+            }
+            3 => {
+                let mut s = v.split(".");
+                Ok(VersionTriple {
+                    major: s.next().unwrap().parse().map_err(|source| {
+                        VersionTripleError::MajorInvalid {
+                            version: v.to_owned(),
+                            source,
+                        }
+                    })?,
+                    minor: s.next().unwrap().parse().map_err(|source| {
+                        VersionTripleError::MinorInvalid {
+                            version: v.to_owned(),
+                            source,
+                        }
+                    })?,
+                    patch: s.next().unwrap().parse().map_err(|source| {
+                        VersionTripleError::PatchInvalid {
+                            version: v.to_owned(),
+                            source,
+                        }
+                    })?,
+                })
+            }
+            _ => Err(VersionTripleError::VersionStringInvalid {
+                version: v.to_owned(),
+            }),
+        }
     }
 }
 

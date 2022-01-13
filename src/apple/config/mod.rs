@@ -4,7 +4,9 @@ pub use self::raw::*;
 
 use crate::{
     config::app::App,
-    util::{self, cli::Report, VersionDouble, VersionDoubleError},
+    util::{
+        self, cli::Report, VersionDouble, VersionDoubleError, VersionTriple, VersionTripleError,
+    },
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -13,6 +15,7 @@ use std::{
 };
 
 static DEFAULT_PROJECT_DIR: &str = "gen/apple";
+const DEFAULT_BUNDLE_VERSION: VersionTriple = VersionTriple::new(1, 0, 0);
 const DEFAULT_IOS_VERSION: VersionDouble = VersionDouble::new(9, 0);
 const DEFAULT_MACOS_VERSION: VersionDouble = VersionDouble::new(11, 0);
 
@@ -137,6 +140,7 @@ pub enum Error {
     DevelopmentTeamMissing,
     DevelopmentTeamEmpty,
     ProjectDirInvalid(ProjectDirInvalid),
+    BundleVersionInvalid(VersionTripleError),
     IosVersionInvalid(VersionDoubleError),
     MacOsVersionInvalid(VersionDoubleError),
 }
@@ -154,6 +158,10 @@ impl Error {
             Self::ProjectDirInvalid(err) => Report::error(
                 msg,
                 format!("`{}.project-dir` invalid: {}", super::NAME, err),
+            ),
+            Self::BundleVersionInvalid(err) => Report::error(
+                msg,
+                format!("`{}.app-version` invalid: {}", super::NAME, err),
             ),
             Self::IosVersionInvalid(err) => Report::error(
                 msg,
@@ -174,6 +182,9 @@ pub struct Config {
     app: App,
     development_team: String,
     project_dir: String,
+    // TODO: Allow support for [3, inf) integers
+    bundle_version: VersionTriple,
+    bundle_version_short: VersionTriple,
     ios_version: VersionDouble,
     macos_version: VersionDouble,
     use_legacy_build_system: bool,
@@ -213,10 +224,25 @@ impl Config {
                 );
                 Ok(DEFAULT_PROJECT_DIR.to_owned())
             })?;
+
+        let bundle_version_short = raw
+            .bundle_version_short
+            .map(|str| VersionTriple::from_str(&str))
+            .transpose()
+            .map_err(Error::BundleVersionInvalid)?
+            .unwrap_or(DEFAULT_BUNDLE_VERSION);
+
         Ok(Self {
             app,
             development_team: raw.development_team,
             project_dir,
+            bundle_version: raw
+                .bundle_version
+                .map(|str| VersionTriple::from_str(&str))
+                .transpose()
+                .map_err(Error::BundleVersionInvalid)?
+                .unwrap_or(bundle_version_short),
+            bundle_version_short,
             ios_version: raw
                 .ios_version
                 .map(|str| VersionDouble::from_str(&str))
