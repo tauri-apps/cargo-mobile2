@@ -1,6 +1,6 @@
 path = "brainstorm/templates/brainstorm"
 
 [submodule]
-remote = "git@github.com:BrainiumLLC/brainstorm.git"
+remote = "git@bitbucket.org:brainium/brainstorm.git"
 path = "brainstorm"
 lfs = true
