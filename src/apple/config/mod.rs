@@ -5,7 +5,8 @@ pub use self::raw::*;
 use crate::{
     config::app::App,
     util::{
-        self, cli::Report, VersionDouble, VersionDoubleError, VersionTriple, VersionTripleError,
+        self, cli::Report, Pod, VersionDouble, VersionDoubleError, VersionTriple,
+        VersionTripleError,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -27,7 +28,7 @@ pub struct Platform {
     vendor_frameworks: Option<Vec<String>>,
     vendor_sdks: Option<Vec<String>>,
     asset_catalogs: Option<Vec<PathBuf>>,
-    pods: Option<Vec<PathBuf>>,
+    pods: Option<Vec<Pod>>,
     additional_targets: Option<Vec<PathBuf>>,
 }
 
@@ -56,7 +57,7 @@ impl Platform {
         self.asset_catalogs.as_deref()
     }
 
-    pub fn pods(&self) -> Option<&[PathBuf]> {
+    pub fn pods(&self) -> Option<&[Pod]> {
         self.pods.as_deref()
     }
 

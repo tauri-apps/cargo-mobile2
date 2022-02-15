@@ -4,7 +4,7 @@ target '{{app.name}}_iOS' do
 platform :ios, '{{apple.ios-version}}'
   # Pods for {{app.name}}_iOS
   {{~#each ios-pods}}
-  pod '{{this}}'{{/each}}
+  pod '{{this.name}}'{{#if this.version}}, '{{this.version}}'{{/if}}{{/each}}
 end
 
 target '{{app.name}}_macOS' do

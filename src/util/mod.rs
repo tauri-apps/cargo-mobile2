@@ -10,7 +10,7 @@ pub use self::{cargo::*, git::*, path::*};
 use self::cli::{Report, Reportable};
 use crate::os::{self, command_path};
 use once_cell_regex::{exports::regex::Captures, exports::regex::Regex, regex};
-use serde::{ser::Serializer, Serialize};
+use serde::{ser::Serializer, Deserialize, Serialize};
 use std::{
     fmt::{self, Debug, Display},
     io::{self, Write},
@@ -300,6 +300,13 @@ impl VersionDouble {
             }),
         }
     }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Pod {
+    name: String,
+    version: Option<String>,
 }
 
 #[derive(Debug, Error)]
