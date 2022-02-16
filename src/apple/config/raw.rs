@@ -43,6 +43,12 @@ impl Display for PromptError {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PListPair {
+    key: String,
+    value: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Raw {
     pub development_team: String,
@@ -56,6 +62,7 @@ pub struct Raw {
     pub ios_version: Option<String>,
     pub macos_version: Option<String>,
     pub use_legacy_build_system: Option<bool>,
+    pub plist_pairs: Option<Vec<PListPair>>,
 }
 
 impl Raw {
@@ -77,6 +84,7 @@ impl Raw {
             ios_version: None,
             macos_version: None,
             use_legacy_build_system: None,
+            plist_pairs: None,
         })
     }
 
@@ -157,6 +165,7 @@ impl Raw {
             ios_version: None,
             macos_version: None,
             use_legacy_build_system: None,
+            plist_pairs: None,
         })
     }
 }

@@ -189,6 +189,7 @@ pub struct Config {
     ios_version: VersionDouble,
     macos_version: VersionDouble,
     use_legacy_build_system: bool,
+    plist_pairs: Vec<PListPair>,
 }
 
 impl Config {
@@ -257,6 +258,7 @@ impl Config {
                 .map_err(Error::IosVersionInvalid)?
                 .unwrap_or(DEFAULT_MACOS_VERSION),
             use_legacy_build_system: raw.use_legacy_build_system.unwrap_or(true),
+            plist_pairs: raw.plist_pairs.unwrap_or_default(),
         })
     }
 
