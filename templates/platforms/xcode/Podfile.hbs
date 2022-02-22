@@ -11,7 +11,7 @@ target '{{app.name}}_macOS' do
 platform :osx, '{{apple.macos-version}}'
   # Pods for {{app.name}}_macOS
   {{~#each macos-pods}}
-  pod '{{this}}'{{/each}}
+  pod '{{this.name}}'{{#if this.version}}, '{{this.version}}'{{/if}}{{/each}}
 end
 
 # Delete the deployment target for iOS and macOS, causing it to be inherited from the Podfile

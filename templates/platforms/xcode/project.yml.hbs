@@ -87,8 +87,9 @@ targets:
       - sdk: UIKit.framework
       {{~#each ios-frameworks}}
       - sdk: {{this}}.framework{{/each}}
-    {{~#each ios-pre-build-scripts}}
-    preBuildScripts:{{#if this.path}}
+    {{~#if ios-pre-build-scripts}}
+    preBuildScripts:
+      {{~#each ios-pre-build-scripts}}{{#if this.path}}
       - path {{this.path}}{{/if}}{{#if this.script}}
       - script: {{this.script}}{{/if}}{{#if this.name}}
         name: {{this.name}}{{/if}}{{#if this.input-files}}
@@ -104,9 +105,12 @@ targets:
         showEnvVars: {{this.show_env_vars}}{{/if}}{{#if this.run-only-when-installing}}
         runOnlyWhenInstalling: {{this.run-only-when-installing}}{{/if}}{{#if this.based-on-dependency-analysis}}
         basedOnDependencyAnalysis: {{this.based-on-dependency-analysis}}{{/if}}{{#if this.discovered-dependency-file}}
-        discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}{{/each}}
-    {{~#each ios-post-compile-scripts}}
-    postCompileScripts:{{#if this.path}}
+        discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}
+      {{~/each~}}
+    {{~/if~}}
+    {{~#if ios-post-compile-scripts}}
+    postCompileScripts:
+      {{~#each ios-post-compile-scripts}}{{#if this.path}}
       - path {{this.path}}{{/if}}{{#if this.script}}
       - script: {{this.script}}{{/if}}{{#if this.name}}
         name: {{this.name}}{{/if}}{{#if this.input-files}}
@@ -122,9 +126,12 @@ targets:
         showEnvVars: {{this.show_env_vars}}{{/if}}{{#if this.run-only-when-installing}}
         runOnlyWhenInstalling: {{this.run-only-when-installing}}{{/if}}{{#if this.based-on-dependency-analysis}}
         basedOnDependencyAnalysis: {{this.based-on-dependency-analysis}}{{/if}}{{#if this.discovered-dependency-file}}
-        discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}{{/each}}
-    {{~#each ios-post-build-scripts}}
-    postBuildScripts:{{#if this.path}}
+        discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}
+      {{~/each~}}
+    {{~/if~}}
+    {{~#if ios-post-build-scripts}}
+    postBuildScripts:
+      {{~#each ios-post-build-scripts}}{{#if this.path}}
       - path {{this.path}}{{/if}}{{#if this.script}}
       - script: {{this.script}}{{/if}}{{#if this.name}}
         name: {{this.name}}{{/if}}{{#if this.input-files}}
@@ -140,7 +147,9 @@ targets:
         showEnvVars: {{this.show_env_vars}}{{/if}}{{#if this.run-only-when-installing}}
         runOnlyWhenInstalling: {{this.run-only-when-installing}}{{/if}}{{#if this.based-on-dependency-analysis}}
         basedOnDependencyAnalysis: {{this.based-on-dependency-analysis}}{{/if}}{{#if this.discovered-dependency-file}}
-        discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}{{/each}}
+        discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}
+      {{~/each~}}
+    {{~/if}}
   {{app.name}}_macOS:
     type: application
     platform: macOS
@@ -172,8 +181,9 @@ targets:
       - sdk: Metal.framework
       {{~#each macos-frameworks}}
       - sdk: {{this}}.framework{{/each}}
-    {{~#each macos-pre-build-scripts}}
-    preBuildScripts:{{#if this.path}}
+    {{~#if macos-pre-build-scripts}}
+    preBuildScripts:
+      {{~#each macos-pre-build-scripts}}{{#if this.path}}
       - path {{this.path}}{{/if}}{{#if this.script}}
       - script: {{this.script}}{{/if}}{{#if this.name}}
         name: {{this.name}}{{/if}}{{#if this.input-files}}
@@ -189,9 +199,12 @@ targets:
         showEnvVars: {{this.show_env_vars}}{{/if}}{{#if this.run-only-when-installing}}
         runOnlyWhenInstalling: {{this.run-only-when-installing}}{{/if}}{{#if this.based-on-dependency-analysis}}
         basedOnDependencyAnalysis: {{this.based-on-dependency-analysis}}{{/if}}{{#if this.discovered-dependency-file}}
-        discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}{{/each}}
-    {{~#each macos-post-compile-scripts}}
-    postCompileScripts:{{#if this.path}}
+        discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}
+      {{~/each~}}
+    {{~/if~}}
+    {{#if macos-post-compile-scripts}}
+    postCompileScripts:
+      {{~#each macos-post-compile-scripts}}{{#if this.path}}
       - path {{this.path}}{{/if}}{{#if this.script}}
       - script: {{this.script}}{{/if}}{{#if this.name}}
         name: {{this.name}}{{/if}}{{#if this.input-files}}
@@ -207,9 +220,12 @@ targets:
         showEnvVars: {{this.show_env_vars}}{{/if}}{{#if this.run-only-when-installing}}
         runOnlyWhenInstalling: {{this.run-only-when-installing}}{{/if}}{{#if this.based-on-dependency-analysis}}
         basedOnDependencyAnalysis: {{this.based-on-dependency-analysis}}{{/if}}{{#if this.discovered-dependency-file}}
-        discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}{{/each}}
-    {{~#each macos-post-build-scripts}}
-    postBuildScripts:{{#if this.path}}
+        discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}
+      {{~/each~}}
+    {{~/if~}}
+    {{#if macos-post-build-scripts}}
+    postBuildScripts:
+      {{~#each macos-post-build-scripts}}{{#if this.path}}
       - path {{this.path}}{{/if}}{{#if this.script}}
       - script: {{this.script}}{{/if}}{{#if this.name}}
         name: {{this.name}}{{/if}}{{#if this.input-files}}
@@ -225,7 +241,9 @@ targets:
         showEnvVars: {{this.show_env_vars}}{{/if}}{{#if this.run-only-when-installing}}
         runOnlyWhenInstalling: {{this.run-only-when-installing}}{{/if}}{{#if this.based-on-dependency-analysis}}
         basedOnDependencyAnalysis: {{this.based-on-dependency-analysis}}{{/if}}{{#if this.discovered-dependency-file}}
-        discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}{{/each}}
+        discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}
+      {{~/each~}}
+    {{~/if}}
   lib_{{app.name}}_iOS:
     type: ""
     platform: iOS
