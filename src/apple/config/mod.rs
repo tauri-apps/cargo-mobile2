@@ -62,6 +62,7 @@ pub struct Platform {
     pre_build_scripts: Option<Vec<BuildScript>>,
     post_compile_scripts: Option<Vec<BuildScript>>,
     post_build_scripts: Option<Vec<BuildScript>>,
+    command_line_arguments: Option<Vec<String>>,
 }
 
 impl Platform {
@@ -107,6 +108,10 @@ impl Platform {
 
     pub fn post_build_scripts(&self) -> Option<&[BuildScript]> {
         self.post_build_scripts.as_deref()
+    }
+
+    pub fn command_line_arguments(&self) -> &[String] {
+        self.command_line_arguments.as_deref().unwrap_or_default()
     }
 }
 

@@ -61,6 +61,11 @@ targets:
       environmentVariables:
         RUST_BACKTRACE: full
         RUST_LOG: info
+      {{~#if ios-command-line-arguments}}
+      commandLineArguments:
+      {{~#each ios-command-line-arguments}}
+        "{{this}}": true
+      {{/each}}{{~/if}}
     settings:
       base:
         ENABLE_BITCODE: false
@@ -164,6 +169,11 @@ targets:
       environmentVariables:
         RUST_BACKTRACE: full
         RUST_LOG: info
+      {{~#if ios-command-line-arguments}}
+      commandLineArguments:
+      {{~#each ios-command-line-arguments}}
+        "{{this}}": true
+      {{/each}}{{~/if}}
     settings:
       base:
         LIBRARY_SEARCH_PATHS: $(inherited) "{{prefix-path "target/x86_64-apple-darwin/$(CONFIGURATION)"}}"

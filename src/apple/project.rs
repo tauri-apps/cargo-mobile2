@@ -139,6 +139,14 @@ pub fn gen(
                 "macos-post-build-scripts",
                 metadata.macos().post_build_scripts(),
             );
+            map.insert(
+                "ios-command-line-arguments",
+                metadata.ios().command_line_arguments(),
+            );
+            map.insert(
+                "macos-command-line-arguments",
+                metadata.macos().command_line_arguments(),
+            );
         },
         filter.fun(),
     )
