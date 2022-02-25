@@ -73,6 +73,7 @@ targets:
         VALID_ARCHS: arm64 x86_64 # rustc doesn't support arm64e yet
         LIBRARY_SEARCH_PATHS[sdk=iphoneos*]: $(inherited) "{{prefix-path "target/aarch64-apple-ios/$(CONFIGURATION)"}}"
         LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]: $(inherited) "{{prefix-path "target/x86_64-apple-ios/$(CONFIGURATION)"}}"
+        ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: true
       groups: [app]
     dependencies:
       - target: lib_{{app.name}}_iOS
