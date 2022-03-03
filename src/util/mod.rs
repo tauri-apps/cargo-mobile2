@@ -12,6 +12,7 @@ use crate::os::{self, command_path};
 use once_cell_regex::{exports::regex::Captures, exports::regex::Regex, regex};
 use serde::{ser::Serializer, Deserialize, Serialize};
 use std::{
+    error::Error as StdError,
     fmt::{self, Debug, Display},
     io::{self, Write},
     path::{Path, PathBuf},
@@ -162,6 +163,32 @@ impl VersionTriple {
         ))
     }
 
+    pub fn from_split(
+        split: &mut std::str::Split<&str>,
+        version: &str,
+    ) -> Result<Self, VersionTripleError> {
+        Ok(VersionTriple {
+            major: split.next().unwrap().parse().map_err(|source| {
+                VersionTripleError::MajorInvalid {
+                    version: version.to_owned(),
+                    source,
+                }
+            })?,
+            minor: split.next().unwrap().parse().map_err(|source| {
+                VersionTripleError::MinorInvalid {
+                    version: version.to_owned(),
+                    source,
+                }
+            })?,
+            patch: split.next().unwrap().parse().map_err(|source| {
+                VersionTripleError::PatchInvalid {
+                    version: version.to_owned(),
+                    source,
+                }
+            })?,
+        })
+    }
+
     pub fn from_str(v: &str) -> Result<Self, VersionTripleError> {
         match v.split(".").count() {
             1 => Ok(VersionTriple {
@@ -194,26 +221,7 @@ impl VersionTriple {
             }
             3 => {
                 let mut s = v.split(".");
-                Ok(VersionTriple {
-                    major: s.next().unwrap().parse().map_err(|source| {
-                        VersionTripleError::MajorInvalid {
-                            version: v.to_owned(),
-                            source,
-                        }
-                    })?,
-                    minor: s.next().unwrap().parse().map_err(|source| {
-                        VersionTripleError::MinorInvalid {
-                            version: v.to_owned(),
-                            source,
-                        }
-                    })?,
-                    patch: s.next().unwrap().parse().map_err(|source| {
-                        VersionTripleError::PatchInvalid {
-                            version: v.to_owned(),
-                            source,
-                        }
-                    })?,
-                })
+                Self::from_split(&mut s, v)
             }
             _ => Err(VersionTripleError::VersionStringInvalid {
                 version: v.to_owned(),
@@ -605,4 +613,46 @@ pub fn unwrap_either<T>(result: Result<T, T>) -> T {
     match result {
         Ok(t) | Err(t) => t,
     }
+}
+
+#[derive(Debug, Error)]
+pub enum WithWorkingDirError<E>
+where
+    E: StdError,
+{
+    #[error("Failed to get current directory: {0}")]
+    CurrentDirGetFailed(#[source] std::io::Error),
+    #[error("Failed to set working directory {path:?}: {source}")]
+    CurrentDirSetFailed {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+    #[error(transparent)]
+    CallbackFailed(#[from] E),
+}
+
+pub fn with_working_dir<T, E, IE>(
+    working_dir: impl AsRef<Path>,
+    f: impl FnOnce() -> Result<T, IE>,
+) -> Result<T, WithWorkingDirError<E>>
+where
+    E: StdError,
+    E: From<IE>,
+{
+    let working_dir = working_dir.as_ref();
+    let current_dir = std::env::current_dir().map_err(WithWorkingDirError::CurrentDirGetFailed)?;
+    std::env::set_current_dir(working_dir).map_err(|source| {
+        WithWorkingDirError::CurrentDirSetFailed {
+            path: working_dir.to_owned(),
+            source,
+        }
+    })?;
+    let result = f().map_err(E::from)?;
+    std::env::set_current_dir(&current_dir).map_err(|source| {
+        WithWorkingDirError::CurrentDirSetFailed {
+            path: current_dir.into(),
+            source,
+        }
+    })?;
+    Ok(result)
 }
