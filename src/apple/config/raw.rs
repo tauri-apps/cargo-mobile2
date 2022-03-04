@@ -1,10 +1,10 @@
 use crate::{
     apple::teams,
-    util::{cli::TextWrapper, prompt},
+    util::{cli::TextWrapper, prompt, OneOrMany},
 };
 use colored::{Color, Colorize as _};
 use serde::{Deserialize, Serialize};
-use std::fmt::{self, Display};
+use std::fmt::{self, Debug, Display};
 
 #[derive(Debug)]
 pub enum DetectError {
@@ -45,7 +45,7 @@ impl Display for PromptError {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PListPair {
     key: String,
-    value: String,
+    value: OneOrMany<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

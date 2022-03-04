@@ -656,3 +656,32 @@ where
     })?;
     Ok(result)
 }
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(untagged)]
+pub enum OneOrMany<T: Debug> {
+    One(T),
+    Many(Vec<T>),
+}
+
+impl<T: Debug> From<OneOrMany<T>> for Vec<T> {
+    fn from(from: OneOrMany<T>) -> Self {
+        match from {
+            OneOrMany::One(val) => vec![val],
+            OneOrMany::Many(vec) => vec,
+        }
+    }
+}
+
+impl<T: Debug> Serialize for OneOrMany<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let serialized_str = match self {
+            Self::One(one) => format!("{:?}", one),
+            Self::Many(vec) => format!("{:?}", vec),
+        };
+        serializer.serialize_str(&serialized_str)
+    }
+}
