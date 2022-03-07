@@ -226,10 +226,10 @@ impl<'a> Device<'a> {
         noise_level: NoiseLevel,
         profile: Profile,
     ) -> Result<(), ApkBuildError> {
-        use heck::CamelCase as _;
+        use heck::ToUpperCamelCase as _;
         JniLibs::remove_broken_links(config).map_err(ApkBuildError::LibSymlinkCleaningFailed)?;
-        let flavor = self.target.arch.to_camel_case();
-        let build_ty = profile.as_str().to_camel_case();
+        let flavor = self.target.arch.to_upper_camel_case();
+        let build_ty = profile.as_str().to_upper_camel_case();
         gradlew(config, env)
             .with_arg(format!("assemble{}{}", flavor, build_ty))
             .with_arg(match noise_level {
@@ -268,9 +268,9 @@ impl<'a> Device<'a> {
     }
 
     fn build_aab(&self, config: &Config, env: &Env, profile: Profile) -> Result<(), AabBuildError> {
-        use heck::CamelCase as _;
-        let flavor = self.target.arch.to_camel_case();
-        let build_ty = profile.as_str().to_camel_case();
+        use heck::ToUpperCamelCase as _;
+        let flavor = self.target.arch.to_upper_camel_case();
+        let build_ty = profile.as_str().to_upper_camel_case();
         gradlew(config, env)
             .with_arg(format!(":app:bundle{}{}", flavor, build_ty))
             .run_and_wait()

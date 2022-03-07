@@ -173,7 +173,7 @@ impl App {
     }
 
     pub fn name_snake(&self) -> String {
-        use heck::SnekCase as _;
+        use heck::ToSnekCase as _;
         self.name().to_snek_case()
     }
 
