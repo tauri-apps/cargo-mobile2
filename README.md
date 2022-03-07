@@ -66,6 +66,8 @@ For more commands, run `cargo mobile`, `cargo apple`, or `cargo android` to see 
 
 ### Android
 
+**Building for Android is broken on NDK >= 23**
+
 `cargo android run` will build, install and run the app and follows device logs emitted by the app.
 
 By default, warn and error logs are displayed. Additional logging of increasing verbosity can be shown by use of the `-v` or `-vv` options. These also provide more verbose logging for the build and install steps.
