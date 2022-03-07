@@ -111,6 +111,18 @@ fn reverse_domain(
         .map_err(Into::into)
 }
 
+fn reverse_domain_snake_case(
+    helper: &Helper,
+    _: &Handlebars,
+    _: &Context,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    use heck::SnekCase as _;
+    out.write(&util::reverse_domain(get_str(helper)).to_snek_case())
+        .map_err(Into::into)
+}
+
 fn app_root<'a>(ctx: &'a Context) -> Result<&'a str, RenderError> {
     let app_root = ctx
         .data()
@@ -189,6 +201,7 @@ pub fn init(config: Option<&Config>) -> Bicycle {
             );
             helpers.insert("snake-case", Box::new(snake_case));
             helpers.insert("reverse-domain", Box::new(reverse_domain));
+            helpers.insert("reverse-domain-snake-case", Box::new(reverse_domain_snake_case));
             if config.is_some() {
                 // don't mix these up or very bad things will happen to all of us
                 helpers.insert("prefix-path", Box::new(prefix_path));

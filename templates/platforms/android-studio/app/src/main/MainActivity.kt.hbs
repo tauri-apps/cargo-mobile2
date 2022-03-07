@@ -1,0 +1,78 @@
+package {{reverse-domain app.domain}}.{{app.name}}
+
+import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Context
+import android.os.Bundle
+import android.util.Base64
+import android.util.Log
+import android.webkit.*
+import android.widget.Toast
+import androidx.webkit.WebViewAssetLoader
+
+class MainActivity : Activity() {
+    private lateinit var webView: WebView;
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        webView = WryWebView(this)
+        setContentView(webView)
+    }
+}
+
+@SuppressLint("SetJavaScriptEnabled")
+class WryWebView(context: Context) : WebView(context) {
+    companion object {
+        init {
+            System.loadLibrary("{{app.name}}")
+        }
+    }
+
+    private external fun create(webView: WebView): Array<String>
+
+    init {
+        val scripts = create(this);
+        val assetLoader = WebViewAssetLoader.Builder()
+            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
+            .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(context))
+            .build();
+        this.webViewClient = WryClient(scripts, assetLoader);
+        this.settings.javaScriptEnabled = true;
+        this.addJavascriptInterface(IpcHandler(context), "ipc");
+
+    }
+}
+
+class WryClient(private val initializationScripts: Array<String>, private val assetLoader: WebViewAssetLoader) : WebViewClient() {
+
+    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+        return false;
+    }
+
+    override fun onPageFinished(view: WebView?, url: String?) {
+        super.onPageFinished(view, url)
+        initializationScripts.forEach { view?.evaluateJavascript(it, null) };
+    }
+
+    override fun shouldInterceptRequest(
+        view: WebView,
+        request: WebResourceRequest
+    ): WebResourceResponse? {
+        return assetLoader.shouldInterceptRequest(request.url)
+    }
+}
+
+class IpcHandler(private val context: Context) {
+    companion object {
+        init {
+            System.loadLibrary("{{app.name}}")
+        }
+    }
+
+    private external fun ipc(message: String)
+
+    @JavascriptInterface
+    fun postMessage(message: String) {
+        this.ipc(message)
+    }
+}

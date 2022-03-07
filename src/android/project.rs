@@ -170,6 +170,23 @@ pub fn gen(
         })?;
     }
 
+    let domain = config.app().reverse_domain().replace(".", "/");
+    let package_path = format!("app/src/main/java/{}/{}/", domain, config.app().name());
+    let activity_dest = dest.join(package_path);
+    fs::create_dir_all(&activity_dest).map_err(|cause| Error::DirectoryCreationFailed {
+        path: dest.clone(),
+        cause,
+    })?;
+    let activity_src = dest.join("app/src/main/MainActivity.kt");
+    let activity_dest = activity_dest.join("MainActivity.kt");
+    fs::rename(&activity_src, activity_dest).map_err(|cause| {
+        Error::FileCopyFailed {
+            src: activity_src,
+            dest: source_dest.clone(),
+            cause,
+        }
+    })?;
+
     let dest = dest.join("app/src/main/assets/");
     fs::create_dir_all(&dest).map_err(|cause| Error::DirectoryCreationFailed {
         path: dest.clone(),
