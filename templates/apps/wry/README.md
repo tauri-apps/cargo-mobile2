@@ -1,8 +1,6 @@
-# winit
+# wry
 
-This is just the [`winit` window example](https://github.com/rust-windowing/winit/blob/master/examples/window.rs) with very light modifications:
+Currently works on Android only.
 
-- The `#[mobile_entry_point]` annotation generates all the boilerplate `extern` functions for mobile.
-- Logging on Android is done using `android_logger`.
-
-To run this on desktop, just do `cargo run` like normal! For mobile, use `cargo android run` and `cargo apple run` respectively (or use `cargo android open` and `cargo apple open` to open in Android Studio and Xcode respectively).
+From my setup, I also need to add `abiFilters += listOf("arm64-v8a")` under `create("arm")` branch in `:app`'s '`build.gradle.kts`.
+This is probably different from users env, so I didn't add to the script.
