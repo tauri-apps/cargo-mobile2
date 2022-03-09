@@ -95,7 +95,7 @@ fn snake_case(
     _: &mut RenderContext,
     out: &mut dyn Output,
 ) -> HelperResult {
-    use heck::SnekCase as _;
+    use heck::ToSnekCase as _;
     out.write(&get_str(helper).to_snek_case())
         .map_err(Into::into)
 }

@@ -1,5 +1,5 @@
 use crate::util;
-use heck::{KebabCase as _, SnekCase as _};
+use heck::{ToKebabCase as _, ToSnekCase as _};
 use reserved_names::{is_reserved, Reservation};
 use std::{
     fmt::{self, Display},
