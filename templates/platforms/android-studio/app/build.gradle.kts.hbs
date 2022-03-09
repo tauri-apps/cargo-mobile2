@@ -1,5 +1,6 @@
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.android")
     id("rustPlugin")
     {{~#each android-app-plugins}}
     id("{{this}}"){{/each}}

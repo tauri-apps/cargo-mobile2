@@ -1,0 +1,44 @@
+use anyhow::Result;
+use crate::create_webview;
+use wry::{application::window::Window, webview::*};
+use jni::{
+  objects::{JClass, JString, JObject},
+  sys::jobject,
+  JNIEnv,
+};
+
+fn init_logging() {
+    android_logger::init_once(
+        android_logger::Config::default()
+            .with_min_level(log::Level::Trace)
+            .with_tag("{{app.name}}"),
+    );
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Java_{{reverse-domain-snake-case app.domain}}_{{snake-case app.name}}_WryWebView_create(
+    env: JNIEnv,
+    jclass: JClass,
+    jobject: JObject,
+) -> jobject {
+    init_logging();
+    let webview = create_webview().expect("Failed to create webview");
+    webview.run(env, jclass, jobject)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Java_{{reverse-domain-snake-case app.domain}}_{{snake-case app.name}}_IpcHandler_ipc(
+    env: JNIEnv,
+    _jclass: JClass,
+    jobject: JString,
+) {
+    let window = Window::new();
+    match get_arg(env, jobject) {
+        Ok(arg) => WebView::ipc_handler(&window, arg),
+        Err(e) => error!("Failed to parse JString: {}", e),
+    }
+}
+
+fn get_arg(env: JNIEnv, jobject: JString) -> Result<String> {
+    Ok(env.get_string(jobject)?.to_str()?.to_string())
+}
