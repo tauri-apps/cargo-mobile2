@@ -22,7 +22,8 @@ pub unsafe extern "C" fn Java_{{reverse-domain-snake-case app.domain}}_{{snake-c
     jobject: JObject,
 ) -> jobject {
     init_logging();
-    let webview = create_webview().expect("Failed to create webview");
+    let window = Window::new();
+    let webview = create_webview(window).expect("Failed to create webview");
     webview.run(env, jclass, jobject)
 }
 

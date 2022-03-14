@@ -1,11 +1,3 @@
-/*
-use mobile_entry_point::mobile_entry_point;
-use wry::application::{
-    event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
-};
-*/
 #[macro_use]
 extern crate log;
 
@@ -13,50 +5,17 @@ extern crate log;
 mod android;
 #[cfg(target_os = "android")]
 pub use android::*;
+#[cfg(not(target_os = "android"))]
+mod ios;
+#[cfg(not(target_os = "android"))]
+pub use ios::*;
 
 use anyhow::Result;
 use wry::{application::window::Window, webview::*};
 
-#[cfg(not(target_os = "android"))]
-fn init_logging() {
-    simple_logger::SimpleLogger::new().init().unwrap();
-}
-
-/*
-#[mobile_entry_point]
-fn main() {
-    init_logging();
-    let event_loop = EventLoop::new();
-
-    let window = WindowBuilder::new()
-        .with_title("A fantastic window!")
-        .with_inner_size(wry::application::dpi::LogicalSize::new(128.0, 128.0))
-        .build(&event_loop)
-        .unwrap();
-
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
-        println!("{:?}", event);
-
-        match event {
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                window_id,
-            } if window_id == window.id() => *control_flow = ControlFlow::Exit,
-            Event::MainEventsCleared => {
-                window.request_redraw();
-            }
-            _ => (),
-        }
-    });
-}
-*/
-
-fn create_webview() -> Result<WebView> {
-    #[cfg(target_os = "android")]
-    let window = Window::new();
+fn create_webview(window: Window) -> Result<WebView> {
     Ok(WebViewBuilder::new(window)?
-        //.with_url("https://google.com").unwrap()
+        .with_url("https://tauri.app").unwrap()
         .with_ipc_handler(|_, message| {
             dbg!(message);
         })

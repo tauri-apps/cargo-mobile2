@@ -1,0 +1,60 @@
+use mobile_entry_point::mobile_entry_point;
+use std::collections::HashMap;
+use wry::application::{
+    event::{Event, StartCause, WindowEvent},
+    event_loop::{ControlFlow, EventLoop},
+    window::WindowBuilder,
+};
+
+use crate::create_webview;
+
+fn init_logging() {
+    env_logger::init();
+}
+
+#[mobile_entry_point]
+pub fn main() {
+    init_logging();
+    let event_loop = EventLoop::new();
+
+    let mut weviews = HashMap::new();
+
+    event_loop.run(move |event, event_loop, control_flow| {
+        *control_flow = ControlFlow::Wait;
+        match event {
+            Event::NewEvents(StartCause::Init) => {
+                debug!("Init");
+
+                match WindowBuilder::new().build(&event_loop) {
+                    Ok(window) => {
+                        let window_id = window.id();
+                        match create_webview(window) {
+                            Ok(webview) => {
+                                weviews.insert(window_id, webview);
+                            }
+                            Err(e) => warn!("Error creating WebView: {}", e),
+                        }
+                    }
+                    Err(e) => warn!("Error creating Window: {}", e),
+                }
+            }
+            Event::Resumed => {
+                debug!("applicationDidBecomeActive");
+            }
+            Event::Suspended => {
+                debug!("applicationWillResignActive");
+            }
+            Event::LoopDestroyed => {
+                debug!("applicationWillTerminate");
+            }
+            Event::WindowEvent {
+                window_id,
+                event: WindowEvent::Touch(touch),
+                ..
+            } => {
+                debug!("touch on {:?} {:?}", window_id, touch);
+            }
+            _ => {}
+        }
+    });
+}
