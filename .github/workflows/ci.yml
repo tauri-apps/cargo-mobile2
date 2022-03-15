@@ -2,7 +2,17 @@ name: CI
 
 on:
   pull_request:
+    paths:
+      - "**.rs"
+      - "**.toml"
+      - "**.lock"
+      - ".github/workflows/*.yml"
   push:
+    paths:
+      - "**.rs"
+      - "**.toml"
+      - "**.lock"
+      - ".github/workflows/*.yml"
     branches: [master]
 
 jobs:
