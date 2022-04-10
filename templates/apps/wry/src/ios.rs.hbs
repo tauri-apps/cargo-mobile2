@@ -1,3 +1,4 @@
+use core_foundation::bundle::CFBundle;
 use mobile_entry_point::mobile_entry_point;
 use std::collections::HashMap;
 use wry::application::{
@@ -57,4 +58,11 @@ pub fn main() {
             _ => {}
         }
     });
+}
+
+/// Working directory is usually `/` on iOS. This function can get the actually assets directory.
+pub fn get_resource_path(path: String) -> PathBuf {
+    let mut resource = CFBundle::main_bundle().resources_path().unwrap_or_default();
+    resource.push(path);
+    resource
 }

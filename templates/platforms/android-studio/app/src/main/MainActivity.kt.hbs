@@ -58,7 +58,16 @@ class WryClient(private val initializationScripts: Array<String>, private val as
         view: WebView,
         request: WebResourceRequest
     ): WebResourceResponse? {
-        return assetLoader.shouldInterceptRequest(request.url)
+        var url = request.url;
+        if (url.host == "tauri.wry" && url.pathSegments[0] != "assets") {
+            val paths = url.pathSegments;
+            if (paths.count() == 2 && paths[0] == "assets") {
+                url = url.buildUpon().path("assets" + url.path).build();
+            } else if (paths.count() == 1) {
+                url = url.buildUpon().path("assets/assets" + url.path).build();
+            }
+        };
+        return assetLoader.shouldInterceptRequest(url)
     }
 }
 

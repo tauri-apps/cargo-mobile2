@@ -11,11 +11,37 @@ mod ios;
 pub use ios::*;
 
 use anyhow::Result;
+use std::fs::{canonicalize, read};
 use wry::{application::window::Window, webview::*};
 
 fn create_webview(window: Window) -> Result<WebView> {
     Ok(WebViewBuilder::new(window)?
-        .with_url("https://tauri.app").unwrap()
+        .with_url("wry://assets/index.html")?
+        .with_custom_protocol("wry".into(), move |request| {
+            // Remove url scheme
+            let path = request.uri().replace("wry://", "");
+
+            #[cfg(not(target_os = "android"))]
+            let path = get_resource_path(path);
+
+            // Read the file content from file path
+            let content = read(canonicalize(&path)?)?;
+
+            // Return asset contents and mime types based on file extentions
+            // If you don't want to do this manually, there are some crates for you.
+            // Such as `infer` and `mime_guess`.
+            let (data, meta) = if path.ends_with(".html") {
+                (content, "text/html")
+            } else if path.ends_with(".js") {
+                (content, "text/javascript")
+            } else if path.ends_with(".png") {
+                (content, "image/png")
+            } else {
+                (content, "text/html")
+            };
+
+            ResponseBuilder::new().mimetype(meta).body(data)
+        })
         .with_ipc_handler(|_, message| {
             dbg!(message);
         })
