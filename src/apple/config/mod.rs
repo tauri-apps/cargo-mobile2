@@ -55,6 +55,7 @@ pub struct BuildScript {
 pub struct Platform {
     features: Option<Vec<String>>,
     frameworks: Option<Vec<String>>,
+    valid_archs: Option<Vec<String>>,
     vendor_frameworks: Option<Vec<String>>,
     vendor_sdks: Option<Vec<String>>,
     asset_catalogs: Option<Vec<PathBuf>>,
@@ -77,6 +78,10 @@ impl Platform {
 
     pub fn frameworks(&self) -> &[String] {
         self.frameworks.as_deref().unwrap_or_else(|| &[])
+    }
+
+    pub fn valid_archs(&self) -> Option<&[String]> {
+        self.valid_archs.as_deref()
     }
 
     pub fn vendor_frameworks(&self) -> &[String] {
