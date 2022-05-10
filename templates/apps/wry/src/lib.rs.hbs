@@ -12,7 +12,7 @@ pub use ios::*;
 
 use anyhow::Result;
 use std::fs::{canonicalize, read};
-use wry::{application::window::Window, webview::*};
+use wry::{application::window::Window, http::ResponseBuilder, webview::*};
 
 fn create_webview(window: Window) -> Result<WebView> {
     Ok(WebViewBuilder::new(window)?

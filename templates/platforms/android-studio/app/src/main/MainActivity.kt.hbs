@@ -1,16 +1,12 @@
-package {{reverse-domain app.domain}}.{{app.name}}
+package {{reverse-domain app.domain}}.{{snake-case app.name}}
 
-import android.annotation.SuppressLint
-import android.app.Activity
+import androidx.appcompat.app.AppCompatActivity
 import android.content.Context
 import android.os.Bundle
-import android.util.Base64
-import android.util.Log
 import android.webkit.*
-import android.widget.Toast
 import androidx.webkit.WebViewAssetLoader
 
-class MainActivity : Activity() {
+class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView;
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,11 +16,10 @@ class MainActivity : Activity() {
     }
 }
 
-@SuppressLint("SetJavaScriptEnabled")
 class WryWebView(context: Context) : WebView(context) {
     companion object {
         init {
-            System.loadLibrary("{{app.name}}")
+            System.loadLibrary("{{snake-case app.name}}")
         }
     }
 
@@ -74,7 +69,7 @@ class WryClient(private val initializationScripts: Array<String>, private val as
 class IpcHandler(private val context: Context) {
     companion object {
         init {
-            System.loadLibrary("{{app.name}}")
+            System.loadLibrary("{{snake-case app.name}}")
         }
     }
 
