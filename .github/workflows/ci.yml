@@ -5,13 +5,15 @@ on:
     paths:
       - "**.rs"
       - "**.toml"
-      - ".github/workflows/ci.yml"
+      - "**.lock"
+      - ".github/workflows/*.yml"
   push:
-    branches: [master]
     paths:
       - "**.rs"
       - "**.toml"
-      - ".github/workflows/ci.yml"
+      - "**.lock"
+      - ".github/workflows/*.yml"
+    branches: [master]
 
 jobs:
   Check_Formatting:

@@ -69,8 +69,8 @@ targets:
     settings:
       base:
         ENABLE_BITCODE: false
-        ARCHS: [arm64, x86_64] # rustc doesn't support arm64e yet
-        VALID_ARCHS: arm64 x86_64 # rustc doesn't support arm64e yet
+        ARCHS: [{{join ios-valid-archs}}]
+        VALID_ARCHS: {{~#each ios-valid-archs}} {{this}} {{/each}}
         LIBRARY_SEARCH_PATHS[sdk=iphoneos*]: $(inherited) "{{prefix-path "target/aarch64-apple-ios/$(CONFIGURATION)"}}"
         LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]: $(inherited) "{{prefix-path "target/x86_64-apple-ios/$(CONFIGURATION)"}}"
         ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: true
@@ -262,8 +262,8 @@ targets:
     platform: iOS
     settings:
       ENABLE_BITCODE: false
-      ARCHS: [arm64, x86_64] # rustc doesn't support arm64e yet
-      VALID_ARCHS: arm64 x86_64 # rustc doesn't support arm64e yet
+      ARCHS: [{{join ios-valid-archs}}]
+      VALID_ARCHS: {{~#each ios-valid-archs}} {{this}} {{/each}}
     legacy:
       toolPath: ${HOME}/.cargo/bin/cargo-apple
       arguments: xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}

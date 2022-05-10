@@ -54,7 +54,7 @@ After some straightforward prompts, you'll be asked to select a template pack. T
 | bevy      | Minimal Bevy project derived from [sprite](https://github.com/bevyengine/bevy/blob/master/examples/2d/sprite.rs) example          |
 | bevy-demo | Bevy [breakout](https://github.com/bevyengine/bevy/blob/master/examples/game/breakout.rs) demo                                    |
 | wgpu      | Minimal wgpu project derived from [hello-triangle](https://github.com/gfx-rs/wgpu-rs/tree/master/examples/hello-triangle) example |
-| winit     | Minimal winit project derived from [window](https://github.com/rust-windowing/winit/tree/master/examples/window) example          |
+| winit     | Minimal winit project derived from [window](https://github.com/rust-windowing/winit/blob/master/examples/window.rs) example          |
 
 **Template pack contribution is encouraged**; we'd love to have very nice template packs for Bevy, Amethyst, and whatever else people find helpful! We'll write up a guide for template pack creation soon, but in the mean time, the existing ones are a great reference point. Any template pack placed into `~./cargo-mobile/templates/apps/` will appear as an option in `cargo mobile init`.
 
@@ -65,6 +65,8 @@ If you prefer to work in the usual IDEs, you can use `cargo apple open` and `car
 For more commands, run `cargo mobile`, `cargo apple`, or `cargo android` to see help information.
 
 ### Android
+
+**Building for Android is broken on NDK >= 23**
 
 `cargo android run` will build, install and run the app and follows device logs emitted by the app.
 

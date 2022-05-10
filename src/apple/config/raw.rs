@@ -43,9 +43,16 @@ impl Display for PromptError {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum PlistValue {
+    Bool(bool),
+    Strings(OneOrMany<String>),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PListPair {
     key: String,
-    value: OneOrMany<String>,
+    value: PlistValue,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
