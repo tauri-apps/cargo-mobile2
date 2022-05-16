@@ -1,50 +1,87 @@
 #[macro_use]
 extern crate log;
 
-#[cfg(target_os = "android")]
-mod android;
-#[cfg(target_os = "android")]
-pub use android::*;
-#[cfg(not(target_os = "android"))]
-mod ios;
-#[cfg(not(target_os = "android"))]
-pub use ios::*;
-
 use anyhow::Result;
-use std::fs::{canonicalize, read};
-use wry::{application::window::Window, http::ResponseBuilder, webview::*};
+#[cfg(target_os = "android")]
+use wry::application::{android_fn, platform::android::ndk_glue::*};
+use wry::{
+    application::{
+        event::{Event, WindowEvent},
+        event_loop::{ControlFlow, EventLoop},
+        window::WindowBuilder,
+    },
+    webview::WebViewBuilder,
+};
 
-fn create_webview(window: Window) -> Result<WebView> {
-    Ok(WebViewBuilder::new(window)?
-        .with_url("wry://assets/index.html")?
-        .with_custom_protocol("wry".into(), move |request| {
-            // Remove url scheme
-            let path = request.uri().replace("wry://", "");
+#[cfg(target_os = "android")]
+fn init_logging() {
+    android_logger::init_once(
+        android_logger::Config::default()
+            .with_min_level(log::Level::Trace)
+            .with_tag("{{app.name}}"),
+    );
+}
 
-            #[cfg(not(target_os = "android"))]
-            let path = get_resource_path(path);
+#[cfg(not(target_os = "android"))]
+fn init_logging() {
+    env_logger::init();
+}
 
-            // Read the file content from file path
-            let content = read(canonicalize(&path)?)?;
+fn stop_unwind<F: FnOnce() -> T, T>(f: F) -> T {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+        Ok(t) => t,
+        Err(err) => {
+            eprintln!("attempt to unwind out of `rust` with err: {:?}", err);
+            std::process::abort()
+        }
+    }
+}
 
-            // Return asset contents and mime types based on file extentions
-            // If you don't want to do this manually, there are some crates for you.
-            // Such as `infer` and `mime_guess`.
-            let (data, meta) = if path.ends_with(".html") {
-                (content, "text/html")
-            } else if path.ends_with(".js") {
-                (content, "text/javascript")
-            } else if path.ends_with(".png") {
-                (content, "image/png")
-            } else {
-                (content, "text/html")
-            };
+fn _start_app() {
+    stop_unwind(|| main().unwrap());
+}
 
-            ResponseBuilder::new().mimetype(meta).body(data)
+#[no_mangle]
+#[inline(never)]
+pub extern "C" fn start_app() {
+    #[cfg(target_os = "android")]
+    android_fn!({{reverse-domain-snake-case app.domain}}, {{snake-case app.name}});
+    _start_app()
+}
+
+fn main() -> Result<()> {
+    init_logging();
+    let event_loop = EventLoop::new();
+    let window = WindowBuilder::new()
+        .with_title("A fantastic window!")
+        .with_inner_size(wry::application::dpi::LogicalSize::new(128.0, 128.0))
+        .build(&event_loop)?;
+    let webview = WebViewBuilder::new(window)?
+        .with_url("https://tauri.app")?
+        .with_devtools(true)
+        .with_initialization_script("console.log('hello world from init script');")
+        .with_ipc_handler(|_, s| {
+            dbg!(s);
         })
-        .with_ipc_handler(|_, message| {
-            dbg!(message);
-        })
-        .build()?)
+        .build()?;
+
+    dbg!(webview.window().outer_size());
+
+    event_loop.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Wait;
+        println!("{:?}", event);
+
+        match event {
+            Event::WindowEvent {
+                event: WindowEvent::CloseRequested,
+                window_id,
+                ..
+            } if window_id == webview.window().id() => *control_flow = ControlFlow::Exit,
+            Event::MainEventsCleared => {
+                webview.window().request_redraw();
+            }
+            _ => (),
+        }
+    });
 }
 

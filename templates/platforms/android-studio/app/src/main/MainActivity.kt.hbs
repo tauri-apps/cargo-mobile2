@@ -1,72 +1,125 @@
 package {{reverse-domain app.domain}}.{{snake-case app.name}}
 
-import androidx.appcompat.app.AppCompatActivity
 import android.content.Context
 import android.os.Bundle
 import android.webkit.*
+import androidx.appcompat.app.AppCompatActivity
 import androidx.webkit.WebViewAssetLoader
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var webView: WebView;
+    lateinit var client: WebViewClient
+    lateinit var ipc: IpcInterface
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        webView = WryWebView(this)
-        setContentView(webView)
+        client = RustClient(this)
+        ipc = IpcInterface(this)
+        create(this)
     }
-}
 
-class WryWebView(context: Context) : WebView(context) {
+    override fun onStart() {
+        super.onStart()
+        start()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        resume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        pause()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        stop()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        focus(hasFocus)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        save()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        destroy()
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        memory()
+    }
+
+
     companion object {
         init {
             System.loadLibrary("{{snake-case app.name}}")
         }
     }
 
-    private external fun create(webView: WebView): Array<String>
-
-    init {
-        val scripts = create(this);
-        val assetLoader = WebViewAssetLoader.Builder()
-            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
-            .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(context))
-            .build();
-        this.webViewClient = WryClient(scripts, assetLoader);
-        this.settings.javaScriptEnabled = true;
-        this.addJavascriptInterface(IpcHandler(context), "ipc");
-
-    }
+    private external fun create(activity: MainActivity)
+    private external fun start()
+    private external fun resume()
+    private external fun pause()
+    private external fun stop()
+    private external fun save()
+    private external fun destroy()
+    private external fun memory()
+    private external fun focus(focus: Boolean)
 }
-
-class WryClient(private val initializationScripts: Array<String>, private val assetLoader: WebViewAssetLoader) : WebViewClient() {
+class RustClient(context: Context) : WebViewClient() {
+    private val assetLoader = WebViewAssetLoader.Builder()
+        .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
+        .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(context))
+        .build()
 
     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-        return false;
+        return false
     }
 
     override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
-        initializationScripts.forEach { view?.evaluateJavascript(it, null) };
+        eval()
     }
 
     override fun shouldInterceptRequest(
         view: WebView,
         request: WebResourceRequest
     ): WebResourceResponse? {
-        var url = request.url;
-        if (url.host == "tauri.wry" && url.pathSegments[0] != "assets") {
-            val paths = url.pathSegments;
+        var url = request.url
+        if (url.host == "tauri.mobile" && url.pathSegments[0] != "assets") {
+            val paths = url.pathSegments
             if (paths.count() == 2 && paths[0] == "assets") {
-                url = url.buildUpon().path("assets" + url.path).build();
+                url = url.buildUpon().path("assets" + url.path).build()
             } else if (paths.count() == 1) {
-                url = url.buildUpon().path("assets/assets" + url.path).build();
+                url = url.buildUpon().path("assets/assets" + url.path).build()
             }
-        };
+        }
         return assetLoader.shouldInterceptRequest(url)
     }
+
+    companion object {
+        init {
+            System.loadLibrary("{{snake-case app.name}}")
+        }
+    }
+
+    private external fun eval()
 }
 
-class IpcHandler(private val context: Context) {
+class IpcInterface(private val context: Context) {
+    @JavascriptInterface
+    fun postMessage(message: String) {
+        this.ipc(message)
+    }
+
     companion object {
         init {
             System.loadLibrary("{{snake-case app.name}}")
@@ -74,9 +127,4 @@ class IpcHandler(private val context: Context) {
     }
 
     private external fun ipc(message: String)
-
-    @JavascriptInterface
-    fun postMessage(message: String) {
-        this.ipc(message)
-    }
 }

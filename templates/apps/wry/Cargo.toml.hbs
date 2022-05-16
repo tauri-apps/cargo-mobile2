@@ -14,12 +14,13 @@ path = "gen/bin/desktop.rs"
 [dependencies]
 anyhow = "1.0.56"
 log = "0.4.11"
-wry = { git = "https://github.com/tauri-apps/wry", branch = "feat/android" }
+wry = { git = "https://github.com/tauri-apps/wry", branch = "real" }
 #wry = "0.13.3"
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.9.0"
-jni = "0.18.0"
+jni = "0.19.0"
+paste = "1.0"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 core-foundation = "0.9.3"
