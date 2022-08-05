@@ -1,15 +1,17 @@
 #[macro_use]
 extern crate log;
 
+use std::fs::{canonicalize, read};
+
 use anyhow::Result;
 #[cfg(target_os = "android")]
 use wry::application::{android_fn, platform::android::ndk_glue::*};
 use wry::{
     application::{
-        event::{Event, WindowEvent},
         event_loop::{ControlFlow, EventLoop},
         window::WindowBuilder,
     },
+    http::ResponseBuilder,
     webview::WebViewBuilder,
 };
 
@@ -54,32 +56,54 @@ fn main() -> Result<()> {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .with_title("A fantastic window!")
-        .with_inner_size(wry::application::dpi::LogicalSize::new(128.0, 128.0))
         .build(&event_loop)?;
     let webview = WebViewBuilder::new(window)?
-        .with_url("https://tauri.app")?
+        .with_url("wry://assets/index.html")?
         .with_devtools(true)
         .with_initialization_script("console.log('hello world from init script');")
         .with_ipc_handler(|_, s| {
             dbg!(s);
         })
-        .build()?;
+        .with_custom_protocol("wry".into(), move |request| {
+            #[cfg(not(target_os = "android"))]
+            {
+                // Remove url scheme
+                let path = request.uri().replace("wry://", "");
+                let mut resource = core_foundation::bundle::CFBundle::main_bundle()
+                    .resources_path()
+                    .unwrap();
+                resource.push(&path);
+                // Read the file content from file path
+                let content = read(canonicalize(&resource)?)?;
 
-    dbg!(webview.window().outer_size());
+                // Return asset contents and mime types based on file extentions
+                // If you don't want to do this manually, there are some crates for you.
+                // Such as `infer` and `mime_guess`.
+                let (data, meta) = if path.ends_with(".html") {
+                    (content, "text/html")
+                } else if path.ends_with(".js") {
+                    (content, "text/javascript")
+                } else if path.ends_with(".png") {
+                    (content, "image/png")
+                } else {
+                    unimplemented!();
+                };
+
+                ResponseBuilder::new().mimetype(meta).body(data)
+            }
+
+            #[cfg(target_os = "android")]
+            {
+                ResponseBuilder::new().body(vec![])
+            }
+        })
+        .build()?;
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
         println!("{:?}", event);
 
         match event {
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                window_id,
-                ..
-            } if window_id == webview.window().id() => *control_flow = ControlFlow::Exit,
-            Event::MainEventsCleared => {
-                webview.window().request_redraw();
-            }
             _ => (),
         }
     });
