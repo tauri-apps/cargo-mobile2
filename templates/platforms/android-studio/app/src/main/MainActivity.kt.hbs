@@ -76,6 +76,7 @@ class MainActivity : AppCompatActivity() {
 }
 class RustClient(context: Context) : WebViewClient() {
     private val assetLoader = WebViewAssetLoader.Builder()
+        .setDomain("tauri.mobile")
         .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
         .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(context))
         .build()
@@ -94,7 +95,7 @@ class RustClient(context: Context) : WebViewClient() {
         request: WebResourceRequest
     ): WebResourceResponse? {
         var url = request.url
-        if (url.host == "tauri.mobile" && url.pathSegments[0] != "assets") {
+        if (url.host == "tauri.mobile") {
             val paths = url.pathSegments
             if (paths.count() == 2 && paths[0] == "assets") {
                 url = url.buildUpon().path("assets" + url.path).build()
