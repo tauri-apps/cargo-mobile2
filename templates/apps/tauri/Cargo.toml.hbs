@@ -12,12 +12,13 @@ name = "{{app.name}}-desktop"
 path = "gen/bin/desktop.rs"
 
 [build-dependencies]
-tauri-build = { git = "https://github.com/tauri-apps/tauri", branch = "feat/ios-build" }
+tauri-build = { git = "https://github.com/tauri-apps/tauri" }
 
 [dependencies]
 anyhow = "1.0.56"
 log = "0.4.11"
-tauri = { git = "https://github.com/tauri-apps/tauri", branch = "feat/ios-build" }
+tauri = { git = "https://github.com/tauri-apps/tauri" }
+wry = "0.20"
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.9.0"
