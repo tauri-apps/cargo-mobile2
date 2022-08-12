@@ -94,16 +94,7 @@ class RustClient(context: Context) : WebViewClient() {
         view: WebView,
         request: WebResourceRequest
     ): WebResourceResponse? {
-        var url = request.url
-        if (url.host == "tauri.mobile") {
-            val paths = url.pathSegments
-            if (paths.count() == 2 && paths[0] == "assets") {
-                url = url.buildUpon().path("assets" + url.path).build()
-            } else if (paths.count() == 1) {
-                url = url.buildUpon().path("assets/assets" + url.path).build()
-            }
-        }
-        return assetLoader.shouldInterceptRequest(url)
+        return handleRequest(request)
     }
 
     companion object {
@@ -113,6 +104,7 @@ class RustClient(context: Context) : WebViewClient() {
     }
 
     private external fun eval()
+    private external fun handleRequest(request: WebResourceRequest): WebResourceResponse?
 }
 
 class IpcInterface(private val context: Context) {
