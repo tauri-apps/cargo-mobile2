@@ -80,9 +80,13 @@ class MainActivity : AppCompatActivity() {
 class RustChromeClient: WebChromeClient() {
   private var loadedUrl: String? = null
 
-  override fun onProgressChanged(view: WebView?, progress: Int) {
-    if (loadedUrl != view?.url) {
-      loadedUrl = view?.url
+  override fun onProgressChanged(view: WebView, progress: Int) {
+    var url = view.url ?: ""
+    if (url.endsWith("##")) {
+      url = url.dropLast(2)
+    }
+    if (loadedUrl != url) {
+      loadedUrl = url
       runInitializationScripts()
     }
   }
