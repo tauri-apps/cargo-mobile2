@@ -4,15 +4,17 @@ import android.content.Context
 import android.os.Bundle
 import android.webkit.*
 import androidx.appcompat.app.AppCompatActivity
-import androidx.webkit.WebViewAssetLoader
+import android.webkit.WebView
 
 class MainActivity : AppCompatActivity() {
     lateinit var client: WebViewClient
+    lateinit var chromeClient: WebChromeClient
     lateinit var ipc: IpcInterface
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        client = RustClient(this)
+        client = RustClient()
+        chromeClient = RustChromeClient()
         ipc = IpcInterface(this)
         create(this)
     }
@@ -74,20 +76,29 @@ class MainActivity : AppCompatActivity() {
     private external fun memory()
     private external fun focus(focus: Boolean)
 }
-class RustClient(context: Context) : WebViewClient() {
-    private val assetLoader = WebViewAssetLoader.Builder()
-        .setDomain("tauri.mobile")
-        .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
-        .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(context))
-        .build()
 
+class RustChromeClient: WebChromeClient() {
+  private var loadedUrl: String? = null
+
+  override fun onProgressChanged(view: WebView?, progress: Int) {
+    if (loadedUrl != view?.url) {
+      loadedUrl = view?.url
+      runInitializationScripts()
+    }
+  }
+
+  companion object {
+    init {
+      System.loadLibrary("{{snake-case app.name}}")
+    }
+  }
+
+  private external fun runInitializationScripts()
+}
+
+class RustClient: WebViewClient() {
     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
         return false
-    }
-
-    override fun onPageFinished(view: WebView?, url: String?) {
-        super.onPageFinished(view, url)
-        eval()
     }
 
     override fun shouldInterceptRequest(
@@ -103,7 +114,6 @@ class RustClient(context: Context) : WebViewClient() {
         }
     }
 
-    private external fun eval()
     private external fun handleRequest(request: WebResourceRequest): WebResourceResponse?
 }
 
