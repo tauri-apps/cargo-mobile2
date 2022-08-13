@@ -201,7 +201,10 @@ pub fn init(config: Option<&Config>) -> Bicycle {
             );
             helpers.insert("snake-case", Box::new(snake_case));
             helpers.insert("reverse-domain", Box::new(reverse_domain));
-            helpers.insert("reverse-domain-snake-case", Box::new(reverse_domain_snake_case));
+            helpers.insert(
+                "reverse-domain-snake-case",
+                Box::new(reverse_domain_snake_case),
+            );
             if config.is_some() {
                 // don't mix these up or very bad things will happen to all of us
                 helpers.insert("prefix-path", Box::new(prefix_path));
