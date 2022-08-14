@@ -3,7 +3,7 @@ extern crate log;
 
 use anyhow::Result;
 #[cfg(target_os = "android")]
-use wry::application::{android_fn, platform::android::ndk_glue::*};
+use wry::android_binding;
 
 #[cfg(target_os = "android")]
 fn init_logging() {
@@ -37,7 +37,7 @@ fn _start_app() {
 #[inline(never)]
 pub extern "C" fn start_app() {
     #[cfg(target_os = "android")]
-    android_fn!({{reverse-domain-snake-case app.domain}}, {{snake-case app.name}});
+    android_binding!({{reverse-domain-snake-case app.domain}}, {{snake-case app.name}}, _start_app);
     _start_app()
 }
 

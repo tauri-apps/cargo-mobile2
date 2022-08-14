@@ -177,15 +177,25 @@ pub fn gen(
         path: dest.clone(),
         cause,
     })?;
-    let activity_src = dest.join("app/src/main/MainActivity.kt");
-    let activity_dest = activity_dest.join("MainActivity.kt");
-    fs::rename(&activity_src, activity_dest).map_err(|cause| {
-        Error::FileCopyFailed {
+
+    for (src, dest_filename) in [
+        ("app/src/main/MainActivity.kt", "MainActivity.kt"),
+        (
+            "app/src/main/RustWebChromeClient.kt",
+            "RustWebChromeClient.kt",
+        ),
+        ("app/src/main/RustWebViewClient.kt", "RustWebViewClient.kt"),
+        ("app/src/main/TauriActivity.kt", "TauriActivity.kt"),
+        ("app/src/main/Ipc.kt", "Ipc.kt"),
+    ] {
+        let activity_src = dest.join(src);
+        let activity_dest = activity_dest.join(dest_filename);
+        fs::rename(&activity_src, activity_dest).map_err(|cause| Error::FileCopyFailed {
             src: activity_src,
             dest: source_dest.clone(),
             cause,
-        }
-    })?;
+        })?;
+    }
 
     let dest = dest.join("app/src/main/assets/");
     fs::create_dir_all(&dest).map_err(|cause| Error::DirectoryCreationFailed {
