@@ -10,8 +10,9 @@ pub use self::{cargo::*, git::*, path::*};
 use self::cli::{Report, Reportable};
 use crate::os::{self, command_path};
 use once_cell_regex::{exports::regex::Captures, exports::regex::Regex, regex};
-use serde::{ser::Serializer, Serialize};
+use serde::{ser::Serializer, Deserialize, Serialize};
 use std::{
+    error::Error as StdError,
     fmt::{self, Debug, Display},
     io::{self, Write},
     path::{Path, PathBuf},
@@ -92,6 +93,10 @@ pub enum VersionTripleError {
         version: String,
         source: std::num::ParseIntError,
     },
+    #[error(
+        "Failed to parse version string {version:?}: string must be in format <major>[.minor][.patch]"
+    )]
+    VersionStringInvalid { version: String },
 }
 
 macro_rules! parse {
@@ -106,7 +111,7 @@ macro_rules! parse {
 }
 
 // Generic version triple
-#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct VersionTriple {
     pub major: u32,
     pub minor: u32,
@@ -116,6 +121,15 @@ pub struct VersionTriple {
 impl Display for VersionTriple {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
+
+impl Serialize for VersionTriple {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.collect_str(self)
     }
 }
 
@@ -147,6 +161,72 @@ impl VersionTriple {
             },
             version_str,
         ))
+    }
+
+    pub fn from_split(
+        split: &mut std::str::Split<&str>,
+        version: &str,
+    ) -> Result<Self, VersionTripleError> {
+        Ok(VersionTriple {
+            major: split.next().unwrap().parse().map_err(|source| {
+                VersionTripleError::MajorInvalid {
+                    version: version.to_owned(),
+                    source,
+                }
+            })?,
+            minor: split.next().unwrap().parse().map_err(|source| {
+                VersionTripleError::MinorInvalid {
+                    version: version.to_owned(),
+                    source,
+                }
+            })?,
+            patch: split.next().unwrap().parse().map_err(|source| {
+                VersionTripleError::PatchInvalid {
+                    version: version.to_owned(),
+                    source,
+                }
+            })?,
+        })
+    }
+
+    pub fn from_str(v: &str) -> Result<Self, VersionTripleError> {
+        match v.split(".").count() {
+            1 => Ok(VersionTriple {
+                major: v
+                    .parse()
+                    .map_err(|source| VersionTripleError::MajorInvalid {
+                        version: v.to_owned(),
+                        source,
+                    })?,
+                minor: 0,
+                patch: 0,
+            }),
+            2 => {
+                let mut s = v.split(".");
+                Ok(VersionTriple {
+                    major: s.next().unwrap().parse().map_err(|source| {
+                        VersionTripleError::MajorInvalid {
+                            version: v.to_owned(),
+                            source,
+                        }
+                    })?,
+                    minor: s.next().unwrap().parse().map_err(|source| {
+                        VersionTripleError::MinorInvalid {
+                            version: v.to_owned(),
+                            source,
+                        }
+                    })?,
+                    patch: 0,
+                })
+            }
+            3 => {
+                let mut s = v.split(".");
+                Self::from_split(&mut s, v)
+            }
+            _ => Err(VersionTripleError::VersionStringInvalid {
+                version: v.to_owned(),
+            }),
+        }
     }
 }
 
@@ -228,6 +308,13 @@ impl VersionDouble {
             }),
         }
     }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Pod {
+    name: String,
+    version: Option<String>,
 }
 
 #[derive(Debug, Error)]
@@ -525,5 +612,76 @@ pub fn format_commit_msg(msg: String) -> String {
 pub fn unwrap_either<T>(result: Result<T, T>) -> T {
     match result {
         Ok(t) | Err(t) => t,
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum WithWorkingDirError<E>
+where
+    E: StdError,
+{
+    #[error("Failed to get current directory: {0}")]
+    CurrentDirGetFailed(#[source] std::io::Error),
+    #[error("Failed to set working directory {path:?}: {source}")]
+    CurrentDirSetFailed {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+    #[error(transparent)]
+    CallbackFailed(#[from] E),
+}
+
+pub fn with_working_dir<T, E, IE>(
+    working_dir: impl AsRef<Path>,
+    f: impl FnOnce() -> Result<T, IE>,
+) -> Result<T, WithWorkingDirError<E>>
+where
+    E: StdError,
+    E: From<IE>,
+{
+    let working_dir = working_dir.as_ref();
+    let current_dir = std::env::current_dir().map_err(WithWorkingDirError::CurrentDirGetFailed)?;
+    std::env::set_current_dir(working_dir).map_err(|source| {
+        WithWorkingDirError::CurrentDirSetFailed {
+            path: working_dir.to_owned(),
+            source,
+        }
+    })?;
+    let result = f().map_err(E::from)?;
+    std::env::set_current_dir(&current_dir).map_err(|source| {
+        WithWorkingDirError::CurrentDirSetFailed {
+            path: current_dir.into(),
+            source,
+        }
+    })?;
+    Ok(result)
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(untagged)]
+pub enum OneOrMany<T: Debug> {
+    One(T),
+    Many(Vec<T>),
+}
+
+impl<T: Debug> From<OneOrMany<T>> for Vec<T> {
+    fn from(from: OneOrMany<T>) -> Self {
+        match from {
+            OneOrMany::One(val) => vec![val],
+            OneOrMany::Many(vec) => vec,
+        }
+    }
+}
+
+impl<T: Debug> Serialize for OneOrMany<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let serialized_str = match self {
+            Self::One(one) => format!("{:?}", one),
+            Self::Many(vec) => format!("{:?}", vec),
+        };
+        serializer.serialize_str(&serialized_str)
     }
 }

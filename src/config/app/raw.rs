@@ -4,7 +4,7 @@ use crate::{
     util::{cli::TextWrapper, prompt, Git},
 };
 use colored::{Color, Colorize as _};
-use heck::{KebabCase as _, TitleCase as _};
+use heck::{ToKebabCase as _, ToTitleCase as _};
 use serde::{Deserialize, Serialize};
 use std::{
     env,

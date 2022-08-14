@@ -34,13 +34,15 @@ impl Reportable for Error {
     }
 }
 
+const ADB_DEVICE_REGEX: &str = r"^([\S]{6,22})	device\b";
+
 pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, Error> {
     super::check_authorized(
         bossy::Command::pure("adb")
             .with_env_vars(env.explicit_env())
             .with_args(&["devices"])
             .run_and_wait_for_str(|raw_list| {
-                regex_multi_line!(r"^([\w\d]{6,20})	\b")
+                regex_multi_line!(ADB_DEVICE_REGEX)
                     .captures_iter(raw_list)
                     .map(|caps| {
                         assert_eq!(caps.len(), 2);
@@ -58,4 +60,39 @@ pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, Error> {
             }),
     )
     .map_err(Error::DevicesFailed)?
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest(input, devices,
+        case("* daemon not running; starting now at tcp:5020\n\
+            * daemon started successfully\n\
+            List of devices attached\n\
+            AB1234DEFG\tdevice\n\
+            192.168.100.103:55555\tdevice\n\
+            ", vec!["AB1234DEFG", "192.168.100.103:55555"]
+        ),
+        case("List of devices attached \n", vec![]),
+        case("** daemon not running; starting now at tcp:5037\n\
+            * daemon started successfully\n\
+            List of devices attached\n\
+            emulator-5556	device product:sdk_google_phone_x86_64 model:Android_SDK_built_for_x86_64 device:generic_x86_64\n\
+            emulator-5554	device product:sdk_google_phone_x86 model:Android_SDK_built_for_x86 device:generic_x86\n\
+            0a388e93	device usb:1-1 product:razor model:Nexus_7 device:flo\n\
+            ", vec!["emulator-5556", "emulator-5554", "0a388e93"]
+        ),
+
+    )]
+    fn test_adb_output_regex(input: &str, devices: Vec<&'static str>) {
+        let regex = regex_multi_line!(ADB_DEVICE_REGEX);
+        println!("{}", input);
+        let captures = regex
+            .captures_iter(input)
+            .map(|x| x.get(1).unwrap().as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(captures, devices);
+    }
 }

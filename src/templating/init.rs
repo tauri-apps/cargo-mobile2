@@ -95,7 +95,7 @@ fn snake_case(
     _: &mut RenderContext,
     out: &mut dyn Output,
 ) -> HelperResult {
-    use heck::SnekCase as _;
+    use heck::ToSnekCase as _;
     out.write(&get_str(helper).to_snek_case())
         .map_err(Into::into)
 }
@@ -108,6 +108,18 @@ fn reverse_domain(
     out: &mut dyn Output,
 ) -> HelperResult {
     out.write(&util::reverse_domain(get_str(helper)))
+        .map_err(Into::into)
+}
+
+fn reverse_domain_snake_case(
+    helper: &Helper,
+    _: &Handlebars,
+    _: &Context,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    use heck::ToSnekCase as _;
+    out.write(&util::reverse_domain(get_str(helper)).to_snek_case())
         .map_err(Into::into)
 }
 
@@ -189,6 +201,10 @@ pub fn init(config: Option<&Config>) -> Bicycle {
             );
             helpers.insert("snake-case", Box::new(snake_case));
             helpers.insert("reverse-domain", Box::new(reverse_domain));
+            helpers.insert(
+                "reverse-domain-snake-case",
+                Box::new(reverse_domain_snake_case),
+            );
             if config.is_some() {
                 // don't mix these up or very bad things will happen to all of us
                 helpers.insert("prefix-path", Box::new(prefix_path));

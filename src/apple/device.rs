@@ -82,7 +82,7 @@ impl<'a> Device<'a> {
             .map_err(RunError::BuildFailed)?;
         println!("Archiving app...");
         self.target
-            .archive(config, env, noise_level, profile)
+            .archive(config, env, noise_level, profile, None)
             .map_err(RunError::ArchiveFailed)?;
         println!("Exporting app...");
         self.target

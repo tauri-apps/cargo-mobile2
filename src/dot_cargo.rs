@@ -4,6 +4,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fs, io, path::PathBuf};
+use toml::Value;
 
 #[derive(Debug)]
 pub enum LoadError {
@@ -104,6 +105,8 @@ impl DotCargoTarget {
 pub struct DotCargo {
     build: Option<DotCargoBuild>,
     target: BTreeMap<String, DotCargoTarget>,
+    #[serde(flatten)]
+    extra: BTreeMap<String, Value>,
 }
 
 impl DotCargo {

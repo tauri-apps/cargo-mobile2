@@ -1,14 +1,16 @@
 use super::{
     config::{Config, Metadata},
     system_profile::{self, DeveloperTools},
+    version_number::VersionNumber,
 };
 use crate::{
     env::{Env, ExplicitEnv as _},
     opts::{self, ForceColor, NoiseLevel, Profile},
     target::TargetTrait,
     util::{
+        self,
         cli::{Report, Reportable},
-        CargoCommand,
+        CargoCommand, WithWorkingDirError,
     },
 };
 use once_cell_regex::exports::once_cell::sync::OnceCell;
@@ -94,11 +96,17 @@ impl Reportable for BuildError {
 }
 
 #[derive(Debug)]
-pub struct ArchiveError(bossy::Error);
+pub enum ArchiveError {
+    SetVersionFailed(WithWorkingDirError<bossy::Error>),
+    ArchiveFailed(bossy::Error),
+}
 
 impl Reportable for ArchiveError {
     fn report(&self) -> Report {
-        Report::error("Failed to archive via `xcodebuild`", &self.0)
+        match self {
+            Self::SetVersionFailed(err) => Report::error("Failed to set app version number", err),
+            Self::ArchiveFailed(err) => Report::error("Failed to archive via `xcodebuild`", err),
+        }
     }
 }
 
@@ -295,7 +303,16 @@ impl<'a> Target<'a> {
         env: &Env,
         noise_level: opts::NoiseLevel,
         profile: opts::Profile,
+        build_number: Option<VersionNumber>,
     ) -> Result<(), ArchiveError> {
+        if let Some(build_number) = build_number {
+            util::with_working_dir(config.project_dir(), || {
+                bossy::Command::pure_parse("xcrun agvtool new-version -all")
+                    .with_arg(&build_number.to_string())
+                    .run_and_wait()
+            })
+            .map_err(ArchiveError::SetVersionFailed)?;
+        }
         let configuration = profile.as_str();
         let archive_path = config.archive_dir().join(&config.scheme());
         bossy::Command::pure("xcodebuild")
@@ -312,7 +329,7 @@ impl<'a> Target<'a> {
             .with_arg("-archivePath")
             .with_arg(&archive_path)
             .run_and_wait()
-            .map_err(ArchiveError)?;
+            .map_err(ArchiveError::ArchiveFailed)?;
         Ok(())
     }
 

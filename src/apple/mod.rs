@@ -7,6 +7,7 @@ pub(crate) mod project;
 pub(crate) mod system_profile;
 mod target;
 pub(crate) mod teams;
+mod version_number;
 
 use crate::util::{
     self,

@@ -93,12 +93,20 @@ pub fn gen(
     let ios_pods = metadata.ios().pods().unwrap_or_default();
     let macos_pods = metadata.macos().pods().unwrap_or_default();
 
+    let default_archs = [String::from("arm64"), String::from("x86_64")];
     bike.filter_and_process(
         src,
         &dest,
         |map| {
             map.insert("file-groups", &source_dirs);
             map.insert("ios-frameworks", metadata.ios().frameworks());
+            map.insert(
+                "ios-valid-archs",
+                metadata
+                    .ios()
+                    .valid_archs()
+                    .unwrap_or_else(|| &default_archs),
+            );
             map.insert("ios-vendor-frameworks", metadata.ios().vendor_frameworks());
             map.insert("ios-vendor-sdks", metadata.ios().vendor_sdks());
             map.insert("macos-frameworks", metadata.macos().frameworks());
@@ -117,6 +125,35 @@ pub fn gen(
             map.insert(
                 "macos-additional-targets",
                 metadata.macos().additional_targets(),
+            );
+            map.insert("ios-pre-build-scripts", metadata.ios().pre_build_scripts());
+            map.insert(
+                "ios-post-compile-scripts",
+                metadata.ios().post_compile_scripts(),
+            );
+            map.insert(
+                "ios-post-build-scripts",
+                metadata.ios().post_build_scripts(),
+            );
+            map.insert(
+                "macos-pre-build-scripts",
+                metadata.macos().pre_build_scripts(),
+            );
+            map.insert(
+                "macos-post-compile-scripts",
+                metadata.macos().post_compile_scripts(),
+            );
+            map.insert(
+                "macos-post-build-scripts",
+                metadata.macos().post_build_scripts(),
+            );
+            map.insert(
+                "ios-command-line-arguments",
+                metadata.ios().command_line_arguments(),
+            );
+            map.insert(
+                "macos-command-line-arguments",
+                metadata.macos().command_line_arguments(),
             );
         },
         filter.fun(),

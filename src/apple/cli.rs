@@ -77,6 +77,8 @@ pub enum Command {
     },
     #[structopt(name = "archive", about = "Builds and archives for targets(s)")]
     Archive {
+        #[structopt(long = "build-number")]
+        build_number: Option<u32>,
         #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = Target::name_list())]
         targets: Vec<String>,
         #[structopt(flatten)]
@@ -305,6 +307,7 @@ impl Exec for Input {
             }),
             Command::Archive {
                 targets,
+                build_number,
                 profile: cli::Profile { profile },
             } => with_config(non_interactive, wrapper, |config, _| {
                 version_check()?;
@@ -314,11 +317,16 @@ impl Exec for Input {
                     &detect_target_ok,
                     &env,
                     |target: &Target| {
+                        let mut app_version = config.bundle_version().clone();
+                        if let Some(build_number) = build_number {
+                            app_version.push_extra(build_number);
+                        }
+
                         target
                             .build(config, &env, noise_level, profile)
                             .map_err(Error::BuildFailed)?;
                         target
-                            .archive(config, &env, noise_level, profile)
+                            .archive(config, &env, noise_level, profile, Some(app_version))
                             .map_err(Error::ArchiveFailed)
                     },
                 )

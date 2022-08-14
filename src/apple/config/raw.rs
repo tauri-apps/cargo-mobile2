@@ -1,10 +1,10 @@
 use crate::{
     apple::teams,
-    util::{cli::TextWrapper, prompt},
+    util::{cli::TextWrapper, prompt, OneOrMany},
 };
 use colored::{Color, Colorize as _};
 use serde::{Deserialize, Serialize};
-use std::fmt::{self, Display};
+use std::fmt::{self, Debug, Display};
 
 #[derive(Debug)]
 pub enum DetectError {
@@ -43,6 +43,19 @@ impl Display for PromptError {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum PlistValue {
+    Bool(bool),
+    Strings(OneOrMany<String>),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PListPair {
+    key: String,
+    value: PlistValue,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Raw {
     pub development_team: String,
@@ -51,9 +64,12 @@ pub struct Raw {
     pub ios_features: Option<Vec<String>>,
     pub macos_no_default_features: Option<bool>,
     pub macos_features: Option<Vec<String>>,
+    pub bundle_version: Option<String>,
+    pub bundle_version_short: Option<String>,
     pub ios_version: Option<String>,
     pub macos_version: Option<String>,
     pub use_legacy_build_system: Option<bool>,
+    pub plist_pairs: Option<Vec<PListPair>>,
 }
 
 impl Raw {
@@ -70,9 +86,12 @@ impl Raw {
             ios_features: None,
             macos_no_default_features: None,
             macos_features: None,
+            bundle_version: None,
+            bundle_version_short: None,
             ios_version: None,
             macos_version: None,
             use_legacy_build_system: None,
+            plist_pairs: None,
         })
     }
 
@@ -148,9 +167,12 @@ impl Raw {
             ios_features: None,
             macos_no_default_features: None,
             macos_features: None,
+            bundle_version: None,
+            bundle_version_short: None,
             ios_version: None,
             macos_version: None,
             use_legacy_build_system: None,
+            plist_pairs: None,
         })
     }
 }
