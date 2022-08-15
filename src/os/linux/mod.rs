@@ -8,6 +8,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+pub use crate::{env::Env, util::ln};
+
 #[derive(Debug)]
 pub enum DetectEditorError {
     NoDefaultEditorSet,
@@ -125,7 +127,7 @@ impl Application {
 pub fn open_file_with(
     application: impl AsRef<OsStr>,
     path: impl AsRef<OsStr>,
-) -> bossy::Result<()> {
+) -> Result<(), OpenFileError> {
     let app_str = application.as_ref();
     let path_str = path.as_ref();
 
@@ -164,6 +166,7 @@ pub fn open_file_with(
     bossy::Command::impure(&command_parts[0])
         .with_args(&command_parts[1..])
         .run_and_detach()
+        .map_err(OpenFileError::LaunchFailed)
 }
 
 // We use "sh" in order to access "command -v", as that is a bultin command on sh.
@@ -173,4 +176,28 @@ pub fn command_path(name: &str) -> bossy::Result<bossy::Output> {
     bossy::Command::impure("sh")
         .with_args(&["-c", &format!("command -v {}", name)])
         .run_and_wait_for_output()
+}
+
+pub fn code_command() -> bossy::Command {
+    bossy::Command::impure("code")
+}
+
+pub fn gradlew_command(project_dir: impl AsRef<OsStr>) -> bossy::Command {
+    let gradle_path = Path::new(project_dir.as_ref()).join("gradlew");
+    bossy::Command::impure(&gradle_path)
+        .with_arg("--project-dir")
+        .with_arg(&project_dir)
+}
+
+pub fn replace_path_separator(path: OsString) -> OsString {
+    path
+}
+
+pub mod consts {
+    pub const AR: &str = "ar";
+    pub const CLANG: &str = "clang";
+    pub const CLANGXX: &str = "clang++";
+    pub const LD: &str = "ld";
+    pub const READELF: &str = "readelf";
+    pub const NDK_STACK: &str = "ndk-stack";
 }

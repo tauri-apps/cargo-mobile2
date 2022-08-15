@@ -6,16 +6,20 @@ use super::{
 };
 use crate::{
     dot_cargo,
+    os::{self, replace_path_separator},
     target::TargetTrait as _,
     templating::{self, Pack},
     util::{
         self,
         cli::{Report, Reportable, TextWrapper},
-        ln,
+        ln, prefix_path,
     },
 };
 use path_abs::PathOps;
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 pub static TEMPLATE_PACK: &str = "android-studio";
 pub static ASSET_PACK_TEMPLATE_PACK: &str = "android-studio-asset-pack";
@@ -26,6 +30,14 @@ pub enum Error {
     MissingPack(templating::LookupError),
     TemplateProcessingFailed(bicycle::ProcessingError),
     DirectoryCreationFailed {
+        path: PathBuf,
+        cause: std::io::Error,
+    },
+    DirectoryReadFailed {
+        path: PathBuf,
+        cause: std::io::Error,
+    },
+    DirectoryRemoveFailed {
         path: PathBuf,
         cause: std::io::Error,
     },
@@ -49,6 +61,13 @@ impl Reportable for Error {
             }
             Self::DirectoryCreationFailed { path, cause } => Report::error(
                 format!("Failed to create Android assets directory at {:?}", path),
+                cause,
+            ),
+            Self::DirectoryReadFailed { path, cause } => {
+                Report::error(format!("Failed to read directory at {:?}", path), cause)
+            }
+            Self::DirectoryRemoveFailed { path, cause } => Report::error(
+                format!("Failed to remove directory directory at {:?}", path),
                 cause,
             ),
             Self::AssetDirSymlinkFailed(err) => {
@@ -93,7 +112,10 @@ pub fn gen(
         |map| {
             map.insert(
                 "root-dir-rel",
-                util::relativize_path(config.app().root_dir(), config.project_dir()),
+                Path::new(&replace_path_separator(
+                    util::relativize_path(config.app().root_dir(), config.project_dir())
+                        .into_os_string(),
+                )),
             );
             map.insert("root-dir", config.app().root_dir());
             map.insert("targets", Target::all().values().collect::<Vec<_>>());
@@ -128,6 +150,7 @@ pub fn gen(
                     .map(|p| p.name.as_str())
                     .collect::<Vec<_>>(),
             );
+            map.insert("windows", cfg!(windows));
         },
         filter.fun(),
     )
@@ -170,39 +193,40 @@ pub fn gen(
         })?;
     }
 
+    let kotlin_files_src = prefix_path(&dest, "app/src/main/kotlin/_domain_/_projectname_");
     let domain = config.app().reverse_domain().replace(".", "/");
-    let package_path = format!("app/src/main/java/{}/{}/", domain, config.app().name());
-    let activity_dest = dest.join(package_path);
-    fs::create_dir_all(&activity_dest).map_err(|cause| Error::DirectoryCreationFailed {
+    let package_path = format!("app/src/main/kotlin/{}/{}/", domain, config.app().name());
+    let kotlin_files_dest = prefix_path(&dest, package_path);
+    fs::create_dir_all(&kotlin_files_dest).map_err(|cause| Error::DirectoryCreationFailed {
         path: dest.clone(),
         cause,
     })?;
 
-    for (src, dest_filename) in [
-        ("app/src/main/MainActivity.kt", "MainActivity.kt"),
-        (
-            "app/src/main/RustWebChromeClient.kt",
-            "RustWebChromeClient.kt",
-        ),
-        ("app/src/main/RustWebViewClient.kt", "RustWebViewClient.kt"),
-        ("app/src/main/TauriActivity.kt", "TauriActivity.kt"),
-        ("app/src/main/Ipc.kt", "Ipc.kt"),
-    ] {
-        let activity_src = dest.join(src);
-        let activity_dest = activity_dest.join(dest_filename);
-        fs::rename(&activity_src, activity_dest).map_err(|cause| Error::FileCopyFailed {
-            src: activity_src,
-            dest: source_dest.clone(),
+    for entry in fs::read_dir(kotlin_files_src)
+        .map_err(|cause| Error::DirectoryReadFailed {
+            path: dest.clone(),
             cause,
-        })?;
+        })?
+        .filter_map(|e| e.ok())
+    {
+        let src = entry.path();
+        let dest = kotlin_files_dest.join(entry.file_name());
+        fs::rename(&src, &dest).map_err(|cause| Error::FileCopyFailed { src, dest, cause })?;
     }
 
-    let dest = dest.join("app/src/main/assets/");
+    fs::remove_dir_all(prefix_path(&dest, "app/src/main/kotlin/_domain_")).map_err(|cause| {
+        Error::DirectoryRemoveFailed {
+            path: dest.clone(),
+            cause,
+        }
+    })?;
+
+    let dest = prefix_path(dest, "app/src/main/");
     fs::create_dir_all(&dest).map_err(|cause| Error::DirectoryCreationFailed {
         path: dest.clone(),
         cause,
     })?;
-    ln::force_symlink_relative(config.app().asset_dir(), dest, ln::TargetStyle::Directory)
+    os::ln::force_symlink_relative(config.app().asset_dir(), dest, ln::TargetStyle::Directory)
         .map_err(Error::AssetDirSymlinkFailed)?;
 
     {

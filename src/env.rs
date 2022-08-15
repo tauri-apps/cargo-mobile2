@@ -12,6 +12,8 @@ pub enum Error {
     HomeNotSet(#[source] std::env::VarError),
     #[error("The `PATH` environment variable isn't set, which is super weird: {0}")]
     PathNotSet(#[source] std::env::VarError),
+    #[error("The `{0}` environment variable isn't set, which is quite weird: {1}")]
+    NotSet(&'static str, #[source] std::env::VarError),
 }
 
 impl Reportable for Error {

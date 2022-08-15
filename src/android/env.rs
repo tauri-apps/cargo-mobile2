@@ -3,7 +3,8 @@ use super::{
     source_props::{self, SourceProps},
 };
 use crate::{
-    env::{Env as CoreEnv, Error as CoreError, ExplicitEnv},
+    env::{Error as CoreError, ExplicitEnv},
+    os::Env as CoreEnv,
     util::cli::{Report, Reportable},
 };
 use std::path::{Path, PathBuf};

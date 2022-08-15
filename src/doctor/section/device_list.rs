@@ -1,7 +1,7 @@
 use super::Section;
 use crate::{
     android::{self, adb},
-    env::Env,
+    os::Env,
 };
 
 pub fn check(env: &Env) -> Section {

@@ -147,7 +147,7 @@ pub enum Error {
     MetadataFailed(metadata::Error),
     Unsupported,
     ProjectDirAbsent { project_dir: PathBuf },
-    OpenFailed(bossy::Error),
+    OpenFailed(os::OpenFileError),
     CheckFailed(CheckError),
     BuildFailed(BuildError),
     ArchiveFailed(ArchiveError),

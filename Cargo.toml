@@ -26,6 +26,7 @@ bicycle = { git = "https://github.com/BrainiumLLC/bicycle", rev = "28080e0c6fa40
 bossy = "0.2.1"
 colored = "1.9.3"
 deunicode = "1.1.1"
+dunce = "1.0.2"
 english-numbers = "0.3.3"
 env_logger = "0.7.1"
 heck = "0.4.0"
@@ -62,7 +63,31 @@ ureq = "2.4.0"
 freedesktop_entry_parser = "1.1"
 lexical-core = "0.7.6"
 
+[target.'cfg(windows)'.dependencies]
+const-utf16 = "0.2.1"
+
+[target.'cfg(windows)'.dependencies.windows]
+version = "0.26.0"
+features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_IO",
+    "Win32_System_Ioctl",
+    "Win32_System_Memory",
+    "Win32_System_Registry",
+    "Win32_System_SystemInformation",
+    "Win32_System_SystemServices",
+    "Win32_UI_Shell",
+    "std",
+]
+
+
 [build-dependencies]
 bicycle = { git = "https://github.com/BrainiumLLC/bicycle", rev = "28080e0c6fa4067d9dd1b0f2b7322b6b32178e1f" }
 hit = "0.2.0"
 home = "0.5.3"
+
+[target.'cfg(windows)'.build-dependencies]
+embed-resource = "1.6.4"

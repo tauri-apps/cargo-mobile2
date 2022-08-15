@@ -57,4 +57,14 @@ fn main() {
         )
         .expect("failed to process actions");
     }
+
+    #[cfg(windows)]
+    {
+        // Embed application manifest
+        let resource_path = manifest_dir.join("cargo-mobile-manifest.rc");
+        let manifest_path = manifest_dir.join("cargo-mobile.exe.manifest");
+        println!("cargo:rerun-if-changed={}", resource_path.display());
+        println!("cargo:rerun-if-changed={}", manifest_path.display());
+        embed_resource::compile("cargo-mobile-manifest.rc");
+    }
 }

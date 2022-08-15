@@ -1,9 +1,10 @@
 use super::{config::Config, target::Target};
 use crate::{
+    os,
     target::TargetTrait as _,
     util::{
         cli::{Report, Reportable},
-        ln,
+        ln, prefix_path,
     },
 };
 use std::path::{Path, PathBuf};
@@ -63,9 +64,10 @@ impl Reportable for SymlinkLibError {
 }
 
 pub fn path(config: &Config, target: Target<'_>) -> PathBuf {
-    config
-        .project_dir()
-        .join(format!("app/src/main/jniLibs/{}", &target.abi))
+    prefix_path(
+        config.project_dir(),
+        format!("app/src/main/jniLibs/{}", &target.abi),
+    )
 }
 
 #[derive(Debug)]
@@ -118,15 +120,13 @@ impl JniLibs {
     pub fn symlink_lib(&self, src: &Path) -> Result<(), SymlinkLibError> {
         log::info!("symlinking lib {:?} in jniLibs dir {:?}", src, self.path);
         if src.is_file() {
-            ln::force_symlink(
-                src,
-                self.path.join(
-                    src.file_name()
-                        .expect("developer error: file had no file name"),
-                ),
-                ln::TargetStyle::File,
-            )
-            .map_err(SymlinkLibError::SymlinkFailed)
+            let dest = self.path.join(
+                src.file_name()
+                    .expect("developer error: file had no file name"),
+            );
+            os::ln::force_symlink(src, &dest, ln::TargetStyle::File)
+                .map_err(SymlinkLibError::SymlinkFailed)?;
+            Ok(())
         } else {
             Err(SymlinkLibError::SourceMissing(src.to_owned()))
         }

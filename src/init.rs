@@ -7,7 +7,9 @@ use crate::{
         metadata::{self, Metadata},
         Config,
     },
-    dot_cargo, opts, project, templating,
+    dot_cargo, opts,
+    os::code_command,
+    project, templating,
     util::{
         self,
         cli::{Report, Reportable, TextWrapper},
@@ -93,7 +95,7 @@ pub fn exec(
     wrapper: &TextWrapper,
     non_interactive: opts::NonInteractive,
     skip_dev_tools: opts::SkipDevTools,
-    reinstall_deps: opts::ReinstallDeps,
+    #[cfg_attr(not(target_os = "macos"), allow(unused))] reinstall_deps: opts::ReinstallDeps,
     open_in_editor: opts::OpenInEditor,
     submodule_commit: Option<String>,
     cwd: impl AsRef<Path>,
@@ -134,8 +136,7 @@ pub fn exec(
     if skip_dev_tools.no()
         && util::command_present("code").map_err(Error::CodeCommandPresentFailed)?
     {
-        let mut command = bossy::Command::impure("code")
-            .with_args(&["--install-extension", "vadimcn.vscode-lldb"]);
+        let mut command = code_command().with_args(&["--install-extension", "vadimcn.vscode-lldb"]);
         if non_interactive.yes() {
             command.add_arg("--force");
         }

@@ -2,7 +2,7 @@ use path_abs::PathAbs;
 use std::{
     fmt::{self, Display},
     io,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
 };
 use thiserror::Error;
 
@@ -39,9 +39,16 @@ pub fn contract_home(path: impl AsRef<Path>) -> Result<String, ContractHomeError
         .as_ref()
         .to_str()
         .ok_or(ContractHomeError::PathInvalidUtf8)?;
-    let home = home_dir()?;
-    let home = home.to_str().ok_or(ContractHomeError::HomeInvalidUtf8)?;
-    Ok(path.replace(home, "~").to_owned())
+    #[cfg(not(windows))]
+    {
+        let home = home_dir()?;
+        let home = home.to_str().ok_or(ContractHomeError::HomeInvalidUtf8)?;
+        Ok(path.replace(home, "~").to_owned())
+    }
+    #[cfg(windows)]
+    {
+        Ok(path.to_owned())
+    }
 }
 
 pub fn install_dir() -> Result<PathBuf, NoHomeDir> {
@@ -77,7 +84,33 @@ impl Display for PathNotPrefixed {
 }
 
 pub fn prefix_path(root: impl AsRef<Path>, path: impl AsRef<Path>) -> PathBuf {
-    root.as_ref().join(path)
+    let root = root.as_ref();
+    let path = path.as_ref();
+    let is_verbatim = if let Some(Component::Prefix(prefix)) = root.components().next() {
+        prefix.kind().is_verbatim()
+    } else {
+        false
+    };
+    if !is_verbatim {
+        return root.join(path);
+    }
+    let mut buf = root.components().collect::<Vec<_>>();
+    for component in path.components() {
+        match component {
+            Component::RootDir => {
+                buf.truncate(1);
+                buf.push(component);
+            }
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if buf.last().is_some() {
+                    buf.pop();
+                }
+            }
+            _ => buf.push(component),
+        };
+    }
+    buf.into_iter().collect()
 }
 
 pub fn unprefix_path(
@@ -184,4 +217,44 @@ pub fn under_root(
     root: impl AsRef<Path>,
 ) -> Result<bool, NormalizationError> {
     normalize_path(root.as_ref().join(path)).map(|norm| norm.starts_with(root))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest(root, path, result,
+        // UNIX
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        case(
+            "/home/user/cargo-mobile-project/gen/android/cargo-mobile-project",
+            "app/build/outputs/apk/arm64/debug/app-arm64-debug.apk",
+            "/home/user/cargo-mobile-project/gen/android/cargo-mobile-project/app/build/outputs/apk/arm64/debug/app-arm64-debug.apk"
+        ),
+        // UNIX but the second path contains root
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        case(
+            "/home/user/cargo-mobile-project/gen/android/cargo-mobile-project",
+            "/home/other/project/gen/android/app/build/outputs/apk/arm64/debug/app-arm64-debug.apk",
+            "/home/other/project/gen/android/app/build/outputs/apk/arm64/debug/app-arm64-debug.apk"
+        ),
+        // Windows UNC
+        #[cfg(windows)]
+        case(
+            "\\\\?\\C:\\Users\\user\\cargo-mobile-project\\gen\\android\\cargo-mobile-project",
+            "app\\..\\app\\build\\outputs\\.\\apk\\arm64\\debug\\app-arm64-debug.apk",
+            "\\\\?\\C:\\Users\\user\\cargo-mobile-project\\gen\\android\\cargo-mobile-project\\app\\build\\outputs\\apk\\arm64\\debug\\app-arm64-debug.apk"
+        ),
+        // Windows legacy
+        #[cfg(windows)]
+        case (
+            "D:\\Users\\user\\cargo-mobile-project\\gen\\android\\cargo-mobile-project",
+            "app\\build\\outputs\\apk\\arm64\\debug\\app-arm64-debug.apk",
+            "D:\\Users\\user\\cargo-mobile-project\\gen\\android\\cargo-mobile-project\\app\\build\\outputs\\apk\\arm64\\debug\\app-arm64-debug.apk"
+        )
+    )]
+    fn test_prefix_path(root: impl AsRef<Path>, path: impl AsRef<Path>, result: &str) {
+        assert_eq!(prefix_path(root, path), PathBuf::from(result));
+    }
 }

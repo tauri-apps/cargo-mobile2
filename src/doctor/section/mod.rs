@@ -80,6 +80,7 @@ impl Item {
         Self::new(Label::Victory, msg)
     }
 
+    #[cfg(target_os = "macos")]
     fn warning(msg: impl ToString) -> Self {
         Self::new(Label::Warning, msg)
     }
