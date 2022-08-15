@@ -33,6 +33,14 @@ pub enum Error {
         path: PathBuf,
         cause: std::io::Error,
     },
+    DirectoryReadFailed {
+        path: PathBuf,
+        cause: std::io::Error,
+    },
+    DirectoryRemoveFailed {
+        path: PathBuf,
+        cause: std::io::Error,
+    },
     AssetDirSymlinkFailed(ln::Error),
     DotCargoGenFailed(ndk::MissingToolError),
     FileCopyFailed {
@@ -53,6 +61,13 @@ impl Reportable for Error {
             }
             Self::DirectoryCreationFailed { path, cause } => Report::error(
                 format!("Failed to create Android assets directory at {:?}", path),
+                cause,
+            ),
+            Self::DirectoryReadFailed { path, cause } => {
+                Report::error(format!("Failed to read directory at {:?}", path), cause)
+            }
+            Self::DirectoryRemoveFailed { path, cause } => Report::error(
+                format!("Failed to remove directory directory at {:?}", path),
                 cause,
             ),
             Self::AssetDirSymlinkFailed(err) => {
@@ -177,6 +192,34 @@ pub fn gen(
             }
         })?;
     }
+
+    let kotlin_files_src = prefix_path(&dest, "app/src/main/kotlin/_domain_/_projectname_");
+    let domain = config.app().reverse_domain().replace(".", "/");
+    let package_path = format!("app/src/main/kotlin/{}/{}/", domain, config.app().name());
+    let kotlin_files_dest = prefix_path(&dest, package_path);
+    fs::create_dir_all(&kotlin_files_dest).map_err(|cause| Error::DirectoryCreationFailed {
+        path: dest.clone(),
+        cause,
+    })?;
+
+    for entry in fs::read_dir(kotlin_files_src)
+        .map_err(|cause| Error::DirectoryReadFailed {
+            path: dest.clone(),
+            cause,
+        })?
+        .filter_map(|e| e.ok())
+    {
+        let src = entry.path();
+        let dest = kotlin_files_dest.join(entry.file_name());
+        fs::rename(&src, &dest).map_err(|cause| Error::FileCopyFailed { src, dest, cause })?;
+    }
+
+    fs::remove_dir_all(prefix_path(&dest, "app/src/main/kotlin/_domain_")).map_err(|cause| {
+        Error::DirectoryRemoveFailed {
+            path: dest.clone(),
+            cause,
+        }
+    })?;
 
     let dest = prefix_path(dest, "app/src/main/");
     fs::create_dir_all(&dest).map_err(|cause| Error::DirectoryCreationFailed {
