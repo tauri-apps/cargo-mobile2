@@ -95,7 +95,7 @@ pub fn exec(
     wrapper: &TextWrapper,
     non_interactive: opts::NonInteractive,
     skip_dev_tools: opts::SkipDevTools,
-    reinstall_deps: opts::ReinstallDeps,
+    #[cfg_attr(not(target_os = "macos"), allow(unused))] reinstall_deps: opts::ReinstallDeps,
     open_in_editor: opts::OpenInEditor,
     submodule_commit: Option<String>,
     cwd: impl AsRef<Path>,
