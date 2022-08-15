@@ -10,6 +10,7 @@ use std::{
     fs, io,
     path::{Path, PathBuf},
 };
+use thiserror::Error;
 
 // These packs only show in builds using the brainium feature flag, and will
 // always be at the top of the list.
@@ -23,33 +24,18 @@ fn app_pack_dir() -> Result<PathBuf, util::NoHomeDir> {
     util::install_dir().map(|dir| dir.join("templates/apps"))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum LookupError {
+    #[error(transparent)]
     NoHomeDir(util::NoHomeDir),
+    #[error("Didn't find {name} template pack at {tried_toml} or {tried}")]
     MissingPack {
         name: String,
         tried_toml: PathBuf,
         tried: PathBuf,
     },
+    #[error(transparent)]
     FancyPackParseFailed(FancyPackParseError),
-}
-
-impl Display for LookupError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::NoHomeDir(err) => write!(f, "{}", err),
-            Self::MissingPack {
-                name,
-                tried_toml,
-                tried,
-            } => write!(
-                f,
-                "Didn't find {:?} template pack at {:?} or {:?}",
-                name, tried_toml, tried
-            ),
-            Self::FancyPackParseFailed(err) => write!(f, "{}", err),
-        }
-    }
 }
 
 #[derive(Clone, Debug)]

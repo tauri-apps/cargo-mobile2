@@ -4,13 +4,13 @@ use std::{
     fs, io,
     path::{Path, PathBuf},
 };
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
-    ReadFailed {
-        path: PathBuf,
-        cause: io::Error,
-    },
+    #[error("Failed to read {path}: {cause}")]
+    ReadFailed { path: PathBuf, cause: io::Error },
+    #[error("Failed to parse {path}: {cause}")]
     ParseFailed {
         path: PathBuf,
         cause: toml::de::Error,
@@ -19,16 +19,7 @@ pub enum Error {
 
 impl Reportable for Error {
     fn report(&self) -> Report {
-        let msg = "Failed to read metadata from Cargo.toml";
-        match self {
-            Self::ReadFailed { path, cause } => {
-                Report::error(msg, format!("Failed to read {:?}: {}", path, cause))
-            }
-            Self::ParseFailed { path, cause } => Report::error(
-                msg,
-                format!("Failed to parse contents of {:?}: {}", path, cause),
-            ),
-        }
+        Report::error("Failed to read metadata from Cargo.toml", self)
     }
 }
 

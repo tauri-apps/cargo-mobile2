@@ -7,6 +7,7 @@ use std::{
     fmt::{self, Display},
     path::PathBuf,
 };
+use thiserror::Error;
 
 const DEFAULT_MIN_SDK_VERSION: u32 = 24;
 const DEFAULT_VULKAN_VALIDATION: bool = true;
@@ -127,19 +128,15 @@ impl Display for ProjectDirInvalid {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
+    #[error("android.project-dir invalid: {0}")]
     ProjectDirInvalid(ProjectDirInvalid),
 }
 
 impl Error {
     pub fn report(&self, msg: &str) -> Report {
-        match self {
-            Self::ProjectDirInvalid(err) => Report::error(
-                msg,
-                format!("`{}.project-dir` invalid: {}", super::NAME, err),
-            ),
-        }
+        Report::error(msg, self)
     }
 }
 

@@ -4,23 +4,22 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fs, io, path::PathBuf};
+use thiserror::Error;
 use toml::Value;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum LoadError {
-    DirCreationFailed {
-        path: PathBuf,
-        cause: io::Error,
-    },
+    #[error("Failed to create \".cargo\" directory at {path}: {cause}")]
+    DirCreationFailed { path: PathBuf, cause: io::Error },
+    #[error("Failed to rename cargo config from old style {from} to new style {to}: {cause}")]
     MigrateFailed {
         from: PathBuf,
         to: PathBuf,
         cause: io::Error,
     },
-    ReadFailed {
-        path: PathBuf,
-        cause: io::Error,
-    },
+    #[error("Failed to read cargo config from {path}: {cause}")]
+    ReadFailed { path: PathBuf, cause: io::Error },
+    #[error("Failed to deserialize cargo config at {path}: {cause}")]
     DeserializeFailed {
         path: PathBuf,
         cause: toml::de::Error,
@@ -29,49 +28,23 @@ pub enum LoadError {
 
 impl Reportable for LoadError {
     fn report(&self) -> Report {
-        match self {
-            Self::DirCreationFailed { path, cause } => Report::error(
-                format!("Failed to create \".cargo\" directory at {:?}", path),
-                cause,
-            ),
-            Self::MigrateFailed { from, to, cause } => Report::error(
-                format!(
-                    "Failed to rename cargo config from old style {:?} to new style {:?}",
-                    from, to
-                ),
-                cause,
-            ),
-            Self::ReadFailed { path, cause } => Report::error(
-                format!("Failed to read cargo config from {:?}", path),
-                cause,
-            ),
-            Self::DeserializeFailed { path, cause } => Report::error(
-                format!("Failed to deserialize cargo config at {:?}", path),
-                cause,
-            ),
-        }
+        Report::error("Failed to load .cargo file", self)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum WriteError {
+    #[error("Failed to serialize cargo config: {0}")]
     SerializeFailed(toml::ser::Error),
+    #[error("Failed to create \".cargo\" directory at {path}: {cause}")]
     DirCreationFailed { path: PathBuf, cause: io::Error },
+    #[error("Failed to write cargo config to {path}: {cause}")]
     WriteFailed { path: PathBuf, cause: io::Error },
 }
 
 impl Reportable for WriteError {
     fn report(&self) -> Report {
-        match self {
-            Self::SerializeFailed(err) => Report::error("Failed to serialize cargo config", err),
-            Self::DirCreationFailed { path, cause } => Report::error(
-                format!("Failed to create \".cargo\" directory at {:?}", path),
-                cause,
-            ),
-            Self::WriteFailed { path, cause } => {
-                Report::error(format!("Failed to write cargo config to {:?}", path), cause)
-            }
-        }
+        Report::error("Failed to write .cargo", self)
     }
 }
 

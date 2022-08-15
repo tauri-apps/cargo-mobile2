@@ -49,8 +49,9 @@ pub fn rustup_add(triple: &str) -> bossy::Result<bossy::ExitStatus> {
         .run_and_wait()
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum HostTargetTripleError {
+    #[error("Failed to detect host target triple: {0}")]
     CommandFailed(RunAndSearchError),
 }
 
@@ -563,19 +564,12 @@ pub fn get_string_for_group(
         .to_owned())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum OpenInEditorError {
+    #[error("Failed to detect editor: {0}")]
     DetectFailed(os::DetectEditorError),
+    #[error("Failed to open path in editor: {0}")]
     OpenFailed(os::OpenFileError),
-}
-
-impl Display for OpenInEditorError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::DetectFailed(err) => write!(f, "Failed to detect editor: {}", err),
-            Self::OpenFailed(err) => write!(f, "Failed to open path in edtior: {}", err),
-        }
-    }
 }
 
 pub fn open_in_editor(path: impl AsRef<Path>) -> Result<(), OpenInEditorError> {

@@ -17,16 +17,20 @@ use std::{
     io,
     path::{Path, PathBuf},
 };
+use thiserror::Error;
 
 pub fn file_name() -> String {
     format!("{}.toml", crate::NAME)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum FromRawError {
+    #[error(transparent)]
     AppConfigInvalid(app::Error),
     #[cfg(target_os = "macos")]
+    #[error(transparent)]
     AppleConfigInvalid(apple::config::Error),
+    #[error(transparent)]
     AndroidConfigInvalid(android::config::Error),
 }
 
@@ -41,47 +45,39 @@ impl FromRawError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum GenError {
+    #[error(transparent)]
     PromptFailed(PromptError),
+    #[error(transparent)]
     DetectFailed(DetectError),
+    #[error("Failed to canonicalize root dir: {0}")]
     CanonicalizeFailed(io::Error),
+    #[error(transparent)]
     FromRawFailed(FromRawError),
+    #[error(transparent)]
     WriteFailed(WriteError),
 }
 
 impl Reportable for GenError {
     fn report(&self) -> Report {
-        let msg = "Failed to generate config";
-        match self {
-            Self::PromptFailed(err) => err.report(),
-            Self::DetectFailed(err) => err.report(),
-            Self::CanonicalizeFailed(err) => {
-                Report::error(msg, format!("Failed to canonicalize root dir: {}", err))
-            }
-            Self::FromRawFailed(err) => err.report(msg),
-            Self::WriteFailed(err) => err.report(),
-        }
+        Report::error("Failed to generate config", self)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum LoadOrGenError {
+    #[error("Failed to load config: {0}")]
     LoadFailed(LoadError),
+    #[error("Config file at {path} invalid: {cause}")]
     FromRawFailed { path: PathBuf, cause: FromRawError },
+    #[error(transparent)]
     GenFailed(GenError),
 }
 
 impl Reportable for LoadOrGenError {
     fn report(&self) -> Report {
-        match self {
-            Self::LoadFailed(err) => Report::error("Failed to load config", err),
-            Self::FromRawFailed { path, cause } => {
-                let msg = format!("Config file at {:?} invalid", path);
-                cause.report(&msg)
-            }
-            Self::GenFailed(err) => err.report(),
-        }
+        Report::error("Config error", self)
     }
 }
 
