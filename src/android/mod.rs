@@ -1,8 +1,8 @@
-pub(crate) mod adb;
+pub mod adb;
 mod bundletool;
 pub mod cli;
 pub mod config;
-mod device;
+pub mod device;
 pub mod env;
 mod jnilibs;
 pub mod ndk;
