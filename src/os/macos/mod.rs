@@ -10,46 +10,30 @@ use core_foundation::{
 };
 use std::{
     ffi::{OsStr, OsString},
-    fmt::{self, Display},
     path::{Path, PathBuf},
     ptr,
 };
+use thiserror::Error;
 
 pub use crate::{env::Env, util::ln};
 
 // This can hopefully be relied upon... https://stackoverflow.com/q/8003919
 static RUST_UTI: &str = "dyn.ah62d4rv4ge81e62";
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum DetectEditorError {
+    #[error(transparent)]
     LookupFailed(CFError),
 }
 
-impl Display for DetectEditorError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::LookupFailed(err) => write!(f, "{}", err),
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum OpenFileError {
+    #[error("Failed to convert path {path} into a `CFURL`.")]
     PathToUrlFailed { path: PathBuf },
+    #[error("Status code {0}")]
     LaunchFailed(OSStatus),
+    #[error("Launch failed: {0}")]
     BossyLaunchFailed(bossy::Error),
-}
-
-impl Display for OpenFileError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::PathToUrlFailed { path } => {
-                write!(f, "Failed to convert path {:?} into a `CFURL`.", path)
-            }
-            Self::LaunchFailed(status) => write!(f, "Status code {}", status),
-            Self::BossyLaunchFailed(e) => write!(f, "Launch failed: {}", e),
-        }
-    }
 }
 
 #[derive(Debug)]
