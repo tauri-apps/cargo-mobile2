@@ -143,11 +143,11 @@ impl Error {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Raw {
-    min_sdk_version: Option<u32>,
-    vulkan_validation: Option<bool>,
-    project_dir: Option<String>,
-    no_default_features: Option<bool>,
-    features: Option<Vec<String>>,
+    pub min_sdk_version: Option<u32>,
+    pub vulkan_validation: Option<bool>,
+    pub project_dir: Option<String>,
+    pub no_default_features: Option<bool>,
+    pub features: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Serialize)]

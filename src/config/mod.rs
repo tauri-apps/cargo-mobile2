@@ -1,6 +1,7 @@
 pub mod app;
 pub mod metadata;
 mod raw;
+pub use raw::Raw;
 
 use self::{app::App, raw::*};
 #[cfg(target_os = "macos")]
@@ -103,7 +104,7 @@ pub struct Config {
 }
 
 impl Config {
-    fn from_raw(root_dir: PathBuf, raw: Raw) -> Result<Self, FromRawError> {
+    pub fn from_raw(root_dir: PathBuf, raw: Raw) -> Result<Self, FromRawError> {
         let app = App::from_raw(root_dir, raw.app).map_err(FromRawError::AppConfigInvalid)?;
         #[cfg(target_os = "macos")]
         let apple = apple::config::Config::from_raw(app.clone(), raw.apple)
