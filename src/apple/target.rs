@@ -18,6 +18,7 @@ use std::{
     collections::{BTreeMap, HashMap},
     ffi::OsStr,
 };
+use thiserror::Error;
 
 fn verbosity(noise_level: opts::NoiseLevel) -> Option<&'static str> {
     if noise_level.pedantic() {
@@ -27,9 +28,15 @@ fn verbosity(noise_level: opts::NoiseLevel) -> Option<&'static str> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum VersionCheckError {
+    #[error("Failed to lookup Xcode version: {0}")]
     LookupFailed(system_profile::Error),
+    #[error(
+        "Installed Xcode version too low ({msg} Xcode {}.{}; you have Xcode {}.{}.); please upgrade and try again",
+        .you_need.0, .you_need.1,
+        .you_have.0, .you_have.1
+    )]
     TooLow {
         msg: &'static str,
         you_have: (u32, u32),
@@ -71,9 +78,11 @@ impl Reportable for CheckError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum CompileLibError {
+    #[error(transparent)]
     VersionCheckFailed(VersionCheckError),
+    #[error("Failed to run `cargo build`: {0}")]
     CargoBuildFailed(bossy::Error),
 }
 
