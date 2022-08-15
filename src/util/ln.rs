@@ -127,6 +127,8 @@ impl Display for Error {
     }
 }
 
+impl std::error::Error for Error {}
+
 #[derive(Clone, Debug)]
 pub struct Call<'a> {
     link_type: LinkType,

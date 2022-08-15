@@ -8,6 +8,7 @@ use crate::{
     },
 };
 use std::path::{Path, PathBuf};
+use thiserror::Error;
 
 #[derive(Debug)]
 pub enum RemoveBrokenLinksError {
@@ -44,22 +45,17 @@ impl Reportable for RemoveBrokenLinksError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum SymlinkLibError {
+    #[error("The symlink source is {0}, but nothing exists there")]
     SourceMissing(PathBuf),
+    #[error(transparent)]
     SymlinkFailed(ln::Error),
 }
 
 impl Reportable for SymlinkLibError {
     fn report(&self) -> Report {
-        let msg = "Failed to symlink lib";
-        match self {
-            Self::SourceMissing(src) => Report::error(
-                msg,
-                format!("The symlink source is {:?}, but nothing exists there", src),
-            ),
-            Self::SymlinkFailed(err) => Report::error(msg, err),
-        }
+        Report::error("Failed to symlink lib", self)
     }
 }
 

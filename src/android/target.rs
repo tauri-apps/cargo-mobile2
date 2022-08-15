@@ -16,6 +16,7 @@ use crate::{
 use once_cell_regex::exports::once_cell::sync::OnceCell;
 use serde::Serialize;
 use std::{collections::BTreeMap, fmt, io, str};
+use thiserror::Error;
 
 #[derive(Clone, Copy, Debug)]
 pub enum CargoMode {
@@ -41,9 +42,11 @@ impl CargoMode {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum CompileLibError {
+    #[error("Failed to locate required build tool: {0}")]
     MissingTool(ndk::MissingToolError),
+    #[error("`Failed to run `cargo {mode}`: {cause}")]
     CargoFailed {
         mode: CargoMode,
         cause: bossy::Error,
@@ -52,41 +55,33 @@ pub enum CompileLibError {
 
 impl Reportable for CompileLibError {
     fn report(&self) -> Report {
-        match self {
-            Self::MissingTool(err) => Report::error("Failed to locate required build tool", err),
-            Self::CargoFailed { mode, cause } => {
-                Report::error(format!("`Failed to run `cargo {}`", mode), cause)
-            }
-        }
+        Report::error("Failed to compile lib", self)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum SymlinkLibsError {
+    #[error("Failed to create \"jniLibs\" directory: {0}")]
     JniLibsCreationFailed(io::Error),
+    #[error(transparent)]
     SymlinkFailed(jnilibs::SymlinkLibError),
+    #[error(transparent)]
     RequiredLibsFailed(ndk::RequiredLibsError),
+    #[error("Failed to locate \"libc++_shared.so\": {0}")]
     LibcxxSharedPathFailed(ndk::MissingToolError),
 }
 
 impl Reportable for SymlinkLibsError {
     fn report(&self) -> Report {
-        match self {
-            Self::JniLibsCreationFailed(err) => {
-                Report::error("Failed to create \"jniLibs\" directory", err)
-            }
-            Self::SymlinkFailed(err) => err.report(),
-            Self::RequiredLibsFailed(err) => err.report(),
-            Self::LibcxxSharedPathFailed(err) => {
-                Report::error("Failed to locate \"libc++_shared.so\"", err)
-            }
-        }
+        Report::error("Failed to symlink lib", self)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum BuildError {
+    #[error(transparent)]
     BuildFailed(CompileLibError),
+    #[error(transparent)]
     SymlinkLibsFailed(SymlinkLibsError),
 }
 
