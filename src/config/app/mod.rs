@@ -124,7 +124,11 @@ impl App {
                 IMPLIED_TEMPLATE_PACK
             })
         };
-        let template_pack = Pack::lookup_app(template_pack).map_err(Error::TemplatePackNotFound)?;
+        let template_pack = if cfg!(feature = "templates") {
+            Pack::lookup_app(template_pack).map_err(Error::TemplatePackNotFound)?
+        } else {
+            Pack::Simple(Default::default())
+        };
 
         Ok(Self {
             root_dir,
