@@ -25,7 +25,7 @@ pub use env::Env;
 
 #[derive(Debug, Error)]
 pub enum DetectEditorError {
-    #[error("No default editor is set: AssocQueryStringW for \".rs\" and \".txt\" both failed")]
+    #[error("No default editor is set for \".rs\" and \".txt\"")]
     NoDefaultEditorSet,
     #[error("An error occured while calling AssocQueryStringW: {0}")]
     IOError(#[source] std::io::Error),
@@ -54,12 +54,12 @@ const TEXT_EXT: &[u16] = const_utf16::encode_null_terminated!(".txt");
 
 impl Application {
     pub fn detect_editor() -> Result<Self, DetectEditorError> {
-        let editor_command = Self::detect_associated_command(RUST_EXT).or_else(|e| match e {
-            DetectEditorError::NoDefaultEditorSet => Self::detect_associated_command(TEXT_EXT),
-            err => Err(err),
-        })?;
+        let editor_command =
+            Self::detect_associated_command(RUST_EXT).or_else(|err| match err {
+                DetectEditorError::NoDefaultEditorSet => Self::detect_associated_command(TEXT_EXT),
+                _ => Err(err),
+            })?;
         let argv: Vec<_> = NativeArgv::new(&editor_command).into();
-
         Ok(Self { argv })
     }
 
@@ -69,7 +69,7 @@ impl Application {
             .map(|arg| Self::replace_command_arg(arg, &path.as_ref().as_os_str()))
             .collect::<Vec<_>>();
         bossy::Command::impure(&self.argv[0])
-            .add_args(&args)
+            .with_args(&args)
             .run_and_detach()
             .map_err(OpenFileError::LaunchFailed)
     }
@@ -106,7 +106,7 @@ impl Application {
                 &mut len as _,
             )
         }?;
-        return Ok(command);
+        Ok(command)
     }
 
     // Replace %0 or %1 to arg1, and other % is unescape
@@ -183,10 +183,10 @@ fn open_file_with_android_studio(path: impl AsRef<OsStr>) -> Result<(), OpenFile
     let uninstaller_path = OsString::from_wide(&buffer[..len]);
     let application_path = Path::new(&uninstaller_path)
         .parent()
-        .expect("failed to getAndroid Studio uninstaller's parent path")
+        .expect("Failed to get Android Studio uninstaller's parent path")
         .join(STUDIO_EXE_PATH);
     bossy::Command::impure(application_path)
-        .add_arg(
+        .with_arg(
             dunce::canonicalize(Path::new(path.as_ref()))
                 .expect("Failed to canonicalize file path"),
         )
@@ -197,7 +197,7 @@ fn open_file_with_android_studio(path: impl AsRef<OsStr>) -> Result<(), OpenFile
 
 pub fn command_path(name: &str) -> bossy::Result<bossy::Output> {
     bossy::Command::impure("where.exe")
-        .add_arg(name)
+        .with_arg(name)
         .run_and_wait_for_output()
 }
 
@@ -256,7 +256,7 @@ impl Iterator for NullTerminatedWTF16Iterator {
 // %~dp0 will expand to C:\Users\MyHome\foo in code.cmd, which is completely broken.
 // Running it through powershell.exe does not have this problem.
 pub fn code_command() -> bossy::Command {
-    bossy::Command::impure("powershell.exe").with_args(&["-Command", "code"])
+    bossy::Command::impure_parse("powershell.exe -Command  code")
 }
 
 pub fn gradlew_command(project_dir: impl AsRef<OsStr>) -> bossy::Command {

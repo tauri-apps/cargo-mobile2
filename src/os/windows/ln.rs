@@ -115,9 +115,10 @@ fn delete_symlink(filename: &Path) -> Result<(), runtime::Error> {
         )
     });
     if handle.is_invalid() {
-        return Err(runtime::Error::from_win32());
+        Err(runtime::Error::from_win32())
+    } else {
+        Ok(())
     }
-    Ok(())
 }
 
 fn is_symlink(filename: &Path) -> bool {
