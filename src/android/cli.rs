@@ -70,6 +70,13 @@ pub enum Command {
         filter: cli::Filter,
         #[structopt(flatten)]
         reinstall_deps: cli::ReinstallDeps,
+        #[structopt(
+            short = "a",
+            long = "activity",
+            default_value = "android.app.NativeActivity",
+            help = "Specifies which activtiy to launch"
+        )]
+        activity: String,
     },
     #[structopt(name = "st", about = "Displays a detailed stacktrace for a device")]
     Stacktrace,
@@ -215,6 +222,7 @@ impl Exec for Input {
                 profile: cli::Profile { profile },
                 filter: cli::Filter { filter },
                 reinstall_deps: cli::ReinstallDeps { reinstall_deps },
+                activity,
             } => with_config(non_interactive, wrapper, |config, metadata| {
                 let build_app_bundle = metadata.asset_packs().is_some();
                 ensure_init(config)?;
@@ -228,6 +236,7 @@ impl Exec for Input {
                         filter,
                         build_app_bundle,
                         reinstall_deps,
+                        activity,
                     )
                     .map_err(Error::RunFailed)
             }),

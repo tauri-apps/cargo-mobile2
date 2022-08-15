@@ -324,6 +324,7 @@ impl<'a> Device<'a> {
         filter_level: Option<FilterLevel>,
         build_app_bundle: bool,
         reinstall_deps: opts::ReinstallDeps,
+        activity: String,
     ) -> Result<(), RunError> {
         if build_app_bundle {
             bundletool::install(reinstall_deps).map_err(RunError::BundletoolInstallFailed)?;
@@ -342,9 +343,10 @@ impl<'a> Device<'a> {
                 .map_err(RunError::ApkInstallFailed)?;
         }
         let activity = format!(
-            "{}.{}/android.app.NativeActivity",
+            "{}.{}/{}",
             config.app().reverse_domain(),
             config.app().name_snake(),
+            activity
         );
         self.adb(env)
             .with_args(&["shell", "am", "start", "-n", &activity])
