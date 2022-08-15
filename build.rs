@@ -1,11 +1,15 @@
+use std::path::PathBuf;
+
 fn main() {
+    #[allow(unused)]
+    let manifest_dir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+
     #[cfg(feature = "templates")]
     {
         use hit::repo::Repo;
-        use std::path::{Path, PathBuf};
+        use std::path::Path;
 
         let pkg_name = std::env::var("CARGO_PKG_NAME").unwrap();
-        let manifest_dir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
         let install_dir = home::home_dir()
             .expect("failed to get user's home dir")
             .join(format!(".{}", pkg_name));
