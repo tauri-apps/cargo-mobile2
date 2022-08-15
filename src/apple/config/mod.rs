@@ -15,6 +15,7 @@ use std::{
     fmt::{self, Display},
     path::PathBuf,
 };
+use thiserror::Error;
 
 static DEFAULT_PROJECT_DIR: &str = "gen/apple";
 const DEFAULT_BUNDLE_VERSION: VersionNumber = VersionNumber::new(VersionTriple::new(1, 0, 0), None);
@@ -191,64 +192,31 @@ impl Display for ProjectDirInvalid {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
+    #[error("`apple.development-team` must be specified")]
     DevelopmentTeamMissing,
+    #[error("`apple.development-team` is empty")]
     DevelopmentTeamEmpty,
+    #[error("`apple.project-dir` invalid: {0}")]
     ProjectDirInvalid(ProjectDirInvalid),
+    #[error("`apple.app-version` invalid: {0}")]
     BundleVersionInvalid(VersionTripleError),
+    #[error("`apple.ios-version` invalid: {0}")]
     IosVersionInvalid(VersionDoubleError),
+    #[error("`apple.macos-version` invalid: {0}")]
     MacOsVersionInvalid(VersionDoubleError),
+    #[error("`apple.app-version` short and long version number don't match: {0}")]
     IosVersionNumberInvalid(VersionNumberError),
+    #[error("`apple.app-version` short and long version number don't match")]
     IosVersionNumberMismatch,
+    #[error("`apple.app-version` `bundle-version-short` cannot be specified without also specifying `bundle-version`")]
     InvalidVersionConfiguration,
 }
 
 impl Error {
     pub fn report(&self, msg: &str) -> Report {
-        match self {
-            Self::DevelopmentTeamMissing => Report::error(
-                msg,
-                format!("`{}.development-team` must be specified", super::NAME),
-            ),
-            Self::DevelopmentTeamEmpty => {
-                Report::error(msg, format!("`{}.development-team` is empty", super::NAME))
-            }
-            Self::ProjectDirInvalid(err) => Report::error(
-                msg,
-                format!("`{}.project-dir` invalid: {}", super::NAME, err),
-            ),
-            Self::BundleVersionInvalid(err) => Report::error(
-                msg,
-                format!("`{}.app-version` invalid: {}", super::NAME, err),
-            ),
-            Self::IosVersionInvalid(err) => Report::error(
-                msg,
-                format!("`{}.ios-version` invalid: {}", super::NAME, err),
-            ),
-            Self::MacOsVersionInvalid(err) => Report::error(
-                msg,
-                format!("`{}.macos-version` invalid: {}", super::NAME, err),
-            ),
-            Self::IosVersionNumberInvalid(err) => Report::error(
-                msg,
-                format!("`{}.app-version` invalid: {}", super::NAME, err),
-            ),
-            Self::IosVersionNumberMismatch => Report::error(
-                msg,
-                format!(
-                    "`{}.app-version` short and long version number don't match",
-                    super::NAME
-                ),
-            ),
-            Self::InvalidVersionConfiguration => Report::error(
-                msg,
-                format!(
-                    "`{}.app-version` `bundle-version-short` cannot be specified without also specifying `bundle-version`",
-                    super::NAME
-                ),
-            ),
-        }
+        Report::error(msg, self)
     }
 }
 
