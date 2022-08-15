@@ -54,18 +54,18 @@ pub struct BuildScript {
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Platform {
-    features: Option<Vec<String>>,
-    frameworks: Option<Vec<String>>,
-    valid_archs: Option<Vec<String>>,
-    vendor_frameworks: Option<Vec<String>>,
-    vendor_sdks: Option<Vec<String>>,
-    asset_catalogs: Option<Vec<PathBuf>>,
-    pods: Option<Vec<Pod>>,
-    additional_targets: Option<Vec<PathBuf>>,
-    pre_build_scripts: Option<Vec<BuildScript>>,
-    post_compile_scripts: Option<Vec<BuildScript>>,
-    post_build_scripts: Option<Vec<BuildScript>>,
-    command_line_arguments: Option<Vec<String>>,
+    pub features: Option<Vec<String>>,
+    pub frameworks: Option<Vec<String>>,
+    pub valid_archs: Option<Vec<String>>,
+    pub vendor_frameworks: Option<Vec<String>>,
+    pub vendor_sdks: Option<Vec<String>>,
+    pub asset_catalogs: Option<Vec<PathBuf>>,
+    pub pods: Option<Vec<Pod>>,
+    pub additional_targets: Option<Vec<PathBuf>>,
+    pub pre_build_scripts: Option<Vec<BuildScript>>,
+    pub post_compile_scripts: Option<Vec<BuildScript>>,
+    pub post_build_scripts: Option<Vec<BuildScript>>,
+    pub command_line_arguments: Option<Vec<String>>,
 }
 
 impl Platform {
@@ -129,11 +129,11 @@ const fn default_true() -> bool {
 #[derive(Debug, Deserialize)]
 pub struct Metadata {
     #[serde(default = "default_true")]
-    supported: bool,
+    pub supported: bool,
     #[serde(default)]
-    ios: Platform,
+    pub ios: Platform,
     #[serde(default)]
-    macos: Platform,
+    pub macos: Platform,
 }
 
 impl Default for Metadata {

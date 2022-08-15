@@ -27,14 +27,14 @@ pub struct AssetPackInfo {
 #[serde(rename_all = "kebab-case")]
 pub struct Metadata {
     #[serde(default = "default_true")]
-    supported: bool,
-    features: Option<Vec<String>>,
-    app_sources: Option<Vec<String>>,
-    app_plugins: Option<Vec<String>>,
-    project_dependencies: Option<Vec<String>>,
-    app_dependencies: Option<Vec<String>>,
-    app_dependencies_platform: Option<Vec<String>>,
-    asset_packs: Option<Vec<AssetPackInfo>>,
+    pub supported: bool,
+    pub features: Option<Vec<String>>,
+    pub app_sources: Option<Vec<String>>,
+    pub app_plugins: Option<Vec<String>>,
+    pub project_dependencies: Option<Vec<String>>,
+    pub app_dependencies: Option<Vec<String>>,
+    pub app_dependencies_platform: Option<Vec<String>>,
+    pub asset_packs: Option<Vec<AssetPackInfo>>,
 }
 
 impl Default for Metadata {

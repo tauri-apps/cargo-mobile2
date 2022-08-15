@@ -27,9 +27,9 @@ impl Reportable for Error {
 pub struct Metadata {
     #[cfg(target_os = "macos")]
     #[serde(default, rename = "cargo-apple")]
-    apple: crate::apple::config::Metadata,
+    pub apple: crate::apple::config::Metadata,
     #[serde(default, rename = "cargo-android")]
-    android: crate::android::config::Metadata,
+    pub android: crate::android::config::Metadata,
 }
 
 impl Metadata {
