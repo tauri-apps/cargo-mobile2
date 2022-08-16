@@ -395,7 +395,7 @@ impl<'a> Device<'a> {
             .with_env_vars(env.explicit_env())
             .with_env_var(
                 "PATH",
-                util::prepend_to_path(env.ndk.home().display(), env.path()),
+                util::prepend_to_path(env.ndk.home().display(), env.path().to_string_lossy()),
             )
             .with_arg("-sym")
             .with_arg(

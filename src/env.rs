@@ -1,17 +1,17 @@
 use crate::util::cli::{Report, Reportable};
-use std::{ffi::OsStr, fmt::Debug, path::Path};
+use std::{collections::HashMap, ffi::OsString, fmt::Debug, path::Path};
 use thiserror::Error;
 
 pub trait ExplicitEnv: Debug {
-    fn explicit_env(&self) -> Vec<(&str, &OsStr)>;
+    fn explicit_env(&self) -> HashMap<String, OsString>;
 }
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("The `HOME` environment variable isn't set, which is pretty weird: {0}")]
-    HomeNotSet(#[source] std::env::VarError),
-    #[error("The `PATH` environment variable isn't set, which is super weird: {0}")]
-    PathNotSet(#[source] std::env::VarError),
+    #[error("The `HOME` environment variable isn't set, which is pretty weird")]
+    HomeNotSet,
+    #[error("The `PATH` environment variable isn't set, which is super weird")]
+    PathNotSet,
     #[error("The `{0}` environment variable isn't set, which is quite weird: {1}")]
     NotSet(&'static str, #[source] std::env::VarError),
 }
@@ -24,45 +24,48 @@ impl Reportable for Error {
 
 #[derive(Clone, Debug)]
 pub struct Env {
-    home: String,
-    path: String,
-    term: Option<String>,
-    ssh_auth_sock: Option<String>,
+    vars: HashMap<String, std::ffi::OsString>,
 }
 
 impl Env {
     pub fn new() -> Result<Self, Error> {
-        let home = std::env::var("HOME").map_err(Error::HomeNotSet)?;
-        let path = std::env::var("PATH").map_err(Error::PathNotSet)?;
-        let term = std::env::var("TERM").ok();
-        let ssh_auth_sock = std::env::var("SSH_AUTH_SOCK").ok();
-        Ok(Self {
-            home,
-            path,
-            term,
-            ssh_auth_sock,
-        })
+        let mut vars = HashMap::new();
+
+        let home = std::env::var_os("HOME").ok_or(Error::HomeNotSet)?;
+        let path = std::env::var_os("PATH").ok_or(Error::PathNotSet)?;
+        if let Some(term) = std::env::var_os("TERM") {
+            vars.insert("TERM".into(), term);
+        }
+        if let Some(ssh_auth_sock) = std::env::var_os("SSH_AUTH_SOCK") {
+            vars.insert("SSH_AUTH_SOCK".into(), ssh_auth_sock);
+        }
+
+        vars.insert("HOME".into(), home);
+        vars.insert("PATH".into(), path);
+
+        Ok(Self { vars })
     }
 
-    pub fn path(&self) -> &str {
-        &self.path
+    pub fn path(&self) -> &OsString {
+        self.vars.get("PATH").unwrap()
     }
 
     pub fn prepend_to_path(mut self, path: impl AsRef<Path>) -> Self {
-        self.path = format!("{}:{}", path.as_ref().display(), self.path);
+        let mut path = path.as_ref().as_os_str().to_os_string();
+        path.push(":");
+        path.push(self.path().clone());
+        self.vars.insert("PATH".into(), path);
+        self
+    }
+
+    pub fn explicit_env_vars(mut self, vars: HashMap<String, OsString>) -> Self {
+        self.vars.extend(vars);
         self
     }
 }
 
 impl ExplicitEnv for Env {
-    fn explicit_env(&self) -> Vec<(&str, &std::ffi::OsStr)> {
-        let mut env = vec![("HOME", self.home.as_ref()), ("PATH", self.path.as_ref())];
-        if let Some(term) = self.term.as_ref() {
-            env.push(("TERM", term.as_ref()));
-        }
-        if let Some(ssh_auth_sock) = self.ssh_auth_sock.as_ref() {
-            env.push(("SSH_AUTH_SOCK", ssh_auth_sock.as_ref()));
-        }
-        env
+    fn explicit_env(&self) -> HashMap<String, OsString> {
+        self.vars.clone()
     }
 }

@@ -7,7 +7,11 @@ use crate::{
     os::Env as CoreEnv,
     util::cli::{Report, Reportable},
 };
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    ffi::OsString,
+    path::{Path, PathBuf},
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -93,7 +97,7 @@ impl Env {
         })
     }
 
-    pub fn path(&self) -> &str {
+    pub fn path(&self) -> &OsString {
         self.base.path()
     }
 
@@ -108,12 +112,16 @@ impl Env {
 }
 
 impl ExplicitEnv for Env {
-    fn explicit_env(&self) -> Vec<(&str, &std::ffi::OsStr)> {
+    fn explicit_env(&self) -> HashMap<String, OsString> {
         let mut envs = self.base.explicit_env();
-        envs.extend(&[
-            ("ANDROID_SDK_ROOT", self.sdk_root.as_ref()),
-            ("NDK_HOME", self.ndk.home().as_ref()),
-        ]);
+        envs.insert(
+            "ANDROID_SDK_ROOT".into(),
+            self.sdk_root.as_os_str().to_os_string(),
+        );
+        envs.insert(
+            "NDK_HOME".into(),
+            self.ndk.home().as_os_str().to_os_string(),
+        );
         envs
     }
 }
