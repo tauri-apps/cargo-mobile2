@@ -59,13 +59,6 @@ pub fn command() -> bossy::Command {
 pub struct InstallError(crate::apple::deps::Error);
 
 #[cfg(target_os = "macos")]
-impl std::fmt::Display for InstallError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-#[cfg(target_os = "macos")]
 impl Reportable for InstallError {
     fn report(&self) -> Report {
         Report::error("Failed to install `bundletool`", &self.0)

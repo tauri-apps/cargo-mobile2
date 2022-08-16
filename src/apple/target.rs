@@ -17,7 +17,6 @@ use once_cell_regex::exports::once_cell::sync::OnceCell;
 use std::{
     collections::{BTreeMap, HashMap},
     ffi::OsStr,
-    fmt::Display,
 };
 use thiserror::Error;
 
@@ -97,13 +96,8 @@ impl Reportable for CompileLibError {
 }
 
 #[derive(Debug, Error)]
+#[error(transparent)]
 pub struct BuildError(bossy::Error);
-
-impl Display for BuildError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)
-    }
-}
 
 impl Reportable for BuildError {
     fn report(&self) -> Report {
@@ -129,13 +123,8 @@ impl Reportable for ArchiveError {
 }
 
 #[derive(Debug, Error)]
+#[error(transparent)]
 pub struct ExportError(bossy::Error);
-
-impl Display for ExportError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)
-    }
-}
 
 impl Reportable for ExportError {
     fn report(&self) -> Report {
