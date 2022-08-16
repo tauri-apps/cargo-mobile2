@@ -54,7 +54,8 @@ pub fn command() -> bossy::Command {
 }
 
 #[cfg(target_os = "macos")]
-#[derive(Debug)]
+#[derive(Debug, Error)]
+#[error(transparent)]
 pub struct InstallError(crate::apple::deps::Error);
 
 #[cfg(target_os = "macos")]
