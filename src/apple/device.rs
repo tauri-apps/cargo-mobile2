@@ -12,14 +12,21 @@ use std::{
     fmt::{self, Display},
     path::PathBuf,
 };
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum RunError {
+    #[error(transparent)]
     BuildFailed(BuildError),
+    #[error(transparent)]
     ArchiveFailed(ArchiveError),
+    #[error(transparent)]
     ExportFailed(ExportError),
+    #[error("IPA appears to be missing. Not found at either {old} or {new}")]
     IpaMissing { old: PathBuf, new: PathBuf },
+    #[error("Failed to unzip archive: {0}")]
     UnzipFailed(bossy::Error),
+    #[error(transparent)]
     DeployFailed(ios_deploy::RunAndDebugError),
 }
 
@@ -74,7 +81,7 @@ impl<'a> Device<'a> {
         noise_level: opts::NoiseLevel,
         non_interactive: opts::NonInteractive,
         profile: opts::Profile,
-    ) -> Result<(), RunError> {
+    ) -> Result<bossy::Handle, RunError> {
         // TODO: These steps are run unconditionally, which is slooooooow
         println!("Building app...");
         self.target
@@ -107,7 +114,6 @@ impl<'a> Device<'a> {
             .run_and_wait()
             .map_err(RunError::UnzipFailed)?;
         ios_deploy::run_and_debug(config, env, non_interactive, &self.id)
-            .map_err(RunError::DeployFailed)?;
-        Ok(())
+            .map_err(RunError::DeployFailed)
     }
 }

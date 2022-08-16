@@ -95,7 +95,8 @@ impl Reportable for CompileLibError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
+#[error(transparent)]
 pub struct BuildError(bossy::Error);
 
 impl Reportable for BuildError {
@@ -104,9 +105,11 @@ impl Reportable for BuildError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ArchiveError {
+    #[error("Failed to set app version number: {0}")]
     SetVersionFailed(WithWorkingDirError<bossy::Error>),
+    #[error("Failed to archive via `xcodebuild`: {0}")]
     ArchiveFailed(bossy::Error),
 }
 
@@ -119,7 +122,8 @@ impl Reportable for ArchiveError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
+#[error(transparent)]
 pub struct ExportError(bossy::Error);
 
 impl Reportable for ExportError {

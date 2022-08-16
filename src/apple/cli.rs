@@ -340,6 +340,11 @@ impl Exec for Input {
                 device_prompt(&env)
                     .map_err(Error::DevicePromptFailed)?
                     .run(config, &env, noise_level, non_interactive, profile)
+                    .and_then(|h| {
+                        h.wait().map(|_| ()).map_err(|e| {
+                            RunError::DeployFailed(ios_deploy::RunAndDebugError::DeployFailed(e))
+                        })
+                    })
                     .map_err(Error::RunFailed)
             }),
             Command::List => ios_deploy::device_list(&env)
