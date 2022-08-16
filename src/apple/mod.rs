@@ -1,8 +1,8 @@
 pub mod cli;
 pub mod config;
 pub mod deps;
-mod device;
-pub(crate) mod ios_deploy;
+pub mod device;
+pub mod ios_deploy;
 pub mod project;
 pub(crate) mod system_profile;
 pub mod target;
