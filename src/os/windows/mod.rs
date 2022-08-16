@@ -10,9 +10,10 @@ use std::{
 };
 use thiserror::Error;
 use windows::{
-    runtime,
+    core::{self, HSTRING, PCWSTR, PWSTR},
+    w,
     Win32::{
-        Foundation::{ERROR_NO_ASSOCIATION, ERROR_SUCCESS, MAX_PATH, PWSTR},
+        Foundation::{ERROR_NO_ASSOCIATION, ERROR_SUCCESS, MAX_PATH},
         System::{Memory::LocalFree, Registry::HKEY_LOCAL_MACHINE},
         UI::Shell::{
             AssocQueryStringW, CommandLineToArgvW, SHRegGetPathW, ASSOCF_INIT_IGNOREUNKNOWN,
@@ -31,8 +32,8 @@ pub enum DetectEditorError {
     IOError(#[source] std::io::Error),
 }
 
-impl From<runtime::Error> for DetectEditorError {
-    fn from(err: runtime::Error) -> Self {
+impl From<core::Error> for DetectEditorError {
+    fn from(err: core::Error) -> Self {
         Self::IOError(err.into())
     }
 }
@@ -49,8 +50,8 @@ pub struct Application {
     argv: Vec<OsString>,
 }
 
-const RUST_EXT: &[u16] = const_utf16::encode_null_terminated!(".rs");
-const TEXT_EXT: &[u16] = const_utf16::encode_null_terminated!(".txt");
+const RUST_EXT: &HSTRING = w!(".rs");
+const TEXT_EXT: &HSTRING = w!(".txt");
 
 impl Application {
     pub fn detect_editor() -> Result<Self, DetectEditorError> {
@@ -74,7 +75,7 @@ impl Application {
             .map_err(OpenFileError::LaunchFailed)
     }
 
-    fn detect_associated_command(ext: &[u16]) -> Result<Vec<u16>, DetectEditorError> {
+    fn detect_associated_command(ext: &HSTRING) -> Result<Vec<u16>, DetectEditorError> {
         let mut len: u32 = 0;
         if let Err(e) = unsafe {
             AssocQueryStringW(
@@ -82,13 +83,13 @@ impl Application {
                 ASSOCSTR_COMMAND,
                 // In Shlwapi.h, this parameter's type is `LPCWSTR`.
                 // So it's not modified actually.
-                PWSTR(ext.as_ptr() as _),
-                PWSTR::default(),
-                PWSTR::default(),
+                PCWSTR::from_raw(ext.as_ptr()),
+                PCWSTR::null(),
+                PWSTR::null(),
                 &mut len as _,
             )
         } {
-            if e.code().0 == 0x80070000 | ERROR_NO_ASSOCIATION.0 {
+            if e.code().0 == (0x80070000 | ERROR_NO_ASSOCIATION.0) as i32 {
                 return Err(DetectEditorError::NoDefaultEditorSet);
             }
             return Err(DetectEditorError::IOError(e.into()));
@@ -100,8 +101,8 @@ impl Application {
                 ASSOCSTR_COMMAND,
                 // In Shlwapi.h, this parameter's type is `LPCWSTR`.
                 // So it's not modified actually.
-                PWSTR(RUST_EXT.as_ptr() as _),
-                PWSTR::default(),
+                PCWSTR::from_raw(RUST_EXT.as_ptr()),
+                PCWSTR::null(),
                 PWSTR(command.as_mut_ptr()),
                 &mut len as _,
             )
@@ -155,11 +156,9 @@ pub fn open_file_with(
     }
 }
 
-const ANDROID_STUDIO_UNINSTALL_KEY_PATH: &[u16] = const_utf16::encode_null_terminated!(
-    "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Android Studio"
-);
-const ANDROID_STUDIO_UNINSTALLER_VALUE: &[u16] =
-    const_utf16::encode_null_terminated!("UninstallString");
+const ANDROID_STUDIO_UNINSTALL_KEY_PATH: &HSTRING =
+    w!("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Android Studio");
+const ANDROID_STUDIO_UNINSTALLER_VALUE: &HSTRING = w!("UninstallString");
 #[cfg(target_pointer_width = "64")]
 const STUDIO_EXE_PATH: &str = "bin/studio64.exe";
 #[cfg(target_pointer_width = "32")]
@@ -170,14 +169,14 @@ fn open_file_with_android_studio(path: impl AsRef<OsStr>) -> Result<(), OpenFile
     let lstatus = unsafe {
         SHRegGetPathW(
             HKEY_LOCAL_MACHINE,
-            PWSTR(ANDROID_STUDIO_UNINSTALL_KEY_PATH.as_ptr() as _),
-            PWSTR(ANDROID_STUDIO_UNINSTALLER_VALUE.as_ptr() as _),
-            PWSTR(buffer.as_mut_ptr()),
+            PCWSTR::from_raw(ANDROID_STUDIO_UNINSTALL_KEY_PATH.as_ptr()),
+            PCWSTR::from_raw(ANDROID_STUDIO_UNINSTALLER_VALUE.as_ptr()),
+            &mut buffer,
             0,
         )
     };
     if lstatus.0 as u32 != ERROR_SUCCESS.0 {
-        return Err(OpenFileError::IOError(runtime::Error::from_win32().into()));
+        return Err(OpenFileError::IOError(core::Error::from_win32().into()));
     }
     let len = NullTerminatedWTF16Iterator(buffer.as_ptr()).count();
     let uninstaller_path = OsString::from_wide(&buffer[..len]);
@@ -212,7 +211,7 @@ impl NativeArgv {
         let mut len = 0;
         // In shellap.h, lpcmdline's type is `LPCWSTR`.
         // So it's not modified actually.
-        let argv = unsafe { CommandLineToArgvW(PWSTR(buffer.as_ptr() as _), &mut len as _) };
+        let argv = unsafe { CommandLineToArgvW(PCWSTR::from_raw(buffer.as_ptr()), &mut len as _) };
         Self { argv, len }
     }
 }
