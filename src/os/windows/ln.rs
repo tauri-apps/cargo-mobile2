@@ -9,9 +9,9 @@ use std::{
     path::Path,
 };
 use windows::{
-    runtime::{self, Handle as _},
+    core::{self, PCWSTR},
     Win32::{
-        Foundation::{CloseHandle, ERROR_PRIVILEGE_NOT_HELD, HANDLE, PWSTR},
+        Foundation::{CloseHandle, ERROR_PRIVILEGE_NOT_HELD, HANDLE},
         Storage::FileSystem::{
             CreateFileW, FILE_ACCESS_FLAGS, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_DELETE_ON_CLOSE,
             FILE_FLAG_OPEN_REPARSE_POINT, FILE_SHARE_READ, OPEN_EXISTING,
@@ -97,15 +97,16 @@ pub fn force_symlink_relative(
     }
 }
 
-fn delete_symlink(filename: &Path) -> Result<(), runtime::Error> {
+fn delete_symlink(filename: &Path) -> Result<(), core::Error> {
     let filename = filename
         .as_os_str()
         .encode_wide()
         .chain([0])
         .collect::<Vec<_>>();
-    let handle = FileHandle(unsafe {
+
+    if let Ok(handle) = unsafe {
         CreateFileW(
-            PWSTR(filename.as_ptr() as _),
+            PCWSTR::from_raw(filename.as_ptr()),
             FILE_ACCESS_FLAGS(GENERIC_READ),
             FILE_SHARE_READ,
             std::ptr::null(),
@@ -113,11 +114,11 @@ fn delete_symlink(filename: &Path) -> Result<(), runtime::Error> {
             FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_DELETE_ON_CLOSE,
             HANDLE(0),
         )
-    });
-    if handle.is_invalid() {
-        Err(runtime::Error::from_win32())
-    } else {
+    } {
+        unsafe { CloseHandle(handle) };
         Ok(())
+    } else {
+        Err(core::Error::from_win32())
     }
 }
 
@@ -126,21 +127,5 @@ fn is_symlink(filename: &Path) -> bool {
         metadata.file_type().is_symlink()
     } else {
         false
-    }
-}
-
-struct FileHandle(HANDLE);
-
-impl FileHandle {
-    fn is_invalid(&self) -> bool {
-        self.0.is_invalid()
-    }
-}
-
-impl Drop for FileHandle {
-    fn drop(&mut self) {
-        if !self.is_invalid() {
-            unsafe { CloseHandle(self.0) };
-        }
     }
 }

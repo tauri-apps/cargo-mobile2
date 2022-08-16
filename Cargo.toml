@@ -64,11 +64,8 @@ ureq = "2.4.0"
 freedesktop_entry_parser = "1.1"
 lexical-core = "0.7.6"
 
-[target.'cfg(windows)'.dependencies]
-const-utf16 = "0.2.1"
-
 [target.'cfg(windows)'.dependencies.windows]
-version = "0.26.0"
+version = "0.39.0"
 features = [
     "Win32_Foundation",
     "Win32_Security",
@@ -81,7 +78,6 @@ features = [
     "Win32_System_SystemInformation",
     "Win32_System_SystemServices",
     "Win32_UI_Shell",
-    "std",
 ]
 
 
