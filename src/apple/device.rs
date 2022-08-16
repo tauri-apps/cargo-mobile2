@@ -81,7 +81,7 @@ impl<'a> Device<'a> {
         noise_level: opts::NoiseLevel,
         non_interactive: opts::NonInteractive,
         profile: opts::Profile,
-    ) -> Result<(), RunError> {
+    ) -> Result<bossy::Handle, RunError> {
         // TODO: These steps are run unconditionally, which is slooooooow
         println!("Building app...");
         self.target
@@ -114,7 +114,6 @@ impl<'a> Device<'a> {
             .run_and_wait()
             .map_err(RunError::UnzipFailed)?;
         ios_deploy::run_and_debug(config, env, non_interactive, &self.id)
-            .map_err(RunError::DeployFailed)?;
-        Ok(())
+            .map_err(RunError::DeployFailed)
     }
 }

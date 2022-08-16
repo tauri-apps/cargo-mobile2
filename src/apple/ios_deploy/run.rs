@@ -25,7 +25,7 @@ pub fn run_and_debug(
     env: &Env,
     non_interactive: opts::NonInteractive,
     id: &str,
-) -> Result<(), RunAndDebugError> {
+) -> Result<bossy::Handle, RunAndDebugError> {
     println!("Deploying app to device...");
     bossy::Command::pure("ios-deploy")
         .with_env_vars(env.explicit_env())
@@ -39,7 +39,6 @@ pub fn run_and_debug(
             None
         })
         .with_arg("--no-wifi")
-        .run_and_wait()
-        .map(|_| ())
+        .run()
         .map_err(RunAndDebugError::DeployFailed)
 }
