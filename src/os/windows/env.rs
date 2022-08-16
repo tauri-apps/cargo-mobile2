@@ -43,7 +43,7 @@ impl Env {
 
     pub fn prepend_to_path(mut self, path: impl AsRef<Path>) -> Self {
         let mut path = path.as_ref().as_os_str().to_os_string();
-        path.push(":");
+        path.push(";");
         path.push(self.path().clone());
         self.vars.insert("PATH".into(), path);
         self
