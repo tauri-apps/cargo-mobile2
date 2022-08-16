@@ -1,20 +1,45 @@
 use crate::util::cli::{Report, Reportable};
-use std::{fmt::Debug, io};
+use std::{
+    error::Error,
+    fmt::{self, Debug, Display},
+    io,
+};
 
-#[derive(Debug)]
-pub enum PromptErrorCause<T: Reportable> {
+#[derive(Debug, thiserror::Error)]
+pub enum PromptErrorCause<T: Reportable + Error> {
+    #[error(transparent)]
     DetectionFailed(T),
+    #[error(transparent)]
     PromptFailed(io::Error),
+    #[error("No connected devices detected")]
     NoneDetected,
 }
 
 #[derive(Debug)]
-pub struct PromptError<T: Reportable> {
+pub struct PromptError<T: Reportable + Error> {
     name: &'static str,
     cause: PromptErrorCause<T>,
 }
 
-impl<T: Reportable> Reportable for PromptError<T> {
+impl<T: Reportable + Error> Display for PromptError<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.cause {
+            PromptErrorCause::DetectionFailed(err) => write!(f, "{}", err),
+            PromptErrorCause::PromptFailed(err) => {
+                write!(f, "Failed to prompt for {} device: {}", self.name, err)
+            }
+            PromptErrorCause::NoneDetected => write!(
+                f,
+                "Failed to prompt for {} device: No connected devices detected",
+                self.name
+            ),
+        }
+    }
+}
+
+impl<T: Reportable + Error> Error for PromptError<T> {}
+
+impl<T: Reportable + Error> Reportable for PromptError<T> {
     fn report(&self) -> Report {
         match &self.cause {
             PromptErrorCause::DetectionFailed(err) => err.report(),
@@ -29,7 +54,7 @@ impl<T: Reportable> Reportable for PromptError<T> {
     }
 }
 
-impl<T: Reportable> PromptError<T> {
+impl<T: Reportable + Error> PromptError<T> {
     pub fn new(name: &'static str, cause: PromptErrorCause<T>) -> Self {
         Self { name, cause }
     }

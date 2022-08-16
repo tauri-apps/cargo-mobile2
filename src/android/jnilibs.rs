@@ -10,16 +10,19 @@ use crate::{
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum RemoveBrokenLinksError {
+    #[error("Failed to list contents of jniLibs directory {dir}: {source}")]
     ReadDirFailed {
         dir: PathBuf,
         source: std::io::Error,
     },
+    #[error("Failed to get entry in jniLibs directory {dir}: {source}")]
     EntryFailed {
         dir: PathBuf,
         source: std::io::Error,
     },
+    #[error("Failed to remove broken symlink {path}: {source}")]
     RemoveFailed {
         path: PathBuf,
         source: std::io::Error,

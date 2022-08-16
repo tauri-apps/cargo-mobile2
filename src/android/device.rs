@@ -19,15 +19,19 @@ use std::{
     fmt::{self, Display},
     path::PathBuf,
 };
+use thiserror::Error;
 
 fn gradlew(config: &Config, env: &Env) -> bossy::Command {
     gradlew_command(&config.project_dir()).with_env_vars(env.explicit_env())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ApkBuildError {
+    #[error(transparent)]
     LibSymlinkCleaningFailed(jnilibs::RemoveBrokenLinksError),
+    #[error(transparent)]
     LibBuildFailed(BuildError),
+    #[error("Failed to assemble APK: {0}")]
     AssembleFailed(bossy::Error),
 }
 
@@ -41,8 +45,9 @@ impl Reportable for ApkBuildError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum AabBuildError {
+    #[error("Failed to build AAB: {0}")]
     BuildFailed(bossy::Error),
 }
 
@@ -54,9 +59,11 @@ impl Reportable for AabBuildError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ApksBuildError {
+    #[error("Failed to clean old APKS: {0}")]
     CleanFailed(std::io::Error),
+    #[error("Failed to build APKS from AAB: {0}")]
     BuildFromAabFailed(bossy::Error),
 }
 
@@ -69,9 +76,11 @@ impl Reportable for ApksBuildError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ApkInstallError {
+    #[error("Failed to install APK: {0}")]
     InstallFailed(bossy::Error),
+    #[error("Failed to install APK from AAB: {0}")]
     InstallFromAabFailed(bossy::Error),
 }
 
@@ -84,15 +93,23 @@ impl Reportable for ApkInstallError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum RunError {
+    #[error(transparent)]
     ApkBuildFailed(ApkBuildError),
+    #[error(transparent)]
     ApkInstallFailed(ApkInstallError),
+    #[error("Failed to start app on device: {0}")]
     StartFailed(bossy::Error),
+    #[error("Failed to wake device screen: {0}")]
     WakeScreenFailed(bossy::Error),
+    #[error("Failed to log output: {0}")]
     LogcatFailed(bossy::Error),
+    #[error(transparent)]
     BundletoolInstallFailed(bundletool::InstallError),
+    #[error(transparent)]
     AabBuildFailed(AabBuildError),
+    #[error(transparent)]
     ApksFromAabBuildFailed(ApksBuildError),
 }
 

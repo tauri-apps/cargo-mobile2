@@ -6,6 +6,7 @@ use crate::{
 };
 #[cfg(not(target_os = "macos"))]
 use std::path::PathBuf;
+use thiserror::Error;
 
 #[cfg(not(target_os = "macos"))]
 pub const BUNDLE_TOOL_JAR_INFO: BundletoolJarInfo = BundletoolJarInfo { version: "1.8.0" };
@@ -64,13 +65,16 @@ impl Reportable for InstallError {
 }
 
 #[cfg(not(target_os = "macos"))]
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum InstallError {
+    #[error("Failed to download `bundletool`: {0}")]
     DownloadFailed(ureq::Error),
+    #[error("Failed to create bundletool.jar at {path}: {cause}")]
     JarFileCreationFailed {
         path: PathBuf,
         cause: std::io::Error,
     },
+    #[error("Failed to copy content into bundletool.jar at {path}: {cause}")]
     CopyToFileFailed {
         path: PathBuf,
         cause: std::io::Error,
