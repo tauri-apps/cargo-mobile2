@@ -8,12 +8,8 @@ pub trait ExplicitEnv: Debug {
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("The `HOME` environment variable isn't set, which is pretty weird")]
-    HomeNotSet,
-    #[error("The `PATH` environment variable isn't set, which is super weird")]
-    PathNotSet,
-    #[error("The `{0}` environment variable isn't set, which is quite weird: {1}")]
-    NotSet(&'static str, #[source] std::env::VarError),
+    #[error("The `{0}` environment variable isn't set, which is quite weird")]
+    NotSet(&'static str),
 }
 
 impl Reportable for Error {
@@ -31,8 +27,8 @@ impl Env {
     pub fn new() -> Result<Self, Error> {
         let mut vars = HashMap::new();
 
-        let home = std::env::var_os("HOME").ok_or(Error::HomeNotSet)?;
-        let path = std::env::var_os("PATH").ok_or(Error::PathNotSet)?;
+        let home = std::env::var_os("HOME").ok_or(Error::NotSet("HOME"))?;
+        let path = std::env::var_os("PATH").ok_or(Error::NotSet("PATH"))?;
         if let Some(term) = std::env::var_os("TERM") {
             vars.insert("TERM".into(), term);
         }
