@@ -15,6 +15,7 @@ use crate::{
         prefix_path,
     },
 };
+use bossy::Handle;
 use std::{
     fmt::{self, Display},
     path::PathBuf,
@@ -342,7 +343,7 @@ impl<'a> Device<'a> {
         build_app_bundle: bool,
         reinstall_deps: opts::ReinstallDeps,
         activity: String,
-    ) -> Result<(), RunError> {
+    ) -> Result<Handle, RunError> {
         if build_app_bundle {
             bundletool::install(reinstall_deps).map_err(RunError::BundletoolInstallFailed)?;
             self.clean_apks(config, profile)
@@ -369,7 +370,7 @@ impl<'a> Device<'a> {
             .with_args(&["shell", "am", "start", "-n", &activity])
             .run_and_wait()
             .map_err(RunError::StartFailed)?;
-        self.wake_screen(env).map_err(RunError::WakeScreenFailed)?;
+        let _ = self.wake_screen(env);
         let filter = format!(
             "{}:{}",
             config.app().name(),
@@ -383,9 +384,8 @@ impl<'a> Device<'a> {
         );
         adb::adb(env, &self.serial_no)
             .with_args(&["logcat", "-v", "color", "-s", &filter])
-            .run_and_wait()
-            .map_err(RunError::LogcatFailed)?;
-        Ok(())
+            .run()
+            .map_err(RunError::LogcatFailed)
     }
 
     pub fn stacktrace(&self, config: &Config, env: &Env) -> Result<(), StacktraceError> {

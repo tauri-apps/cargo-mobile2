@@ -238,6 +238,7 @@ impl Exec for Input {
                         reinstall_deps,
                         activity,
                     )
+                    .and_then(|h| h.wait().map(|_| ()).map_err(RunError::LogcatFailed))
                     .map_err(Error::RunFailed)
             }),
             Command::Stacktrace => with_config(non_interactive, wrapper, |config, _| {
