@@ -47,7 +47,7 @@ fn _start_app() {
 #[inline(never)]
 pub extern "C" fn start_app() {
     #[cfg(target_os = "android")]
-    android_binding!({{reverse-domain-snake-case app.domain}}, {{snake-case app.name}}, _start_app);
+    android_binding!({{reverse-domain-snake-case app.domain}}, {{java-escape-underscore (snake-case app.name)}}, _start_app);
     _start_app()
 }
 
