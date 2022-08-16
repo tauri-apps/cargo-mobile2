@@ -12,14 +12,21 @@ use std::{
     fmt::{self, Display},
     path::PathBuf,
 };
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum RunError {
+    #[error(transparent)]
     BuildFailed(BuildError),
+    #[error(transparent)]
     ArchiveFailed(ArchiveError),
+    #[error(transparent)]
     ExportFailed(ExportError),
+    #[error("IPA appears to be missing. Not found at either {old} or {new}")]
     IpaMissing { old: PathBuf, new: PathBuf },
+    #[error("Failed to unzip archive: {0}")]
     UnzipFailed(bossy::Error),
+    #[error(transparent)]
     DeployFailed(ios_deploy::RunAndDebugError),
 }
 

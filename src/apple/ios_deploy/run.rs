@@ -4,9 +4,11 @@ use crate::{
     opts,
     util::cli::{Report, Reportable},
 };
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum RunAndDebugError {
+    #[error("Failed to deploy app to device: {0}")]
     DeployFailed(bossy::Error),
 }
 

@@ -54,8 +54,15 @@ pub fn command() -> bossy::Command {
 }
 
 #[cfg(target_os = "macos")]
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub struct InstallError(crate::apple::deps::Error);
+
+#[cfg(target_os = "macos")]
+impl std::fmt::Display for InstallError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[cfg(target_os = "macos")]
 impl Reportable for InstallError {
