@@ -6,57 +6,32 @@ use crate::util::{
 };
 use serde::Deserialize;
 use std::{
-    fmt::{self, Display},
     fs, io,
     path::{Path, PathBuf},
 };
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum FancyPackParseError {
-    ReadFailed {
-        path: PathBuf,
-        cause: io::Error,
-    },
+    #[error("Failed to read remote template pack spec {path}: {cause}")]
+    ReadFailed { path: PathBuf, cause: io::Error },
+    #[error("Failed to parse remote template pack spec {path}: {cause}")]
     ParseFailed {
         path: PathBuf,
         cause: toml::de::Error,
     },
+    #[error(transparent)]
     NoHomeDir(util::NoHomeDir),
+    #[error("Failed to lookup base template pack: {0}")]
     BaseFailed(Box<LookupError>),
 }
 
-impl Display for FancyPackParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::ReadFailed { path, cause } => write!(
-                f,
-                "Failed to read remote template pack spec {:?}: {}",
-                path, cause
-            ),
-            Self::ParseFailed { path, cause } => write!(
-                f,
-                "Failed to parse remote template pack spec {:?}: {}",
-                path, cause
-            ),
-            Self::NoHomeDir(err) => write!(f, "{}", err),
-            Self::BaseFailed(err) => write!(f, "Failed to lookup base template pack: {}", err),
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum FancyPackResolveError {
+    #[error("Failed to initialize submodule: {0}")]
     SubmoduleFailed(submodule::Error),
+    #[error("Template pack wasn't found at {0}")]
     PackNotFound(PathBuf),
-}
-
-impl Display for FancyPackResolveError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::SubmoduleFailed(err) => write!(f, "Failed to initialize submodule: {}", err),
-            Self::PackNotFound(path) => write!(f, "Template pack wasn't found at {:?}", path),
-        }
-    }
 }
 
 #[derive(Clone, Debug)]

@@ -18,8 +18,9 @@ name = "cargo-apple"
 name = "cargo-android"
 
 [features]
+templates = []
 brainium = []
-default = []
+default = ["templates"]
 
 [dependencies]
 bicycle = { git = "https://github.com/BrainiumLLC/bicycle", rev = "28080e0c6fa4067d9dd1b0f2b7322b6b32178e1f" }

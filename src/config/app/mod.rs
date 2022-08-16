@@ -11,6 +11,7 @@ use crate::{
 };
 use serde::Serialize;
 use std::path::{Path, PathBuf};
+use thiserror::Error;
 
 pub static KEY: &str = "app";
 
@@ -22,53 +23,32 @@ pub static DEFAULT_TEMPLATE_PACK: &str = if cfg!(feature = "brainium") {
     "bevy"
 };
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
+    #[error("app.name invalid: {0}")]
     NameInvalid(name::Invalid),
+    #[error("`app.domain` {domain} isn't valid: {cause}")]
     DomainInvalid {
         domain: String,
         cause: domain::DomainError,
     },
+    #[error("`app.asset-dir` {asset_dir} couldn't be normalized: {cause}")]
     AssetDirNormalizationFailed {
         asset_dir: PathBuf,
         cause: util::NormalizationError,
     },
+    #[error("`app.asset-dir` {asset_dir} is outside of the app root {root_dir}")]
     AssetDirOutsideOfAppRoot {
         asset_dir: PathBuf,
         root_dir: PathBuf,
     },
+    #[error(transparent)]
     TemplatePackNotFound(templating::LookupError),
 }
 
 impl Error {
     pub fn report(&self, msg: &str) -> Report {
-        match self {
-            Self::NameInvalid(err) => {
-                Report::error(msg, format!("`{}.name` invalid: {}", KEY, err))
-            }
-            Self::DomainInvalid { domain, cause } => Report::error(
-                msg,
-                format!("`{}.domain` {:?} isn't valid: {}", KEY, domain, cause),
-            ),
-            Self::AssetDirNormalizationFailed { asset_dir, cause } => Report::error(
-                msg,
-                format!(
-                    "`{}.asset-dir` {:?} couldn't be normalized: {}",
-                    KEY, asset_dir, cause
-                ),
-            ),
-            Self::AssetDirOutsideOfAppRoot {
-                asset_dir,
-                root_dir,
-            } => Report::error(
-                msg,
-                format!(
-                    "`{}.asset-dir` {:?} is outside of the app root {:?}",
-                    KEY, asset_dir, root_dir,
-                ),
-            ),
-            Self::TemplatePackNotFound(err) => Report::error(msg, err),
-        }
+        Report::error(msg, self)
     }
 }
 
@@ -144,7 +124,11 @@ impl App {
                 IMPLIED_TEMPLATE_PACK
             })
         };
-        let template_pack = Pack::lookup_app(template_pack).map_err(Error::TemplatePackNotFound)?;
+        let template_pack = if cfg!(feature = "templates") {
+            Pack::lookup_app(template_pack).map_err(Error::TemplatePackNotFound)?
+        } else {
+            Pack::Simple(Default::default())
+        };
 
         Ok(Self {
             root_dir,

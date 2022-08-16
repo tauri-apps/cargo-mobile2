@@ -6,99 +6,67 @@ use crate::{
     util::cli::{Report, Reportable, TextWrapper},
 };
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use std::{
-    fmt::{self, Display},
     fs, io,
     path::{Path, PathBuf},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum PromptError {
+    #[error("Failed to prompt for `app` config: {0}")]
     AppFailed(app::PromptError),
     #[cfg(target_os = "macos")]
+    #[error("Failed to prompt for `app` config: {0}")]
     AppleFailed(apple::config::PromptError),
 }
 
 impl Reportable for PromptError {
     fn report(&self) -> Report {
-        match self {
-            Self::AppFailed(err) => {
-                Report::error(format!("Failed to prompt for `{}` config", app::KEY), err)
-            }
-            #[cfg(target_os = "macos")]
-            Self::AppleFailed(err) => Report::error(
-                format!("Failed to prompt for `{}` config", apple::NAME),
-                err,
-            ),
-        }
+        Report::error("Prompt error", self)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum DetectError {
+    #[error("Failed to detect `app` config: {0}")]
     AppFailed(app::DetectError),
     #[cfg(target_os = "macos")]
+    #[error("Failed to detect `app` config: {0}")]
     AppleFailed(apple::config::DetectError),
 }
 
 impl Reportable for DetectError {
     fn report(&self) -> Report {
-        match self {
-            Self::AppFailed(err) => {
-                Report::error(format!("Failed to detect `{}` config", app::KEY), err)
-            }
-            #[cfg(target_os = "macos")]
-            Self::AppleFailed(err) => {
-                Report::error(format!("Failed to detect `{}` config", apple::NAME), err)
-            }
-        }
+        Report::error("Detection error", self)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum LoadError {
+    #[error("Failed to canonicalize path while searching for config file: {0}")]
     DiscoverFailed(io::Error),
-    ReadFailed {
-        path: PathBuf,
-        cause: io::Error,
-    },
+    #[error("Failed to read config file at {path}: {cause}")]
+    ReadFailed { path: PathBuf, cause: io::Error },
+    #[error("Failed to parse config file at {path}: {cause}")]
     ParseFailed {
         path: PathBuf,
         cause: toml::de::Error,
     },
 }
 
-impl Display for LoadError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::DiscoverFailed(err) => write!(
-                f,
-                "Failed to canonicalize path while searching for config file: {}",
-                err
-            ),
-            Self::ReadFailed { path, cause } => {
-                write!(f, "Failed to read config file at {:?}: {}", path, cause)
-            }
-            Self::ParseFailed { path, cause } => {
-                write!(f, "Failed to parse config file at {:?}: {}", path, cause)
-            }
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum WriteError {
+    #[error("Failed to serialize config: {0}")]
     SerializeFailed(toml::ser::Error),
+    #[error("Failed to write config: {0}")]
     WriteFailed(io::Error),
 }
 
 impl Reportable for WriteError {
     fn report(&self) -> Report {
-        match self {
-            Self::SerializeFailed(err) => Report::error("Failed to serialize config", err),
-            Self::WriteFailed(err) => Report::error("Failed to write config", err),
-        }
+        Report::error("Failed to write config", self)
     }
 }
 

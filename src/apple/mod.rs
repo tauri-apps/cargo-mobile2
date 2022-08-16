@@ -1,11 +1,11 @@
 pub mod cli;
-pub(crate) mod config;
-pub(crate) mod deps;
+pub mod config;
+pub mod deps;
 mod device;
 pub(crate) mod ios_deploy;
-pub(crate) mod project;
+pub mod project;
 pub(crate) mod system_profile;
-mod target;
+pub mod target;
 pub(crate) mod teams;
 mod version_number;
 

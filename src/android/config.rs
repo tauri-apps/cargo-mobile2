@@ -7,6 +7,7 @@ use std::{
     fmt::{self, Display},
     path::PathBuf,
 };
+use thiserror::Error;
 
 const DEFAULT_MIN_SDK_VERSION: u32 = 24;
 const DEFAULT_VULKAN_VALIDATION: bool = true;
@@ -26,14 +27,14 @@ pub struct AssetPackInfo {
 #[serde(rename_all = "kebab-case")]
 pub struct Metadata {
     #[serde(default = "default_true")]
-    supported: bool,
-    features: Option<Vec<String>>,
-    app_sources: Option<Vec<String>>,
-    app_plugins: Option<Vec<String>>,
-    project_dependencies: Option<Vec<String>>,
-    app_dependencies: Option<Vec<String>>,
-    app_dependencies_platform: Option<Vec<String>>,
-    asset_packs: Option<Vec<AssetPackInfo>>,
+    pub supported: bool,
+    pub features: Option<Vec<String>>,
+    pub app_sources: Option<Vec<String>>,
+    pub app_plugins: Option<Vec<String>>,
+    pub project_dependencies: Option<Vec<String>>,
+    pub app_dependencies: Option<Vec<String>>,
+    pub app_dependencies_platform: Option<Vec<String>>,
+    pub asset_packs: Option<Vec<AssetPackInfo>>,
 }
 
 impl Default for Metadata {
@@ -127,30 +128,26 @@ impl Display for ProjectDirInvalid {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
+    #[error("android.project-dir invalid: {0}")]
     ProjectDirInvalid(ProjectDirInvalid),
 }
 
 impl Error {
     pub fn report(&self, msg: &str) -> Report {
-        match self {
-            Self::ProjectDirInvalid(err) => Report::error(
-                msg,
-                format!("`{}.project-dir` invalid: {}", super::NAME, err),
-            ),
-        }
+        Report::error(msg, self)
     }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Raw {
-    min_sdk_version: Option<u32>,
-    vulkan_validation: Option<bool>,
-    project_dir: Option<String>,
-    no_default_features: Option<bool>,
-    features: Option<Vec<String>>,
+    pub min_sdk_version: Option<u32>,
+    pub vulkan_validation: Option<bool>,
+    pub project_dir: Option<String>,
+    pub no_default_features: Option<bool>,
+    pub features: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Serialize)]

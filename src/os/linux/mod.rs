@@ -3,47 +3,35 @@ mod xdg;
 
 use std::{
     ffi::{OsStr, OsString},
-    fmt::{self, Display},
     io,
     path::{Path, PathBuf},
 };
+use thiserror::Error;
 
 pub use crate::{env::Env, util::ln};
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum DetectEditorError {
+    #[error("No default editor is set: xdg-mime queries for \"text/rust\" and \"text/plain\" both failed")]
     NoDefaultEditorSet,
+    #[error("Entry Not Found: xdg-mime returned an entry name that could not be found")]
     FreeDesktopEntryNotFound,
+    #[error(
+        "Entry Parse Error: xdg-mime returned an entry that could not be parsed. Caused by {0}"
+    )]
     FreeDesktopEntryParseError(io::Error),
+    #[error("Entry Parse Error: file lookup failed. Caused by {0}")]
     FreeDesktopEntryLookupFailed(io::Error),
+    #[error("Exec field on desktop entry was not found")]
     ExecFieldMissing,
 }
 
-impl Display for DetectEditorError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::NoDefaultEditorSet => write!(f, "No default editor is set: xdg-mime queries for \"text/rust\" and \"text/plain\" both failed"),
-            Self::FreeDesktopEntryNotFound => write!(f, "Entry Not Found: xdg-mime returned an entry name that could not be found"),
-            Self::FreeDesktopEntryParseError(e) => write!(f, "Entry Parse Error: xdg-mime returned an entry that could not be parsed. Caused by {:?}", e),
-            Self::FreeDesktopEntryLookupFailed(e) => write!(f, "Entry Parse Error: file lookup failed. Caused by {:?}", e),
-            Self::ExecFieldMissing => write!(f, "Exec field on desktop entry was not found"),
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum OpenFileError {
+    #[error("Launch failed: {0}")]
     LaunchFailed(bossy::Error),
+    #[error("Command parsing failed")]
     CommandParsingFailed,
-}
-
-impl Display for OpenFileError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::LaunchFailed(e) => write!(f, "Launch failed: {}", e),
-            Self::CommandParsingFailed => write!(f, "Command parsing failed"),
-        }
-    }
 }
 
 #[derive(Debug)]
