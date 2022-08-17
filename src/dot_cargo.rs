@@ -63,14 +63,13 @@ impl DotCargoBuild {
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct DotCargoTarget {
-    pub ar: Option<String>,
     pub linker: Option<String>,
     pub rustflags: Vec<String>,
 }
 
 impl DotCargoTarget {
     pub fn is_empty(&self) -> bool {
-        self.ar.is_none() && self.linker.is_none() && self.rustflags.is_empty()
+        self.linker.is_none() && self.rustflags.is_empty()
     }
 }
 

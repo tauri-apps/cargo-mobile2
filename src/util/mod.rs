@@ -112,7 +112,7 @@ macro_rules! parse {
 }
 
 // Generic version triple
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Default)]
 pub struct VersionTriple {
     pub major: u32,
     pub minor: u32,

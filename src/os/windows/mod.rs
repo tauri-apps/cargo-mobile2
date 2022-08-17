@@ -277,7 +277,6 @@ pub fn replace_path_separator(path: OsString) -> OsString {
 }
 
 pub mod consts {
-    pub const AR: &str = "ar.exe";
     pub const CLANG: &str = "clang.cmd";
     pub const CLANGXX: &str = "clang++.cmd";
     pub const LD: &str = "ld.exe";
