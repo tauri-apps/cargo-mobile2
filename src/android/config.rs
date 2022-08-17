@@ -28,6 +28,8 @@ pub struct AssetPackInfo {
 pub struct Metadata {
     #[serde(default = "default_true")]
     pub supported: bool,
+    #[serde(default)]
+    pub no_default_features: bool,
     pub features: Option<Vec<String>>,
     pub app_sources: Option<Vec<String>>,
     pub app_plugins: Option<Vec<String>>,
@@ -41,6 +43,7 @@ impl Default for Metadata {
     fn default() -> Self {
         Self {
             supported: true,
+            no_default_features: false,
             features: None,
             app_sources: None,
             app_plugins: None,
@@ -58,7 +61,7 @@ impl Metadata {
     }
 
     pub fn no_default_features(&self) -> bool {
-        self.features.is_some()
+        self.no_default_features
     }
 
     pub fn features(&self) -> Option<&[String]> {
