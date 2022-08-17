@@ -30,6 +30,7 @@ pub struct Metadata {
     pub supported: bool,
     #[serde(default)]
     pub no_default_features: bool,
+    pub cargo_args: Option<Vec<String>>,
     pub features: Option<Vec<String>>,
     pub app_sources: Option<Vec<String>>,
     pub app_plugins: Option<Vec<String>>,
@@ -44,6 +45,7 @@ impl Default for Metadata {
         Self {
             supported: true,
             no_default_features: false,
+            cargo_args: None,
             features: None,
             app_sources: None,
             app_plugins: None,
@@ -62,6 +64,10 @@ impl Metadata {
 
     pub fn no_default_features(&self) -> bool {
         self.no_default_features
+    }
+
+    pub fn cargo_args(&self) -> Option<&[String]> {
+        self.cargo_args.as_deref()
     }
 
     pub fn features(&self) -> Option<&[String]> {

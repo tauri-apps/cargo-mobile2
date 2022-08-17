@@ -56,6 +56,7 @@ pub struct BuildScript {
 pub struct Platform {
     #[serde(default)]
     pub no_default_features: bool,
+    pub cargo_args: Option<Vec<String>>,
     pub features: Option<Vec<String>>,
     pub frameworks: Option<Vec<String>>,
     pub valid_archs: Option<Vec<String>>,
@@ -73,6 +74,10 @@ pub struct Platform {
 impl Platform {
     pub fn no_default_features(&self) -> bool {
         self.no_default_features
+    }
+
+    pub fn cargo_args(&self) -> Option<&[String]> {
+        self.cargo_args.as_deref()
     }
 
     pub fn features(&self) -> Option<&[String]> {
