@@ -54,7 +54,7 @@ pub struct BuildScript {
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Platform {
-    #[serde(Default)]
+    #[serde(default)]
     pub no_default_features: bool,
     pub features: Option<Vec<String>>,
     pub frameworks: Option<Vec<String>>,
