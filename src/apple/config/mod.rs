@@ -54,6 +54,8 @@ pub struct BuildScript {
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Platform {
+    #[serde(Default)]
+    pub no_default_features: bool,
     pub features: Option<Vec<String>>,
     pub frameworks: Option<Vec<String>>,
     pub valid_archs: Option<Vec<String>>,
@@ -70,7 +72,7 @@ pub struct Platform {
 
 impl Platform {
     pub fn no_default_features(&self) -> bool {
-        self.features.is_some()
+        self.no_default_features
     }
 
     pub fn features(&self) -> Option<&[String]> {
