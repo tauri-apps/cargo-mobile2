@@ -56,7 +56,6 @@ impl Compiler {
 
 #[derive(Clone, Copy, Debug)]
 pub enum Binutil {
-    Ar,
     #[allow(dead_code)]
     Ld,
 }
@@ -64,7 +63,6 @@ pub enum Binutil {
 impl Binutil {
     fn as_str(&self) -> &'static str {
         match self {
-            Binutil::Ar => consts::AR,
             Binutil::Ld => consts::LD,
         }
     }
@@ -259,11 +257,13 @@ impl Env {
     }
 
     fn readelf_path(&self, triple: &str) -> Result<PathBuf, MissingToolError> {
-        MissingToolError::check_file(
-            self.tool_dir()?
-                .join(format!("{}-{}", triple, consts::READELF)),
-            "readelf",
-        )
+        let ndk_ver = self.version().unwrap_or_default();
+        let bin_path = if ndk_ver.triple.major >= 23 {
+            format!("llvm-{}", consts::READELF)
+        } else {
+            format!("{}-{}", triple, consts::READELF)
+        };
+        MissingToolError::check_file(self.tool_dir()?.join(bin_path), "readelf")
     }
 
     pub fn required_libs(
@@ -275,7 +275,7 @@ impl Env {
             .captures_iter(
                 bossy::Command::impure(self.readelf_path(triple)?)
                     .with_arg("-d")
-                    .with_arg(elf)
+                    .with_arg(dunce::simplified(elf))
                     .run_and_wait_for_output()?
                     .stdout_str()?,
             )

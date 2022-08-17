@@ -116,7 +116,6 @@ pub fn replace_path_separator(path: OsString) -> OsString {
 }
 
 pub mod consts {
-    pub const AR: &str = "ar";
     pub const CLANG: &str = "clang";
     pub const CLANGXX: &str = "clang++";
     pub const LD: &str = "ld";

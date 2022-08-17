@@ -22,7 +22,7 @@ pub enum RevisionError {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Revision {
     pub triple: util::VersionTriple,
     pub beta: Option<u32>,
