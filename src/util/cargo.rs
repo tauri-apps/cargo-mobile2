@@ -10,6 +10,7 @@ pub struct CargoCommand<'a> {
     target: Option<&'a str>,
     no_default_features: bool,
     features: Option<&'a [String]>,
+    args: Option<&'a [String]>,
     release: bool,
 }
 
@@ -23,6 +24,7 @@ impl<'a> CargoCommand<'a> {
             target: Default::default(),
             no_default_features: Default::default(),
             features: Default::default(),
+            args: Default::default(),
             release: Default::default(),
         }
     }
@@ -56,6 +58,11 @@ impl<'a> CargoCommand<'a> {
 
     pub fn with_features(mut self, features: Option<&'a [String]>) -> Self {
         self.features = features;
+        self
+    }
+
+    pub fn with_args(mut self, args: Option<&'a [String]>) -> Self {
+        self.args = args;
         self
     }
 
@@ -94,6 +101,9 @@ impl<'a> CargoCommand<'a> {
         }
         if let Some(features) = self.features {
             command.add_args(&["--features", &features.join(" ")]);
+        }
+        if let Some(args) = self.args {
+            command.add_args(args);
         }
         if self.release {
             command.add_arg("--release");

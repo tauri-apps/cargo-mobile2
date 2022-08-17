@@ -239,6 +239,7 @@ impl<'a> Target<'a> {
                 .with_manifest_path(Some(config.app().manifest_path()))
                 .with_target(Some(&self.triple))
                 .with_no_default_features(metadata.no_default_features())
+                .with_args(metadata.cargo_args())
                 .with_features(metadata.features())
         })
     }
