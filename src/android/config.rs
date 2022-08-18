@@ -173,23 +173,9 @@ impl Config {
     pub fn from_raw(app: App, raw: Option<Raw>) -> Result<Self, Error> {
         let raw = raw.unwrap_or_default();
 
-        let min_sdk_version = raw.min_sdk_version.unwrap_or_else(|| {
-            log::info!(
-                "`{}.min-sdk-version` not set; defaulting to {}",
-                super::NAME,
-                DEFAULT_MIN_SDK_VERSION
-            );
-            DEFAULT_MIN_SDK_VERSION
-        });
+        let min_sdk_version = raw.min_sdk_version.unwrap_or(DEFAULT_MIN_SDK_VERSION);
 
-        let vulkan_validation = raw.vulkan_validation.unwrap_or_else(|| {
-            log::info!(
-                "`{}.vulkan-validation` not set; defaulting to {}",
-                super::NAME,
-                DEFAULT_VULKAN_VALIDATION
-            );
-            DEFAULT_VULKAN_VALIDATION
-        });
+        let vulkan_validation = raw.vulkan_validation.unwrap_or(DEFAULT_VULKAN_VALIDATION);
 
         let project_dir = if let Some(project_dir) = raw.project_dir {
             if project_dir == DEFAULT_PROJECT_DIR {
@@ -220,11 +206,6 @@ impl Config {
                 ))
             }
         } else {
-            log::info!(
-                "`{}.project-dir` not set; defaulting to {:?}",
-                super::NAME,
-                DEFAULT_PROJECT_DIR
-            );
             Ok(DEFAULT_PROJECT_DIR.into())
         }?;
 
