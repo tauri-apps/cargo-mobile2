@@ -308,7 +308,6 @@ impl Config {
                     }))
                 }
             }).unwrap_or_else(|| {
-                
                 Ok(DEFAULT_PROJECT_DIR.to_owned())
             })?;
 
