@@ -308,10 +308,6 @@ impl Config {
                     }))
                 }
             }).unwrap_or_else(|| {
-                log::info!(
-                    "`{}.project-dir` not set; defaulting to {}",
-                    super::NAME, DEFAULT_PROJECT_DIR
-                );
                 Ok(DEFAULT_PROJECT_DIR.to_owned())
             })?;
 

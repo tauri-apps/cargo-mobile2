@@ -88,14 +88,10 @@ impl App {
                 KEY
             );
         }
-        let asset_dir = raw.asset_dir.map(PathBuf::from).unwrap_or_else(|| {
-            log::info!(
-                "`{}.asset-dir` not set; defaulting to {}",
-                KEY,
-                DEFAULT_ASSET_DIR
-            );
-            DEFAULT_ASSET_DIR.into()
-        });
+        let asset_dir = raw
+            .asset_dir
+            .map(PathBuf::from)
+            .unwrap_or_else(|| DEFAULT_ASSET_DIR.into());
         if !util::under_root(&asset_dir, &root_dir).map_err(|cause| {
             Error::AssetDirNormalizationFailed {
                 asset_dir: asset_dir.clone(),
@@ -115,14 +111,9 @@ impl App {
                     KEY
                 );
             }
-            raw.template_pack.as_deref().unwrap_or_else(|| {
-                log::info!(
-                    "`{}.template-pack` not set; defaulting to {}",
-                    KEY,
-                    IMPLIED_TEMPLATE_PACK
-                );
-                IMPLIED_TEMPLATE_PACK
-            })
+            raw.template_pack
+                .as_deref()
+                .unwrap_or(IMPLIED_TEMPLATE_PACK)
         };
         let template_pack = if cfg!(feature = "templates") {
             Pack::lookup_app(template_pack).map_err(Error::TemplatePackNotFound)?
