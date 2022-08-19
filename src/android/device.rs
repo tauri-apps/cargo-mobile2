@@ -8,11 +8,11 @@ use super::{
 use crate::{
     env::ExplicitEnv as _,
     opts::{self, FilterLevel, NoiseLevel, Profile},
-    os::{consts, gradlew_command},
+    os::consts,
     util::{
         self,
         cli::{Report, Reportable},
-        prefix_path,
+        gradlew, prefix_path,
     },
 };
 use bossy::Handle;
@@ -21,10 +21,6 @@ use std::{
     path::PathBuf,
 };
 use thiserror::Error;
-
-fn gradlew(config: &Config, env: &Env) -> bossy::Command {
-    gradlew_command(&config.project_dir()).with_env_vars(env.explicit_env())
-}
 
 #[derive(Debug, Error)]
 pub enum ApkBuildError {
@@ -288,7 +284,7 @@ impl<'a> Device<'a> {
 
     fn build_aab(&self, config: &Config, env: &Env, profile: Profile) -> Result<(), AabBuildError> {
         use heck::ToUpperCamelCase as _;
-        let flavor = self.target.arch.to_upper_camel_case();
+        let flavor = self.target.arch.to_uppercase();
         let build_ty = profile.as_str().to_upper_camel_case();
         gradlew(config, env)
             .with_arg(format!(":app:bundle{}{}", flavor, build_ty))

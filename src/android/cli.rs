@@ -1,6 +1,6 @@
 use crate::{
     android::{
-        adb,
+        aab, adb, apk,
         config::{Config, Metadata},
         device::{Device, RunError, StacktraceError},
         env::{Env, Error as EnvError},
@@ -82,6 +82,41 @@ pub enum Command {
     Stacktrace,
     #[structopt(name = "list", about = "Lists connected devices")]
     List,
+    #[structopt(name = "apk", about = "Manage and build APKs")]
+    Apk {
+        #[structopt(subcommand)]
+        cmd: ApkSubcommand,
+    },
+    #[structopt(name = "aab", about = "Manage and build AABs")]
+    Aab {
+        #[structopt(subcommand)]
+        cmd: AabSubcommand,
+    },
+}
+
+#[derive(StructOpt, Clone, Debug)]
+pub enum ApkSubcommand {
+    #[structopt(about = "build APKs (Android Package Kit)")]
+    Build {
+        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = Target::name_list())]
+        targets: Vec<String>,
+        #[structopt(flatten)]
+        profile: cli::Profile,
+        #[structopt(long = "split-per-abi", help = "Whether to split the APKs per ABIs.")]
+        split_per_abi: bool,
+    },
+}
+#[derive(StructOpt, Clone, Debug)]
+pub enum AabSubcommand {
+    #[structopt(about = "build AABs (Anroid App Bundle)")]
+    Build {
+        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = Target::name_list())]
+        targets: Vec<String>,
+        #[structopt(flatten)]
+        profile: cli::Profile,
+        #[structopt(long = "split-per-abi", help = "Whether to split the AABs per ABIs.")]
+        split_per_abi: bool,
+    },
 }
 
 #[derive(Debug)]
@@ -99,6 +134,8 @@ pub enum Error {
     RunFailed(RunError),
     StacktraceFailed(StacktraceError),
     ListFailed(adb::device_list::Error),
+    ApkError(apk::ApkError),
+    AabError(aab::AabError),
 }
 
 impl Reportable for Error {
@@ -123,6 +160,8 @@ impl Reportable for Error {
             Self::RunFailed(err) => err.report(),
             Self::StacktraceFailed(err) => err.report(),
             Self::ListFailed(err) => err.report(),
+            Self::ApkError(err) => err.report(),
+            Self::AabError(err) => err.report(),
         }
     }
 }
@@ -253,6 +292,28 @@ impl Exec for Input {
                 .map(|device_list| {
                     prompt::list_display_only(device_list.iter(), device_list.len());
                 }),
+            Command::Apk { cmd } => match cmd {
+                ApkSubcommand::Build {
+                    targets,
+                    profile: cli::Profile { profile },
+                    split_per_abi,
+                } => with_config(non_interactive, wrapper, |config, _| {
+                    ensure_init(config)?;
+                    apk::build(config, &env, noise_level, profile, targets, split_per_abi)
+                        .map_err(Error::ApkError)
+                }),
+            },
+            Command::Aab { cmd } => match cmd {
+                AabSubcommand::Build {
+                    targets,
+                    profile: cli::Profile { profile },
+                    split_per_abi,
+                } => with_config(non_interactive, wrapper, |config, _| {
+                    ensure_init(config)?;
+                    aab::build(config, &env, noise_level, profile, targets, split_per_abi)
+                        .map_err(Error::AabError)
+                }),
+            },
         }
     }
 }

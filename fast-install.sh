@@ -5,8 +5,22 @@
 
 set -ex
 
+if ! [[ -z "${CARGO_HOME}" ]]; then
+  cargoHome="${CARGO_HOME}"
+else
+  cargoHome="~/.cargo"
+fi
+
+if ! [[ -z "${CARGO_TARGET_DIR}" ]]; then
+  cargoTargetDir="${CARGO_TARGET_DIR}"
+else if ! [[ -z "${CARGO_BUILD_TARGET_DIR}" ]]; then
+  cargoTargetDir="${CARGO_BUILD_TARGET_DIR}"
+else
+  cargoTargetDir="target"
+fi
+
 function copy {
-    cp target/debug/cargo-$1 ~/.cargo/bin/cargo-$1
+    cp $cargoTargetDir/debug/cargo-$1 $cargoHome/bin/cargo-$1
 }
 
 cargo build -p cargo-mobile $@

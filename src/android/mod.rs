@@ -1,4 +1,6 @@
+pub mod aab;
 pub mod adb;
+pub mod apk;
 mod bundletool;
 pub mod cli;
 pub mod config;
