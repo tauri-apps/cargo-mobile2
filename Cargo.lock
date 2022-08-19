@@ -130,7 +130,6 @@ dependencies = [
  "once-cell-regex",
  "openssl",
  "path_abs",
- "reserved-names",
  "rstest",
  "serde",
  "serde_json",
@@ -890,14 +889,6 @@ name = "regex-syntax"
 version = "0.6.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
-
-[[package]]
-name = "reserved-names"
-version = "0.1.0"
-source = "git+https://github.com/BrainiumLLC/reserved-names#cc46545db485b13851e9136280b7d8e5a95a9d18"
-dependencies = [
- "thiserror",
-]
 
 [[package]]
 name = "ring"

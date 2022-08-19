@@ -1,6 +1,8 @@
-use crate::util;
+use crate::{
+    reserved_names::{is_reserved, Reservation},
+    util,
+};
 use heck::{ToKebabCase as _, ToSnekCase as _};
-use reserved_names::{is_reserved, Reservation};
 use std::{
     fmt::{self, Display},
     ops::Deref,
