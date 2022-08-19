@@ -1,7 +1,7 @@
 #[cfg(not(target_os = "macos"))]
 use crate::util;
 use crate::{
-    bossy, opts,
+    bossy,
     util::cli::{Report, Reportable},
 };
 #[cfg(not(target_os = "macos"))]
@@ -99,11 +99,11 @@ impl Reportable for InstallError {
     }
 }
 
-pub fn install(reinstall_deps: opts::ReinstallDeps) -> Result<(), InstallError> {
+pub fn install(reinstall_deps: bool) -> Result<(), InstallError> {
     #[cfg(not(target_os = "macos"))]
     {
         let jar_path = BUNDLE_TOOL_JAR_INFO.installation_path();
-        if !jar_path.exists() || reinstall_deps.yes() {
+        if !jar_path.exists() || reinstall_deps {
             let response = ureq::get(&BUNDLE_TOOL_JAR_INFO.download_url())
                 .call()
                 .map_err(InstallError::DownloadFailed)?;

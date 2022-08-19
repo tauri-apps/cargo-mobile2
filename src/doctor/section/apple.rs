@@ -32,7 +32,7 @@ fn validate_developer_dir() -> Result<String, String> {
                     break answer;
                 }
             };
-            if answer.yes() {
+            if answer {
                 bossy::Command::impure_parse("xcode-select -s")
                     .with_arg(SUGGESTED)
                     .run_and_wait()

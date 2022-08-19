@@ -141,7 +141,6 @@ dependencies = [
  "ureq",
  "winapi",
  "windows",
- "yes-or-no",
 ]
 
 [[package]]
@@ -1499,13 +1498,4 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80d0f4e272c85def139476380b12f9ac60926689dd2e01d4923222f40580869d"
 dependencies = [
  "winapi",
-]
-
-[[package]]
-name = "yes-or-no"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]

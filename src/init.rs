@@ -8,7 +8,7 @@ use crate::{
         metadata::{self, Metadata},
         Config,
     },
-    dot_cargo, opts,
+    dot_cargo,
     os::code_command,
     project, templating,
     util::{
@@ -94,10 +94,10 @@ impl Reportable for Error {
 
 pub fn exec(
     wrapper: &TextWrapper,
-    non_interactive: opts::NonInteractive,
-    skip_dev_tools: opts::SkipDevTools,
-    #[cfg_attr(not(target_os = "macos"), allow(unused))] reinstall_deps: opts::ReinstallDeps,
-    open_in_editor: opts::OpenInEditor,
+    non_interactive: bool,
+    skip_dev_tools: bool,
+    #[cfg_attr(not(target_os = "macos"), allow(unused))] reinstall_deps: bool,
+    open_in_editor: bool,
     submodule_commit: Option<String>,
     cwd: impl AsRef<Path>,
 ) -> Result<Config, Error> {
@@ -134,11 +134,9 @@ pub fn exec(
         fs::create_dir_all(&asset_dir)
             .map_err(|cause| Error::AssetDirCreationFailed { asset_dir, cause })?;
     }
-    if skip_dev_tools.no()
-        && util::command_present("code").map_err(Error::CodeCommandPresentFailed)?
-    {
+    if !skip_dev_tools && util::command_present("code").map_err(Error::CodeCommandPresentFailed)? {
         let mut command = code_command().with_args(&["--install-extension", "vadimcn.vscode-lldb"]);
-        if non_interactive.yes() {
+        if non_interactive {
             command.add_arg("--force");
         }
         command
@@ -228,7 +226,7 @@ pub fn exec(
         "Make cool apps! 🌻 🐕 🎉",
     )
     .print(wrapper);
-    if open_in_editor.yes() {
+    if open_in_editor {
         util::open_in_editor(cwd).map_err(Error::OpenInEditorFailed)?;
     }
     Ok(config)

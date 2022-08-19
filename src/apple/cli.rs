@@ -122,12 +122,8 @@ pub enum Command {
             parse(from_str = profile_from_configuration),
         )]
         profile: opts::Profile,
-        #[structopt(
-            long = "force-color",
-            help = "Value of `FORCE_COLOR` env var",
-            parse(from_flag = opts::ForceColor::from_bool),
-        )]
-        force_color: opts::ForceColor,
+        #[structopt(long = "force-color", help = "Value of `FORCE_COLOR` env var")]
+        force_color: bool,
         #[structopt(
             name = "ARCHS",
             help = "Value of `ARCHS` env var",
@@ -224,7 +220,7 @@ impl Exec for Input {
         }
 
         fn with_config(
-            non_interactive: opts::NonInteractive,
+            non_interactive: bool,
             wrapper: &TextWrapper,
             f: impl FnOnce(&Config, &Metadata) -> Result<(), Error>,
         ) -> Result<(), Error> {

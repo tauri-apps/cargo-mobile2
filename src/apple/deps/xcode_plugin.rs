@@ -275,11 +275,11 @@ impl Context {
 // https://github.com/BrainiumLLC/rust-xcode-plugin.git
 pub fn install(
     wrapper: &TextWrapper,
-    reinstall_deps: opts::ReinstallDeps,
+    reinstall_deps: bool,
     xcode_version: (u32, u32),
 ) -> Result<(), Error> {
     let ctx = Context::new(xcode_version)?;
-    if !ctx.check_installation()?.perfect() || reinstall_deps.yes() {
+    if !ctx.check_installation()?.perfect() || reinstall_deps {
         println!("Installing `rust-xcode-plugin`...");
         ctx.update_repo()?;
         let uuid_status = ctx.check_uuid()?;

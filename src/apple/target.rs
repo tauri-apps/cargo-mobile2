@@ -6,7 +6,7 @@ use super::{
 use crate::{
     bossy,
     env::{Env, ExplicitEnv as _},
-    opts::{self, ForceColor, NoiseLevel, Profile},
+    opts::{self, NoiseLevel, Profile},
     target::TargetTrait,
     util::{
         self,
@@ -269,13 +269,13 @@ impl<'a> Target<'a> {
         config: &Config,
         metadata: &Metadata,
         noise_level: NoiseLevel,
-        force_color: ForceColor,
+        force_color: bool,
         profile: Profile,
         env: &Env,
         cc_env: HashMap<&str, &OsStr>,
     ) -> Result<(), CompileLibError> {
         // Force color when running from CLI
-        let color = if force_color.yes() { "always" } else { "auto" };
+        let color = if force_color { "always" } else { "auto" };
         self.cargo(config, metadata, "build")
             .map_err(CompileLibError::VersionCheckFailed)?
             .with_verbose(noise_level.pedantic())

@@ -80,7 +80,7 @@ impl<'a> Device<'a> {
         config: &Config,
         env: &Env,
         noise_level: opts::NoiseLevel,
-        non_interactive: opts::NonInteractive,
+        non_interactive: bool,
         profile: opts::Profile,
     ) -> Result<bossy::Handle, RunError> {
         // TODO: These steps are run unconditionally, which is slooooooow

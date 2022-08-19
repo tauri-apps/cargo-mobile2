@@ -66,9 +66,9 @@ pub fn gen(
     submodule_path: Option<&Path>,
     bike: &bicycle::Bicycle,
     wrapper: &TextWrapper,
-    non_interactive: opts::NonInteractive,
-    skip_dev_tools: opts::SkipDevTools,
-    reinstall_deps: opts::ReinstallDeps,
+    non_interactive: bool,
+    skip_dev_tools: bool,
+    reinstall_deps: bool,
     filter: &templating::Filter,
 ) -> Result<(), Error> {
     println!("Installing iOS toolchains...");

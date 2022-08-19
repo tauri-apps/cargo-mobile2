@@ -7,9 +7,7 @@ use self::{app::App, raw::*};
 #[cfg(target_os = "macos")]
 use crate::apple;
 use crate::{
-    android, bicycle,
-    opts::NonInteractive,
-    templating,
+    android, bicycle, templating,
     util::cli::{Report, Reportable, TextWrapper},
 };
 use serde::Serialize;
@@ -121,10 +119,10 @@ impl Config {
 
     fn gen(
         cwd: impl AsRef<Path>,
-        non_interactive: NonInteractive,
+        non_interactive: bool,
         wrapper: &TextWrapper,
     ) -> Result<Self, GenError> {
-        let raw = if non_interactive.no() {
+        let raw = if !non_interactive {
             Raw::prompt(wrapper).map_err(GenError::PromptFailed)
         } else {
             Raw::detect(wrapper).map_err(GenError::DetectFailed)
@@ -142,7 +140,7 @@ impl Config {
 
     pub fn load_or_gen(
         cwd: impl AsRef<Path>,
-        non_interactive: NonInteractive,
+        non_interactive: bool,
         wrapper: &TextWrapper,
     ) -> Result<(Self, Origin), LoadOrGenError> {
         let cwd = cwd.as_ref();
