@@ -73,7 +73,7 @@ pub enum Command {
         #[structopt(
             short = "a",
             long = "activity",
-            default_value = "android.app.NativeActivity",
+            default_value = ".MainActivity",
             help = "Specifies which activtiy to launch"
         )]
         activity: String,
