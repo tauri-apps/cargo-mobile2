@@ -4,7 +4,7 @@ pub(crate) mod xcode_plugin;
 use self::update::{Outdated, OutdatedError};
 use super::system_profile::{self, DeveloperTools};
 use crate::{
-    bossy, opts,
+    bossy,
     util::{
         self,
         cli::{Report, TextWrapper},
@@ -202,7 +202,7 @@ pub fn install_all(
         let answer = loop {
             if let Some(answer) = prompt::yes_no(
                 "Would you like these outdated dependencies to be updated for you?",
-                Some(prompt::YesOrNo::Yes),
+                Some(true),
             )? {
                 break answer;
             }

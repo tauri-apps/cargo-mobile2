@@ -21,7 +21,7 @@ fn validate_developer_dir() -> Result<String, String> {
             let answer = loop {
                 if let Some(answer) = prompt::yes_no(
                     format!("Would you like us to change it to {:?} for you?", SUGGESTED),
-                    Some(prompt::YesOrNo::Yes),
+                    Some(true),
                 )
                 .map_err(|err| {
                     format!(

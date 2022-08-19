@@ -4,7 +4,7 @@ use super::{
     target::Target,
 };
 use crate::{
-    bicycle, bossy, opts,
+    bicycle, bossy,
     target::TargetTrait as _,
     templating::{self, Pack},
     util::{

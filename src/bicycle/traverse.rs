@@ -189,7 +189,7 @@ fn traverse_dir<E: Debug + Display + StdError>(
 
 /// Traverse file tree at `src` to generate an [`Action`] list.
 /// The [`Action`] list specifies how to generate the `src` file tree at `dest`,
-/// and can be executed by [`Bicycle::process_actions`](crate::Bicycle::process_actions).
+/// and can be executed by [`Bicycle::process_actions`](super::Bicycle::process_actions).
 ///
 /// File tree contents are interpreted as follows:
 /// - Each directory in the file tree generates an [`Action::CreateDirectory`].
@@ -198,7 +198,7 @@ fn traverse_dir<E: Debug + Display + StdError>(
 /// - Each file that ends in `template_ext` generates an [`Action::WriteTemplate`].
 ///
 /// `transform_path` is used to post-process destination path strings.
-/// [`Bicycle::transform_path`](crate::Bicycle::transform_path) is one possible implementation.
+/// [`Bicycle::transform_path`](super::Bicycle::transform_path) is one possible implementation.
 pub fn traverse<E: Debug + Display + StdError>(
     src: impl AsRef<Path>,
     dest: impl AsRef<Path>,

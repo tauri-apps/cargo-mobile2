@@ -1,5 +1,5 @@
 use crate::{
-    bossy, opts,
+    bossy,
     util::{
         self,
         cli::{Report, TextWrapper},
