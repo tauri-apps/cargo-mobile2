@@ -93,7 +93,10 @@ pub fn gen(
     let ios_pods = metadata.ios().pods().unwrap_or_default();
     let macos_pods = metadata.macos().pods().unwrap_or_default();
 
+    #[cfg(target_arch = "x86_64")]
     let default_archs = [String::from("arm64"), String::from("x86_64")];
+    #[cfg(target_arch = "aarch64")]
+    let default_archs = [String::from("arm64")];
     bike.filter_and_process(
         src,
         &dest,
@@ -107,6 +110,14 @@ pub fn gen(
                     .valid_archs()
                     .unwrap_or_else(|| &default_archs),
             );
+            #[cfg(target_arch = "aarch64")]
+            map.insert("ios-sim-arch", "aarch64-apple-ios-sim");
+            #[cfg(target_arch = "x86_64")]
+            map.insert("ios-sim-arch", "x86_64-apple-ios");
+            #[cfg(target_arch = "aarch64")]
+            map.insert("macos-arch", "aarch64-apple-darwin");
+            #[cfg(target_arch = "x86_64")]
+            map.insert("macos-arch", "x86_64-apple-darwin");
             map.insert("ios-vendor-frameworks", metadata.ios().vendor_frameworks());
             map.insert("ios-vendor-sdks", metadata.ios().vendor_sdks());
             map.insert("macos-frameworks", metadata.macos().frameworks());

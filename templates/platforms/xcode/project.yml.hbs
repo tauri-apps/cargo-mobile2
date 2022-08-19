@@ -72,7 +72,7 @@ targets:
         ARCHS: [{{join ios-valid-archs}}]
         VALID_ARCHS: {{~#each ios-valid-archs}} {{this}} {{/each}}
         LIBRARY_SEARCH_PATHS[sdk=iphoneos*]: $(inherited) "{{prefix-path "target/aarch64-apple-ios/$(CONFIGURATION)"}}"
-        LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]: $(inherited) "{{prefix-path "target/x86_64-apple-ios/$(CONFIGURATION)"}}"
+        LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]: $(inherited) "{{prefix-path "target/"}}{{ios-sim-arch}}/$(CONFIGURATION)"
         ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: true
       groups: [app]
     dependencies:
@@ -178,7 +178,7 @@ targets:
       {{/each}}{{~/if}}
     settings:
       base:
-        LIBRARY_SEARCH_PATHS: $(inherited) "{{prefix-path "target/x86_64-apple-darwin/$(CONFIGURATION)"}}"
+        LIBRARY_SEARCH_PATHS: $(inherited) "{{prefix-path "target/"}}{{macos-arch}}/$(CONFIGURATION)"
       groups: [app]
     dependencies:
       - target: lib_{{app.name}}_macOS
