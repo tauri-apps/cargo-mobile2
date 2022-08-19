@@ -131,7 +131,7 @@ impl Bicycle {
     ///
     /// # Examples
     /// ```
-    /// use bicycle::{
+    /// use cargo_mobile::bicycle::{
     ///     handlebars::{handlebars_helper, HelperDef},
     ///     Bicycle, EscapeFn, JsonMap,
     /// };
@@ -192,7 +192,7 @@ impl Bicycle {
     ///
     /// # Examples
     /// ```
-    /// use bicycle::Bicycle;
+    /// use cargo_mobile::bicycle::Bicycle;
     ///
     /// let bike = Bicycle::default();
     /// let rendered = bike.render("Hello {{name}}!", |map| {
