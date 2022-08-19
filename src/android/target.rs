@@ -5,6 +5,7 @@ use super::{
     ndk,
 };
 use crate::{
+    bossy,
     dot_cargo::DotCargoTarget,
     opts::{ForceColor, NoiseLevel, Profile},
     target::TargetTrait,

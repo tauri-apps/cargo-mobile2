@@ -2,6 +2,7 @@ pub mod lfs;
 pub mod repo;
 pub mod submodule;
 
+use crate::bossy;
 use std::{fs, io, path::Path};
 
 #[derive(Clone, Copy, Debug)]

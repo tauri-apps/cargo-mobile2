@@ -1,6 +1,6 @@
 use super::{common_email_providers::COMMON_EMAIL_PROVIDERS, domain, name};
 use crate::{
-    templating,
+    bossy, templating,
     util::{cli::TextWrapper, prompt, Git},
 };
 use colored::{Color, Colorize as _};

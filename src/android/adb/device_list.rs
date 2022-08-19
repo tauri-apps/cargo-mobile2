@@ -1,6 +1,7 @@
 use super::{device_name, get_prop};
 use crate::{
     android::{device::Device, env::Env, target::Target},
+    bossy,
     env::ExplicitEnv as _,
     util::cli::{Report, Reportable},
 };

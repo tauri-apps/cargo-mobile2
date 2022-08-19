@@ -6,6 +6,7 @@ use super::{
     target::{BuildError, Target},
 };
 use crate::{
+    bossy,
     env::ExplicitEnv as _,
     opts::{self, FilterLevel, NoiseLevel, Profile},
     os::{consts, gradlew_command},

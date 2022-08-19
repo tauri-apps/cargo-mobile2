@@ -2,6 +2,7 @@ use crate::android;
 #[cfg(target_os = "macos")]
 use crate::apple;
 use crate::{
+    bossy,
     config::{
         self,
         metadata::{self, Metadata},

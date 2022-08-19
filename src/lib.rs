@@ -4,6 +4,7 @@ pub mod android;
 #[cfg(target_os = "macos")]
 pub mod apple;
 pub mod bicycle;
+pub mod bossy;
 pub mod config;
 pub mod device;
 pub mod doctor;
