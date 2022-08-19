@@ -6,6 +6,7 @@ use crate::{
         target::{ArchiveError, BuildError, CheckError, CompileLibError, ExportError, Target},
         NAME,
     },
+    bossy,
     config::{
         metadata::{self, Metadata as OmniMetadata},
         Config as OmniConfig, LoadOrGenError,

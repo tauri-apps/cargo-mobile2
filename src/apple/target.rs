@@ -4,6 +4,7 @@ use super::{
     version_number::VersionNumber,
 };
 use crate::{
+    bossy,
     env::{Env, ExplicitEnv as _},
     opts::{self, ForceColor, NoiseLevel, Profile},
     target::TargetTrait,

@@ -1,6 +1,7 @@
 use super::{Item, Section};
 use crate::{
     apple::{deps::xcode_plugin, system_profile::DeveloperTools, teams},
+    bossy,
     util::prompt,
 };
 use std::path::Path;

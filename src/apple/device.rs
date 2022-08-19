@@ -4,6 +4,7 @@ use super::{
     target::{ArchiveError, BuildError, ExportError, Target},
 };
 use crate::{
+    bossy,
     env::{Env, ExplicitEnv as _},
     opts,
     util::cli::{Report, Reportable},

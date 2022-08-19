@@ -1,5 +1,6 @@
 use crate::{
     apple::config::Config,
+    bossy,
     env::{Env, ExplicitEnv as _},
     opts,
     util::cli::{Report, Reportable},
