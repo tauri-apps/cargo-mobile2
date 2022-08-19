@@ -7,7 +7,7 @@ use self::{app::App, raw::*};
 #[cfg(target_os = "macos")]
 use crate::apple;
 use crate::{
-    android,
+    android, bicycle,
     opts::NonInteractive,
     templating,
     util::cli::{Report, Reportable, TextWrapper},

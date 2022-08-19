@@ -5,7 +5,7 @@ use super::{
     target::Target,
 };
 use crate::{
-    dot_cargo,
+    bicycle, dot_cargo,
     os::{self, replace_path_separator},
     target::TargetTrait as _,
     templating::{self, Pack},

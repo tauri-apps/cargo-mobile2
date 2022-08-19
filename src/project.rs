@@ -1,4 +1,5 @@
 use crate::{
+    bicycle,
     config::Config,
     templating::{self, FancyPackResolveError},
     util::{
