@@ -5,7 +5,7 @@ use thiserror::Error;
 use super::{config::Config, env::Env, target::Target};
 use crate::{
     opts::{NoiseLevel, Profile},
-    target::{get_targets, TargetInvalid},
+    target::{get_targets, TargetInvalid, TargetTrait},
     util::{
         cli::{Report, Reportable},
         gradlew,
@@ -40,13 +40,17 @@ pub fn build(
     let profile = profile.as_str();
     let build_ty = profile.to_upper_camel_case();
     let (gradle_args, targets) = if split_per_abi {
-        let targets = get_targets::<_, _, Target, ()>(targets.iter(), None)
-            .map_err(ApkError::TargetInvalid)?;
+        let targets = if targets.is_empty() {
+            Target::all().iter().map(|t| t.1).collect()
+        } else {
+            get_targets::<_, _, Target, ()>(targets.iter(), None)
+                .map_err(ApkError::TargetInvalid)?
+        };
         println!(
             "Building universal APKs for {} ...",
             targets
                 .iter()
-                .map(|t| t.arch)
+                .map(|t| t.triple.split("-").next().unwrap())
                 .collect::<Vec<_>>()
                 .join(", ")
         );
@@ -54,7 +58,7 @@ pub fn build(
         (
             targets
                 .iter()
-                .map(|t| format!("assemble{}{}", t.arch.to_upper_camel_case(), build_ty))
+                .map(|t| format!("assemble{}{}", t.arch.to_uppercase(), build_ty))
                 .collect(),
             targets,
         )

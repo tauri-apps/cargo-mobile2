@@ -98,7 +98,8 @@ pub enum Command {
 pub enum ApkSubcommand {
     #[structopt(about = "build APKs (Android Package Kit)")]
     Build {
-        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = Target::name_list())]
+        #[structopt(name = "targets", possible_values = Target::name_list())]
+        /// Which targets to build (all by default).
         targets: Vec<String>,
         #[structopt(flatten)]
         profile: cli::Profile,
@@ -110,7 +111,8 @@ pub enum ApkSubcommand {
 pub enum AabSubcommand {
     #[structopt(about = "build AABs (Anroid App Bundle)")]
     Build {
-        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = Target::name_list())]
+        #[structopt(name = "targets", possible_values = Target::name_list())]
+        /// Which targets to build (all by default).
         targets: Vec<String>,
         #[structopt(flatten)]
         profile: cli::Profile,
