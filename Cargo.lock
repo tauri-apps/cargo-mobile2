@@ -1462,7 +1462,6 @@ dependencies = [
 [[package]]
 name = "yes-or-no"
 version = "0.1.0"
-source = "git+https://github.com/BrainiumLLC/yes-or-no#71d932693601fcf93ff906b90ad61f85b52117c5"
 dependencies = [
  "proc-macro2",
  "quote",
