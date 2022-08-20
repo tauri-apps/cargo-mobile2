@@ -18,7 +18,7 @@ name = "cargo-apple"
 name = "cargo-android"
 
 [features]
-templates = []
+templates = ["hit"]
 brainium = []
 default = ["templates"]
 
@@ -86,7 +86,7 @@ features = [
 
 
 [build-dependencies]
-hit = "0.2.0"
+hit = { version = "0.2.0", optional = true }
 home = "0.5.3"
 # bicycle
 handlebars = "3.3.0"
