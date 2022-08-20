@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 
 use cargo_mobile::{
-    doctor, init, opts, update,
+    doctor, init, update,
     util::{
         self,
         cli::{
@@ -39,12 +39,8 @@ pub enum Command {
         skip_dev_tools: cli::SkipDevTools,
         #[structopt(flatten)]
         reinstall_deps: cli::ReinstallDeps,
-        #[structopt(
-            long = "open",
-            help = "Open in default code editor",
-            parse(from_flag = opts::OpenInEditor::from_bool),
-        )]
-        open_in_editor: opts::OpenInEditor,
+        #[structopt(long = "open", help = "Open in default code editor")]
+        open_in_editor: bool,
         #[structopt(long = "submodule-commit", help = "Template pack commit to checkout")]
         submodule_commit: Option<String>,
     },
@@ -54,12 +50,8 @@ pub enum Command {
         skip_dev_tools: cli::SkipDevTools,
         #[structopt(flatten)]
         reinstall_deps: cli::ReinstallDeps,
-        #[structopt(
-            long = "open",
-            help = "Open in default code editor",
-            parse(from_flag = opts::OpenInEditor::from_bool),
-        )]
-        open_in_editor: opts::OpenInEditor,
+        #[structopt(long = "open", help = "Open in default code editor")]
+        open_in_editor: bool,
         #[structopt(long = "submodule-commit", help = "Template pack commit to checkout")]
         submodule_commit: Option<String>,
         #[structopt(

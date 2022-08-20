@@ -2,6 +2,7 @@ mod env;
 pub(super) mod info;
 pub mod ln;
 
+use crate::bossy;
 use std::{
     ffi::{OsStr, OsString},
     os::windows::ffi::{OsStrExt, OsStringExt},

@@ -56,18 +56,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
-name = "bicycle"
-version = "0.1.0"
-source = "git+https://github.com/BrainiumLLC/bicycle?rev=28080e0c6fa4067d9dd1b0f2b7322b6b32178e1f#28080e0c6fa4067d9dd1b0f2b7322b6b32178e1f"
-dependencies = [
- "handlebars",
- "log",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -118,8 +106,6 @@ checksum = "37ccbd214614c6783386c1af30caf03192f17891059cecc394b4fb119e363de3"
 name = "cargo-mobile"
 version = "0.1.0"
 dependencies = [
- "bicycle",
- "bossy",
  "cocoa",
  "colored",
  "core-foundation",
@@ -129,6 +115,7 @@ dependencies = [
  "english-numbers",
  "env_logger",
  "freedesktop_entry_parser",
+ "handlebars",
  "heck 0.4.0",
  "hit",
  "home",
@@ -136,23 +123,24 @@ dependencies = [
  "indexmap",
  "java-properties",
  "lexical-core",
+ "libc",
  "log",
  "objc",
  "objc_id",
  "once-cell-regex",
  "openssl",
  "path_abs",
- "reserved-names",
  "rstest",
  "serde",
  "serde_json",
+ "simple_logger",
  "structopt",
  "textwrap",
  "thiserror",
  "toml",
  "ureq",
+ "winapi",
  "windows",
- "yes-or-no",
 ]
 
 [[package]]
@@ -244,9 +232,9 @@ dependencies = [
 
 [[package]]
 name = "cpufeatures"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59a6001667ab124aebae2a495118e11d30984c3a653e99d86d58971708cf5e4b"
+checksum = "1079fb8528d9f9c888b1e8aa651e6e079ade467323d58f75faf1d30b1808f540"
 dependencies = [
  "libc",
 ]
@@ -692,6 +680,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "num_threads"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2819ce041d2ee131036f4fc9d6ae7ae125a3a40e97ba64d04fe799ad9dabbb44"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "objc"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -904,14 +901,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
 
 [[package]]
-name = "reserved-names"
-version = "0.1.0"
-source = "git+https://github.com/BrainiumLLC/reserved-names#cc46545db485b13851e9136280b7d8e5a95a9d18"
-dependencies = [
- "thiserror",
-]
-
-[[package]]
 name = "ring"
 version = "0.16.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1031,6 +1020,19 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
+]
+
+[[package]]
+name = "simple_logger"
+version = "1.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45b60258a35dc3cb8a16890b8fd6723349bfa458d7960e25e633f1b1c19d7b5e"
+dependencies = [
+ "atty",
+ "colored",
+ "log",
+ "time",
+ "winapi",
 ]
 
 [[package]]
@@ -1159,6 +1161,24 @@ checksum = "5516c27b78311c50bf42c071425c560ac799b11c30b31f87e3081965fe5e0180"
 dependencies = [
  "once_cell",
 ]
+
+[[package]]
+name = "time"
+version = "0.3.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db76ff9fa4b1458b3c7f077f3ff9887394058460d21e634355b273aaf11eea45"
+dependencies = [
+ "itoa",
+ "libc",
+ "num_threads",
+ "time-macros",
+]
+
+[[package]]
+name = "time-macros"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42657b1a6f4d817cda8e7a0ace261fe0cc946cf3a80314390b22cc61ae080792"
 
 [[package]]
 name = "tinyvec"
@@ -1478,14 +1498,4 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80d0f4e272c85def139476380b12f9ac60926689dd2e01d4923222f40580869d"
 dependencies = [
  "winapi",
-]
-
-[[package]]
-name = "yes-or-no"
-version = "0.1.0"
-source = "git+https://github.com/BrainiumLLC/yes-or-no#71d932693601fcf93ff906b90ad61f85b52117c5"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]

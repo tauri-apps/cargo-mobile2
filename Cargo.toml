@@ -23,8 +23,8 @@ brainium = []
 default = ["templates"]
 
 [dependencies]
-bicycle = { git = "https://github.com/BrainiumLLC/bicycle", rev = "28080e0c6fa4067d9dd1b0f2b7322b6b32178e1f" }
-bossy = "0.2.1"
+handlebars = "3.3.0"
+serde_json = "1.0.57"
 colored = "1.9.3"
 deunicode = "1.1.1"
 dunce = "1.0.2"
@@ -38,16 +38,15 @@ java-properties = { version = "1.2.0" }
 log = "0.4.8"
 once-cell-regex = "0.2.1"
 path_abs = "0.5.0"
-reserved-names = { git = "https://github.com/BrainiumLLC/reserved-names" }
 serde = { version = "1.0.105", features = ["derive"] }
 structopt = "0.3.12"
 textwrap = { version = "0.11.0", features = ["term_size"] }
 thiserror = "1.0.20"
 toml = { version = "0.5.6", features = ["preserve_order"] }
-yes-or-no = { git = "https://github.com/BrainiumLLC/yes-or-no" }
 
 [dev-dependencies]
 rstest = "0.12"
+simple_logger = "1.11.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.20.0"
@@ -55,7 +54,6 @@ core-foundation = "0.7.0"
 openssl = "0.10.28"
 objc = "0.2.7"
 objc_id = "0.1.1"
-serde_json = "1.0.50"
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 ureq = "2.4.0"
@@ -63,6 +61,12 @@ ureq = "2.4.0"
 [target.'cfg(target_os = "linux")'.dependencies]
 freedesktop_entry_parser = "1.1"
 lexical-core = "0.7.6"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.81"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["winbase"] }
 
 [target.'cfg(windows)'.dependencies.windows]
 version = "0.39.0"
@@ -82,9 +86,14 @@ features = [
 
 
 [build-dependencies]
-bicycle = { git = "https://github.com/BrainiumLLC/bicycle", rev = "28080e0c6fa4067d9dd1b0f2b7322b6b32178e1f" }
 hit = "0.2.0"
 home = "0.5.3"
+# bicycle
+handlebars = "3.3.0"
+log = "0.4.11"
+serde = "1.0.114"
+serde_json = "1.0.57"
+thiserror = "1.0.20"
 
 [target.'cfg(windows)'.build-dependencies]
 embed-resource = "1.6.4"

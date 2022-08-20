@@ -3,7 +3,6 @@ use std::{
     fmt::Display,
     io::{self, Write},
 };
-use yes_or_no::yes_or_no;
 
 pub fn minimal(msg: impl Display) -> io::Result<String> {
     let mut input = String::new();
@@ -38,19 +37,17 @@ pub fn default(
     })
 }
 
-yes_or_no!(pub YesOrNo);
-
-pub fn yes_no(msg: impl Display, default: Option<YesOrNo>) -> io::Result<Option<YesOrNo>> {
+pub fn yes_no(msg: impl Display, default: Option<bool>) -> io::Result<Option<bool>> {
     let y_n = match default {
-        Some(YesOrNo::Yes) => "[Y/n]",
-        Some(YesOrNo::No) => "[y/N]",
+        Some(true) => "[Y/n]",
+        Some(false) => "[y/N]",
         None => "[y/n]",
     };
     minimal(&format!("{} {}", msg, y_n)).map(|response| {
         if response.eq_ignore_ascii_case("y") {
-            Some(YesOrNo::Yes)
+            Some(true)
         } else if response.eq_ignore_ascii_case("n") {
-            Some(YesOrNo::No)
+            Some(false)
         } else if response.is_empty() {
             default
         } else {

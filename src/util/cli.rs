@@ -45,30 +45,24 @@ pub struct GlobalFlags {
         short = "y",
         long = "non-interactive",
         help = "Never prompt for input",
-        global = true,
-        parse(from_flag = opts::NonInteractive::from_bool),
+        global = true
     )]
-    pub non_interactive: opts::NonInteractive,
+    pub non_interactive: bool,
 }
 
 #[derive(Clone, Copy, Debug, StructOpt)]
 pub struct SkipDevTools {
     #[structopt(
         long = "skip-dev-tools",
-        help = "Skip optional tools that help when writing code",
-        parse(from_flag = opts::SkipDevTools::from_bool),
+        help = "Skip optional tools that help when writing code"
     )]
-    pub skip_dev_tools: opts::SkipDevTools,
+    pub skip_dev_tools: bool,
 }
 
 #[derive(Clone, Copy, Debug, StructOpt)]
 pub struct ReinstallDeps {
-    #[structopt(
-        long = "reinstall-deps",
-        help = "Reinstall dependencies",
-        parse(from_flag = opts::ReinstallDeps::from_bool),
-    )]
-    pub reinstall_deps: opts::ReinstallDeps,
+    #[structopt(long = "reinstall-deps", help = "Reinstall dependencies")]
+    pub reinstall_deps: bool,
 }
 
 #[derive(Clone, Copy, Debug, StructOpt)]

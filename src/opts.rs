@@ -1,8 +1,5 @@
 use serde::{Deserialize, Serialize};
 use structopt::clap::arg_enum;
-use yes_or_no::yes_or_no;
-
-yes_or_no!(pub NonInteractive);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum NoiseLevel {
@@ -38,14 +35,6 @@ impl NoiseLevel {
         matches!(self, Self::FranklyQuitePedantic)
     }
 }
-
-yes_or_no!(pub ForceColor);
-
-yes_or_no!(pub SkipDevTools);
-
-yes_or_no!(pub ReinstallDeps);
-
-yes_or_no!(pub OpenInEditor);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Profile {

@@ -1,4 +1,6 @@
 use std::path::PathBuf;
+#[path = "src/bicycle/mod.rs"]
+mod bicycle;
 
 fn main() {
     #[allow(unused)]

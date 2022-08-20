@@ -1,7 +1,10 @@
-use crate::util::{
-    self,
-    cli::{Report, TextWrapper},
-    repo::{self, Repo},
+use crate::{
+    bossy,
+    util::{
+        self,
+        cli::{Report, TextWrapper},
+        repo::{self, Repo},
+    },
 };
 use std::{
     fmt::{self, Display},

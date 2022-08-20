@@ -6,8 +6,9 @@ use super::{
     target::{BuildError, Target},
 };
 use crate::{
+    bossy,
     env::ExplicitEnv as _,
-    opts::{self, FilterLevel, NoiseLevel, Profile},
+    opts::{FilterLevel, NoiseLevel, Profile},
     os::{consts, gradlew_command},
     util::{
         self,
@@ -341,7 +342,7 @@ impl<'a> Device<'a> {
         profile: Profile,
         filter_level: Option<FilterLevel>,
         build_app_bundle: bool,
-        reinstall_deps: opts::ReinstallDeps,
+        reinstall_deps: bool,
         activity: String,
     ) -> Result<Handle, RunError> {
         if build_app_bundle {

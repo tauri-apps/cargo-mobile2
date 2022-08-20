@@ -1,3 +1,4 @@
+use crate::bossy;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

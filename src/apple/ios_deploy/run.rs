@@ -1,7 +1,7 @@
 use crate::{
     apple::config::Config,
+    bossy,
     env::{Env, ExplicitEnv as _},
-    opts,
     util::cli::{Report, Reportable},
 };
 use thiserror::Error;
@@ -23,7 +23,7 @@ impl Reportable for RunAndDebugError {
 pub fn run_and_debug(
     config: &Config,
     env: &Env,
-    non_interactive: opts::NonInteractive,
+    non_interactive: bool,
     id: &str,
 ) -> Result<bossy::Handle, RunAndDebugError> {
     println!("Deploying app to device...");
@@ -33,7 +33,7 @@ pub fn run_and_debug(
         .with_args(&["--id", id])
         .with_arg("--bundle")
         .with_arg(&config.app_path())
-        .with_args(if non_interactive.yes() {
+        .with_args(if non_interactive {
             Some("--noninteractive")
         } else {
             None

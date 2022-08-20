@@ -5,7 +5,7 @@ pub mod get_prop;
 pub use self::{device_list::device_list, device_name::device_name, get_prop::get_prop};
 
 use super::env::Env;
-use crate::{env::ExplicitEnv as _, util::cli::Report};
+use crate::{bossy, env::ExplicitEnv as _, util::cli::Report};
 use std::str;
 use thiserror::Error;
 

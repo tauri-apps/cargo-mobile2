@@ -1,4 +1,4 @@
-use crate::env::ExplicitEnv;
+use crate::{bossy, env::ExplicitEnv};
 use std::path::PathBuf;
 
 #[derive(Debug)]
