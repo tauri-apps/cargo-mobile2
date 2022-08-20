@@ -302,7 +302,8 @@ impl Exec for Input {
                 } => with_config(non_interactive, wrapper, |config, _| {
                     ensure_init(config)?;
                     apk::build(config, &env, noise_level, profile, targets, split_per_abi)
-                        .map_err(Error::ApkError)
+                        .map_err(Error::ApkError)?;
+                    Ok(())
                 }),
             },
             Command::Aab { cmd } => match cmd {
@@ -313,7 +314,8 @@ impl Exec for Input {
                 } => with_config(non_interactive, wrapper, |config, _| {
                     ensure_init(config)?;
                     aab::build(config, &env, noise_level, profile, targets, split_per_abi)
-                        .map_err(Error::AabError)
+                        .map_err(Error::AabError)?;
+                    Ok(())
                 }),
             },
         }

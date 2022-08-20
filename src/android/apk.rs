@@ -1,9 +1,12 @@
+use std::path::PathBuf;
+
 use colored::Colorize;
 use heck::ToUpperCamelCase;
 use thiserror::Error;
 
 use super::{config::Config, env::Env, target::Target};
 use crate::{
+    bossy,
     opts::{NoiseLevel, Profile},
     target::{get_targets, TargetInvalid, TargetTrait},
     util::{
@@ -23,7 +26,7 @@ pub enum ApkError {
 impl Reportable for ApkError {
     fn report(&self) -> Report {
         match self {
-            Self::AssembleFailed(err) => Report::error("Failed to assemble APK", err),
+            Self::AssembleFailed(err) => Report::error("Failed to assemble APK(s)", err),
             Self::TargetInvalid(err) => Report::error("", err),
         }
     }
@@ -36,35 +39,38 @@ pub fn build(
     profile: Profile,
     targets: Vec<String>,
     split_per_abi: bool,
-) -> Result<(), ApkError> {
+) -> Result<Vec<PathBuf>, ApkError> {
     let profile = profile.as_str();
     let build_ty = profile.to_upper_camel_case();
-    let (gradle_args, targets) = if split_per_abi {
-        let targets = if targets.is_empty() {
-            Target::all().iter().map(|t| t.1).collect()
-        } else {
-            get_targets::<_, _, Target, ()>(targets.iter(), None)
-                .map_err(ApkError::TargetInvalid)?
-        };
-        println!(
-            "Building universal APKs for {} ...",
-            targets
-                .iter()
-                .map(|t| t.triple.split("-").next().unwrap())
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
-        println!();
-        (
-            targets
-                .iter()
-                .map(|t| format!("assemble{}{}", t.arch.to_uppercase(), build_ty))
-                .collect(),
-            targets,
-        )
+    let targets = if targets.is_empty() {
+        Target::all().iter().map(|t| t.1).collect()
     } else {
-        println!("Building universal APK...");
-        (vec![format!("assembleUniversal{}", build_ty)], vec![])
+        get_targets::<_, _, Target, ()>(targets.iter(), None).map_err(ApkError::TargetInvalid)?
+    };
+    println!(
+        "Building{} APK{} for {} ...",
+        if split_per_abi { "" } else { " universal" },
+        if split_per_abi { "(s)" } else { "" },
+        targets
+            .iter()
+            .map(|t| t.triple.split("-").next().unwrap())
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+    println!();
+    let gradle_args = if split_per_abi {
+        targets
+            .iter()
+            .map(|t| format!("assemble{}{}", t.arch.to_uppercase(), build_ty))
+            .collect()
+    } else {
+        vec![
+            format!("assembleUniversal{}", build_ty),
+            format!(
+                "-PabiList={}",
+                targets.iter().map(|t| t.abi).collect::<Vec<_>>().join(",")
+            ),
+        ]
     };
     gradlew(config, env)
         .with_args(gradle_args)
@@ -76,37 +82,36 @@ pub fn build(
         .run_and_wait()
         .map_err(ApkError::AssembleFailed)?;
 
-    println!();
-    println!("Finished building APKs:");
     let app = config.app();
+    let mut outputs = Vec::new();
     if split_per_abi {
-        for t in targets {
-            println!(
-                "    {}",
-                dunce::simplified(&app.prefix_path(format!(
-                    "gen/android/{}/app/build/outputs/apk/{}/{}/app-{}-{}.apk",
-                    app.name(),
-                    t.arch,
-                    profile,
-                    t.arch,
-                    profile,
-                )))
-                .to_string_lossy()
-                .green(),
-            );
-        }
+        outputs.extend(targets.iter().map(|t| {
+            dunce::simplified(&app.prefix_path(format!(
+                "gen/android/{}/app/build/outputs/apk/{}/{}/app-{}-{}.apk",
+                app.name(),
+                t.arch,
+                profile,
+                t.arch,
+                profile,
+            )))
+            .to_path_buf()
+        }));
     } else {
-        println!(
-            "    {}",
+        outputs.push(
             dunce::simplified(&app.prefix_path(format!(
                 "gen/android/{}/app/build/outputs/apk/universal/{}/app-universal-{}.apk",
                 app.name(),
                 profile,
                 profile,
             )))
-            .to_string_lossy()
-            .green(),
+            .to_path_buf(),
         );
     }
-    Ok(())
+
+    println!();
+    println!("Finished building APK(s):");
+    for p in &outputs {
+        println!("    {}", p.to_string_lossy().green(),);
+    }
+    Ok(outputs)
 }
