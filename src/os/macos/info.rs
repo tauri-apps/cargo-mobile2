@@ -1,4 +1,4 @@
-use crate::{os::Info, util};
+use crate::{bossy, os::Info, util};
 use once_cell_regex::regex;
 
 pub fn check() -> Result<Info, util::RunAndSearchError> {

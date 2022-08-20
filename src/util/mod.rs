@@ -9,6 +9,7 @@ pub use self::{cargo::*, git::*, path::*};
 
 use self::cli::{Report, Reportable};
 use crate::{
+    bossy,
     env::ExplicitEnv,
     os::{self, command_path},
 };

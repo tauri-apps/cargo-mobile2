@@ -13,7 +13,7 @@ use crate::{
     },
     define_device_prompt,
     device::PromptError,
-    opts, os,
+    os,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
     util::{
         cli::{
@@ -182,7 +182,7 @@ impl Exec for Input {
         }
 
         fn with_config(
-            non_interactive: opts::NonInteractive,
+            non_interactive: bool,
             wrapper: &TextWrapper,
             f: impl FnOnce(&Config, &Metadata) -> Result<(), Error>,
         ) -> Result<(), Error> {
@@ -227,7 +227,7 @@ impl Exec for Input {
             }),
             Command::Check { targets } => {
                 with_config(non_interactive, wrapper, |config, metadata| {
-                    let force_color = opts::ForceColor::Yes;
+                    let force_color = true;
                     call_for_targets_with_fallback(
                         targets.iter(),
                         &detect_target_ok,
@@ -246,7 +246,7 @@ impl Exec for Input {
                 profile: cli::Profile { profile },
             } => with_config(non_interactive, wrapper, |config, metadata| {
                 ensure_init(config)?;
-                let force_color = opts::ForceColor::Yes;
+                let force_color = true;
                 call_for_targets_with_fallback(
                     targets.iter(),
                     &detect_target_ok,

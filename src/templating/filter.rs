@@ -1,5 +1,7 @@
-use crate::config::{Config, Origin};
-use bicycle::Action;
+use crate::{
+    bicycle::Action,
+    config::{Config, Origin},
+};
 use ignore::gitignore::Gitignore;
 use std::{
     fmt::{self, Display},

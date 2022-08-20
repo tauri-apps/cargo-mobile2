@@ -1,3 +1,4 @@
+use crate::bossy;
 use once_cell_regex::regex;
 use openssl::{
     error::ErrorStack as OpenSslError,

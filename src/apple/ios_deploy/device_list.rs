@@ -1,6 +1,7 @@
 use super::{DeviceInfo, Event};
 use crate::{
     apple::{device::Device, target::Target},
+    bossy,
     env::{Env, ExplicitEnv as _},
     util::cli::{Report, Reportable},
 };

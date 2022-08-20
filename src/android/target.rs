@@ -5,8 +5,9 @@ use super::{
     ndk,
 };
 use crate::{
+    bossy,
     dot_cargo::DotCargoTarget,
-    opts::{ForceColor, NoiseLevel, Profile},
+    opts::{NoiseLevel, Profile},
     target::TargetTrait,
     util::{
         cli::{Report, Reportable},
@@ -213,7 +214,7 @@ impl<'a> Target<'a> {
         metadata: &Metadata,
         env: &Env,
         noise_level: NoiseLevel,
-        force_color: ForceColor,
+        force_color: bool,
         profile: Profile,
         mode: CargoMode,
     ) -> Result<(), CompileLibError> {
@@ -231,7 +232,7 @@ impl<'a> Target<'a> {
 
         // Force color, since gradle would otherwise give us uncolored output
         // (which Android Studio makes red, which is extra gross!)
-        let color = if force_color.yes() { "always" } else { "auto" };
+        let color = if force_color { "always" } else { "auto" };
         CargoCommand::new(mode.as_str())
             .with_verbose(noise_level.pedantic())
             .with_package(Some(config.app().name()))
@@ -267,7 +268,7 @@ impl<'a> Target<'a> {
         metadata: &Metadata,
         env: &Env,
         noise_level: NoiseLevel,
-        force_color: ForceColor,
+        force_color: bool,
     ) -> Result<(), CompileLibError> {
         self.compile_lib(
             config,
@@ -322,7 +323,7 @@ impl<'a> Target<'a> {
         metadata: &Metadata,
         env: &Env,
         noise_level: NoiseLevel,
-        force_color: ForceColor,
+        force_color: bool,
         profile: Profile,
     ) -> Result<(), BuildError> {
         self.compile_lib(

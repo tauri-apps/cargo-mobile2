@@ -3,6 +3,8 @@
 pub mod android;
 #[cfg(target_os = "macos")]
 pub mod apple;
+pub mod bicycle;
+pub mod bossy;
 pub mod config;
 pub mod device;
 pub mod doctor;
@@ -12,6 +14,7 @@ pub mod init;
 pub mod opts;
 pub mod os;
 mod project;
+mod reserved_names;
 pub mod target;
 mod templating;
 pub mod update;

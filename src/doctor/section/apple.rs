@@ -1,6 +1,7 @@
 use super::{Item, Section};
 use crate::{
     apple::{deps::xcode_plugin, system_profile::DeveloperTools, teams},
+    bossy,
     util::prompt,
 };
 use std::path::Path;
@@ -20,7 +21,7 @@ fn validate_developer_dir() -> Result<String, String> {
             let answer = loop {
                 if let Some(answer) = prompt::yes_no(
                     format!("Would you like us to change it to {:?} for you?", SUGGESTED),
-                    Some(prompt::YesOrNo::Yes),
+                    Some(true),
                 )
                 .map_err(|err| {
                     format!(
@@ -31,7 +32,7 @@ fn validate_developer_dir() -> Result<String, String> {
                     break answer;
                 }
             };
-            if answer.yes() {
+            if answer {
                 bossy::Command::impure_parse("xcode-select -s")
                     .with_arg(SUGGESTED)
                     .run_and_wait()

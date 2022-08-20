@@ -1,12 +1,12 @@
 use crate::{
+    bicycle::{
+        handlebars::{
+            self, Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderError,
+        },
+        Bicycle, EscapeFn, HelperDef, JsonMap,
+    },
     config::{app, Config},
     util::{self, Git},
-};
-use bicycle::{
-    handlebars::{
-        self, Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderError,
-    },
-    Bicycle, EscapeFn, HelperDef, JsonMap,
 };
 use std::collections::HashMap;
 

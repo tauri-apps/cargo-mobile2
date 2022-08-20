@@ -4,7 +4,7 @@ pub(crate) mod xcode_plugin;
 use self::update::{Outdated, OutdatedError};
 use super::system_profile::{self, DeveloperTools};
 use crate::{
-    opts,
+    bossy,
     util::{
         self,
         cli::{Report, TextWrapper},
@@ -171,12 +171,8 @@ impl PackageSpec {
         Ok(found)
     }
 
-    pub fn install(
-        &self,
-        reinstall_deps: opts::ReinstallDeps,
-        gem_cache: &mut GemCache,
-    ) -> Result<bool, Error> {
-        if !self.found()? || reinstall_deps.yes() {
+    pub fn install(&self, reinstall_deps: bool, gem_cache: &mut GemCache) -> Result<bool, Error> {
+        if !self.found()? || reinstall_deps {
             println!("Installing `{}`...", self.pkg_name);
             match self.package_source {
                 PackageSource::Brew => brew_reinstall(self.pkg_name)?,
@@ -191,9 +187,9 @@ impl PackageSpec {
 
 pub fn install_all(
     wrapper: &TextWrapper,
-    non_interactive: opts::NonInteractive,
-    skip_dev_tools: opts::SkipDevTools,
-    reinstall_deps: opts::ReinstallDeps,
+    non_interactive: bool,
+    skip_dev_tools: bool,
+    reinstall_deps: bool,
 ) -> Result<(), Error> {
     let mut gem_cache = GemCache::new();
     for package in PACKAGES {
@@ -202,23 +198,23 @@ pub fn install_all(
     gem_cache.initialize()?;
     let outdated = Outdated::load(&mut gem_cache)?;
     outdated.print_notice();
-    if !outdated.is_empty() && non_interactive.no() {
+    if !outdated.is_empty() && !non_interactive {
         let answer = loop {
             if let Some(answer) = prompt::yes_no(
                 "Would you like these outdated dependencies to be updated for you?",
-                Some(prompt::YesOrNo::Yes),
+                Some(true),
             )? {
                 break answer;
             }
         };
-        if answer.yes() {
+        if answer {
             for package in outdated.iter() {
                 update_package(package, &mut gem_cache)?;
             }
         }
     }
     // we definitely don't want to install this on CI...
-    if skip_dev_tools.no() {
+    if !skip_dev_tools {
         let tool_info = DeveloperTools::new()?;
         let result = xcode_plugin::install(wrapper, reinstall_deps, tool_info.version);
         if let Err(err) = result {

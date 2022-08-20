@@ -3,6 +3,7 @@ use super::{
     target::Target,
 };
 use crate::{
+    bossy,
     os::consts,
     util::{
         cli::{Report, Reportable},

@@ -1,4 +1,7 @@
-use crate::util::{self, Git};
+use crate::{
+    bossy,
+    util::{self, Git},
+};
 use std::{
     ffi::OsStr,
     fmt::{self, Display},

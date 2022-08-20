@@ -1,3 +1,4 @@
+use crate::bossy;
 use freedesktop_entry_parser::{parse_entry, Entry as FreeDesktopEntry};
 use once_cell_regex::{byte_regex, exports::regex::bytes::Regex};
 use std::{
