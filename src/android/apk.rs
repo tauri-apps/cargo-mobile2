@@ -109,8 +109,7 @@ pub fn build(
         );
     }
 
-    println!();
-    println!("Finished building APK(s):");
+    println!("\nFinished building APK(s):");
     for p in &outputs {
         println!("    {}", p.to_string_lossy().green(),);
     }
