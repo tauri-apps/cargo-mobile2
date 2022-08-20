@@ -32,6 +32,7 @@ impl Reportable for AabError {
     }
 }
 
+/// Builds AAB(s) and returns the built AAB(s) paths
 pub fn build(
     config: &Config,
     env: &Env,

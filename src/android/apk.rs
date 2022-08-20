@@ -32,6 +32,7 @@ impl Reportable for ApkError {
     }
 }
 
+/// Builds APK(s) and returns the built APK(s) paths
 pub fn build(
     config: &Config,
     env: &Env,
