@@ -109,8 +109,7 @@ pub fn build(
         );
     }
 
-    println!();
-    println!("Finished bundling AAB(s):");
+    println!("\nFinished bundling AAB(s):");
     for p in &outputs {
         println!("    {}", p.to_string_lossy().green(),);
     }
