@@ -319,7 +319,7 @@ impl Command {
             });
         }
         #[cfg(windows)]
-        unsafe {
+        {
             use std::os::windows::process::CommandExt;
             use winapi::um::winbase::{CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW};
 

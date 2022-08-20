@@ -4,61 +4,77 @@ use colored::Colorize;
 use heck::ToUpperCamelCase;
 use thiserror::Error;
 
-use super::{config::Config, env::Env, target::Target};
+use super::{config::Config, env::Env, jnilibs, target::Target};
 use crate::{
+    android::jnilibs::JniLibs,
     bossy,
     opts::{NoiseLevel, Profile},
-    target::{get_targets, TargetInvalid, TargetTrait},
     util::{
         cli::{Report, Reportable},
-        gradlew,
+        gradlew, prefix_path,
     },
 };
 
-#[derive(Error, Debug)]
-pub enum ApkError {
+#[derive(Debug, Error)]
+pub enum ApkBuildError {
+    #[error(transparent)]
+    LibSymlinkCleaningFailed(jnilibs::RemoveBrokenLinksError),
     #[error("Failed to assemble APK: {0}")]
     AssembleFailed(bossy::Error),
-    #[error("Target {} is invalid; the possible targets are {}", .0.name, .0.possible.join(", "))]
-    TargetInvalid(TargetInvalid),
+}
+
+impl Reportable for ApkBuildError {
+    fn report(&self) -> Report {
+        match self {
+            Self::LibSymlinkCleaningFailed(err) => err.report(),
+            Self::AssembleFailed(err) => Report::error("Failed to assemble APK", err),
+        }
+    }
+}
+
+#[derive(Debug, Error)]
+
+pub enum ApkError {
+    #[error(transparent)]
+    ApkBuildError(ApkBuildError),
 }
 
 impl Reportable for ApkError {
     fn report(&self) -> Report {
         match self {
-            Self::AssembleFailed(err) => Report::error("Failed to assemble APK(s)", err),
-            Self::TargetInvalid(err) => Report::error("", err),
+            Self::ApkBuildError(err) => err.report(),
         }
     }
 }
 
+pub fn apk_path(config: &Config, profile: Profile, flavor: &str) -> PathBuf {
+    prefix_path(
+        config.project_dir(),
+        format!(
+            "app/build/outputs/{}/app-{}-{}.{}",
+            format!("apk/{}/{}", flavor, profile.as_str()),
+            flavor,
+            profile.suffix(),
+            "apk"
+        ),
+    )
+}
+
 /// Builds APK(s) and returns the built APK(s) paths
-pub fn build(
+pub fn build<'a>(
     config: &Config,
     env: &Env,
     noise_level: NoiseLevel,
     profile: Profile,
-    targets: Vec<String>,
+    targets: Vec<&Target>,
     split_per_abi: bool,
 ) -> Result<Vec<PathBuf>, ApkError> {
-    let profile = profile.as_str();
-    let build_ty = profile.to_upper_camel_case();
-    let targets = if targets.is_empty() {
-        Target::all().iter().map(|t| t.1).collect()
-    } else {
-        get_targets::<_, _, Target, ()>(targets.iter(), None).map_err(ApkError::TargetInvalid)?
-    };
-    println!(
-        "Building{} APK{} for {} ...",
-        if split_per_abi { "" } else { " universal" },
-        if split_per_abi { "(s)" } else { "" },
-        targets
-            .iter()
-            .map(|t| t.triple.split("-").next().unwrap())
-            .collect::<Vec<_>>()
-            .join(", ")
-    );
-    println!();
+    JniLibs::remove_broken_links(config)
+        .map_err(ApkBuildError::LibSymlinkCleaningFailed)
+        .map_err(ApkError::ApkBuildError)?;
+
+    let build_ty = profile.as_str().to_upper_camel_case();
+
     let gradle_args = if split_per_abi {
         targets
             .iter()
@@ -81,37 +97,50 @@ pub fn build(
             NoiseLevel::FranklyQuitePedantic => "--debug",
         })
         .run_and_wait()
-        .map_err(ApkError::AssembleFailed)?;
+        .map_err(ApkBuildError::AssembleFailed)
+        .map_err(ApkError::ApkBuildError)?;
 
-    let app = config.app();
     let mut outputs = Vec::new();
     if split_per_abi {
-        outputs.extend(targets.iter().map(|t| {
-            dunce::simplified(&app.prefix_path(format!(
-                "gen/android/{}/app/build/outputs/apk/{}/{}/app-{}-{}.apk",
-                app.name(),
-                t.arch,
-                profile,
-                t.arch,
-                profile,
-            )))
-            .to_path_buf()
-        }));
-    } else {
-        outputs.push(
-            dunce::simplified(&app.prefix_path(format!(
-                "gen/android/{}/app/build/outputs/apk/universal/{}/app-universal-{}.apk",
-                app.name(),
-                profile,
-                profile,
-            )))
-            .to_path_buf(),
+        outputs.extend(
+            targets
+                .iter()
+                .map(|t| dunce::simplified(&apk_path(config, profile, t.arch)).to_path_buf()),
         );
+    } else {
+        outputs.push(dunce::simplified(&apk_path(config, profile, "universal")).to_path_buf());
     }
 
-    println!("\nFinished building APK(s):");
-    for p in &outputs {
-        println!("    {}", p.to_string_lossy().green(),);
-    }
     Ok(outputs)
+}
+
+pub mod cli {
+    use super::*;
+    pub fn build(
+        config: &Config,
+        env: &Env,
+        noise_level: NoiseLevel,
+        profile: Profile,
+        targets: Vec<&Target>,
+        split_per_abi: bool,
+    ) -> Result<(), ApkError> {
+        println!(
+            "Building{} APK{} for {} ...\n",
+            if split_per_abi { "" } else { " universal" },
+            if split_per_abi { "(s)" } else { "" },
+            targets
+                .iter()
+                .map(|t| t.triple.split("-").next().unwrap())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+
+        let outputs = super::build(config, env, noise_level, profile, targets, split_per_abi)?;
+
+        println!("\nFinished building APK(s):");
+        for p in &outputs {
+            println!("    {}", p.to_string_lossy().green(),);
+        }
+        Ok(())
+    }
 }

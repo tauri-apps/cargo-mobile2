@@ -211,6 +211,24 @@ impl Exec for Input {
             os::open_file_with("Android Studio", config.project_dir()).map_err(Error::OpenFailed)
         }
 
+        fn get_targets_or_all<'a>(targets: Vec<String>) -> Result<Vec<&'a Target<'a>>, Error> {
+            if targets.is_empty() {
+                Ok(Target::all().iter().map(|t| t.1).collect())
+            } else {
+                let mut outs = Vec::new();
+                for t in targets {
+                    let target = Target::for_name(&t)
+                        .ok_or_else(|| TargetInvalid {
+                            name: t,
+                            possible: Target::all().keys().map(|key| key.to_string()).collect(),
+                        })
+                        .map_err(Error::TargetInvalid)?;
+                    outs.push(target);
+                }
+                Ok(outs)
+            }
+        }
+
         let Self {
             flags:
                 GlobalFlags {
@@ -301,9 +319,16 @@ impl Exec for Input {
                     split_per_abi,
                 } => with_config(non_interactive, wrapper, |config, _| {
                     ensure_init(config)?;
-                    apk::build(config, &env, noise_level, profile, targets, split_per_abi)
-                        .map_err(Error::ApkError)?;
-                    Ok(())
+
+                    apk::cli::build(
+                        config,
+                        &env,
+                        noise_level,
+                        profile,
+                        get_targets_or_all(targets)?,
+                        split_per_abi,
+                    )
+                    .map_err(Error::ApkError)
                 }),
             },
             Command::Aab { cmd } => match cmd {
@@ -313,9 +338,15 @@ impl Exec for Input {
                     split_per_abi,
                 } => with_config(non_interactive, wrapper, |config, _| {
                     ensure_init(config)?;
-                    aab::build(config, &env, noise_level, profile, targets, split_per_abi)
-                        .map_err(Error::AabError)?;
-                    Ok(())
+                    aab::cli::build(
+                        config,
+                        &env,
+                        noise_level,
+                        profile,
+                        get_targets_or_all(targets)?,
+                        split_per_abi,
+                    )
+                    .map_err(Error::AabError)
                 }),
             },
         }

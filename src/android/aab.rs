@@ -8,26 +8,36 @@ use super::{config::Config, env::Env, target::Target};
 use crate::{
     bossy,
     opts::{NoiseLevel, Profile},
-    target::{get_targets, TargetInvalid, TargetTrait},
     util::{
         cli::{Report, Reportable},
-        gradlew,
+        gradlew, prefix_path,
     },
 };
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error)]
+pub enum AabBuildError {
+    #[error("Failed to build AAB: {0}")]
+    BuildFailed(bossy::Error),
+}
+
+impl Reportable for AabBuildError {
+    fn report(&self) -> Report {
+        match self {
+            Self::BuildFailed(err) => Report::error("Failed to build AAB", err),
+        }
+    }
+}
+
+#[derive(Debug, Error)]
 pub enum AabError {
-    #[error("Failed to bundle AAB(s): {0}")]
-    BundleFailed(bossy::Error),
-    #[error("Target {} is invalid; the possible targets are {}", .0.name, .0.possible.join(", "))]
-    TargetInvalid(TargetInvalid),
+    #[error(transparent)]
+    AabBuildError(AabBuildError),
 }
 
 impl Reportable for AabError {
     fn report(&self) -> Report {
         match self {
-            Self::BundleFailed(err) => Report::error("Failed to bundle AAB(s)", err),
-            Self::TargetInvalid(err) => Report::error("", err),
+            Self::AabBuildError(err) => err.report(),
         }
     }
 }
@@ -38,27 +48,11 @@ pub fn build(
     env: &Env,
     noise_level: NoiseLevel,
     profile: Profile,
-    targets: Vec<String>,
+    targets: Vec<&Target>,
     split_per_abi: bool,
 ) -> Result<Vec<PathBuf>, AabError> {
-    let profile = profile.as_str();
-    let build_ty = profile.to_upper_camel_case();
-    let targets = if targets.is_empty() {
-        Target::all().iter().map(|t| t.1).collect()
-    } else {
-        get_targets::<_, _, Target, ()>(targets.iter(), None).map_err(AabError::TargetInvalid)?
-    };
-    println!(
-        "Bundling{} AAB{} for {} ...",
-        if split_per_abi { "" } else { " universal" },
-        if split_per_abi { "(s)" } else { "" },
-        targets
-            .iter()
-            .map(|t| t.triple.split("-").next().unwrap())
-            .collect::<Vec<_>>()
-            .join(", ")
-    );
-    println!();
+    let build_ty = profile.as_str().to_upper_camel_case();
+
     let gradle_args = if split_per_abi {
         targets
             .iter()
@@ -81,37 +75,63 @@ pub fn build(
             NoiseLevel::FranklyQuitePedantic => "--debug",
         })
         .run_and_wait()
-        .map_err(AabError::BundleFailed)?;
+        .map_err(AabBuildError::BuildFailed)
+        .map_err(AabError::AabBuildError)?;
 
-    let app = config.app();
     let mut outputs = Vec::new();
     if split_per_abi {
-        outputs.extend(targets.iter().map(|t| {
-            dunce::simplified(&app.prefix_path(format!(
-                "gen/android/{}/app/build/outputs/bundle/{}{}/app-{}-{}.aab",
-                app.name(),
-                t.arch,
-                build_ty,
-                t.arch,
-                profile,
-            )))
-            .to_path_buf()
-        }));
-    } else {
-        outputs.push(
-            dunce::simplified(&app.prefix_path(format!(
-                "gen/android/{}/app/build/outputs/bundle/universal{}/app-universal-{}.aab",
-                app.name(),
-                build_ty,
-                profile,
-            )))
-            .to_path_buf(),
+        outputs.extend(
+            targets
+                .iter()
+                .map(|t| dunce::simplified(&aab_path(config, profile, t.arch)).to_path_buf()),
         );
+    } else {
+        outputs.push(dunce::simplified(&aab_path(config, profile, "universal")).to_path_buf());
     }
 
-    println!("\nFinished bundling AAB(s):");
-    for p in &outputs {
-        println!("    {}", p.to_string_lossy().green(),);
-    }
     Ok(outputs)
+}
+
+pub fn aab_path(config: &Config, profile: Profile, flavor: &str) -> PathBuf {
+    prefix_path(
+        config.project_dir(),
+        format!(
+            "app/build/outputs/{}/app-{}-{}.{}",
+            format!("bundle/{}{}", flavor, profile.as_str()),
+            flavor,
+            profile.suffix(),
+            "aab"
+        ),
+    )
+}
+
+pub mod cli {
+    use super::*;
+    pub fn build(
+        config: &Config,
+        env: &Env,
+        noise_level: NoiseLevel,
+        profile: Profile,
+        targets: Vec<&Target>,
+        split_per_abi: bool,
+    ) -> Result<(), AabError> {
+        println!(
+            "Building{} AAB{} for {} ...\n",
+            if split_per_abi { "" } else { " universal" },
+            if split_per_abi { "(s)" } else { "" },
+            targets
+                .iter()
+                .map(|t| t.triple.split("-").next().unwrap())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+
+        let outputs = super::build(config, env, noise_level, profile, targets, split_per_abi)?;
+
+        println!("\nFinished building AAB(s):");
+        for p in &outputs {
+            println!("    {}", p.to_string_lossy().green(),);
+        }
+        Ok(())
+    }
 }
