@@ -283,6 +283,8 @@ impl Command {
     /// better picks.
     pub fn run(&mut self) -> Result<Handle> {
         log::info!("running command {:?}", self.display);
+        self.set_stdout(os_pipe::dup_stdout().unwrap());
+        self.set_stderr(os_pipe::dup_stderr().unwrap());
         self.run_inner()
     }
 
@@ -336,6 +338,8 @@ impl Command {
     /// Run the command and block until it exits.
     pub fn run_and_wait(&mut self) -> Result<ExitStatus> {
         log::info!("running command {:?} and waiting for exit", self.display);
+        self.set_stdout(os_pipe::dup_stdout().unwrap());
+        self.set_stderr(os_pipe::dup_stderr().unwrap());
         self.run_inner()?.wait()
     }
 

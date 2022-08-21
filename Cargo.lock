@@ -129,6 +129,7 @@ dependencies = [
  "objc_id",
  "once-cell-regex",
  "openssl",
+ "os_pipe",
  "path_abs",
  "rstest",
  "serde",
@@ -759,6 +760,16 @@ dependencies = [
  "libc",
  "pkg-config",
  "vcpkg",
+]
+
+[[package]]
+name = "os_pipe"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c92f2b54f081d635c77e7120862d48db8e91f7f21cef23ab1b4fe9971c59f55"
+dependencies = [
+ "libc",
+ "winapi",
 ]
 
 [[package]]
