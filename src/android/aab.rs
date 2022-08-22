@@ -8,6 +8,7 @@ use super::{config::Config, env::Env, target::Target};
 use crate::{
     bossy,
     opts::{NoiseLevel, Profile},
+    target::TargetTrait,
     util::{
         cli::{Report, Reportable},
         gradlew, prefix_path,
@@ -56,7 +57,7 @@ pub fn build(
     let gradle_args = if split_per_abi {
         targets
             .iter()
-            .map(|t| format!("bundle{}{}", t.arch.to_uppercase(), build_ty))
+            .map(|t| format!("bundle{}{}", t.arch_camel_case(), build_ty))
             .collect()
     } else {
         vec![
