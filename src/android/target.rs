@@ -245,6 +245,12 @@ impl<'a> Target<'a> {
             .into_command_pure(env)
             .with_env_var("ANDROID_NATIVE_API_LEVEL", min_sdk_version.to_string())
             .with_env_var(
+                "TARGET_AR",
+                env.ndk
+                    .ar_path(self.triple)
+                    .map_err(CompileLibError::MissingTool)?,
+            )
+            .with_env_var(
                 "TARGET_CC",
                 env.ndk
                     .compiler_path(ndk::Compiler::Clang, self.clang_triple(), min_sdk_version)

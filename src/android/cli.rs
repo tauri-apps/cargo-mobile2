@@ -5,7 +5,7 @@ use crate::{
         device::{Device, RunError, StacktraceError},
         env::{Env, Error as EnvError},
         target::{BuildError, CompileLibError, Target},
-        NAME,
+        DEFAULT_ACTIVITY, NAME,
     },
     config::{
         metadata::{self, Metadata as OmniMetadata},
@@ -73,10 +73,9 @@ pub enum Command {
         #[structopt(
             short = "a",
             long = "activity",
-            default_value = ".MainActivity",
             help = "Specifies which activtiy to launch"
         )]
-        activity: String,
+        activity: Option<String>,
     },
     #[structopt(name = "st", about = "Displays a detailed stacktrace for a device")]
     Stacktrace,
@@ -295,7 +294,12 @@ impl Exec for Input {
                         filter,
                         build_app_bundle,
                         reinstall_deps,
-                        activity,
+                        activity.unwrap_or_else(|| {
+                            metadata
+                                .app_activity_name()
+                                .unwrap_or_else(|| DEFAULT_ACTIVITY)
+                                .to_string()
+                        }),
                     )
                     .and_then(|h| h.wait().map(|_| ()).map_err(RunError::LogcatFailed))
                     .map_err(Error::RunFailed)

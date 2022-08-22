@@ -38,6 +38,9 @@ pub struct Metadata {
     pub app_dependencies: Option<Vec<String>>,
     pub app_dependencies_platform: Option<Vec<String>>,
     pub asset_packs: Option<Vec<AssetPackInfo>>,
+    pub app_activity_name: Option<String>,
+    pub app_permissions: Option<Vec<String>>,
+    pub app_theme_parent: Option<String>,
 }
 
 impl Default for Metadata {
@@ -53,6 +56,9 @@ impl Default for Metadata {
             app_dependencies: None,
             app_dependencies_platform: None,
             asset_packs: None,
+            app_activity_name: None,
+            app_permissions: None,
+            app_theme_parent: None,
         }
     }
 }
@@ -96,6 +102,18 @@ impl Metadata {
 
     pub fn asset_packs(&self) -> Option<&[AssetPackInfo]> {
         self.asset_packs.as_deref()
+    }
+
+    pub fn app_activity_name(&self) -> Option<&str> {
+        self.app_activity_name.as_deref()
+    }
+
+    pub fn app_permissions(&self) -> Option<&[String]> {
+        self.app_permissions.as_deref()
+    }
+
+    pub fn app_theme_parent(&self) -> Option<&str> {
+        self.app_theme_parent.as_deref()
     }
 }
 
