@@ -182,6 +182,10 @@ impl<'a> TargetTrait<'a> for Target<'a> {
     fn arch(&'a self) -> &'a str {
         self.arch
     }
+
+    fn arch_upper_camel_case(&'a self) -> &'a str {
+        self.arch
+    }
 }
 
 impl<'a> Target<'a> {
