@@ -165,7 +165,7 @@ impl<'a> TargetTrait<'a> for Target<'a> {
         self.arch
     }
 
-    fn arch_camel_case(&'a self) -> &'a str {
+    fn arch_upper_camel_case(&'a self) -> &'a str {
         match self.arch() {
             "arm" => "Arm",
             "arm64" => "Arm64",

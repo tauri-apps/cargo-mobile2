@@ -36,7 +36,7 @@ pub trait TargetTrait<'a>: Debug + Sized {
 
     fn arch(&'a self) -> &'a str;
 
-    fn arch_camel_case(&'a self) -> &'a str;
+    fn arch_upper_camel_case(&'a self) -> &'a str;
 
     fn install(&'a self) -> bossy::Result<bossy::ExitStatus> {
         util::rustup_add(self.triple())

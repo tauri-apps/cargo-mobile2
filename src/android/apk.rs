@@ -79,7 +79,7 @@ pub fn build<'a>(
     let gradle_args = if split_per_abi {
         targets
             .iter()
-            .map(|t| format!("assemble{}{}", t.arch_camel_case(), build_ty))
+            .map(|t| format!("assemble{}{}", t.arch_upper_camel_case(), build_ty))
             .collect()
     } else {
         vec![

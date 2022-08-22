@@ -57,7 +57,7 @@ pub fn build(
     let gradle_args = if split_per_abi {
         targets
             .iter()
-            .map(|t| format!("bundle{}{}", t.arch_camel_case(), build_ty))
+            .map(|t| format!("bundle{}{}", t.arch_upper_camel_case(), build_ty))
             .collect()
     } else {
         vec![
