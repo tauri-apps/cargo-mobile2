@@ -12,19 +12,13 @@ Everything here works and is already used internally! However, this hasn't seen 
 
 **Building for iOS is broken on Rust 1.46.0, 1.47.0, and 1.48.0!**
 
-Sorry for the inconvenience! This is resolved in Rust 1.49.0, so please update to that if you haven't already:
-
-```bash
-rustup update stable
-rustup default stable
-```
-
+Sorry for the inconvenience! This is resolved in Rust 1.49.0, so please use 1.49 or higher.
 ## Installation
 
 The build will probably take a bit, so feel free to go get a snack or something.
 
 ```bash
-cargo install --git https://github.com/BrainiumLLC/cargo-mobile
+cargo install --git https://github.com/tauri-apps/cargo-mobile
 ```
 
 cargo-mobile is currently supported on macOS, Linux and Windows. Note that it's not possible to target iOS on platforms other than macOS! You'll still get to target Android either way.
@@ -45,16 +39,14 @@ To start a new project, all you need to do is make a directory with a cute name,
 cargo mobile init
 ```
 
-After some straightforward prompts, you'll be asked to select a template pack. Template packs are used to generate project boilerplate, i.e. using the `bevy` template pack gives you a minimal [Bevy](https://bevyengine.org/) project that runs out-of-the-box on desktop and mobile.
+After some straightforward prompts, you'll be asked to select a template pack. Template packs are used to generate project boilerplate, i.e. using the `wry` template pack gives you a [wry](https://github.com/tauri-apps/wry) project that runs out-of-the-box on desktop and mobile.
 
-| name      | info                                                                                                                              |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| bevy      | Minimal Bevy project derived from [sprite](https://github.com/bevyengine/bevy/blob/master/examples/2d/sprite.rs) example          |
-| bevy-demo | Bevy [breakout](https://github.com/bevyengine/bevy/blob/master/examples/game/breakout.rs) demo                                    |
-| wgpu      | Minimal wgpu project derived from [hello-triangle](https://github.com/gfx-rs/wgpu-rs/tree/master/examples/hello-triangle) example |
-| winit     | Minimal winit project derived from [window](https://github.com/rust-windowing/winit/blob/master/examples/window.rs) example          |
+| name      | info                                  |
+| --------- | ------------------------------------- |
+| wry       | Minimal wry project |
+| tauri     | Minimal tauri project |
 
-**Template pack contribution is encouraged**; we'd love to have very nice template packs for Bevy, Amethyst, and whatever else people find helpful! We'll write up a guide for template pack creation soon, but in the mean time, the existing ones are a great reference point. Any template pack placed into `~./cargo-mobile/templates/apps/` will appear as an option in `cargo mobile init`.
+**Template pack contribution is welcomed**;
 
 Once you've generated your project, you can run `cargo run` as usual to run your app on desktop. However, now you can also do `cargo apple run` and `cargo android run` to run on connected iOS and Android devices respectively!
 

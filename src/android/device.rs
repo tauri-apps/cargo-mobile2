@@ -1,15 +1,10 @@
-use super::{
-    adb, bundletool,
-    config::Config,
-    env::Env,
-    jnilibs::{self, JniLibs},
-    target::{BuildError, Target},
-};
+use super::{aab, adb, bundletool, config::Config, env::Env, jnilibs, target::Target};
 use crate::{
+    android::apk,
     bossy,
     env::ExplicitEnv as _,
     opts::{FilterLevel, NoiseLevel, Profile},
-    os::{consts, gradlew_command},
+    os::consts,
     util::{
         self,
         cli::{Report, Reportable},
@@ -22,30 +17,6 @@ use std::{
     path::PathBuf,
 };
 use thiserror::Error;
-
-fn gradlew(config: &Config, env: &Env) -> bossy::Command {
-    gradlew_command(&config.project_dir()).with_env_vars(env.explicit_env())
-}
-
-#[derive(Debug, Error)]
-pub enum ApkBuildError {
-    #[error(transparent)]
-    LibSymlinkCleaningFailed(jnilibs::RemoveBrokenLinksError),
-    #[error(transparent)]
-    LibBuildFailed(BuildError),
-    #[error("Failed to assemble APK: {0}")]
-    AssembleFailed(bossy::Error),
-}
-
-impl Reportable for ApkBuildError {
-    fn report(&self) -> Report {
-        match self {
-            Self::LibSymlinkCleaningFailed(err) => err.report(),
-            Self::LibBuildFailed(err) => err.report(),
-            Self::AssembleFailed(err) => Report::error("Failed to assemble APK", err),
-        }
-    }
-}
 
 #[derive(Debug, Error)]
 pub enum AabBuildError {
@@ -98,7 +69,9 @@ impl Reportable for ApkInstallError {
 #[derive(Debug, Error)]
 pub enum RunError {
     #[error(transparent)]
-    ApkBuildFailed(ApkBuildError),
+    ApkError(apk::ApkError),
+    #[error(transparent)]
+    AabError(aab::AabError),
     #[error(transparent)]
     ApkInstallFailed(ApkInstallError),
     #[error("Failed to start app on device: {0}")]
@@ -118,7 +91,8 @@ pub enum RunError {
 impl Reportable for RunError {
     fn report(&self) -> Report {
         match self {
-            Self::ApkBuildFailed(err) => err.report(),
+            Self::ApkError(err) => err.report(),
+            Self::AabError(err) => err.report(),
             Self::ApkInstallFailed(err) => err.report(),
             Self::StartFailed(err) => Report::error("Failed to start app on device", err),
             Self::WakeScreenFailed(err) => Report::error("Failed to wake device screen", err),
@@ -184,58 +158,16 @@ impl<'a> Device<'a> {
         adb::adb(env, &self.serial_no)
     }
 
-    fn suffix(profile: Profile) -> &'static str {
-        match profile {
-            Profile::Debug => profile.as_str(),
-            // TODO: how to handle signed APKs?
-            Profile::Release => "release-unsigned",
-        }
-    }
-
-    fn output_resource_path(
-        output_dir: String,
-        file_extension: &str,
-        config: &Config,
-        profile: Profile,
-        flavor: &str,
-    ) -> PathBuf {
-        let suffix = Self::suffix(profile);
+    fn apks_path(config: &Config, profile: Profile, flavor: &str) -> PathBuf {
         prefix_path(
             config.project_dir(),
             format!(
                 "app/build/outputs/{}/app-{}-{}.{}",
-                output_dir, flavor, suffix, file_extension
+                format!("apk/{}/{}", flavor, profile.as_str()),
+                flavor,
+                profile.suffix(),
+                "apks"
             ),
-        )
-    }
-
-    fn apk_path(config: &Config, profile: Profile, flavor: &str) -> PathBuf {
-        Self::output_resource_path(
-            format!("apk/{}/{}", flavor, profile.as_str()),
-            "apk",
-            config,
-            profile,
-            flavor,
-        )
-    }
-
-    fn apks_path(config: &Config, profile: Profile, flavor: &str) -> PathBuf {
-        Self::output_resource_path(
-            format!("apk/{}/{}", flavor, profile.as_str()),
-            "apks",
-            config,
-            profile,
-            flavor,
-        )
-    }
-
-    fn aab_path(config: &Config, profile: Profile, flavor: &str) -> PathBuf {
-        Self::output_resource_path(
-            format!("bundle/{}{}", flavor, profile.as_str()),
-            "aab",
-            config,
-            profile,
-            flavor,
         )
     }
 
@@ -245,20 +177,8 @@ impl<'a> Device<'a> {
         env: &Env,
         noise_level: NoiseLevel,
         profile: Profile,
-    ) -> Result<(), ApkBuildError> {
-        use heck::ToUpperCamelCase as _;
-        JniLibs::remove_broken_links(config).map_err(ApkBuildError::LibSymlinkCleaningFailed)?;
-        let flavor = self.target.arch.to_uppercase();
-        let build_ty = profile.as_str().to_upper_camel_case();
-        gradlew(config, env)
-            .with_arg(format!("assemble{}{}", flavor, build_ty))
-            .with_arg(match noise_level {
-                NoiseLevel::Polite => "--warn",
-                NoiseLevel::LoudAndProud => "--info",
-                NoiseLevel::FranklyQuitePedantic => "--debug",
-            })
-            .run_and_wait()
-            .map_err(ApkBuildError::AssembleFailed)?;
+    ) -> Result<(), apk::ApkError> {
+        apk::build(config, env, noise_level, profile, vec![self.target()], true)?;
         Ok(())
     }
 
@@ -269,7 +189,7 @@ impl<'a> Device<'a> {
         profile: Profile,
     ) -> Result<(), ApkInstallError> {
         let flavor = self.target.arch;
-        let apk_path = Self::apk_path(config, profile, flavor);
+        let apk_path = apk::apk_path(config, profile, flavor);
         self.adb(env)
             .with_arg("install")
             .with_arg(apk_path)
@@ -287,21 +207,28 @@ impl<'a> Device<'a> {
         Ok(())
     }
 
-    fn build_aab(&self, config: &Config, env: &Env, profile: Profile) -> Result<(), AabBuildError> {
-        use heck::ToUpperCamelCase as _;
-        let flavor = self.target.arch.to_upper_camel_case();
-        let build_ty = profile.as_str().to_upper_camel_case();
-        gradlew(config, env)
-            .with_arg(format!(":app:bundle{}{}", flavor, build_ty))
-            .run_and_wait()
-            .map_err(AabBuildError::BuildFailed)?;
+    fn build_aab(
+        &self,
+        config: &Config,
+        env: &Env,
+        noise_level: NoiseLevel,
+        profile: Profile,
+    ) -> Result<(), aab::AabError> {
+        aab::build(
+            config,
+            env,
+            noise_level,
+            profile,
+            vec![self.target()],
+            false,
+        )?;
         Ok(())
     }
 
     fn build_apks_from_aab(&self, config: &Config, profile: Profile) -> Result<(), ApksBuildError> {
         let flavor = self.target.arch;
         let apks_path = Self::apks_path(config, profile, flavor);
-        let aab_path = Self::aab_path(config, profile, flavor);
+        let aab_path = aab::aab_path(config, profile, flavor);
         bundletool::command()
             .with_arg("build-apks")
             .with_arg(format!("--bundle={}", aab_path.to_str().unwrap()))
@@ -349,15 +276,15 @@ impl<'a> Device<'a> {
             bundletool::install(reinstall_deps).map_err(RunError::BundletoolInstallFailed)?;
             self.clean_apks(config, profile)
                 .map_err(RunError::ApksFromAabBuildFailed)?;
-            self.build_aab(config, env, profile)
-                .map_err(RunError::AabBuildFailed)?;
+            self.build_aab(config, env, noise_level, profile)
+                .map_err(RunError::AabError)?;
             self.build_apks_from_aab(config, profile)
                 .map_err(RunError::ApksFromAabBuildFailed)?;
             self.install_apk_from_aab(config, profile)
                 .map_err(RunError::ApkInstallFailed)?;
         } else {
             self.build_apk(config, env, noise_level, profile)
-                .map_err(RunError::ApkBuildFailed)?;
+                .map_err(RunError::ApkError)?;
             self.install_apk(config, env, profile)
                 .map_err(RunError::ApkInstallFailed)?;
         }

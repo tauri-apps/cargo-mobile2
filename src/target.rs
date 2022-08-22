@@ -53,8 +53,8 @@ pub trait TargetTrait<'a>: Debug + Sized {
 
 #[derive(Debug)]
 pub struct TargetInvalid {
-    name: String,
-    possible: Vec<String>,
+    pub(crate) name: String,
+    pub(crate) possible: Vec<String>,
 }
 
 impl Display for TargetInvalid {

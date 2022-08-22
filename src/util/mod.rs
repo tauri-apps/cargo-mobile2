@@ -10,6 +10,7 @@ pub use self::{cargo::*, git::*, path::*};
 use self::cli::{Report, Reportable};
 use crate::{
     bossy,
+    env::ExplicitEnv,
     os::{self, command_path},
 };
 use once_cell_regex::{exports::regex::Captures, exports::regex::Regex, regex};
@@ -681,4 +682,11 @@ impl<T: Debug> Serialize for OneOrMany<T> {
         };
         serializer.serialize_str(&serialized_str)
     }
+}
+
+pub fn gradlew(
+    config: &crate::android::config::Config,
+    env: &crate::android::env::Env,
+) -> bossy::Command {
+    os::gradlew_command(&config.project_dir()).with_env_vars(env.explicit_env())
 }

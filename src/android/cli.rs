@@ -1,6 +1,6 @@
 use crate::{
     android::{
-        adb,
+        aab, adb, apk,
         config::{Config, Metadata},
         device::{Device, RunError, StacktraceError},
         env::{Env, Error as EnvError},
@@ -82,6 +82,43 @@ pub enum Command {
     Stacktrace,
     #[structopt(name = "list", about = "Lists connected devices")]
     List,
+    #[structopt(name = "apk", about = "Manage and build APKs")]
+    Apk {
+        #[structopt(subcommand)]
+        cmd: ApkSubcommand,
+    },
+    #[structopt(name = "aab", about = "Manage and build AABs")]
+    Aab {
+        #[structopt(subcommand)]
+        cmd: AabSubcommand,
+    },
+}
+
+#[derive(StructOpt, Clone, Debug)]
+pub enum ApkSubcommand {
+    #[structopt(about = "build APKs (Android Package Kit)")]
+    Build {
+        #[structopt(name = "targets", possible_values = Target::name_list())]
+        /// Which targets to build (all by default).
+        targets: Vec<String>,
+        #[structopt(flatten)]
+        profile: cli::Profile,
+        #[structopt(long = "split-per-abi", help = "Whether to split the APKs per ABIs.")]
+        split_per_abi: bool,
+    },
+}
+#[derive(StructOpt, Clone, Debug)]
+pub enum AabSubcommand {
+    #[structopt(about = "build AABs (Anroid App Bundle)")]
+    Build {
+        #[structopt(name = "targets", possible_values = Target::name_list())]
+        /// Which targets to build (all by default).
+        targets: Vec<String>,
+        #[structopt(flatten)]
+        profile: cli::Profile,
+        #[structopt(long = "split-per-abi", help = "Whether to split the AABs per ABIs.")]
+        split_per_abi: bool,
+    },
 }
 
 #[derive(Debug)]
@@ -99,6 +136,8 @@ pub enum Error {
     RunFailed(RunError),
     StacktraceFailed(StacktraceError),
     ListFailed(adb::device_list::Error),
+    ApkError(apk::ApkError),
+    AabError(aab::AabError),
 }
 
 impl Reportable for Error {
@@ -123,6 +162,8 @@ impl Reportable for Error {
             Self::RunFailed(err) => err.report(),
             Self::StacktraceFailed(err) => err.report(),
             Self::ListFailed(err) => err.report(),
+            Self::ApkError(err) => err.report(),
+            Self::AabError(err) => err.report(),
         }
     }
 }
@@ -168,6 +209,24 @@ impl Exec for Input {
 
         fn open_in_android_studio(config: &Config) -> Result<(), Error> {
             os::open_file_with("Android Studio", config.project_dir()).map_err(Error::OpenFailed)
+        }
+
+        fn get_targets_or_all<'a>(targets: Vec<String>) -> Result<Vec<&'a Target<'a>>, Error> {
+            if targets.is_empty() {
+                Ok(Target::all().iter().map(|t| t.1).collect())
+            } else {
+                let mut outs = Vec::new();
+                for t in targets {
+                    let target = Target::for_name(&t)
+                        .ok_or_else(|| TargetInvalid {
+                            name: t,
+                            possible: Target::all().keys().map(|key| key.to_string()).collect(),
+                        })
+                        .map_err(Error::TargetInvalid)?;
+                    outs.push(target);
+                }
+                Ok(outs)
+            }
         }
 
         let Self {
@@ -253,6 +312,43 @@ impl Exec for Input {
                 .map(|device_list| {
                     prompt::list_display_only(device_list.iter(), device_list.len());
                 }),
+            Command::Apk { cmd } => match cmd {
+                ApkSubcommand::Build {
+                    targets,
+                    profile: cli::Profile { profile },
+                    split_per_abi,
+                } => with_config(non_interactive, wrapper, |config, _| {
+                    ensure_init(config)?;
+
+                    apk::cli::build(
+                        config,
+                        &env,
+                        noise_level,
+                        profile,
+                        get_targets_or_all(targets)?,
+                        split_per_abi,
+                    )
+                    .map_err(Error::ApkError)
+                }),
+            },
+            Command::Aab { cmd } => match cmd {
+                AabSubcommand::Build {
+                    targets,
+                    profile: cli::Profile { profile },
+                    split_per_abi,
+                } => with_config(non_interactive, wrapper, |config, _| {
+                    ensure_init(config)?;
+                    aab::cli::build(
+                        config,
+                        &env,
+                        noise_level,
+                        profile,
+                        get_targets_or_all(targets)?,
+                        split_per_abi,
+                    )
+                    .map_err(Error::AabError)
+                }),
+            },
         }
     }
 }
