@@ -102,13 +102,13 @@ pub fn call_for_targets_with_fallback<'a, Iter, I, T, U, E, F>(
     targets: Iter,
     fallback: &'a dyn Fn(U) -> Option<&'a T>,
     arg: U,
-    f: F,
+    mut f: F,
 ) -> Result<Result<(), E>, TargetInvalid>
 where
     Iter: ExactSizeIterator<Item = &'a I>,
     I: AsRef<str> + 'a,
     T: TargetTrait<'a>,
-    F: Fn(&T) -> Result<(), E>,
+    F: FnMut(&T) -> Result<(), E>,
 {
     get_targets(targets, Some((fallback, arg))).map(|targets| {
         for target in targets {
