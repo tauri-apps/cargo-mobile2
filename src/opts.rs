@@ -66,6 +66,13 @@ impl Profile {
         }
     }
 
+    pub fn as_str_pascal_case(&self) -> &'static str {
+        match self {
+            Self::Debug => "Debug",
+            Self::Release => "Release",
+        }
+    }
+
     pub fn suffix(&self) -> &str {
         match self {
             Profile::Debug => self.as_str(),

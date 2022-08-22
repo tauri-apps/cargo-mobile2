@@ -97,9 +97,9 @@ pub fn aab_path(config: &Config, profile: Profile, flavor: &str) -> PathBuf {
         config.project_dir(),
         format!(
             "app/build/outputs/{}/app-{}-{}.{}",
-            format!("bundle/{}{}", flavor, profile.as_str()),
+            format!("bundle/{}{}", flavor, profile.as_str_pascal_case()),
             flavor,
-            profile.suffix(),
+            profile.as_str(),
             "aab"
         ),
     )
