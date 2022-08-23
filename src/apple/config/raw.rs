@@ -1,6 +1,6 @@
 use crate::{
     apple::teams,
-    util::{cli::TextWrapper, prompt, OneOrMany},
+    util::{cli::TextWrapper, prompt},
 };
 use colored::{Color, Colorize as _};
 use serde::{Deserialize, Serialize};
@@ -42,11 +42,70 @@ impl Display for PromptError {
     }
 }
 
+fn value_to_string(value: &PlistValue) -> String {
+    match value {
+        PlistValue::Bool(bool) => bool.to_string(),
+        PlistValue::String(string) => string.to_owned(),
+        PlistValue::Array(array) => {
+            let string = array
+                .iter()
+                .map(|value| value_to_string(value))
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("[{}]", string)
+        }
+        PlistValue::Dictionary(dict) => dictionary_to_string(dict),
+    }
+}
+
+fn pair_to_string(key: &str, value: &PlistValue) -> String {
+    format!("{}: {}", key, value_to_string(value))
+}
+
+fn dictionary_to_string(dict: &PlistDictionary) -> String {
+    let joint = dict
+        .dictionary
+        .iter()
+        .map(|pair| pair_to_string(&pair.0.key, &pair.0.value))
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("{{{}}}", joint)
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(transparent)]
+pub struct NestedPair(PListPair);
+
+impl Serialize for NestedPair {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&pair_to_string(&self.0.key, &self.0.value))
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct PlistDictionary {
+    dictionary: Vec<NestedPair>,
+}
+
+impl Serialize for PlistDictionary {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&dictionary_to_string(&self))
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum PlistValue {
     Bool(bool),
-    Strings(OneOrMany<String>),
+    String(String),
+    Array(Vec<PlistValue>),
+    Dictionary(PlistDictionary),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -70,6 +129,7 @@ pub struct Raw {
     pub macos_version: Option<String>,
     pub use_legacy_build_system: Option<bool>,
     pub plist_pairs: Option<Vec<PListPair>>,
+    pub enable_bitcode: Option<bool>,
 }
 
 impl Raw {
@@ -92,6 +152,7 @@ impl Raw {
             macos_version: None,
             use_legacy_build_system: None,
             plist_pairs: None,
+            enable_bitcode: None,
         })
     }
 
@@ -173,6 +234,7 @@ impl Raw {
             macos_version: None,
             use_legacy_build_system: None,
             plist_pairs: None,
+            enable_bitcode: None,
         })
     }
 }
