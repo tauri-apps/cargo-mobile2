@@ -197,11 +197,10 @@ impl Display for NormalizationError {
 pub fn normalize_path(path: impl AsRef<Path>) -> Result<PathBuf, NormalizationError> {
     let path = path.as_ref();
     if path.exists() {
-        path.canonicalize()
-            .map_err(|cause| NormalizationError::CanonicalizationFailed {
-                path: path.to_owned(),
-                cause,
-            })
+        dunce::canonicalize(path).map_err(|cause| NormalizationError::CanonicalizationFailed {
+            path: path.to_owned(),
+            cause,
+        })
     } else {
         PathAbs::new(path)
             .map_err(|cause| NormalizationError::PathAbsFailed {
