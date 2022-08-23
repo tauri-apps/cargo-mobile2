@@ -116,7 +116,7 @@ pub fn replace_path_separator(path: OsString) -> OsString {
     path
 }
 
-pub fn open_in_xcode(path: impl AsRef<OsStr>) -> bossy::Result<()> {
+pub fn open_in_xcode(path: impl AsRef<OsStr>) -> Result<(), OpenFileError> {
     bossy::Command::impure("xed")
         .with_arg(path.as_ref())
         .run_and_wait()
