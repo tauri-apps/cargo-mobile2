@@ -45,7 +45,7 @@ impl Error {
 
 #[derive(Debug)]
 pub struct Env {
-    base: CoreEnv,
+    pub base: CoreEnv,
     sdk_root: PathBuf,
     pub ndk: ndk::Env,
 }
