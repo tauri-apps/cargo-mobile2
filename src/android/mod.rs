@@ -13,3 +13,5 @@ mod source_props;
 pub mod target;
 
 pub static NAME: &str = "android";
+pub static DEFAULT_ACTIVITY: &str = "android.app.NativeActivity";
+pub static DEFAULT_THEME_PARENT: &str = "android:Theme.Material.Light.DarkActionBar";

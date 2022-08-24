@@ -179,6 +179,16 @@ impl<'a> Target<'a> {
         Self::all().values().find(|target| target.abi == abi)
     }
 
+    pub fn arch_upper_camel_case(&'a self) -> &'a str {
+        match self.arch() {
+            "arm" => "Arm",
+            "arm64" => "Arm64",
+            "x86_64" => "X86_64",
+            "x86" => "X86",
+            arch => arch,
+        }
+    }
+
     pub fn generate_cargo_config(
         &self,
         config: &Config,
@@ -244,6 +254,12 @@ impl<'a> Target<'a> {
             .with_release(profile.release())
             .into_command_pure(env)
             .with_env_var("ANDROID_NATIVE_API_LEVEL", min_sdk_version.to_string())
+            .with_env_var(
+                "TARGET_AR",
+                env.ndk
+                    .ar_path(self.triple)
+                    .map_err(CompileLibError::MissingTool)?,
+            )
             .with_env_var(
                 "TARGET_CC",
                 env.ndk

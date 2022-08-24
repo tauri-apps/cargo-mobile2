@@ -281,6 +281,7 @@ pub mod consts {
     pub const CLANG: &str = "clang.cmd";
     pub const CLANGXX: &str = "clang++.cmd";
     pub const LD: &str = "ld.exe";
+    pub const AR: &str = "ar.exe";
     pub const READELF: &str = "readelf.exe";
     pub const NDK_STACK: &str = "ndk-stack.cmd";
 }

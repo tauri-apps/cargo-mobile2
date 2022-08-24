@@ -11,5 +11,6 @@
 /build
 /captures
 .externalNativeBuild
+jniLibs
 .cxx
 local.properties

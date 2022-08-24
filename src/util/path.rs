@@ -215,7 +215,8 @@ pub fn under_root(
     path: impl AsRef<Path>,
     root: impl AsRef<Path>,
 ) -> Result<bool, NormalizationError> {
-    normalize_path(root.as_ref().join(path)).map(|norm| norm.starts_with(root))
+    normalize_path(root.as_ref().join(path))
+        .map(|norm| norm.starts_with(dunce::simplified(root.as_ref())))
 }
 
 #[cfg(test)]
