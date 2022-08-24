@@ -2,7 +2,7 @@
 name = "{{app.name}}"
 version = "0.1.0"
 authors = ["{{author}}"]
-edition = "2021"
+edition = "2018"
 
 [lib]
 crate-type = ["staticlib", "cdylib", "rlib"]
@@ -11,20 +11,16 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 name = "{{app.name}}-desktop"
 path = "gen/bin/desktop.rs"
 
-[build-dependencies]
-tauri-build = { git = "https://github.com/tauri-apps/tauri" }
-
 [dependencies]
-anyhow = "1.0.56"
-log = "0.4.11"
-tauri = { git = "https://github.com/tauri-apps/tauri" }
-wry = "0.20"
+futures = "0.3.8"
+mobile-entry-point = "0.1.0"
+wgpu = "0.6.0"
+winit = "0.23.0"
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.9.0"
-jni = "0.19.0"
-paste = "1.0"
+log = "0.4.11"
+ndk-glue = "0.2.1"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-mobile-entry-point = "0.1.0"
-env_logger = "0.9.0"
+wgpu-subscriber = "0.1.0"
