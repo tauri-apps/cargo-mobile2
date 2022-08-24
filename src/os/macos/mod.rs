@@ -116,6 +116,14 @@ pub fn replace_path_separator(path: OsString) -> OsString {
     path
 }
 
+pub fn open_in_xcode(path: impl AsRef<OsStr>) -> Result<(), OpenFileError> {
+    bossy::Command::impure("xed")
+        .with_arg(path.as_ref())
+        .run_and_wait()
+        .map_err(OpenFileError::BossyLaunchFailed)?;
+    Ok(())
+}
+
 pub mod consts {
     pub const CLANG: &str = "clang";
     pub const CLANGXX: &str = "clang++";
