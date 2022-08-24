@@ -257,6 +257,16 @@ impl Env {
         )
     }
 
+    pub fn ar_path(&self, triple: &str) -> Result<PathBuf, MissingToolError> {
+        let ndk_ver = self.version().unwrap_or_default();
+        let bin_path = if ndk_ver.triple.major >= 23 {
+            format!("llvm-{}", consts::AR)
+        } else {
+            format!("{}-{}", triple, consts::AR)
+        };
+        MissingToolError::check_file(self.tool_dir()?.join(bin_path), "ar")
+    }
+
     fn readelf_path(&self, triple: &str) -> Result<PathBuf, MissingToolError> {
         let ndk_ver = self.version().unwrap_or_default();
         let bin_path = if ndk_ver.triple.major >= 23 {

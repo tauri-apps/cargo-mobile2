@@ -11,6 +11,18 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 name = "{{app.name}}-desktop"
 path = "gen/bin/desktop.rs"
 
+[package.metadata.cargo-android]
+app-activity-name = ".MainActivity"
+app-dependencies = [
+"androidx.webkit:webkit:1.4.0",
+"androidx.appcompat:appcompat:1.5.0",
+"com.google.android.material:material:1.6.1",
+]
+project-dependencies = ["org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10"]
+app-plugins = ["org.jetbrains.kotlin.android"]
+app-permissions = ["android.permission.INTERNET"]
+app-theme-parent = "Theme.MaterialComponents.DayNight.DarkActionBar"
+
 [dependencies]
 anyhow = "1.0.56"
 log = "0.4.11"

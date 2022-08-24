@@ -5,6 +5,7 @@ use super::{
     target::Target,
 };
 use crate::{
+    android::{DEFAULT_ACTIVITY, DEFAULT_THEME_PARENT},
     bicycle, bossy, dot_cargo,
     os::{self, replace_path_separator},
     target::TargetTrait as _,
@@ -144,6 +145,19 @@ pub fn gen(
                     || metadata.app_dependencies_platform().is_some(),
             );
             map.insert(
+                "anrdoid-app-activity-name",
+                metadata
+                    .app_activity_name()
+                    .unwrap_or_else(|| DEFAULT_ACTIVITY),
+            );
+            map.insert("anrdoid-app-permissions", metadata.app_permissions());
+            map.insert(
+                "android-app-theme-parent",
+                metadata
+                    .app_theme_parent()
+                    .unwrap_or_else(|| DEFAULT_THEME_PARENT),
+            );
+            map.insert(
                 "asset-packs",
                 asset_packs
                     .iter()
@@ -192,34 +206,6 @@ pub fn gen(
             }
         })?;
     }
-
-    let kotlin_files_src = prefix_path(&dest, "app/src/main/kotlin/_domain_/_projectname_");
-    let domain = config.app().reverse_domain().replace(".", "/");
-    let package_path = format!("app/src/main/kotlin/{}/{}/", domain, config.app().name());
-    let kotlin_files_dest = prefix_path(&dest, package_path);
-    fs::create_dir_all(&kotlin_files_dest).map_err(|cause| Error::DirectoryCreationFailed {
-        path: dest.clone(),
-        cause,
-    })?;
-
-    for entry in fs::read_dir(kotlin_files_src)
-        .map_err(|cause| Error::DirectoryReadFailed {
-            path: dest.clone(),
-            cause,
-        })?
-        .filter_map(|e| e.ok())
-    {
-        let src = entry.path();
-        let dest = kotlin_files_dest.join(entry.file_name());
-        fs::rename(&src, &dest).map_err(|cause| Error::FileCopyFailed { src, dest, cause })?;
-    }
-
-    fs::remove_dir_all(prefix_path(&dest, "app/src/main/kotlin/_domain_")).map_err(|cause| {
-        Error::DirectoryRemoveFailed {
-            path: dest.clone(),
-            cause,
-        }
-    })?;
 
     let dest = prefix_path(dest, "app/src/main/");
     fs::create_dir_all(&dest).map_err(|cause| Error::DirectoryCreationFailed {
