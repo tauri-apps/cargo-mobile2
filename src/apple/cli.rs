@@ -117,6 +117,21 @@ pub enum Command {
         #[structopt(long = "sdk-root", help = "Value of `SDKROOT` env var")]
         sdk_root: PathBuf,
         #[structopt(
+            long = "framework-search-paths",
+            help = "Value of `FRAMEWORK_SEARCH_PATHS` env var"
+        )]
+        framework_search_paths: String,
+        #[structopt(
+            long = "gcc-preprocessor-definitions",
+            help = "Value of `GCC_PREPROCESSOR_DEFINITIONS` env var"
+        )]
+        gcc_preprocessor_definitions: String,
+        #[structopt(
+            long = "header-search-paths",
+            help = "Value of `HEADER_SEARCH_PATHS` env var"
+        )]
+        header_search_paths: String,
+        #[structopt(
             long = "configuration",
             help = "Value of `CONFIGURATION` env var",
             parse(from_str = profile_from_configuration),
@@ -246,7 +261,7 @@ impl Exec for Input {
         }
 
         fn open_in_xcode(config: &Config) -> Result<(), Error> {
-            os::open_file_with("Xcode", config.project_dir()).map_err(Error::OpenFailed)
+            os::open_in_xcode(config.project_dir()).map_err(Error::OpenFailed)
         }
 
         let version_check = || rust_version_check(wrapper).map_err(Error::RustVersionCheckFailed);
@@ -363,6 +378,9 @@ impl Exec for Input {
             Command::XcodeScript {
                 macos,
                 sdk_root,
+                framework_search_paths,
+                gcc_preprocessor_definitions,
+                header_search_paths,
                 profile,
                 force_color,
                 arches,
@@ -408,6 +426,13 @@ impl Exec for Input {
                 );
 
                 host_env.insert("RUST_BACKTRACE", "1".as_ref());
+
+                host_env.insert("FRAMEWORK_SEARCH_PATHS", framework_search_paths.as_ref());
+                host_env.insert(
+                    "GCC_PREPROCESSOR_DEFINITIONS",
+                    gcc_preprocessor_definitions.as_ref(),
+                );
+                host_env.insert("HEADER_SEARCH_PATHS", header_search_paths.as_ref());
 
                 let macos_target = Target::macos();
 

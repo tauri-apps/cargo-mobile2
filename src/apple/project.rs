@@ -92,6 +92,8 @@ pub fn gen(
     let asset_catalogs = metadata.ios().asset_catalogs().unwrap_or_default();
     let ios_pods = metadata.ios().pods().unwrap_or_default();
     let macos_pods = metadata.macos().pods().unwrap_or_default();
+    let ios_pod_options = metadata.ios().pod_options().unwrap_or_default();
+    let macos_pod_options = metadata.macos().pod_options().unwrap_or_default();
 
     #[cfg(target_arch = "x86_64")]
     let default_archs = [String::from("arm64"), String::from("x86_64")];
@@ -102,6 +104,7 @@ pub fn gen(
         &dest,
         |map| {
             map.insert("file-groups", &source_dirs);
+            map.insert("ios-libraries", metadata.ios().libraries());
             map.insert("ios-frameworks", metadata.ios().frameworks());
             map.insert(
                 "ios-valid-archs",
@@ -120,6 +123,7 @@ pub fn gen(
             map.insert("macos-arch", "x86_64-apple-darwin");
             map.insert("ios-vendor-frameworks", metadata.ios().vendor_frameworks());
             map.insert("ios-vendor-sdks", metadata.ios().vendor_sdks());
+            map.insert("macos-libraries", metadata.macos().libraries());
             map.insert("macos-frameworks", metadata.macos().frameworks());
             map.insert(
                 "macos-vendor-frameworks",
@@ -129,6 +133,8 @@ pub fn gen(
             map.insert("asset-catalogs", asset_catalogs);
             map.insert("ios-pods", ios_pods);
             map.insert("macos-pods", macos_pods);
+            map.insert("ios-pod-options", ios_pod_options);
+            map.insert("macos-pod-options", macos_pod_options);
             map.insert(
                 "ios-additional-targets",
                 metadata.ios().additional_targets(),
