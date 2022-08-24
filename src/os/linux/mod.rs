@@ -115,6 +115,7 @@ impl Application {
 pub fn open_file_with(
     application: impl AsRef<OsStr>,
     path: impl AsRef<OsStr>,
+    env: &Env,
 ) -> Result<(), OpenFileError> {
     let app_str = application.as_ref();
     let path_str = path.as_ref();
@@ -153,6 +154,7 @@ pub fn open_file_with(
     // If command_parts has at least one element, this won't panic from Out of Bounds
     bossy::Command::impure(&command_parts[0])
         .with_args(&command_parts[1..])
+        .with_env_vars(env.explicit_env())
         .run_and_detach()
         .map_err(OpenFileError::LaunchFailed)
 }
