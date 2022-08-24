@@ -112,12 +112,6 @@ targets:
         basedOnDependencyAnalysis: {{this.based-on-dependency-analysis}}{{/if}}{{#if this.discovered-dependency-file}}
         discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}
       {{~/each}}
-      - script: ${HOME}/.cargo/bin/cargo-apple xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths "${FRAMEWORK_SEARCH_PATHS:?}" --header-search-paths "${HEADER_SEARCH_PATHS:?}" --gcc-preprocessor-definitions "${GCC_PREPROCESSOR_DEFINITIONS:?}" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?} ${FEATURES}
-        name: Build Rust Code
-        basedOnDependencyAnalysis: false
-        outputFiles:
-          - $(SRCROOT)/target/aarch64-apple-ios/${CONFIGURATION}/deps/lib{{snake-case app.name}}.a
-          - $(SRCROOT)/target/x86_64-apple-ios/${CONFIGURATION}/deps/lib{{snake-case app.name}}.a
     {{~#if ios-post-compile-scripts}}
     postCompileScripts:
       {{~#each ios-post-compile-scripts}}{{#if this.path}}
@@ -215,11 +209,6 @@ targets:
         basedOnDependencyAnalysis: {{this.based-on-dependency-analysis}}{{/if}}{{#if this.discovered-dependency-file}}
         discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}
       {{~/each}}
-      - script: ${HOME}/.cargo/bin/cargo-apple xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths "${FRAMEWORK_SEARCH_PATHS:?}" --header-search-paths "${HEADER_SEARCH_PATHS:?}" --gcc-preprocessor-definitions "${GCC_PREPROCESSOR_DEFINITIONS:?}" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?} ${FEATURES}
-        name: Build Rust Code
-        basedOnDependencyAnalysis: false
-        outputFiles:
-          - $(SRCROOT)/target/x86_64-apple-darwin/${CONFIGURATION}/deps/lib{{snake-case app.name}}.a
     {{#if macos-post-compile-scripts}}
     postCompileScripts:
       {{~#each macos-post-compile-scripts}}{{#if this.path}}
@@ -262,3 +251,23 @@ targets:
         discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}
       {{~/each~}}
     {{~/if}}
+  lib_{{app.name}}_iOS:
+    type: ""
+    platform: iOS
+    settings:
+      ENABLE_BITCODE: {{apple.enable-bitcode}}
+      ARCHS: [{{join ios-valid-archs}}]
+      VALID_ARCHS: {{~#each ios-valid-archs}} {{this}} {{/each}}
+    legacy:
+      toolPath: ${HOME}/.cargo/bin/cargo-apple
+      arguments: xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths "${FRAMEWORK_SEARCH_PATHS:?}" --header-search-paths "${HEADER_SEARCH_PATHS:?}" --gcc-preprocessor-definitions "${GCC_PREPROCESSOR_DEFINITIONS:?}" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?} ${FEATURES}
+      passSettings: false # prevents evil linker errors
+      workingDirectory: $(SRCROOT)/..
+  lib_{{app.name}}_macOS:
+    type: ""
+    platform: macOS
+    legacy:
+      toolPath: ${HOME}/.cargo/bin/cargo-apple
+      arguments: xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths "${FRAMEWORK_SEARCH_PATHS:?}" --header-search-paths "${HEADER_SEARCH_PATHS:?}" --gcc-preprocessor-definitions "${GCC_PREPROCESSOR_DEFINITIONS:?}" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?} ${FEATURES}
+      passSettings: false
+      workingDirectory: $(SRCROOT)/..
