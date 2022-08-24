@@ -127,6 +127,7 @@ pub fn open_in_xcode(path: impl AsRef<OsStr>) -> Result<(), OpenFileError> {
 pub mod consts {
     pub const CLANG: &str = "clang";
     pub const CLANGXX: &str = "clang++";
+    pub const AR: &str = "ar";
     pub const LD: &str = "ld";
     pub const READELF: &str = "readelf";
     pub const NDK_STACK: &str = "ndk-stack";

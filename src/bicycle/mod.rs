@@ -332,10 +332,19 @@ impl Bicycle {
         path: &Path,
         insert_data: impl FnOnce(&mut JsonMap),
     ) -> Result<PathBuf, RenderingError> {
-        let path_str = path.to_str().unwrap();
+        // On Windows, backslash is the path separator, and passing that
+        // to handlebars, will make it think that "path\to\{{something}}"
+        // is an escaped sequence and won't render correctly, so we need to
+        // disassemble the path into its compoenents and build it backup
+        // but use forward slash as a separator
+        let path_str = dunce::simplified(path)
+            .components()
+            .map(|c| c.as_os_str().to_str().unwrap())
+            .collect::<Vec<_>>()
+            .join("/");
         // This is naïve, but optimistically isn't a problem in practice.
         if path_str.contains("{{") {
-            self.render(path_str, insert_data).map(Into::into)
+            self.render(&path_str, insert_data).map(Into::into)
         } else {
             Ok(path.to_owned())
         }

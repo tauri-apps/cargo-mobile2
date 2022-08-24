@@ -187,6 +187,17 @@ fn java_escape_underscore(
         .map_err(Into::into)
 }
 
+fn dot_to_slash(
+    helper: &Helper,
+    _: &Handlebars,
+    _: &Context,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    out.write(&get_str(helper).replace(".", "/"))
+        .map_err(Into::into)
+}
+
 fn detect_author() -> String {
     let git = Git::new(".".as_ref());
     let name_output = git.user_name().ok();
@@ -217,6 +228,7 @@ pub fn init(config: Option<&Config>) -> Bicycle {
                 Box::new(reverse_domain_snake_case),
             );
             helpers.insert("java-escape-underscore", Box::new(java_escape_underscore));
+            helpers.insert("dot-to-slash", Box::new(dot_to_slash));
             if config.is_some() {
                 // don't mix these up or very bad things will happen to all of us
                 helpers.insert("prefix-path", Box::new(prefix_path));
