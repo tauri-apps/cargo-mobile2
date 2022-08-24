@@ -145,12 +145,12 @@ pub fn gen(
                     || metadata.app_dependencies_platform().is_some(),
             );
             map.insert(
-                "anrdoid-app-activity-name",
+                "android-app-activity-name",
                 metadata
                     .app_activity_name()
                     .unwrap_or_else(|| DEFAULT_ACTIVITY),
             );
-            map.insert("anrdoid-app-permissions", metadata.app_permissions());
+            map.insert("android-app-permissions", metadata.app_permissions());
             map.insert(
                 "android-app-theme-parent",
                 metadata

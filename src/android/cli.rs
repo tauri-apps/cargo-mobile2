@@ -108,7 +108,7 @@ pub enum ApkSubcommand {
 }
 #[derive(StructOpt, Clone, Debug)]
 pub enum AabSubcommand {
-    #[structopt(about = "build AABs (Anroid App Bundle)")]
+    #[structopt(about = "build AABs (Android App Bundle)")]
     Build {
         #[structopt(name = "targets", possible_values = Target::name_list())]
         /// Which targets to build (all by default).
