@@ -48,6 +48,11 @@ impl Env {
         self.vars.insert("PATH".into(), path);
         self
     }
+
+    pub fn explicit_env_vars(mut self, vars: HashMap<String, OsString>) -> Self {
+        self.vars.extend(vars);
+        self
+    }
 }
 
 impl ExplicitEnv for Env {
