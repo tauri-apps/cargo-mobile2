@@ -58,12 +58,14 @@ pub struct Platform {
     pub no_default_features: bool,
     pub cargo_args: Option<Vec<String>>,
     pub features: Option<Vec<String>>,
+    pub libraries: Option<Vec<String>>,
     pub frameworks: Option<Vec<String>>,
     pub valid_archs: Option<Vec<String>>,
     pub vendor_frameworks: Option<Vec<String>>,
     pub vendor_sdks: Option<Vec<String>>,
     pub asset_catalogs: Option<Vec<PathBuf>>,
     pub pods: Option<Vec<Pod>>,
+    pub pod_options: Option<Vec<String>>,
     pub additional_targets: Option<Vec<PathBuf>>,
     pub pre_build_scripts: Option<Vec<BuildScript>>,
     pub post_compile_scripts: Option<Vec<BuildScript>>,
@@ -82,6 +84,10 @@ impl Platform {
 
     pub fn features(&self) -> Option<&[String]> {
         self.features.as_deref()
+    }
+
+    pub fn libraries(&self) -> &[String] {
+        self.libraries.as_deref().unwrap_or_else(|| &[])
     }
 
     pub fn frameworks(&self) -> &[String] {
@@ -106,6 +112,10 @@ impl Platform {
 
     pub fn pods(&self) -> Option<&[Pod]> {
         self.pods.as_deref()
+    }
+
+    pub fn pod_options(&self) -> Option<&[String]> {
+        self.pod_options.as_deref()
     }
 
     pub fn additional_targets(&self) -> Option<&[PathBuf]> {
@@ -278,6 +288,7 @@ pub struct Config {
     macos_version: VersionDouble,
     use_legacy_build_system: bool,
     plist_pairs: Vec<PListPair>,
+    enable_bitcode: bool,
 }
 
 impl Config {
@@ -344,6 +355,7 @@ impl Config {
                 .unwrap_or(DEFAULT_MACOS_VERSION),
             use_legacy_build_system: raw.use_legacy_build_system.unwrap_or(true),
             plist_pairs: raw.plist_pairs.unwrap_or_default(),
+            enable_bitcode: raw.enable_bitcode.unwrap_or(false),
         })
     }
 

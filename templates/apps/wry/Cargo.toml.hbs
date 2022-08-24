@@ -11,6 +11,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 name = "{{app.name}}-desktop"
 path = "gen/bin/desktop.rs"
 
+[package.metadata.cargo-apple.ios]
+frameworks = ["WebKit"]
+
 [dependencies]
 anyhow = "1.0.56"
 log = "0.4.11"

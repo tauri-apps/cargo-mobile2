@@ -68,7 +68,7 @@ targets:
       {{/each}}{{~/if}}
     settings:
       base:
-        ENABLE_BITCODE: false
+        ENABLE_BITCODE: {{apple.enable-bitcode}}
         ARCHS: [{{join ios-valid-archs}}]
         VALID_ARCHS: {{~#each ios-valid-archs}} {{this}} {{/each}}
         LIBRARY_SEARCH_PATHS[sdk=iphoneos*]: $(inherited) "{{prefix-path "target/aarch64-apple-ios/$(CONFIGURATION)"}}"
@@ -76,11 +76,11 @@ targets:
         ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: true
       groups: [app]
     dependencies:
-      - target: lib_{{app.name}}_iOS
-        embed: false
-        link: false
       - framework: lib{{snake-case app.name}}.a
         embed: false
+      {{~#each ios-libraries}}
+      - framework: {{this}}
+        embed: false{{/each}}
       {{~#each ios-vendor-frameworks}}
       - framework: {{prefix-path this}}{{/each}}
       {{~#each ios-vendor-sdks}}
@@ -93,8 +93,6 @@ targets:
       - sdk: UIKit.framework
       {{~#each ios-frameworks}}
       - sdk: {{this}}.framework{{/each}}
-      - sdk: WebKit.framework
-    {{~#if ios-pre-build-scripts}}
     preBuildScripts:
       {{~#each ios-pre-build-scripts}}{{#if this.path}}
       - path {{this.path}}{{/if}}{{#if this.script}}
@@ -113,8 +111,13 @@ targets:
         runOnlyWhenInstalling: {{this.run-only-when-installing}}{{/if}}{{#if this.based-on-dependency-analysis}}
         basedOnDependencyAnalysis: {{this.based-on-dependency-analysis}}{{/if}}{{#if this.discovered-dependency-file}}
         discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}
-      {{~/each~}}
-    {{~/if~}}
+      {{~/each}}
+      - script: ${HOME}/.cargo/bin/cargo-apple xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths "${FRAMEWORK_SEARCH_PATHS:?}" --header-search-paths "${HEADER_SEARCH_PATHS:?}" --gcc-preprocessor-definitions "${GCC_PREPROCESSOR_DEFINITIONS:?}" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?} ${FEATURES}
+        name: Build Rust Code
+        basedOnDependencyAnalysis: false
+        outputFiles:
+          - $(SRCROOT)/target/aarch64-apple-ios/${CONFIGURATION}/deps/lib{{snake-case app.name}}.a
+          - $(SRCROOT)/target/x86_64-apple-ios/${CONFIGURATION}/deps/lib{{snake-case app.name}}.a
     {{~#if ios-post-compile-scripts}}
     postCompileScripts:
       {{~#each ios-post-compile-scripts}}{{#if this.path}}
@@ -181,11 +184,11 @@ targets:
         LIBRARY_SEARCH_PATHS: $(inherited) "{{prefix-path "target/"}}{{macos-arch}}/$(CONFIGURATION)"
       groups: [app]
     dependencies:
-      - target: lib_{{app.name}}_macOS
-        embed: false
-        link: false
       - framework: lib{{snake-case app.name}}.a
         embed: false
+      {{~#each macos-libraries}}
+      - framework: {{this}}
+        embed: false{{/each}}
       {{~#each macos-vendor-frameworks}}
       - framework: {{prefix-path this}}{{/each}}
       {{~#each macos-vendor-sdks}}
@@ -193,7 +196,6 @@ targets:
       - sdk: Metal.framework
       {{~#each macos-frameworks}}
       - sdk: {{this}}.framework{{/each}}
-    {{~#if macos-pre-build-scripts}}
     preBuildScripts:
       {{~#each macos-pre-build-scripts}}{{#if this.path}}
       - path {{this.path}}{{/if}}{{#if this.script}}
@@ -212,8 +214,12 @@ targets:
         runOnlyWhenInstalling: {{this.run-only-when-installing}}{{/if}}{{#if this.based-on-dependency-analysis}}
         basedOnDependencyAnalysis: {{this.based-on-dependency-analysis}}{{/if}}{{#if this.discovered-dependency-file}}
         discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}
-      {{~/each~}}
-    {{~/if~}}
+      {{~/each}}
+      - script: ${HOME}/.cargo/bin/cargo-apple xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths "${FRAMEWORK_SEARCH_PATHS:?}" --header-search-paths "${HEADER_SEARCH_PATHS:?}" --gcc-preprocessor-definitions "${GCC_PREPROCESSOR_DEFINITIONS:?}" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?} ${FEATURES}
+        name: Build Rust Code
+        basedOnDependencyAnalysis: false
+        outputFiles:
+          - $(SRCROOT)/target/x86_64-apple-darwin/${CONFIGURATION}/deps/lib{{snake-case app.name}}.a
     {{#if macos-post-compile-scripts}}
     postCompileScripts:
       {{~#each macos-post-compile-scripts}}{{#if this.path}}
@@ -256,23 +262,3 @@ targets:
         discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}
       {{~/each~}}
     {{~/if}}
-  lib_{{app.name}}_iOS:
-    type: ""
-    platform: iOS
-    settings:
-      ENABLE_BITCODE: false
-      ARCHS: [{{join ios-valid-archs}}]
-      VALID_ARCHS: {{~#each ios-valid-archs}} {{this}} {{/each}}
-    legacy:
-      toolPath: ${HOME}/.cargo/bin/cargo-apple
-      arguments: xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}
-      passSettings: false # prevents evil linker errors
-      workingDirectory: $(SRCROOT)/..
-  lib_{{app.name}}_macOS:
-    type: ""
-    platform: macOS
-    legacy:
-      toolPath: ${HOME}/.cargo/bin/cargo-apple
-      arguments: xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}
-      passSettings: false
-      workingDirectory: $(SRCROOT)/..
