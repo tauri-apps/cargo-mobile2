@@ -1,7 +1,7 @@
 mod ffi;
 pub(super) mod info;
 
-use crate::bossy;
+use crate::{bossy, env::ExplicitEnv};
 use core_foundation::{
     array::CFArray,
     base::{OSStatus, TCFType},

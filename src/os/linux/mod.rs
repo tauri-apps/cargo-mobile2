@@ -8,7 +8,11 @@ use std::{
 };
 use thiserror::Error;
 
-pub use crate::{bossy, env::Env, util::ln};
+pub use crate::{
+    bossy,
+    env::{Env, ExplicitEnv},
+    util::ln,
+};
 
 #[derive(Debug, Error)]
 pub enum DetectEditorError {
