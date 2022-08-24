@@ -93,6 +93,7 @@ targets:
       - sdk: UIKit.framework
       {{~#each ios-frameworks}}
       - sdk: {{this}}.framework{{/each}}
+    {{~#if ios-pre-build-scripts}}
     preBuildScripts:
       {{~#each ios-pre-build-scripts}}{{#if this.path}}
       - path {{this.path}}{{/if}}{{#if this.script}}
@@ -112,6 +113,7 @@ targets:
         basedOnDependencyAnalysis: {{this.based-on-dependency-analysis}}{{/if}}{{#if this.discovered-dependency-file}}
         discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}
       {{~/each}}
+    {{~/if~}}
     {{~#if ios-post-compile-scripts}}
     postCompileScripts:
       {{~#each ios-post-compile-scripts}}{{#if this.path}}
@@ -190,6 +192,7 @@ targets:
       - sdk: Metal.framework
       {{~#each macos-frameworks}}
       - sdk: {{this}}.framework{{/each}}
+    {{~#if macos-pre-build-scripts}}
     preBuildScripts:
       {{~#each macos-pre-build-scripts}}{{#if this.path}}
       - path {{this.path}}{{/if}}{{#if this.script}}
@@ -209,6 +212,7 @@ targets:
         basedOnDependencyAnalysis: {{this.based-on-dependency-analysis}}{{/if}}{{#if this.discovered-dependency-file}}
         discoveredDependencyFile: {{this.discovered-dependency-file}}{{/if}}
       {{~/each}}
+    {{~/if~}}
     {{#if macos-post-compile-scripts}}
     postCompileScripts:
       {{~#each macos-post-compile-scripts}}{{#if this.path}}
