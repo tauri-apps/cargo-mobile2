@@ -113,7 +113,7 @@ pub struct PListPair {
     value: PlistValue,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Raw {
     pub development_team: String,
