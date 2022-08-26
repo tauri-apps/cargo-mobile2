@@ -2,7 +2,7 @@ mod env;
 pub(super) mod info;
 pub mod ln;
 
-use crate::bossy;
+use crate::{bossy, env::ExplicitEnv};
 use std::{
     ffi::{OsStr, OsString},
     os::windows::ffi::{OsStrExt, OsStringExt},
@@ -147,10 +147,11 @@ impl Application {
 pub fn open_file_with(
     application: impl AsRef<OsStr>,
     path: impl AsRef<OsStr>,
+    env: &Env,
 ) -> Result<(), OpenFileError> {
     // In windows, there is no standerd way to find application by name.
     match application.as_ref().to_str() {
-        Some("Android Studio") => open_file_with_android_studio(path),
+        Some("Android Studio") => open_file_with_android_studio(path, env),
         _ => {
             unimplemented!()
         }
@@ -165,7 +166,7 @@ const STUDIO_EXE_PATH: &str = "bin/studio64.exe";
 #[cfg(target_pointer_width = "32")]
 const STUDIO_EXE_PATH: &str = "bin/studio.exe";
 
-fn open_file_with_android_studio(path: impl AsRef<OsStr>) -> Result<(), OpenFileError> {
+fn open_file_with_android_studio(path: impl AsRef<OsStr>, env: &Env) -> Result<(), OpenFileError> {
     let mut buffer = [0; MAX_PATH as usize];
     let lstatus = unsafe {
         SHRegGetPathW(
@@ -190,6 +191,7 @@ fn open_file_with_android_studio(path: impl AsRef<OsStr>) -> Result<(), OpenFile
             dunce::canonicalize(Path::new(path.as_ref()))
                 .expect("Failed to canonicalize file path"),
         )
+        .with_env_vars(env.explicit_env())
         .run_and_wait()
         .map_err(OpenFileError::LaunchFailed)?;
     Ok(())

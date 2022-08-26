@@ -22,7 +22,7 @@ use crate::{
         prompt,
     },
 };
-use std::path::PathBuf;
+use std::{ffi::OsString, path::PathBuf};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -183,14 +183,35 @@ impl Exec for Input {
         fn with_config(
             non_interactive: bool,
             wrapper: &TextWrapper,
-            f: impl FnOnce(&Config, &Metadata) -> Result<(), Error>,
+            f: impl FnOnce(&Config, &Metadata, &Env) -> Result<(), Error>,
         ) -> Result<(), Error> {
             let (config, _origin) = OmniConfig::load_or_gen(".", non_interactive, wrapper)
                 .map_err(Error::ConfigFailed)?;
             let metadata =
                 OmniMetadata::load(&config.app().root_dir()).map_err(Error::MetadataFailed)?;
+            let mut env = Env::new().map_err(Error::EnvInitFailed)?;
+
+            if let Some(vars) = metadata.android().env_vars.as_ref() {
+                env.base = env.base.explicit_env_vars(
+                    vars.into_iter()
+                        .map(|d| {
+                            (
+                                d.0.to_owned(),
+                                OsString::from(
+                                    d.1.replace(
+                                        "<android-project-dir>",
+                                        &dunce::simplified(&config.android().project_dir())
+                                            .to_string_lossy(),
+                                    ),
+                                ),
+                            )
+                        })
+                        .collect::<std::collections::HashMap<_, _>>(),
+                );
+            }
+
             if metadata.android().supported() {
-                f(config.android(), metadata.android())
+                f(config.android(), metadata.android(), &env)
             } else {
                 Err(Error::Unsupported)
             }
@@ -206,8 +227,9 @@ impl Exec for Input {
             }
         }
 
-        fn open_in_android_studio(config: &Config) -> Result<(), Error> {
-            os::open_file_with("Android Studio", config.project_dir()).map_err(Error::OpenFailed)
+        fn open_in_android_studio(config: &Config, env: &Env) -> Result<(), Error> {
+            os::open_file_with("Android Studio", config.project_dir(), &env.base)
+                .map_err(Error::OpenFailed)
         }
 
         fn get_targets_or_all<'a>(targets: Vec<String>) -> Result<Vec<&'a Target<'a>>, Error> {
@@ -236,14 +258,13 @@ impl Exec for Input {
                 },
             command,
         } = self;
-        let env = Env::new().map_err(Error::EnvInitFailed)?;
         match command {
-            Command::Open => with_config(non_interactive, wrapper, |config, _| {
+            Command::Open => with_config(non_interactive, wrapper, |config, _, env| {
                 ensure_init(config)?;
-                open_in_android_studio(config)
+                open_in_android_studio(config, env)
             }),
             Command::Check { targets } => {
-                with_config(non_interactive, wrapper, |config, metadata| {
+                with_config(non_interactive, wrapper, |config, metadata, env| {
                     let force_color = true;
                     call_for_targets_with_fallback(
                         targets.iter(),
@@ -261,7 +282,7 @@ impl Exec for Input {
             Command::Build {
                 targets,
                 profile: cli::Profile { profile },
-            } => with_config(non_interactive, wrapper, |config, metadata| {
+            } => with_config(non_interactive, wrapper, |config, metadata, env| {
                 ensure_init(config)?;
                 let force_color = true;
                 call_for_targets_with_fallback(
@@ -281,7 +302,7 @@ impl Exec for Input {
                 filter: cli::Filter { filter },
                 reinstall_deps: cli::ReinstallDeps { reinstall_deps },
                 activity,
-            } => with_config(non_interactive, wrapper, |config, metadata| {
+            } => with_config(non_interactive, wrapper, |config, metadata, env| {
                 let build_app_bundle = metadata.asset_packs().is_some();
                 ensure_init(config)?;
                 device_prompt(&env)
@@ -304,24 +325,26 @@ impl Exec for Input {
                     .and_then(|h| h.wait().map(|_| ()).map_err(RunError::LogcatFailed))
                     .map_err(Error::RunFailed)
             }),
-            Command::Stacktrace => with_config(non_interactive, wrapper, |config, _| {
+            Command::Stacktrace => with_config(non_interactive, wrapper, |config, _, env| {
                 ensure_init(config)?;
                 device_prompt(&env)
                     .map_err(Error::DevicePromptFailed)?
                     .stacktrace(config, &env)
                     .map_err(Error::StacktraceFailed)
             }),
-            Command::List => adb::device_list(&env)
-                .map_err(Error::ListFailed)
-                .map(|device_list| {
-                    prompt::list_display_only(device_list.iter(), device_list.len());
-                }),
+            Command::List => with_config(non_interactive, wrapper, |_, _, env| {
+                adb::device_list(&env)
+                    .map_err(Error::ListFailed)
+                    .map(|device_list| {
+                        prompt::list_display_only(device_list.iter(), device_list.len());
+                    })
+            }),
             Command::Apk { cmd } => match cmd {
                 ApkSubcommand::Build {
                     targets,
                     profile: cli::Profile { profile },
                     split_per_abi,
-                } => with_config(non_interactive, wrapper, |config, _| {
+                } => with_config(non_interactive, wrapper, |config, _, env| {
                     ensure_init(config)?;
 
                     apk::cli::build(
@@ -340,7 +363,7 @@ impl Exec for Input {
                     targets,
                     profile: cli::Profile { profile },
                     split_per_abi,
-                } => with_config(non_interactive, wrapper, |config, _| {
+                } => with_config(non_interactive, wrapper, |config, _, env| {
                     ensure_init(config)?;
                     aab::cli::build(
                         config,

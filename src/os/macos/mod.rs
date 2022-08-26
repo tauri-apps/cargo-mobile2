@@ -1,7 +1,7 @@
 mod ffi;
 pub(super) mod info;
 
-use crate::bossy;
+use crate::{bossy, env::ExplicitEnv};
 use core_foundation::{
     array::CFArray,
     base::{OSStatus, TCFType},
@@ -85,10 +85,12 @@ impl Application {
 pub fn open_file_with(
     application: impl AsRef<OsStr>,
     path: impl AsRef<OsStr>,
+    env: &Env,
 ) -> Result<(), OpenFileError> {
     bossy::Command::impure("open")
         .with_arg("-a")
         .with_args(&[application.as_ref(), path.as_ref()])
+        .with_env_vars(env.explicit_env())
         .run_and_wait()
         .map_err(OpenFileError::BossyLaunchFailed)?;
     Ok(())

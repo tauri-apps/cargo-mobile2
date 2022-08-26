@@ -4,6 +4,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::HashMap,
     fmt::{self, Display},
     path::PathBuf,
 };
@@ -41,6 +42,7 @@ pub struct Metadata {
     pub app_activity_name: Option<String>,
     pub app_permissions: Option<Vec<String>>,
     pub app_theme_parent: Option<String>,
+    pub env_vars: Option<HashMap<String, String>>,
 }
 
 impl Default for Metadata {
@@ -59,6 +61,7 @@ impl Default for Metadata {
             app_activity_name: None,
             app_permissions: None,
             app_theme_parent: None,
+            env_vars: None,
         }
     }
 }
