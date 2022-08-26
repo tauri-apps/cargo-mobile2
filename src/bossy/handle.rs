@@ -16,6 +16,12 @@ pub struct Handle {
     inner: Option<Inner>,
 }
 
+impl From<Handle> for process::Child {
+    fn from(handle: Handle) -> process::Child {
+        handle.take().inner
+    }
+}
+
 impl Drop for Handle {
     fn drop(&mut self) {
         if let Some(inner) = self.inner.as_ref() {
