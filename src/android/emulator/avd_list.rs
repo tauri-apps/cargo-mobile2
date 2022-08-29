@@ -1,6 +1,6 @@
 use super::Emulator;
 use crate::{android::env::Env, bossy, env::ExplicitEnv as _};
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, path::PathBuf};
 use thiserror::Error;
 
 #[derive(Debug, Error)]

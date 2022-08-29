@@ -1,9 +1,11 @@
 mod avd_list;
 
+use std::path::PathBuf;
+
 pub use avd_list::avd_list;
 
 use super::env::Env;
-use crate::bossy;
+use crate::{bossy, env::ExplicitEnv};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Emulator {
