@@ -1,15 +1,21 @@
 mod avd_list;
 
-use std::path::PathBuf;
+use std::{fmt::Display, path::PathBuf};
 
 pub use avd_list::avd_list;
 
 use super::env::Env;
 use crate::{bossy, env::ExplicitEnv};
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Emulator {
     name: String,
+}
+
+impl Display for Emulator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 impl Emulator {
