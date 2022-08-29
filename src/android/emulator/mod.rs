@@ -19,7 +19,7 @@ impl Emulator {
         &self.name
     }
 
-    pub fn run(self, env: &Env) -> bossy::Result<bossy::Handle> {
+    pub fn start(self, env: &Env) -> bossy::Result<bossy::Handle> {
         bossy::Command::impure("emulator/emulator")
             .with_current_dir(env.sdk_root())
             .with_args(&["-avd", &self.name])
