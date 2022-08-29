@@ -27,7 +27,11 @@ impl Reportable for Error {
 }
 
 pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
-    super::check_authorized(
+    super::check_authorized(if serial_no.starts_with("emulator") {
+        adb(env, serial_no)
+            .with_args(&["emu", "avd", "name"])
+            .run_and_wait_for_str(|raw| Ok(raw.split('\n').next().unwrap().trim().into()))
+    } else {
         adb(env, serial_no)
             .with_args(&["shell", "dumpsys", "bluetooth_manager"])
             .run_and_wait_for_str(|raw| {
@@ -35,7 +39,7 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
                     .captures(raw)
                     .map(|caps| caps["name"].to_owned())
                     .ok_or_else(|| Error::NotMatched)
-            }),
-    )
+            })
+    })
     .map_err(Error::DumpsysFailed)?
 }
