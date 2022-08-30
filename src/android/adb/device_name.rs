@@ -36,7 +36,7 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
                 .with_args(&["emu", "avd", "name"])
                 .run_and_wait_for_str(|raw| Ok(raw.split('\n').next().unwrap().trim().into())),
         )
-        .map_err(Error::DumpsysFailed)?
+        .map_err(Error::EmuFailed)?
     } else {
         super::check_authorized(
             adb(env, serial_no)
