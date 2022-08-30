@@ -15,6 +15,8 @@ use bossy::Handle;
 use std::{
     fmt::{self, Display},
     path::PathBuf,
+    thread::sleep,
+    time::Duration,
 };
 use thiserror::Error;
 
@@ -175,6 +177,23 @@ impl<'a> Device<'a> {
         )
     }
 
+    fn wait_device_boot(&self, env: &Env) {
+        loop {
+            if let Ok(output) = self
+                .adb(env)
+                .with_args(&["shell", "getprop", "init.svc.bootanim"])
+                .run_and_wait_for_string()
+            {
+                if output.trim() == "stopped" {
+                    break;
+                }
+                sleep(Duration::from_secs(2));
+            } else {
+                break;
+            }
+        }
+    }
+
     fn build_apk(
         &self,
         config: &Config,
@@ -284,11 +303,17 @@ impl<'a> Device<'a> {
                 .map_err(RunError::AabError)?;
             self.build_apks_from_aab(config, profile)
                 .map_err(RunError::ApksFromAabBuildFailed)?;
+            if self.serial_no.starts_with("emulator") {
+                self.wait_device_boot(env);
+            }
             self.install_apk_from_aab(config, profile)
                 .map_err(RunError::ApkInstallFailed)?;
         } else {
             self.build_apk(config, env, noise_level, profile)
                 .map_err(RunError::ApkError)?;
+            if self.serial_no.starts_with("emulator") {
+                self.wait_device_boot(env);
+            }
             self.install_apk(config, env, profile)
                 .map_err(RunError::ApkInstallFailed)?;
         }
