@@ -1,6 +1,6 @@
 use super::{
     config::Config,
-    ios_deploy,
+    ios_deploy, simctl,
     target::{ArchiveError, BuildError, ExportError, Target},
 };
 use crate::{
@@ -29,6 +29,8 @@ pub enum RunError {
     UnzipFailed(bossy::Error),
     #[error(transparent)]
     DeployFailed(ios_deploy::RunAndDebugError),
+    #[error(transparent)]
+    SimulatorDeployFailed(simctl::RunError),
 }
 
 impl Reportable for RunError {
@@ -43,6 +45,7 @@ impl Reportable for RunError {
             ),
             Self::UnzipFailed(err) => Report::error("Failed to unzip archive", err),
             Self::DeployFailed(err) => err.report(),
+            Self::SimulatorDeployFailed(err) => err.report(),
         }
     }
 }
@@ -53,6 +56,7 @@ pub struct Device<'a> {
     name: String,
     model: String,
     target: &'a Target<'a>,
+    simulator: bool,
 }
 
 impl<'a> Display for Device<'a> {
@@ -68,11 +72,21 @@ impl<'a> Device<'a> {
             name,
             model,
             target,
+            simulator: false,
         }
+    }
+
+    pub fn simulator(mut self) -> Self {
+        self.simulator = true;
+        self
     }
 
     pub fn target(&self) -> &'a Target<'a> {
         self.target
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn run(
@@ -114,7 +128,11 @@ impl<'a> Device<'a> {
             .with_arg(&config.export_dir())
             .run_and_wait()
             .map_err(RunError::UnzipFailed)?;
-        ios_deploy::run_and_debug(config, env, non_interactive, &self.id)
-            .map_err(RunError::DeployFailed)
+        if self.simulator {
+            simctl::run(config, env, &self.id).map_err(RunError::SimulatorDeployFailed)
+        } else {
+            ios_deploy::run_and_debug(config, env, non_interactive, &self.id)
+                .map_err(RunError::DeployFailed)
+        }
     }
 }
