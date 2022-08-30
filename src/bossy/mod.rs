@@ -20,6 +20,7 @@ pub use std::process::{ChildStderr, ChildStdin, ChildStdout, ExitStatus, Stdio};
 use std::{
     ffi::OsStr,
     fmt::{self, Display},
+    path::Path,
     process,
 };
 
@@ -164,6 +165,16 @@ impl Command {
 
     pub fn with_stdout_null(mut self) -> Self {
         self.set_stdout_null();
+        self
+    }
+
+    pub fn set_current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Self {
+        self.inner.current_dir(dir);
+        self
+    }
+
+    pub fn with_current_dir<P: AsRef<Path>>(mut self, dir: P) -> Self {
+        self.set_current_dir(dir);
         self
     }
 

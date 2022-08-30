@@ -5,6 +5,7 @@ mod bundletool;
 pub mod cli;
 pub mod config;
 pub mod device;
+pub mod emulator;
 pub mod env;
 mod jnilibs;
 pub mod ndk;
