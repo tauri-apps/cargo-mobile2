@@ -25,7 +25,13 @@ pub fn run(config: &Config, env: &Env, id: &str) -> Result<bossy::Handle, RunErr
     let handle = bossy::Command::pure("xcrun")
         .with_env_vars(env.explicit_env())
         .with_args(&["simctl", "install", id])
-        .with_arg(&config.app_path())
+        .with_arg(
+            &config
+                .export_dir()
+                .join(format!("{}_iOS.xcarchive", config.app().name()))
+                .join("Products/Applications")
+                .join(format!("{}.app", config.app().name())),
+        )
         .run()
         .map_err(RunError::DeployFailed)?;
 
@@ -33,7 +39,9 @@ pub fn run(config: &Config, env: &Env, id: &str) -> Result<bossy::Handle, RunErr
 
     bossy::Command::pure("xcrun")
         .with_env_vars(env.explicit_env())
-        .with_args(&["simctl", "launch", id])
+        .with_args(&["simctl", "launch"])
+        .with_args(&["--console"])
+        .with_arg(id)
         .with_arg(format!(
             "{}.{}",
             config.app().reverse_domain(),

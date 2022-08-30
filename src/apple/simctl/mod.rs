@@ -33,7 +33,7 @@ impl<'a> From<Device> for AppleDevice<'a> {
             device.name,
             "".into(),
             Target::for_arch(if cfg!(target_arch = "aarch64") {
-                "arm64"
+                "arm64-sim"
             } else {
                 "x86_64"
             })

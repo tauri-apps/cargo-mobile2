@@ -106,31 +106,33 @@ impl<'a> Device<'a> {
         self.target
             .archive(config, env, noise_level, profile, None)
             .map_err(RunError::ArchiveFailed)?;
-        println!("Exporting app...");
-        self.target
-            .export(config, env, noise_level)
-            .map_err(RunError::ExportFailed)?;
-        println!("Extracting IPA...");
-        bossy::Command::pure("unzip")
-            .with_env_vars(env.explicit_env())
-            .with_args(if noise_level.pedantic() {
-                None
-            } else {
-                Some("-q")
-            })
-            .with_arg("-o") // -o = always overwrite
-            .with_arg(
-                &config
-                    .ipa_path()
-                    .map_err(|(old, new)| RunError::IpaMissing { old, new })?,
-            )
-            .with_arg("-d")
-            .with_arg(&config.export_dir())
-            .run_and_wait()
-            .map_err(RunError::UnzipFailed)?;
+
         if self.simulator {
             simctl::run(config, env, &self.id).map_err(RunError::SimulatorDeployFailed)
         } else {
+            println!("Exporting app...");
+            self.target
+                .export(config, env, noise_level)
+                .map_err(RunError::ExportFailed)?;
+            println!("Extracting IPA...");
+            bossy::Command::pure("unzip")
+                .with_env_vars(env.explicit_env())
+                .with_args(if noise_level.pedantic() {
+                    None
+                } else {
+                    Some("-q")
+                })
+                .with_arg("-o") // -o = always overwrite
+                .with_arg(
+                    &config
+                        .ipa_path()
+                        .map_err(|(old, new)| RunError::IpaMissing { old, new })?,
+                )
+                .with_arg("-d")
+                .with_arg(&config.export_dir())
+                .run_and_wait()
+                .map_err(RunError::UnzipFailed)?;
+
             ios_deploy::run_and_debug(config, env, non_interactive, &self.id)
                 .map_err(RunError::DeployFailed)
         }
