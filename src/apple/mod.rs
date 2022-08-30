@@ -4,6 +4,7 @@ pub mod deps;
 pub mod device;
 pub mod ios_deploy;
 pub mod project;
+pub mod simctl;
 pub(crate) mod system_profile;
 pub mod target;
 pub(crate) mod teams;

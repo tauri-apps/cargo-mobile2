@@ -137,6 +137,7 @@ impl Reportable for ExportError {
 pub struct Target<'a> {
     pub triple: &'a str,
     pub arch: &'a str,
+    pub sdk: &'a str,
     alias: Option<&'a str>,
     min_xcode_version: Option<((u32, u32), &'static str)>,
 }
@@ -153,6 +154,7 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                 Target {
                     triple: "aarch64-apple-ios",
                     arch: "arm64",
+                    sdk: "iphoneos",
                     alias: Some("arm64e"),
                     min_xcode_version: None,
                 },
@@ -162,6 +164,7 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                 Target {
                     triple: "x86_64-apple-ios",
                     arch: "x86_64",
+                    sdk: "iphoneos",
                     alias: None,
                     // Simulator only supports Metal as of Xcode 11.0:
                     // https://developer.apple.com/documentation/metal/developing_metal_apps_that_run_in_simulator?language=objc
@@ -169,6 +172,16 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                     // it should be fine to be opinionated about this given
                     // OpenGL's deprecation.
                     min_xcode_version: Some(((11, 0), "iOS Simulator doesn't support Metal until")),
+                },
+            );
+            targets.insert(
+                "aarch64-sim",
+                Target {
+                    triple: "aarch64-apple-ios-sim",
+                    arch: "arm64-sim",
+                    sdk: "iphonesimulator",
+                    alias: Some("arm64e"),
+                    min_xcode_version: None,
                 },
             );
             targets
@@ -190,6 +203,7 @@ impl<'a> Target<'a> {
         Self {
             triple: "x86_64-apple-darwin",
             arch: "x86_64",
+            sdk: "iphoneos",
             alias: None,
             min_xcode_version: None,
         }
@@ -303,6 +317,7 @@ impl<'a> Target<'a> {
             .with_args(&["-scheme", &config.scheme()])
             .with_arg("-workspace")
             .with_arg(&config.workspace_path())
+            .with_args(&["-sdk", self.sdk])
             .with_args(&["-configuration", configuration])
             .with_args(&["-arch", self.arch])
             .with_arg("-allowProvisioningUpdates")
@@ -336,7 +351,7 @@ impl<'a> Target<'a> {
             .with_args(&["-scheme", &config.scheme()])
             .with_arg("-workspace")
             .with_arg(&config.workspace_path())
-            .with_args(&["-sdk", "iphoneos"])
+            .with_args(&["-sdk", self.sdk])
             .with_args(&["-configuration", configuration])
             .with_args(&["-arch", self.arch])
             .with_arg("-allowProvisioningUpdates")
