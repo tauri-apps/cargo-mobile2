@@ -303,13 +303,17 @@ impl<'a> Device<'a> {
                 .map_err(RunError::AabError)?;
             self.build_apks_from_aab(config, profile)
                 .map_err(RunError::ApksFromAabBuildFailed)?;
-            self.wait_device_boot(env);
+            if self.serial_no.starts_with("emulator") {
+                self.wait_device_boot(env);
+            }
             self.install_apk_from_aab(config, profile)
                 .map_err(RunError::ApkInstallFailed)?;
         } else {
             self.build_apk(config, env, noise_level, profile)
                 .map_err(RunError::ApkError)?;
-            self.wait_device_boot(env);
+            if self.serial_no.starts_with("emulator") {
+                self.wait_device_boot(env);
+            }
             self.install_apk(config, env, profile)
                 .map_err(RunError::ApkInstallFailed)?;
         }
