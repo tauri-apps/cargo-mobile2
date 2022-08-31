@@ -32,12 +32,7 @@ impl<'a> From<Device> for AppleDevice<'a> {
             device.udid,
             device.name,
             "".into(),
-            Target::for_arch(if cfg!(target_arch = "aarch64") {
-                "arm64-sim"
-            } else {
-                "x86_64"
-            })
-            .unwrap(),
+            Target::for_arch("arm64-sim").unwrap(),
         )
         .simulator()
     }
