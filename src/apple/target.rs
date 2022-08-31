@@ -164,7 +164,7 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                 Target {
                     triple: "x86_64-apple-ios",
                     arch: "x86_64",
-                    sdk: "iphoneos",
+                    sdk: "iphonesimulator",
                     alias: None,
                     // Simulator only supports Metal as of Xcode 11.0:
                     // https://developer.apple.com/documentation/metal/developing_metal_apps_that_run_in_simulator?language=objc
@@ -180,7 +180,7 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                     triple: "aarch64-apple-ios-sim",
                     arch: "arm64-sim",
                     sdk: "iphonesimulator",
-                    alias: Some("arm64e"),
+                    alias: Some("arm64e-sim"),
                     min_xcode_version: None,
                 },
             );
