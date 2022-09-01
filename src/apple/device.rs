@@ -89,6 +89,10 @@ impl<'a> Device<'a> {
         &self.name
     }
 
+    pub fn model(&self) -> &str {
+        &self.model
+    }
+
     pub fn run(
         &self,
         config: &Config,

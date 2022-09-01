@@ -160,6 +160,10 @@ impl<'a> Device<'a> {
         &self.name
     }
 
+    pub fn model(&self) -> &str {
+        &self.model
+    }
+
     fn adb(&self, env: &Env) -> bossy::Command {
         adb::adb(env, &self.serial_no)
     }
