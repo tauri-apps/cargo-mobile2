@@ -58,8 +58,6 @@ impl From<CustomEscapeFn> for EscapeFn {
 pub enum RenderingError {
     #[error("Failed to render template: {0}")]
     RenderingFailed(#[from] handlebars::TemplateRenderError),
-    #[error("Failed to canonicalize path: {0}")]
-    CanonicalizationFailed(#[from] std::io::Error),
 }
 
 /// An error encountered when processing an [`Action`].
@@ -346,10 +344,7 @@ impl Bicycle {
             .join("/");
         // This is naïve, but optimistically isn't a problem in practice.
         if path_str.contains("{{") {
-            self.render(&path_str, insert_data)
-                .map(PathBuf::from)
-                .map(fs::canonicalize)?
-                .map_err(RenderingError::CanonicalizationFailed)
+            self.render(&path_str, insert_data).map(Into::into)
         } else {
             Ok(path.to_owned())
         }
