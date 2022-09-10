@@ -2,7 +2,7 @@ use super::Device;
 use crate::{
     bossy,
     env::{Env, ExplicitEnv as _},
-    util::cli::{Report, Reportable},
+    util::{Report, Reportable},
 };
 use serde::Deserialize;
 use std::collections::{BTreeSet, HashMap};

@@ -8,11 +8,7 @@ use crate::{
     env::{Env, ExplicitEnv as _},
     opts::{self, NoiseLevel, Profile},
     target::TargetTrait,
-    util::{
-        self,
-        cli::{Report, Reportable},
-        CargoCommand, WithWorkingDirError,
-    },
+    util::{self, CargoCommand, Report, Reportable, WithWorkingDirError},
 };
 use once_cell_regex::exports::once_cell::sync::OnceCell;
 use std::{

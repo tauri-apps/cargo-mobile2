@@ -1,6 +1,6 @@
 use crate::{
     apple::teams,
-    util::{cli::TextWrapper, prompt},
+    util::{prompt, TextWrapper},
 };
 use colored::{Color, Colorize as _};
 use serde::{Deserialize, Serialize};

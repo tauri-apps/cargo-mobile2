@@ -1,4 +1,9 @@
-use crate::{
+#![allow(dead_code)]
+
+use crate::cli::{
+    self, Exec, GlobalFlags, Report, Reportable, TextWrapper, VERSION_LONG, VERSION_SHORT,
+};
+use cargo_mobile_core::{
     apple::{
         config::{Config, Metadata},
         device::{Device, RunError},
@@ -16,13 +21,7 @@ use crate::{
     env::{Env, Error as EnvError},
     opts, os,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
-    util::{
-        self,
-        cli::{
-            self, Exec, GlobalFlags, Report, Reportable, TextWrapper, VERSION_LONG, VERSION_SHORT,
-        },
-        prompt,
-    },
+    util::{self, prompt},
 };
 use std::{collections::HashMap, ffi::OsStr, path::PathBuf};
 use structopt::{clap::AppSettings, StructOpt};

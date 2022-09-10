@@ -1,4 +1,3 @@
-pub mod cli;
 pub mod config;
 pub mod deps;
 pub mod device;
@@ -10,10 +9,7 @@ pub mod target;
 pub(crate) mod teams;
 mod version_number;
 
-use crate::util::{
-    self,
-    cli::{Report, TextWrapper},
-};
+use crate::util::{self, Report, TextWrapper};
 
 pub static NAME: &str = "apple";
 

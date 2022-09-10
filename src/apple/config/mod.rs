@@ -6,8 +6,7 @@ use super::version_number::{VersionNumber, VersionNumberError};
 use crate::{
     config::app::App,
     util::{
-        self, cli::Report, Pod, VersionDouble, VersionDoubleError, VersionTriple,
-        VersionTripleError,
+        self, Pod, Report, VersionDouble, VersionDoubleError, VersionTriple, VersionTripleError,
     },
 };
 use serde::{Deserialize, Serialize};

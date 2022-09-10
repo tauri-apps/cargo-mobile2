@@ -7,7 +7,7 @@ use crate::{
     bossy,
     env::{Env, ExplicitEnv as _},
     opts,
-    util::cli::{Report, Reportable},
+    util::{Report, Reportable},
 };
 use std::{
     fmt::{self, Display},

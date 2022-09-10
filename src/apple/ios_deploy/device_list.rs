@@ -3,7 +3,7 @@ use crate::{
     apple::{device::Device, target::Target},
     bossy,
     env::{Env, ExplicitEnv as _},
-    util::cli::{Report, Reportable},
+    util::{Report, Reportable},
 };
 use std::collections::BTreeSet;
 use thiserror::Error;

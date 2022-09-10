@@ -7,11 +7,7 @@ use crate::{
     bicycle, bossy,
     target::TargetTrait as _,
     templating::{self, Pack},
-    util::{
-        self,
-        cli::{Report, Reportable, TextWrapper},
-        ln,
-    },
+    util::{self, ln, Report, Reportable, TextWrapper},
 };
 use std::path::{Path, PathBuf};
 

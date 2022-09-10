@@ -2,8 +2,8 @@ use crate::{
     bossy,
     util::{
         self,
-        cli::{Report, TextWrapper},
         repo::{self, Repo},
+        Report, TextWrapper,
     },
 };
 use std::{

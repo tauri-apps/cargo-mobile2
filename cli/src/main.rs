@@ -5,6 +5,8 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 mod android;
+#[cfg(target_os = "macos")]
+mod apple;
 mod cli;
 use cli::{Exec, GlobalFlags, Report, Reportable, TextWrapper, VERSION_LONG, VERSION_SHORT};
 
@@ -72,7 +74,7 @@ pub enum Command {
         )
     )]
     #[cfg(target_os = "macos")]
-    Apple(cargo_mobile_core::apple::cli::Command),
+    Apple(apple::Command),
     #[structopt(
         name = "android",
         about = "Android commands (tip: type less by running `cargo android` instead!)"
@@ -99,7 +101,7 @@ pub enum Error {
     OpenFailed(util::OpenInEditorError),
     UpdateFailed(update::Error),
     #[cfg(target_os = "macos")]
-    AppleFailed(cargo_mobile_core::apple::cli::Error),
+    AppleFailed(apple::Error),
     AndroidFailed(android::Error),
     DoctorFailed(doctor::Unrecoverable),
 }
@@ -201,10 +203,10 @@ impl Exec for Input {
                 Ok(())
             }
             #[cfg(target_os = "macos")]
-            Command::Apple(command) => cargo_mobile_core::apple::cli::Input::new(flags, command)
+            Command::Apple(command) => apple::Input::new(flags, command)
                 .exec(wrapper)
                 .map_err(Error::AppleFailed),
-            Command::Android(command) => crate::android::Input::new(flags, command)
+            Command::Android(command) => android::Input::new(flags, command)
                 .exec(wrapper)
                 .map_err(Error::AndroidFailed),
             Command::Doctor => doctor::exec(wrapper).map_err(Error::DoctorFailed),

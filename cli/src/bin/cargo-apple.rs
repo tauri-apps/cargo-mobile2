@@ -8,7 +8,7 @@ mod cli;
 
 #[cfg(target_os = "macos")]
 fn main() {
-    use apple::cli::Input;
+    use apple::Input;
     use cargo_mobile_core::apple::NAME;
     use cli::exec;
     exec::<Input>(NAME)

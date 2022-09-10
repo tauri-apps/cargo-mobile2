@@ -5,11 +5,7 @@ use self::update::{Outdated, OutdatedError};
 use super::system_profile::{self, DeveloperTools};
 use crate::{
     bossy,
-    util::{
-        self,
-        cli::{Report, TextWrapper},
-        prompt,
-    },
+    util::{self, prompt, Report, TextWrapper},
 };
 use once_cell_regex::regex;
 use std::collections::hash_set::HashSet;
