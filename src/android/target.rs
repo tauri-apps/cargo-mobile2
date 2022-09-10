@@ -240,6 +240,34 @@ impl<'a> Target<'a> {
             }
         }
 
+        #[cfg(unix)]
+        let clang_path = env
+            .ndk
+            .compiler_path(ndk::Compiler::Clang, self.clang_triple(), min_sdk_version)
+            .map_err(CompileLibError::MissingTool)?;
+        #[cfg(unix)]
+        let clangxx_path = env
+            .ndk
+            .compiler_path(ndk::Compiler::Clang, self.clang_triple(), min_sdk_version)
+            .map_err(CompileLibError::MissingTool)?;
+
+        #[cfg(windows)]
+        let clang_path = env
+            .ndk
+            .compiler_path(ndk::Compiler::Clang, self.clang_triple(), min_sdk_version)
+            .map_err(CompileLibError::MissingTool)?
+            .display()
+            .to_string()
+            .replace("\\", "/");
+        #[cfg(windows)]
+        let clangxx_path = env
+            .ndk
+            .compiler_path(ndk::Compiler::Clang, self.clang_triple(), min_sdk_version)
+            .map_err(CompileLibError::MissingTool)?
+            .display()
+            .to_string()
+            .replace("\\", "/");
+
         // Force color, since gradle would otherwise give us uncolored output
         // (which Android Studio makes red, which is extra gross!)
         let color = if force_color { "always" } else { "auto" };
@@ -260,18 +288,8 @@ impl<'a> Target<'a> {
                     .ar_path(self.triple)
                     .map_err(CompileLibError::MissingTool)?,
             )
-            .with_env_var(
-                "TARGET_CC",
-                env.ndk
-                    .compiler_path(ndk::Compiler::Clang, self.clang_triple(), min_sdk_version)
-                    .map_err(CompileLibError::MissingTool)?,
-            )
-            .with_env_var(
-                "TARGET_CXX",
-                env.ndk
-                    .compiler_path(ndk::Compiler::Clangxx, self.clang_triple(), min_sdk_version)
-                    .map_err(CompileLibError::MissingTool)?,
-            )
+            .with_env_var("TARGET_CC", clang_path)
+            .with_env_var("TARGET_CXX", clangxx_path)
             .with_args(&["--color", color])
             .run_and_wait()
             .map_err(|cause| CompileLibError::CargoFailed { mode, cause })?;
