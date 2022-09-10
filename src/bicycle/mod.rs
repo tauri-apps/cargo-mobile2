@@ -15,7 +15,7 @@ use std::{
     fs,
     io::{self, Read, Write},
     iter,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf, Prefix},
 };
 use thiserror::Error;
 
@@ -344,7 +344,21 @@ impl Bicycle {
             .join("/");
         // This is naïve, but optimistically isn't a problem in practice.
         if path_str.contains("{{") {
-            self.render(&path_str, insert_data).map(Into::into)
+            self.render(&path_str, insert_data)
+                .map(PathBuf::from)
+                .map(|p| p.components().collect::<PathBuf>())
+                .map(|p| {
+                    if let Some(Component::Prefix(prefix)) = p.components().next() {
+                        if let Prefix::Disk(_) = prefix.kind() {
+                            return p
+                                .to_str()
+                                .and_then(|s| Some(format!("\\\\?\\{}", s)))
+                                .map(PathBuf::from)
+                                .unwrap_or_else(|| p);
+                        }
+                    }
+                    p
+                })
         } else {
             Ok(path.to_owned())
         }
