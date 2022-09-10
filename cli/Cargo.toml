@@ -1,0 +1,41 @@
+[package]
+name = "cargo-mobile"
+version = "0.1.0"
+authors = ["Brainium Studios LLC", "Francesca Lovebloom <francesca@brainiumstudios.com>"]
+edition = "2018"
+description = "Rust on mobile made easy!"
+documentation = "https://docs.rs/cargo-mobile"
+repository = "https://github.com/BrainiumLLC/cargo-mobile"
+readme = "README.md"
+keywords = ["cargo", "mobile", "ios", "android"]
+categories = ["development-tools::cargo-plugins"]
+license = "Apache-2.0/MIT"
+
+[[bin]]
+name = "cargo-apple"
+
+[[bin]]
+name = "cargo-android"
+
+[dependencies]
+cargo-mobile-core = { path = "../src", version = "0.1.0" }
+structopt = "0.3.12"
+once-cell-regex = "0.2.1"
+textwrap = { version = "0.11.0", features = ["term_size"] }
+dunce = "1.0.2"
+log = "0.4.8"
+env_logger = "0.7.1"
+
+[build-dependencies]
+hit = "0.2.0"
+home = "0.5.3"
+# bicycle
+dunce = "1.0.2"
+handlebars = "3.3.0"
+log = "0.4.11"
+serde = "1.0.114"
+serde_json = "1.0.57"
+thiserror = "1.0.20"
+
+[target.'cfg(windows)'.build-dependencies]
+embed-resource = "1.6.4"

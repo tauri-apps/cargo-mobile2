@@ -11,10 +11,7 @@ use crate::{
     dot_cargo,
     os::code_command,
     project, templating,
-    util::{
-        self,
-        cli::{Report, Reportable, TextWrapper},
-    },
+    util::{self, Report, Reportable, TextWrapper},
 };
 use std::{
     fs, io,

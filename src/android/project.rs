@@ -11,9 +11,7 @@ use crate::{
     target::TargetTrait as _,
     templating::{self, Pack},
     util::{
-        self,
-        cli::{Report, Reportable, TextWrapper},
-        ln, prefix_path,
+        self, ln, prefix_path, {Report, Reportable, TextWrapper},
     },
 };
 use path_abs::PathOps;

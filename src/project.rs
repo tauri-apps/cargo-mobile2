@@ -2,10 +2,7 @@ use crate::{
     bicycle, bossy,
     config::Config,
     templating::{self, FancyPackResolveError},
-    util::{
-        cli::{Report, Reportable},
-        Git,
-    },
+    util::{Git, Report, Reportable},
 };
 use std::path::PathBuf;
 

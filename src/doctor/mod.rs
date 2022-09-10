@@ -3,7 +3,7 @@ mod section;
 use crate::{
     env,
     os::Env,
-    util::{self, cli::TextWrapper},
+    util::{self, TextWrapper},
 };
 use thiserror::Error;
 

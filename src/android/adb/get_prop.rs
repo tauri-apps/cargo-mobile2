@@ -1,7 +1,7 @@
 use super::adb;
 use crate::{
     android::env::Env,
-    util::cli::{Report, Reportable},
+    util::{Report, Reportable},
 };
 use std::str;
 use thiserror::Error;

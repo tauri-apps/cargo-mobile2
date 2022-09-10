@@ -3,7 +3,7 @@ use crate::{
     android::{device::Device, env::Env, target::Target},
     bossy,
     env::ExplicitEnv as _,
-    util::cli::{Report, Reportable},
+    util::{Report, Reportable},
 };
 use once_cell_regex::regex_multi_line;
 use std::collections::BTreeSet;

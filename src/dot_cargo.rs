@@ -1,6 +1,6 @@
 use crate::{
     config::app::App,
-    util::cli::{Report, Reportable},
+    util::{Report, Reportable},
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fs, io, path::PathBuf};

@@ -3,7 +3,7 @@ use super::app;
 use crate::apple;
 use crate::{
     android,
-    util::cli::{Report, Reportable, TextWrapper},
+    util::{Report, Reportable, TextWrapper},
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;

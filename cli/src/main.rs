@@ -1,17 +1,12 @@
 #![forbid(unsafe_code)]
 
-use cargo_mobile::{
-    doctor, init, update,
-    util::{
-        self,
-        cli::{
-            self, Exec, GlobalFlags, Report, Reportable, TextWrapper, VERSION_LONG, VERSION_SHORT,
-        },
-    },
-    NAME,
-};
+use cargo_mobile_core::{doctor, init, update, util, NAME};
 use std::path::PathBuf;
 use structopt::StructOpt;
+
+mod android;
+mod cli;
+use cli::{Exec, GlobalFlags, Report, Reportable, TextWrapper, VERSION_LONG, VERSION_SHORT};
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -77,12 +72,12 @@ pub enum Command {
         )
     )]
     #[cfg(target_os = "macos")]
-    Apple(cargo_mobile::apple::cli::Command),
+    Apple(cargo_mobile_core::apple::cli::Command),
     #[structopt(
         name = "android",
         about = "Android commands (tip: type less by running `cargo android` instead!)"
     )]
-    Android(cargo_mobile::android::cli::Command),
+    Android(android::Command),
     #[structopt(
         name = "doctor",
         about = "Perform a check-up on your installation and environment"
@@ -104,8 +99,8 @@ pub enum Error {
     OpenFailed(util::OpenInEditorError),
     UpdateFailed(update::Error),
     #[cfg(target_os = "macos")]
-    AppleFailed(cargo_mobile::apple::cli::Error),
-    AndroidFailed(cargo_mobile::android::cli::Error),
+    AppleFailed(cargo_mobile_core::apple::cli::Error),
+    AndroidFailed(android::Error),
     DoctorFailed(doctor::Unrecoverable),
 }
 
@@ -206,10 +201,10 @@ impl Exec for Input {
                 Ok(())
             }
             #[cfg(target_os = "macos")]
-            Command::Apple(command) => cargo_mobile::apple::cli::Input::new(flags, command)
+            Command::Apple(command) => cargo_mobile_core::apple::cli::Input::new(flags, command)
                 .exec(wrapper)
                 .map_err(Error::AppleFailed),
-            Command::Android(command) => cargo_mobile::android::cli::Input::new(flags, command)
+            Command::Android(command) => crate::android::Input::new(flags, command)
                 .exec(wrapper)
                 .map_err(Error::AndroidFailed),
             Command::Doctor => doctor::exec(wrapper).map_err(Error::DoctorFailed),

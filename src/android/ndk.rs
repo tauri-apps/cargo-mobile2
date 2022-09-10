@@ -5,10 +5,7 @@ use super::{
 use crate::{
     bossy,
     os::consts,
-    util::{
-        cli::{Report, Reportable},
-        VersionDouble,
-    },
+    util::{Report, Reportable, VersionDouble},
 };
 use once_cell_regex::regex_multi_line;
 use std::{

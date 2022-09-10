@@ -1,6 +1,6 @@
 use crate::{
     config::app::App,
-    util::{self, cli::Report},
+    util::{self, Report},
 };
 use serde::{Deserialize, Serialize};
 use std::{

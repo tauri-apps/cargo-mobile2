@@ -7,7 +7,7 @@ pub use self::raw::*;
 
 use crate::{
     templating::{self, Pack},
-    util::{self, cli::Report},
+    util::{self, Report},
 };
 use serde::Serialize;
 use std::path::{Path, PathBuf};

@@ -1,5 +1,6 @@
+use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
-use structopt::clap::arg_enum;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum NoiseLevel {
@@ -82,15 +83,33 @@ impl Profile {
     }
 }
 
-arg_enum! {
-    /// Android device logging filter level, used as an argument for run
-    #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-    pub enum FilterLevel {
-        Error,
-        Warn,
-        Info,
-        Debug,
-        Verbose,
+/// Android device logging filter level, used as an argument for run
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum FilterLevel {
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Verbose,
+}
+
+impl FromStr for FilterLevel {
+    type Err = &'static str;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "error" => Ok(Self::Error),
+            "warn" => Ok(Self::Warn),
+            "info" => Ok(Self::Info),
+            "debug" => Ok(Self::Debug),
+            "verbose" => Ok(Self::Verbose),
+            _ => Err("unknown filter level"),
+        }
+    }
+}
+
+impl FilterLevel {
+    pub fn variants() -> &'static [&'static str] {
+        &["error", "warn", "info", "debug", "verbose"]
     }
 }
 

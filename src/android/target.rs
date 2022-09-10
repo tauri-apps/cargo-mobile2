@@ -9,10 +9,7 @@ use crate::{
     dot_cargo::DotCargoTarget,
     opts::{NoiseLevel, Profile},
     target::TargetTrait,
-    util::{
-        cli::{Report, Reportable},
-        CargoCommand,
-    },
+    util::{CargoCommand, Report, Reportable},
 };
 use once_cell_regex::exports::once_cell::sync::OnceCell;
 use serde::Serialize;

@@ -1,4 +1,4 @@
-use crate::util::cli::{Report, Reportable};
+use crate::util::{Report, Reportable};
 use serde::Deserialize;
 use std::{
     fs, io,

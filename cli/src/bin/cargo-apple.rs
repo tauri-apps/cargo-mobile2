@@ -1,17 +1,22 @@
 #![forbid(unsafe_code)]
 
 #[cfg(target_os = "macos")]
+#[path = "../apple.rs"]
+mod apple;
+#[path = "../cli.rs"]
+mod cli;
+
+#[cfg(target_os = "macos")]
 fn main() {
-    use cargo_mobile::{
-        apple::{cli::Input, NAME},
-        util::cli::exec,
-    };
+    use apple::cli::Input;
+    use cargo_mobile_core::apple::NAME;
+    use cli::exec;
     exec::<Input>(NAME)
 }
 
 #[cfg(not(target_os = "macos"))]
 fn main() {
-    use cargo_mobile::util::cli::{Exit, Report};
+    use cli::{Exit, Report};
     Exit::main(|_wrapper| {
         Err(Exit::Report(Report::error(
             "`cargo-apple` can only be used on macOS",

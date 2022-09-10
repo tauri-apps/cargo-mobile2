@@ -1,5 +1,4 @@
 mod cargo;
-pub mod cli;
 mod git;
 pub mod ln;
 mod path;
@@ -7,7 +6,6 @@ pub mod prompt;
 
 pub use self::{cargo::*, git::*, path::*};
 
-use self::cli::{Report, Reportable};
 use crate::{
     bossy,
     env::ExplicitEnv,
@@ -22,6 +20,122 @@ use std::{
     path::{Path, PathBuf},
 };
 use thiserror::Error;
+
+pub static VERSION_SHORT: &str = concat!("v", env!("CARGO_PKG_VERSION"));
+
+pub mod colors {
+    pub use colored::{
+        Color::{self, *},
+        Colorize,
+    };
+
+    pub const ERROR: Color = BrightRed;
+    pub const WARNING: Color = BrightYellow;
+    pub const ACTION_REQUEST: Color = BrightMagenta;
+    pub const VICTORY: Color = BrightGreen;
+}
+
+use colored::Colorize;
+
+pub type TextWrapper = textwrap::Wrapper<'static, textwrap::NoHyphenation>;
+
+#[derive(Clone, Copy, Debug)]
+pub enum Label {
+    Error,
+    ActionRequest,
+    Victory,
+}
+
+impl Label {
+    pub fn color(&self) -> colored::Color {
+        match self {
+            Self::Error => colors::ERROR,
+            Self::ActionRequest => colors::ACTION_REQUEST,
+            Self::Victory => colors::VICTORY,
+        }
+    }
+
+    pub fn exit_code(&self) -> i8 {
+        match self {
+            Self::Victory => 0,
+            _ => 1,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Error => "error",
+            Self::ActionRequest => "action request",
+            Self::Victory => "victory",
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Report {
+    pub label: Label,
+    msg: String,
+    details: String,
+}
+
+impl Report {
+    pub fn new(label: Label, msg: impl Display, details: impl Display) -> Self {
+        Self {
+            label,
+            msg: format!("{}", msg),
+            details: format!("{}", details),
+        }
+    }
+
+    pub fn error(msg: impl Display, details: impl Display) -> Self {
+        Self::new(Label::Error, msg, details)
+    }
+
+    pub fn action_request(msg: impl Display, details: impl Display) -> Self {
+        Self::new(Label::ActionRequest, msg, details)
+    }
+
+    pub fn victory(msg: impl Display, details: impl Display) -> Self {
+        Self::new(Label::Victory, msg, details)
+    }
+
+    pub fn exit_code(&self) -> i8 {
+        self.label.exit_code()
+    }
+
+    fn format(&self, wrapper: &TextWrapper) -> String {
+        static INDENT: &str = "    ";
+        let head = if colored::control::SHOULD_COLORIZE.should_colorize() {
+            wrapper.fill(&format!(
+                "{} {}",
+                format!("{}:", self.label.as_str())
+                    .color(self.label.color())
+                    .bold(),
+                self.msg.color(self.label.color())
+            ))
+        } else {
+            wrapper.fill(&format!("{}: {}", self.label.as_str(), &self.msg))
+        };
+        let wrapper = wrapper
+            .clone()
+            .initial_indent(INDENT)
+            .subsequent_indent(INDENT);
+        format!("{}\n{}\n", head, wrapper.fill(&self.details))
+    }
+
+    pub fn print(&self, wrapper: &TextWrapper) {
+        let s = self.format(wrapper);
+        if matches!(self.label, Label::Error) {
+            eprint!("{}", s)
+        } else {
+            print!("{}", s)
+        }
+    }
+}
+
+pub trait Reportable: Debug {
+    fn report(&self) -> Report;
+}
 
 pub fn list_display(list: &[impl Display]) -> String {
     if list.len() == 1 {

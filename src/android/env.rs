@@ -5,7 +5,7 @@ use super::{
 use crate::{
     env::{Error as CoreError, ExplicitEnv},
     os::Env as CoreEnv,
-    util::cli::{Report, Reportable},
+    util::{Report, Reportable},
 };
 use std::{
     collections::HashMap,

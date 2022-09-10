@@ -4,10 +4,7 @@ pub mod apple;
 pub mod cargo_mobile;
 pub mod device_list;
 
-use crate::util::{
-    self,
-    cli::{colors, TextWrapper},
-};
+use crate::util::{self, colors, TextWrapper};
 use colored::Colorize as _;
 use std::fmt::Debug;
 

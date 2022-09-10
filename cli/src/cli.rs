@@ -1,7 +1,11 @@
-use crate::{opts, util};
-use colored::Colorize as _;
+#![allow(dead_code)]
+
+pub use cargo_mobile_core::{
+    opts,
+    util::{self, colors::Colorize as _, Report, Reportable, TextWrapper, VERSION_SHORT},
+};
 use once_cell_regex::exports::once_cell::sync::Lazy;
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 use structopt::{
     clap::{self, AppSettings},
     StructOpt,
@@ -18,8 +22,6 @@ pub static SETTINGS: &[AppSettings] = &[AppSettings::SubcommandRequiredElseHelp]
 pub fn bin_name(name: &str) -> String {
     format!("cargo {}", name)
 }
-
-pub static VERSION_SHORT: &str = concat!("v", env!("CARGO_PKG_VERSION"));
 
 pub static VERSION_LONG: Lazy<String> = Lazy::new(|| match util::installed_commit_msg() {
     Ok(Some(msg)) => format!("{}\n{}", VERSION_SHORT, util::format_commit_msg(msg)),
@@ -85,115 +87,6 @@ pub struct Filter {
         case_insensitive = true,
     )]
     pub filter: Option<opts::FilterLevel>,
-}
-
-pub type TextWrapper = textwrap::Wrapper<'static, textwrap::NoHyphenation>;
-
-pub mod colors {
-    use colored::Color::{self, *};
-
-    pub const ERROR: Color = BrightRed;
-    pub const WARNING: Color = BrightYellow;
-    pub const ACTION_REQUEST: Color = BrightMagenta;
-    pub const VICTORY: Color = BrightGreen;
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum Label {
-    Error,
-    ActionRequest,
-    Victory,
-}
-
-impl Label {
-    pub fn color(&self) -> colored::Color {
-        match self {
-            Self::Error => colors::ERROR,
-            Self::ActionRequest => colors::ACTION_REQUEST,
-            Self::Victory => colors::VICTORY,
-        }
-    }
-
-    pub fn exit_code(&self) -> i8 {
-        match self {
-            Self::Victory => 0,
-            _ => 1,
-        }
-    }
-
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Error => "error",
-            Self::ActionRequest => "action request",
-            Self::Victory => "victory",
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Report {
-    label: Label,
-    msg: String,
-    details: String,
-}
-
-impl Report {
-    pub fn new(label: Label, msg: impl Display, details: impl Display) -> Self {
-        Self {
-            label,
-            msg: format!("{}", msg),
-            details: format!("{}", details),
-        }
-    }
-
-    pub fn error(msg: impl Display, details: impl Display) -> Self {
-        Self::new(Label::Error, msg, details)
-    }
-
-    pub fn action_request(msg: impl Display, details: impl Display) -> Self {
-        Self::new(Label::ActionRequest, msg, details)
-    }
-
-    pub fn victory(msg: impl Display, details: impl Display) -> Self {
-        Self::new(Label::Victory, msg, details)
-    }
-
-    pub fn exit_code(&self) -> i8 {
-        self.label.exit_code()
-    }
-
-    fn format(&self, wrapper: &TextWrapper) -> String {
-        static INDENT: &str = "    ";
-        let head = if colored::control::SHOULD_COLORIZE.should_colorize() {
-            wrapper.fill(&format!(
-                "{} {}",
-                format!("{}:", self.label.as_str())
-                    .color(self.label.color())
-                    .bold(),
-                self.msg.color(self.label.color())
-            ))
-        } else {
-            wrapper.fill(&format!("{}: {}", self.label.as_str(), &self.msg))
-        };
-        let wrapper = wrapper
-            .clone()
-            .initial_indent(INDENT)
-            .subsequent_indent(INDENT);
-        format!("{}\n{}\n", head, wrapper.fill(&self.details))
-    }
-
-    pub fn print(&self, wrapper: &TextWrapper) {
-        let s = self.format(wrapper);
-        if matches!(self.label, Label::Error) {
-            eprint!("{}", s)
-        } else {
-            print!("{}", s)
-        }
-    }
-}
-
-pub trait Reportable: Debug {
-    fn report(&self) -> Report;
 }
 
 pub trait Exec: Debug + StructOpt {

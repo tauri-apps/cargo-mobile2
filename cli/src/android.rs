@@ -1,4 +1,9 @@
-use crate::{
+#![allow(dead_code)]
+
+use crate::cli::{
+    self, Exec, GlobalFlags, Report, Reportable, TextWrapper, VERSION_LONG, VERSION_SHORT,
+};
+use cargo_mobile_core::{
     android::{
         aab, adb, apk,
         config::{Config, Metadata},
@@ -15,12 +20,7 @@ use crate::{
     device::PromptError,
     os,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
-    util::{
-        cli::{
-            self, Exec, GlobalFlags, Report, Reportable, TextWrapper, VERSION_LONG, VERSION_SHORT,
-        },
-        prompt,
-    },
+    util::prompt,
 };
 use std::{ffi::OsString, path::PathBuf};
 use structopt::StructOpt;

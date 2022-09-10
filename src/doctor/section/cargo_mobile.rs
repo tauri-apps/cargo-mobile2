@@ -2,7 +2,7 @@ use super::Section;
 use crate::{
     doctor::Unrecoverable,
     os,
-    util::{self, cli::VERSION_SHORT},
+    util::{self, VERSION_SHORT},
 };
 
 fn check_os() -> Result<String, String> {

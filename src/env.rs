@@ -1,4 +1,4 @@
-use crate::util::cli::{Report, Reportable};
+use crate::util::{Report, Reportable};
 use std::{collections::HashMap, ffi::OsString, fmt::Debug, path::Path};
 use thiserror::Error;
 

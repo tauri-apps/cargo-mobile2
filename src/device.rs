@@ -1,4 +1,4 @@
-use crate::util::cli::{Report, Reportable};
+use crate::util::{Report, Reportable};
 use std::{
     error::Error,
     fmt::{self, Debug, Display},

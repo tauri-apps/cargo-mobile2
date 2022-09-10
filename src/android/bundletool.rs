@@ -2,7 +2,7 @@
 use crate::util;
 use crate::{
     bossy,
-    util::cli::{Report, Reportable},
+    util::{Report, Reportable},
 };
 #[cfg(not(target_os = "macos"))]
 use std::path::PathBuf;

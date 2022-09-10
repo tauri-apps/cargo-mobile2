@@ -8,7 +8,7 @@ use self::{app::App, raw::*};
 use crate::apple;
 use crate::{
     android, bicycle, templating,
-    util::cli::{Report, Reportable, TextWrapper},
+    util::{Report, Reportable, TextWrapper},
 };
 use serde::Serialize;
 use std::{

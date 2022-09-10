@@ -1,7 +1,7 @@
 use super::{common_email_providers::COMMON_EMAIL_PROVIDERS, domain, name};
 use crate::{
     bossy, templating,
-    util::{cli::TextWrapper, prompt, Git},
+    util::{prompt, Git, TextWrapper},
 };
 use colored::{Color, Colorize as _};
 use heck::{ToKebabCase as _, ToTitleCase as _};
@@ -33,7 +33,7 @@ fn default_domain(_wrapper: &TextWrapper) -> Result<Option<String>, DefaultDomai
         {
             #[cfg(not(feature = "brainium"))]
             if domain == "brainiumstudios.com" {
-                crate::util::cli::Report::action_request(
+                crate::util::Report::action_request(
                     "You have a Brainium email address, but you're using a non-Brainium installation of cargo-mobile!",
                     "If that's not intentional, run `cargo install --force --git https://github.com/BrainiumLLC/cargo-mobile --features brainium`",
                 ).print(_wrapper);

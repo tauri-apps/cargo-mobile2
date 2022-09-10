@@ -3,8 +3,7 @@ use crate::{
     os,
     target::TargetTrait as _,
     util::{
-        cli::{Report, Reportable},
-        ln, prefix_path,
+        ln, prefix_path, {Report, Reportable},
     },
 };
 use std::path::{Path, PathBuf};

@@ -5,11 +5,7 @@ use crate::{
     env::ExplicitEnv as _,
     opts::{FilterLevel, NoiseLevel, Profile},
     os::consts,
-    util::{
-        self,
-        cli::{Report, Reportable},
-        prefix_path,
-    },
+    util::{self, prefix_path, Report, Reportable},
 };
 use bossy::Handle;
 use std::{

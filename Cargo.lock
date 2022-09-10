@@ -27,12 +27,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "arrayvec"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
-
-[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -106,6 +100,26 @@ checksum = "37ccbd214614c6783386c1af30caf03192f17891059cecc394b4fb119e363de3"
 name = "cargo-mobile"
 version = "0.1.0"
 dependencies = [
+ "cargo-mobile-core",
+ "dunce",
+ "embed-resource",
+ "env_logger",
+ "handlebars",
+ "hit",
+ "home",
+ "log",
+ "once-cell-regex",
+ "serde",
+ "serde_json",
+ "structopt",
+ "textwrap",
+ "thiserror",
+]
+
+[[package]]
+name = "cargo-mobile-core"
+version = "0.1.0"
+dependencies = [
  "cocoa",
  "colored",
  "core-foundation",
@@ -113,16 +127,13 @@ dependencies = [
  "dunce",
  "embed-resource",
  "english-numbers",
- "env_logger",
  "freedesktop_entry_parser",
  "handlebars",
  "heck 0.4.0",
- "hit",
  "home",
  "ignore",
  "indexmap",
  "java-properties",
- "lexical-core",
  "libc",
  "log",
  "objc",
@@ -135,7 +146,6 @@ dependencies = [
  "serde",
  "serde_json",
  "simple_logger",
- "structopt",
  "textwrap",
  "thiserror",
  "toml",
@@ -607,19 +617,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
-name = "lexical-core"
-version = "0.7.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6607c62aa161d23d17a9072cc5da0be67cdfc89d3afb1e8d9c842bebc2525ffe"
-dependencies = [
- "arrayvec",
- "bitflags",
- "cfg-if",
- "ryu",
- "static_assertions",
-]
-
-[[package]]
 name = "libc"
 version = "0.2.131"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1051,12 +1048,6 @@ name = "spin"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
-
-[[package]]
-name = "static_assertions"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "std_prelude"

@@ -9,10 +9,7 @@ use crate::{
     android::jnilibs::JniLibs,
     bossy,
     opts::{NoiseLevel, Profile},
-    util::{
-        cli::{Report, Reportable},
-        gradlew, prefix_path,
-    },
+    util::{gradlew, prefix_path, Report, Reportable},
 };
 
 #[derive(Debug, Error)]
