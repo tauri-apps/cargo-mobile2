@@ -248,7 +248,7 @@ impl<'a> Target<'a> {
         #[cfg(unix)]
         let clangxx_path = env
             .ndk
-            .compiler_path(ndk::Compiler::Clang, self.clang_triple(), min_sdk_version)
+            .compiler_path(ndk::Compiler::Clangxx, self.clang_triple(), min_sdk_version)
             .map_err(CompileLibError::MissingTool)?;
 
         #[cfg(windows)]
