@@ -262,7 +262,7 @@ impl<'a> Target<'a> {
         #[cfg(windows)]
         let clangxx_path = env
             .ndk
-            .compiler_path(ndk::Compiler::Clang, self.clang_triple(), min_sdk_version)
+            .compiler_path(ndk::Compiler::Clangxx, self.clang_triple(), min_sdk_version)
             .map_err(CompileLibError::MissingTool)?
             .display()
             .to_string()
