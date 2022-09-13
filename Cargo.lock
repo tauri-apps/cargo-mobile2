@@ -94,7 +94,7 @@ checksum = "37ccbd214614c6783386c1af30caf03192f17891059cecc394b4fb119e363de3"
 name = "cargo-mobile"
 version = "0.1.0"
 dependencies = [
- "cargo-mobile-core",
+ "cargo-mobile-lib",
  "dunce",
  "embed-resource",
  "env_logger",
@@ -111,7 +111,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "cargo-mobile-core"
+name = "cargo-mobile-lib"
 version = "0.1.0"
 dependencies = [
  "colored",

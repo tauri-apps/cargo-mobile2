@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-pub use cargo_mobile_core::{
+pub use cargo_mobile_lib::{
     opts,
     util::{self, colors::Colorize as _, Report, Reportable, TextWrapper, VERSION_SHORT},
 };

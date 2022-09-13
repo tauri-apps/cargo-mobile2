@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use cargo_mobile_core::{doctor, init, update, util, NAME};
+use cargo_mobile_lib::{doctor, init, update, util, NAME};
 use std::path::PathBuf;
 use structopt::StructOpt;
 

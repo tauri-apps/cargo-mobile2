@@ -6,7 +6,7 @@ mod android;
 mod cli;
 
 use android::Input;
-use cargo_mobile_core::android::NAME;
+use cargo_mobile_lib::android::NAME;
 
 use cli::exec;
 

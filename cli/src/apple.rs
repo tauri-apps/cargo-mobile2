@@ -3,7 +3,7 @@
 use crate::cli::{
     self, Exec, GlobalFlags, Report, Reportable, TextWrapper, VERSION_LONG, VERSION_SHORT,
 };
-use cargo_mobile_core::{
+use cargo_mobile_lib::{
     apple::{
         config::{Config, Metadata},
         device::{Device, RunError},
