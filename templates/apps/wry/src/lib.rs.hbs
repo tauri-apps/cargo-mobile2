@@ -11,7 +11,7 @@ use wry::{
         event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
         window::WindowBuilder, event::{Event, StartCause},
     },
-    http::ResponseBuilder,
+    http::{header::CONTENT_TYPE, Response},
     webview::{WebViewBuilder, WebView},
 };
 
@@ -86,7 +86,7 @@ fn main() -> Result<()> {
             #[cfg(not(target_os = "android"))]
             {
                 // Remove url scheme
-                let path = request.uri().replace("wry://", "");
+                let path = request.uri().path();
                 let mut resource = core_foundation::bundle::CFBundle::main_bundle()
                     .resources_path()
                     .unwrap();
@@ -107,12 +107,12 @@ fn main() -> Result<()> {
                     unimplemented!();
                 };
 
-                ResponseBuilder::new().mimetype(meta).body(data)
+                Ok(Response::builder().header(CONTENT_TYPE, meta).body(data)?)
             }
 
             #[cfg(target_os = "android")]
             {
-                ResponseBuilder::new().body(vec![])
+                Ok(Response::builder().body(vec![])?)
             }
         })
         .build()?;
