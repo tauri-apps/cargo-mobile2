@@ -11,7 +11,7 @@ pub fn check(env: &Env) -> Result<Section, Unrecoverable> {
                 Ok(sdk_version) => Ok(format!(
                     "SDK v{} installed at {:?}",
                     sdk_version,
-                    util::contract_home(android_env.sdk_root())?,
+                    util::contract_home(android_env.android_home())?,
                 )),
                 Err(err) => Err(format!("Failed to get SDK version: {}", err)),
             })

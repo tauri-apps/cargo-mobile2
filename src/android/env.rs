@@ -19,10 +19,10 @@ pub enum Error {
     #[error(transparent)]
     CoreEnvError(#[from] CoreError),
     // TODO: we should be nice and provide a platform-specific suggestion
-    #[error("Have you installed the Android SDK? The `ANDROID_SDK_ROOT` environment variable isn't set, and is required: {0}")]
-    AndroidSdkRootNotSet(#[from] std::env::VarError),
-    #[error("Have you installed the Android SDK? The `ANDROID_SDK_ROOT` environment variable is set, but doesn't point to an existing directory.")]
-    AndroidSdkRootNotADir,
+    #[error("Have you installed the Android SDK? The `ANDROID_HOME` environment variable isn't set, and is required: {0}")]
+    AndroidHomeNotSet(#[from] std::env::VarError),
+    #[error("Have you installed the Android SDK? The `ANDROID_HOME` environment variable is set, but doesn't point to an existing directory.")]
+    AndroidHomeNotADir,
     #[error(transparent)]
     NdkEnvError(#[from] ndk::Error),
 }
@@ -46,7 +46,7 @@ impl Error {
 #[derive(Debug)]
 pub struct Env {
     pub base: CoreEnv,
-    sdk_root: PathBuf,
+    android_home: PathBuf,
     pub ndk: ndk::Env,
 }
 
@@ -56,43 +56,43 @@ impl Env {
     }
 
     pub fn from_env(base: CoreEnv) -> Result<Self, Error> {
-        let sdk_root = std::env::var("ANDROID_SDK_ROOT")
-            .map_err(Error::AndroidSdkRootNotSet)
+        let android_home = std::env::var("ANDROID_HOME")
+            .map_err(Error::AndroidHomeNotSet)
             .map(PathBuf::from)
-            .and_then(|sdk_root| {
-                if sdk_root.is_dir() {
-                    Ok(sdk_root)
+            .and_then(|android_home| {
+                if android_home.is_dir() {
+                    Ok(android_home)
                 } else {
-                    Err(Error::AndroidSdkRootNotADir)
+                    Err(Error::AndroidHomeNotADir)
                 }
             })
             .or_else(|err| {
-                if let Some(android_home) = std::env::var("ANDROID_HOME")
+                if let Some(sdk_root) = std::env::var("ANDROID_SDK_ROOT")
                     .ok()
                     .map(PathBuf::from)
-                    .filter(|android_home| android_home.is_dir())
+                    .filter(|sdk_root| sdk_root.is_dir())
                 {
-                    log::warn!("`ANDROID_SDK_ROOT` isn't set; falling back to `ANDROID_HOME`, which is deprecated");
-                    Ok(android_home)
+                    log::warn!("`ANDROID_HOME` isn't set; falling back to `ANDROID_SDK_ROOT`, which is deprecated");
+                    Ok(sdk_root)
                 } else {
                     Err(err)
                 }
             })
             .or_else(|err| {
-                if let Some(android_home) = std::env::var("ANDROID_HOME")
+                if let Some(sdk_root) = std::env::var("ANDROID_SDK_ROOT")
                     .ok()
                     .map(PathBuf::from)
-                    .filter(|android_home| android_home.is_dir())
+                    .filter(|sdk_root| sdk_root.is_dir())
                 {
-                    log::warn!("`ANDROID_SDK_ROOT` isn't set; falling back to `ANDROID_HOME`, which is deprecated");
-                    Ok(android_home)
+                    log::warn!("`ANDROID_HOME` isn't set; falling back to `ANDROID_SDK_ROOT`, which is deprecated");
+                    Ok(sdk_root)
                 } else {
                     Err(err)
                 }
             })?;
         Ok(Self {
             base,
-            sdk_root,
+            android_home,
             ndk: ndk::Env::new()?,
         })
     }
@@ -101,12 +101,16 @@ impl Env {
         self.base.path()
     }
 
-    pub fn sdk_root(&self) -> &str {
-        self.sdk_root.as_path().to_str().unwrap()
+    pub fn android_home(&self) -> &str {
+        self.android_home.as_path().to_str().unwrap()
+    }
+
+    pub fn platform_tools_path(&self) -> PathBuf {
+        PathBuf::from(&self.android_home).join("platform-tools")
     }
 
     pub fn sdk_version(&self) -> Result<source_props::Revision, source_props::Error> {
-        SourceProps::from_path(Path::new(self.sdk_root()).join("tools/source.properties"))
+        SourceProps::from_path(Path::new(self.android_home()).join("tools/source.properties"))
             .map(|props| props.pkg.revision)
     }
 }
@@ -115,8 +119,8 @@ impl ExplicitEnv for Env {
     fn explicit_env(&self) -> HashMap<String, OsString> {
         let mut envs = self.base.explicit_env();
         envs.insert(
-            "ANDROID_SDK_ROOT".into(),
-            self.sdk_root.as_os_str().to_os_string(),
+            "ANDROID_HOME".into(),
+            self.android_home.as_os_str().to_os_string(),
         );
         envs.insert(
             "NDK_HOME".into(),

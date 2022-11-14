@@ -39,7 +39,7 @@ const ADB_DEVICE_REGEX: &str = r"^([\S]{6,22})	device\b";
 
 pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, Error> {
     super::check_authorized(
-        bossy::Command::pure("adb")
+        bossy::Command::pure(env.platform_tools_path().join("adb"))
             .with_env_vars(env.explicit_env())
             .with_args(&["devices"])
             .run_and_wait_for_str(|raw_list| {

@@ -28,7 +28,7 @@ impl Emulator {
     }
 
     pub fn start(&self, env: &Env) -> bossy::Result<bossy::Handle> {
-        bossy::Command::impure(PathBuf::from(env.sdk_root()).join("emulator/emulator"))
+        bossy::Command::impure(PathBuf::from(env.android_home()).join("emulator/emulator"))
             .with_args(&["-avd", &self.name])
             .with_env_vars(env.explicit_env())
             .run()

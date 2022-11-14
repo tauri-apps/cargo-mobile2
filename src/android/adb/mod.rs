@@ -10,7 +10,7 @@ use std::str;
 use thiserror::Error;
 
 pub fn adb(env: &Env, serial_no: &str) -> bossy::Command {
-    bossy::Command::pure("adb")
+    bossy::Command::pure(env.platform_tools_path().join("adb"))
         .with_env_vars(env.explicit_env())
         .with_args(&["-s", serial_no])
 }
