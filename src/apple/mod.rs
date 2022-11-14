@@ -7,7 +7,7 @@ pub mod project;
 pub mod simctl;
 pub(crate) mod system_profile;
 pub mod target;
-pub(crate) mod teams;
+pub mod teams;
 mod version_number;
 
 use crate::util::{

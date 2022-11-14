@@ -80,14 +80,14 @@ impl Team {
             .map_err(FromX509Error::CommonNameMissing)?;
         let organization = get_x509_field(subj, "Organization", Nid::ORGANIZATIONNAME);
         let name = if let Ok(organization) = organization {
-            log::info!(
+            log::debug!(
                 "found cert {:?} with organization {:?}",
                 common_name,
                 organization
             );
             organization
         } else {
-            log::warn!(
+            log::debug!(
                 "found cert {:?} but failed to get organization; falling back to displaying common name",
                 common_name
             );
@@ -95,7 +95,7 @@ impl Team {
                 .captures(&common_name)
                 .map(|caps| caps[1].to_owned())
                 .unwrap_or_else(|| {
-                    log::warn!("regex failed to capture nice part of name in cert {:?}; falling back to displaying full name", common_name);
+                    log::debug!("regex failed to capture nice part of name in cert {:?}; falling back to displaying full name", common_name);
                     common_name.clone()
                 })
         };

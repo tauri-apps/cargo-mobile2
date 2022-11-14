@@ -293,7 +293,7 @@ impl Command {
     /// [`Command::run_and_wait`] and [`Command::run_and_wait_for_output`] are
     /// better picks.
     pub fn run(&mut self) -> Result<Handle> {
-        log::info!("running command {:?}", self.display);
+        log::trace!("running command {:?}", self.display);
         self.set_stdout(os_pipe::dup_stdout().unwrap());
         self.set_stderr(os_pipe::dup_stderr().unwrap());
         self.run_inner()
@@ -305,7 +305,7 @@ impl Command {
     /// stdout, and stderr to use [`Stdio::null`], so if you don't want that to
     /// happen, then you're screwed.
     pub fn run_and_detach(&mut self) -> Result<()> {
-        log::info!("running command {:?} and detaching", self.display);
+        log::trace!("running command {:?} and detaching", self.display);
         // This is pretty much lifted from the implementation in Alacritty:
         // https://github.com/alacritty/alacritty/blob/8bd2c13490f8cb6ad6b0c1104f9586b3554efea2/alacritty/src/daemon.rs
         #[cfg(unix)]
@@ -348,7 +348,7 @@ impl Command {
 
     /// Run the command and block until it exits.
     pub fn run_and_wait(&mut self) -> Result<ExitStatus> {
-        log::info!("running command {:?} and waiting for exit", self.display);
+        log::trace!("running command {:?} and waiting for exit", self.display);
         self.set_stdout(os_pipe::dup_stdout().unwrap());
         self.set_stderr(os_pipe::dup_stderr().unwrap());
         self.run_inner()?.wait()
@@ -358,7 +358,7 @@ impl Command {
     /// automatically set stdout and stderr to use [`Stdio::piped`], so if you
     /// don't want that to happen, then you're screwed.
     pub fn run_and_wait_for_output(&mut self) -> Result<Output> {
-        log::info!("running command {:?} and waiting for output", self.display);
+        log::trace!("running command {:?} and waiting for output", self.display);
         self.set_stdout_piped()
             .set_stderr_piped()
             .run_inner()?
