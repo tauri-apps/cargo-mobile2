@@ -43,7 +43,7 @@ impl Error {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Env {
     pub base: CoreEnv,
     android_home: PathBuf,

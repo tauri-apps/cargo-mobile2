@@ -167,7 +167,7 @@ impl Reportable for RequiredLibsError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Env {
     ndk_home: PathBuf,
 }
