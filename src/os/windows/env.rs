@@ -49,6 +49,10 @@ impl Env {
         self
     }
 
+    pub fn insert_env_var(&mut self, key: String, value: OsString) {
+        self.vars.insert(key, value);
+    }
+
     pub fn explicit_env_vars(mut self, vars: HashMap<String, OsString>) -> Self {
         self.vars.extend(vars);
         self
