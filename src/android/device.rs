@@ -345,6 +345,7 @@ impl<'a> Device<'a> {
         );
         adb::adb(env, &self.serial_no)
             .with_args(&["logcat", "-v", "color", "-s", &filter])
+            .with_args(config.logcat_filter_specs())
             .run()
             .map_err(RunError::LogcatFailed)
     }

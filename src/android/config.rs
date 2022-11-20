@@ -178,6 +178,8 @@ pub struct Raw {
     pub project_dir: Option<String>,
     pub no_default_features: Option<bool>,
     pub features: Option<Vec<String>>,
+    #[serde(default)]
+    pub logcat_filter_specs: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -188,6 +190,7 @@ pub struct Config {
     min_sdk_version: u32,
     vulkan_validation: bool,
     project_dir: PathBuf,
+    logcat_filter_specs: Vec<String>,
 }
 
 impl Config {
@@ -235,11 +238,16 @@ impl Config {
             min_sdk_version,
             vulkan_validation,
             project_dir,
+            logcat_filter_specs: raw.logcat_filter_specs,
         })
     }
 
     pub fn app(&self) -> &App {
         &self.app
+    }
+
+    pub fn logcat_filter_specs(&self) -> &[String] {
+        &self.logcat_filter_specs
     }
 
     pub fn so_name(&self) -> String {
