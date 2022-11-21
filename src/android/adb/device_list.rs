@@ -35,7 +35,7 @@ impl Reportable for Error {
     }
 }
 
-const ADB_DEVICE_REGEX: &str = r"^([\S]{6,22})	device\b";
+const ADB_DEVICE_REGEX: &str = r"^([\S]{6,100})	device\b";
 
 pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, Error> {
     super::check_authorized(
