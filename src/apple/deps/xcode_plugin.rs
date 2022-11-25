@@ -111,7 +111,7 @@ impl UuidStatus {
                 "Your Xcode UUID ({}, version {}.{}) isn't supported by `rust-xcode-plugin`; skipping installation",
                 self.uuid, xcode_version.0, xcode_version.1,
             ),
-            "You won't be able to set breakpoints in Xcode until this is resolved! Please open an issue at https://github.com/BrainiumLLC/rust-xcode-plugin",
+            "You won't be able to set breakpoints in Xcode until this is resolved! Please open an issue at https://github.com/tauri-apps/rust-xcode-plugin",
         ).print(&wrapper);
     }
 }
@@ -190,7 +190,7 @@ impl Context {
     // Step 2: update checkout
     fn update_repo(&self) -> Result<(), Error> {
         self.repo
-            .update("https://github.com/BrainiumLLC/rust-xcode-plugin.git")
+            .update("https://github.com/tauri-apps/rust-xcode-plugin.git")
             .map_err(Error::UpdateFailed)
     }
 
@@ -272,7 +272,7 @@ impl Context {
     }
 }
 
-// https://github.com/BrainiumLLC/rust-xcode-plugin.git
+// https://github.com/tauri-apps/rust-xcode-plugin.git
 pub fn install(
     wrapper: &TextWrapper,
     reinstall_deps: bool,
