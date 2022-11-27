@@ -165,7 +165,7 @@ pub fn open_file_with(
 
 // We use "sh" in order to access "command -v", as that is a bultin command on sh.
 // Linux does not require a binary "command" in path, so this seems the way to go.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn command_path(name: &str) -> bossy::Result<bossy::Output> {
     bossy::Command::impure("sh")
         .with_args(&["-c", &format!("command -v {}", name)])

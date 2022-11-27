@@ -25,7 +25,7 @@ pub fn host_tag() -> &'static str {
     "darwin-x86_64"
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android" ))]
 pub fn host_tag() -> &'static str {
     "linux-x86_64"
 }
