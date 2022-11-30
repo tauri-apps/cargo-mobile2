@@ -332,6 +332,7 @@ impl<'a> Device<'a> {
             .run_and_wait()
             .map_err(RunError::StartFailed)?;
         let _ = self.wake_screen(env);
+
         let filter = format!(
             "{}:{}",
             config.app().name(),
@@ -343,8 +344,30 @@ impl<'a> Device<'a> {
                 })
                 .logcat()
         );
-        adb::adb(env, &self.serial_no)
-            .with_args(&["logcat", "-v", "color", "-s", &filter])
+
+        let out = bossy::Command::pure(env.platform_tools_path().join("adb"))
+            .with_env_vars(env.explicit_env())
+            .with_args(&[
+                "shell",
+                "pidof",
+                "-s",
+                &format!(
+                    "{}.{}",
+                    config.app().reverse_domain(),
+                    config.app().name_snake(),
+                ),
+            ])
+            .run_and_wait_for_output()
+            .map_err(RunError::LogcatFailed)?;
+        let pid = out.stdout_str().map(|p| p.trim()).unwrap_or_default();
+        let mut logcat =
+            bossy::Command::pure(env.platform_tools_path().join("adb")).with_arg("logcat");
+        if !pid.is_empty() {
+            logcat = logcat.with_args(&["--pid", pid]);
+        }
+        logcat
+            .with_env_vars(env.explicit_env())
+            .with_args(&["-v", "color", "-s", &filter])
             .with_args(config.logcat_filter_specs())
             .run()
             .map_err(RunError::LogcatFailed)
