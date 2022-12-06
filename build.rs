@@ -1,3 +1,6 @@
+#[cfg(not(feature = "cli"))]
+fn main() {}
+
 #[cfg(feature = "cli")]
 fn main() {
     use std::path::PathBuf;

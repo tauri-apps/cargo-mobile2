@@ -2,6 +2,7 @@ pub mod aab;
 pub mod adb;
 pub mod apk;
 mod bundletool;
+#[cfg(feature = "cli")]
 pub mod cli;
 pub mod config;
 pub mod device;
