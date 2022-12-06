@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use cargo_mobile::{
+use tauri_mobile::{
     android::{cli::Input, NAME},
     util::cli::exec,
 };
