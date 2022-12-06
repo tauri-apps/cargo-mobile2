@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+use std::path::PathBuf;
+use structopt::StructOpt;
 use tauri_mobile::{
     doctor, init, update,
     util::{
@@ -10,8 +12,6 @@ use tauri_mobile::{
     },
     NAME,
 };
-use std::path::PathBuf;
-use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
