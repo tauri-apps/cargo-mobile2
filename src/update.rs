@@ -33,15 +33,15 @@ impl Display for Error {
         match self {
             Self::NoHomeDir(err) => write!(f, "{}", err),
             Self::StatusFailed(err) => {
-                write!(f, "Failed to check status of `cargo-mobile` repo: {}", err)
+                write!(f, "Failed to check status of `tauri-mobile` repo: {}", err)
             }
             Self::MarkerCreateFailed { path, cause } => {
                 write!(f, "Failed to create marker file at {:?}: {}", path, cause)
             }
-            Self::UpdateFailed(err) => write!(f, "Failed to update `cargo-mobile` repo: {}", err),
+            Self::UpdateFailed(err) => write!(f, "Failed to update `tauri-mobile` repo: {}", err),
             Self::InstallFailed(err) => write!(
                 f,
-                "Failed to install new version of `cargo-mobile`: {}",
+                "Failed to install new version of `tauri-mobile`: {}",
                 err
             ),
             Self::MarkerDeleteFailed { path, cause } => {
@@ -52,7 +52,7 @@ impl Display for Error {
 }
 
 pub(crate) fn cargo_mobile_repo() -> Result<Repo, util::NoHomeDir> {
-    Repo::checkouts_dir("cargo-mobile")
+    Repo::checkouts_dir("tauri-mobile")
 }
 
 pub(crate) fn updating_marker_path(repo: &Repo) -> PathBuf {
@@ -78,9 +78,9 @@ pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
             path: marker.to_owned(),
             cause,
         })?;
-        repo.update("https://github.com/BrainiumLLC/cargo-mobile")
+        repo.update("https://github.com/tauri-apps/tauri-mobile")
             .map_err(Error::UpdateFailed)?;
-        println!("Installing updated `cargo-mobile`...");
+        println!("Installing updated `tauri-mobile`...");
         bossy::Command::impure_parse("cargo install --force --path")
             .with_arg(repo.path())
             .with_parsed_args("--no-default-features --features")
@@ -95,9 +95,9 @@ pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
             cause,
         })?;
         log::info!("deleted marker file at {:?}", marker);
-        "installed new version of `cargo-mobile`"
+        "installed new version of `tauri-mobile`"
     } else {
-        "`cargo-mobile` is already up-to-date"
+        "`tauri-mobile` is already up-to-date"
     };
     let details = util::unwrap_either(
         repo.latest_subject()

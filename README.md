@@ -1,10 +1,10 @@
-# cargo-mobile
+# tauri-mobile
+
+*This project is a fork of [cargo-mobile](https://github.com/BrainiumLLC/cargo-mobile/).*
 
 *The answer to "how do I use Rust on iOS and Android?"*
 
-cargo-mobile takes care of generating Xcode and Android Studio project files, building and running on device, generating project boilerplate, and a few other things!
-
-Check out the [announcement post](https://dev.brainiumstudios.com/2020/11/24/cargo-mobile.html)!
+tauri-mobile takes care of generating Xcode and Android Studio project files, building and running on device, generating project boilerplate, and a few other things!
 
 ## Status
 
@@ -13,15 +13,16 @@ Everything here works and is already used internally! However, this hasn't seen 
 **Building for iOS is broken on Rust 1.46.0, 1.47.0, and 1.48.0!**
 
 Sorry for the inconvenience! This is resolved in Rust 1.49.0, so please use 1.49 or higher.
+
 ## Installation
 
 The build will probably take a bit, so feel free to go get a snack or something.
 
 ```bash
-cargo install --git https://github.com/tauri-apps/cargo-mobile
+cargo install --git https://github.com/tauri-apps/tauri-mobile
 ```
 
-cargo-mobile is currently supported on macOS, Linux and Windows. Note that it's not possible to target iOS on platforms other than macOS! You'll still get to target Android either way.
+tauri-mobile is currently supported on macOS, Linux and Windows. Note that it's not possible to target iOS on platforms other than macOS! You'll still get to target Android either way.
 
 You'll need to have Xcode and the Android SDK/NDK installed. Some of this will ideally be automated in the future, or at least we'll provide a helpful guide and diagnostics.
 
@@ -44,7 +45,6 @@ After some straightforward prompts, you'll be asked to select a template pack. T
 | name      | info                                  |
 | --------- | ------------------------------------- |
 | wry       | Minimal wry project |
-| tauri     | Minimal tauri project |
 
 **Template pack contribution is welcomed**;
 

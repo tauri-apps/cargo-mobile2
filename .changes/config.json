@@ -1,0 +1,18 @@
+{
+  "gitSiteUrl": "https://github.com/tauri-apps/tauri-mobile/",
+  "pkgManagers": {
+    "rust": {
+      "version": true,
+      "getPublishedVersion": "cargo search ${ pkg.pkg } --limit 1 | sed -nE 's/^[^\"]*\"//; s/\".*//1p' -",
+      "publish": [
+        "cargo publish"
+      ]
+    }
+  },
+  "packages": {
+    "tauri-mobile": {
+      "path": ".",
+      "manager": "rust"
+    }
+  }
+}

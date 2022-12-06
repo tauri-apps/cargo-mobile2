@@ -64,7 +64,7 @@ pub fn tools_dir() -> Result<PathBuf, NoHomeDir> {
 }
 
 pub fn temp_dir() -> PathBuf {
-    std::env::temp_dir().join("com.brainiumstudios.cargo-mobile")
+    std::env::temp_dir().join("com.brainiumstudios.tauri-mobile")
 }
 
 #[derive(Debug)]
@@ -232,30 +232,30 @@ mod test {
         // UNIX
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         case(
-            "/home/user/cargo-mobile-project/gen/android/cargo-mobile-project",
+            "/home/user/tauri-mobile-project/gen/android/tauri-mobile-project",
             "app/build/outputs/apk/arm64/debug/app-arm64-debug.apk",
-            "/home/user/cargo-mobile-project/gen/android/cargo-mobile-project/app/build/outputs/apk/arm64/debug/app-arm64-debug.apk"
+            "/home/user/tauri-mobile-project/gen/android/tauri-mobile-project/app/build/outputs/apk/arm64/debug/app-arm64-debug.apk"
         ),
         // UNIX but the second path contains root
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         case(
-            "/home/user/cargo-mobile-project/gen/android/cargo-mobile-project",
+            "/home/user/tauri-mobile-project/gen/android/tauri-mobile-project",
             "/home/other/project/gen/android/app/build/outputs/apk/arm64/debug/app-arm64-debug.apk",
             "/home/other/project/gen/android/app/build/outputs/apk/arm64/debug/app-arm64-debug.apk"
         ),
         // Windows UNC
         #[cfg(windows)]
         case(
-            "\\\\?\\C:\\Users\\user\\cargo-mobile-project\\gen\\android\\cargo-mobile-project",
+            "\\\\?\\C:\\Users\\user\\tauri-mobile-project\\gen\\android\\tauri-mobile-project",
             "app\\..\\app\\build\\outputs\\.\\apk\\arm64\\debug\\app-arm64-debug.apk",
-            "\\\\?\\C:\\Users\\user\\cargo-mobile-project\\gen\\android\\cargo-mobile-project\\app\\build\\outputs\\apk\\arm64\\debug\\app-arm64-debug.apk"
+            "\\\\?\\C:\\Users\\user\\tauri-mobile-project\\gen\\android\\tauri-mobile-project\\app\\build\\outputs\\apk\\arm64\\debug\\app-arm64-debug.apk"
         ),
         // Windows legacy
         #[cfg(windows)]
         case (
-            "D:\\Users\\user\\cargo-mobile-project\\gen\\android\\cargo-mobile-project",
+            "D:\\Users\\user\\tauri-mobile-project\\gen\\android\\tauri-mobile-project",
             "app\\build\\outputs\\apk\\arm64\\debug\\app-arm64-debug.apk",
-            "D:\\Users\\user\\cargo-mobile-project\\gen\\android\\cargo-mobile-project\\app\\build\\outputs\\apk\\arm64\\debug\\app-arm64-debug.apk"
+            "D:\\Users\\user\\tauri-mobile-project\\gen\\android\\tauri-mobile-project\\app\\build\\outputs\\apk\\arm64\\debug\\app-arm64-debug.apk"
         )
     )]
     fn test_prefix_path(root: impl AsRef<Path>, path: impl AsRef<Path>, result: &str) {

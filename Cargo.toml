@@ -1,15 +1,15 @@
 [package]
 name = "tauri-mobile"
-version = "0.1.0"
-authors = ["Brainium Studios LLC", "Francesca Lovebloom <francesca@brainiumstudios.com>"]
+version = "0.0.0"
+authors = ["Tauri Programme within The Commons Conservancy", "Brainium Studios LLC", "Francesca Lovebloom <francesca@brainiumstudios.com>"]
 edition = "2018"
 description = "Rust on mobile made easy!"
-documentation = "https://docs.rs/cargo-mobile"
-repository = "https://github.com/BrainiumLLC/cargo-mobile"
+documentation = "https://docs.rs/tauri-mobile"
+repository = "https://github.com/tauri-apps/tauri-mobile"
 readme = "README.md"
-keywords = ["cargo", "mobile", "ios", "android"]
+keywords = ["cargo", "mobile", "ios", "android", "tauri", "gui", "web-programming"]
 categories = ["development-tools::cargo-plugins"]
-license = "Apache-2.0/MIT"
+license = "Apache-2.0 OR MIT"
 
 [[bin]]
 name = "cargo-apple"
@@ -18,9 +18,9 @@ name = "cargo-apple"
 name = "cargo-android"
 
 [features]
-templates = ["hit"]
+cli = ["hit"]
 brainium = []
-default = ["templates"]
+default = ["cli"]
 
 [dependencies]
 handlebars = "3.3.0"

@@ -115,7 +115,7 @@ impl App {
                 .as_deref()
                 .unwrap_or(IMPLIED_TEMPLATE_PACK)
         };
-        let template_pack = if cfg!(feature = "templates") {
+        let template_pack = if cfg!(feature = "cli") {
             Pack::lookup_app(template_pack).map_err(Error::TemplatePackNotFound)?
         } else {
             Pack::Simple(Default::default())
