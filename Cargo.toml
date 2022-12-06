@@ -1,5 +1,5 @@
 [package]
-name = "cargo-mobile"
+name = "tauri-mobile"
 version = "0.1.0"
 authors = ["Brainium Studios LLC", "Francesca Lovebloom <francesca@brainiumstudios.com>"]
 edition = "2018"
@@ -10,6 +10,9 @@ readme = "README.md"
 keywords = ["cargo", "mobile", "ios", "android"]
 categories = ["development-tools::cargo-plugins"]
 license = "Apache-2.0/MIT"
+
+[lib]
+name = "cargo_mobile"
 
 [[bin]]
 name = "cargo-apple"
