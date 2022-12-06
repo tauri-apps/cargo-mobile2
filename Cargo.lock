@@ -103,48 +103,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37ccbd214614c6783386c1af30caf03192f17891059cecc394b4fb119e363de3"
 
 [[package]]
-name = "cargo-mobile"
-version = "0.1.0"
-dependencies = [
- "cocoa",
- "colored",
- "core-foundation",
- "deunicode",
- "dunce",
- "embed-resource",
- "english-numbers",
- "env_logger",
- "freedesktop_entry_parser",
- "handlebars",
- "heck 0.4.0",
- "hit",
- "home",
- "ignore",
- "indexmap",
- "java-properties",
- "lexical-core",
- "libc",
- "log",
- "objc",
- "objc_id",
- "once-cell-regex",
- "openssl",
- "os_pipe",
- "path_abs",
- "rstest",
- "serde",
- "serde_json",
- "simple_logger",
- "structopt",
- "textwrap",
- "thiserror",
- "toml",
- "ureq",
- "winapi",
- "windows",
-]
-
-[[package]]
 name = "cc"
 version = "1.0.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1113,6 +1071,48 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "tauri-mobile"
+version = "0.1.0"
+dependencies = [
+ "cocoa",
+ "colored",
+ "core-foundation",
+ "deunicode",
+ "dunce",
+ "embed-resource",
+ "english-numbers",
+ "env_logger",
+ "freedesktop_entry_parser",
+ "handlebars",
+ "heck 0.4.0",
+ "hit",
+ "home",
+ "ignore",
+ "indexmap",
+ "java-properties",
+ "lexical-core",
+ "libc",
+ "log",
+ "objc",
+ "objc_id",
+ "once-cell-regex",
+ "openssl",
+ "os_pipe",
+ "path_abs",
+ "rstest",
+ "serde",
+ "serde_json",
+ "simple_logger",
+ "structopt",
+ "textwrap",
+ "thiserror",
+ "toml",
+ "ureq",
+ "winapi",
+ "windows",
 ]
 
 [[package]]

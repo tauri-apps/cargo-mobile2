@@ -1,6 +1,8 @@
 #![forbid(unsafe_code)]
 
-use cargo_mobile::{
+use std::path::PathBuf;
+use structopt::StructOpt;
+use tauri_mobile::{
     doctor, init, update,
     util::{
         self,
@@ -10,8 +12,6 @@ use cargo_mobile::{
     },
     NAME,
 };
-use std::path::PathBuf;
-use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -77,12 +77,12 @@ pub enum Command {
         )
     )]
     #[cfg(target_os = "macos")]
-    Apple(cargo_mobile::apple::cli::Command),
+    Apple(tauri_mobile::apple::cli::Command),
     #[structopt(
         name = "android",
         about = "Android commands (tip: type less by running `cargo android` instead!)"
     )]
-    Android(cargo_mobile::android::cli::Command),
+    Android(tauri_mobile::android::cli::Command),
     #[structopt(
         name = "doctor",
         about = "Perform a check-up on your installation and environment"
@@ -104,8 +104,8 @@ pub enum Error {
     OpenFailed(util::OpenInEditorError),
     UpdateFailed(update::Error),
     #[cfg(target_os = "macos")]
-    AppleFailed(cargo_mobile::apple::cli::Error),
-    AndroidFailed(cargo_mobile::android::cli::Error),
+    AppleFailed(tauri_mobile::apple::cli::Error),
+    AndroidFailed(tauri_mobile::android::cli::Error),
     DoctorFailed(doctor::Unrecoverable),
 }
 
@@ -206,10 +206,10 @@ impl Exec for Input {
                 Ok(())
             }
             #[cfg(target_os = "macos")]
-            Command::Apple(command) => cargo_mobile::apple::cli::Input::new(flags, command)
+            Command::Apple(command) => tauri_mobile::apple::cli::Input::new(flags, command)
                 .exec(wrapper)
                 .map_err(Error::AppleFailed),
-            Command::Android(command) => cargo_mobile::android::cli::Input::new(flags, command)
+            Command::Android(command) => tauri_mobile::android::cli::Input::new(flags, command)
                 .exec(wrapper)
                 .map_err(Error::AndroidFailed),
             Command::Doctor => doctor::exec(wrapper).map_err(Error::DoctorFailed),
