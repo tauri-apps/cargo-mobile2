@@ -345,20 +345,25 @@ impl<'a> Device<'a> {
                 .logcat()
         );
 
-        let out = bossy::Command::pure(env.platform_tools_path().join("adb"))
-            .with_env_vars(env.explicit_env())
-            .with_args(&[
-                "shell",
-                "pidof",
-                "-s",
-                &format!(
-                    "{}.{}",
-                    config.app().reverse_domain(),
-                    config.app().name_snake(),
-                ),
-            ])
-            .run_and_wait_for_output()
-            .map_err(RunError::LogcatFailed)?;
+        let out = loop {
+            if let Ok(out) = bossy::Command::pure(env.platform_tools_path().join("adb"))
+                .with_env_vars(env.explicit_env())
+                .with_args(&[
+                    "shell",
+                    "pidof",
+                    "-s",
+                    &format!(
+                        "{}.{}",
+                        config.app().reverse_domain(),
+                        config.app().name_snake(),
+                    ),
+                ])
+                .run_and_wait_for_output()
+            {
+                break out;
+            }
+            sleep(Duration::from_secs(2));
+        };
         let pid = out.stdout_str().map(|p| p.trim()).unwrap_or_default();
         let mut logcat =
             bossy::Command::pure(env.platform_tools_path().join("adb")).with_arg("logcat");
