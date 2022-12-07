@@ -16,9 +16,7 @@ keywords = [
   "mobile",
   "ios",
   "android",
-  "tauri",
-  "gui",
-  "web-programming"
+  "tauri"
 ]
 categories = [ "development-tools::cargo-plugins" ]
 license = "Apache-2.0 OR MIT"
