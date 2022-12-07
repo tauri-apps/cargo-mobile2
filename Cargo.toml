@@ -1,6 +1,6 @@
 [package]
 name = "tauri-mobile"
-version = "0.0.0"
+version = "0.1.0"
 authors = [
   "Tauri Programme within The Commons Conservancy",
   "Brainium Studios LLC",
@@ -32,7 +32,18 @@ name = "cargo-android"
 required-features = [ "cli" ]
 
 [features]
-cli = [ "hit", "home", "dunce", "handlebars", "log", "serde", "serde_json", "thiserror", "structopt", "env_logger" ]
+cli = [
+  "hit",
+  "home",
+  "dunce",
+  "handlebars",
+  "log",
+  "serde",
+  "serde_json",
+  "thiserror",
+  "structopt",
+  "env_logger"
+]
 brainium = [ ]
 default = [ "cli" ]
 
