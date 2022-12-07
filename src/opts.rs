@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "cli")]
 use structopt::clap::arg_enum;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
@@ -82,6 +83,18 @@ impl Profile {
     }
 }
 
+/// Android device logging filter level, used as an argument for run
+#[cfg(not(feature = "cli"))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum FilterLevel {
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Verbose,
+}
+
+#[cfg(feature = "cli")]
 arg_enum! {
     /// Android device logging filter level, used as an argument for run
     #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]

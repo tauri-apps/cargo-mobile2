@@ -1,3 +1,4 @@
+#![cfg(feature = "cli")]
 #![forbid(unsafe_code)]
 
 #[cfg(target_os = "macos")]

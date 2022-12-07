@@ -1,26 +1,40 @@
 [package]
 name = "tauri-mobile"
-version = "0.1.0"
-authors = ["Brainium Studios LLC", "Francesca Lovebloom <francesca@brainiumstudios.com>"]
+version = "0.0.0"
+authors = [
+  "Tauri Programme within The Commons Conservancy",
+  "Brainium Studios LLC",
+  "Francesca Lovebloom <francesca@brainiumstudios.com>"
+]
 edition = "2018"
 description = "Rust on mobile made easy!"
-documentation = "https://docs.rs/cargo-mobile"
-repository = "https://github.com/BrainiumLLC/cargo-mobile"
+documentation = "https://docs.rs/tauri-mobile"
+repository = "https://github.com/tauri-apps/tauri-mobile"
 readme = "README.md"
-keywords = ["cargo", "mobile", "ios", "android"]
-categories = ["development-tools::cargo-plugins"]
-license = "Apache-2.0/MIT"
+keywords = [
+  "cargo",
+  "mobile",
+  "ios",
+  "android",
+  "tauri",
+  "gui",
+  "web-programming"
+]
+categories = [ "development-tools::cargo-plugins" ]
+license = "Apache-2.0 OR MIT"
 
 [[bin]]
 name = "cargo-apple"
+required-features = [ "cli" ]
 
 [[bin]]
 name = "cargo-android"
+required-features = [ "cli" ]
 
 [features]
-templates = ["hit"]
-brainium = []
-default = ["templates"]
+cli = [ "hit", "home", "dunce", "handlebars", "log", "serde", "serde_json", "thiserror", "structopt", "env_logger" ]
+brainium = [ ]
+default = [ "cli" ]
 
 [dependencies]
 handlebars = "3.3.0"
@@ -29,7 +43,7 @@ colored = "1.9.3"
 deunicode = "1.1.1"
 dunce = "1.0.2"
 english-numbers = "0.3.3"
-env_logger = "0.7.1"
+env_logger = { version = "0.7.1", optional = true }
 heck = "0.4.0"
 home = "0.5.3"
 ignore = "0.4.16"
@@ -38,64 +52,62 @@ java-properties = { version = "1.2.0" }
 log = "0.4.8"
 once-cell-regex = "0.2.1"
 path_abs = "0.5.0"
-serde = { version = "1.0.105", features = ["derive"] }
-structopt = "0.3.12"
-textwrap = { version = "0.11.0", features = ["term_size"] }
+serde = { version = "1.0.105", features = [ "derive" ] }
+structopt = { version = "0.3.12", optional = true }
+textwrap = { version = "0.11.0", features = [ "term_size" ] }
 thiserror = "1.0.20"
-toml = { version = "0.5.6", features = ["preserve_order"] }
+toml = { version = "0.5.6", features = [ "preserve_order" ] }
 os_pipe = "1"
 
 [dev-dependencies]
 rstest = "0.12"
 simple_logger = "1.11.0"
 
-[target.'cfg(target_os = "macos")'.dependencies]
+[target."cfg(target_os = \"macos\")".dependencies]
 cocoa = "0.20.0"
 core-foundation = "0.7.0"
 openssl = "0.10.28"
 objc = "0.2.7"
 objc_id = "0.1.1"
 
-[target.'cfg(not(target_os = "macos"))'.dependencies]
+[target."cfg(not(target_os = \"macos\"))".dependencies]
 ureq = "2.4.0"
 
-[target.'cfg(target_os = "linux")'.dependencies]
+[target."cfg(target_os = \"linux\")".dependencies]
 freedesktop_entry_parser = "1.1"
 lexical-core = "0.7.6"
 
-[target.'cfg(unix)'.dependencies]
+[target."cfg(unix)".dependencies]
 libc = "0.2.81"
 
-[target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3.9", features = ["winbase"] }
+[target."cfg(windows)".dependencies]
+winapi = { version = "0.3.9", features = [ "winbase" ] }
 
-[target.'cfg(windows)'.dependencies.windows]
-version = "0.39.0"
-features = [
-    "Win32_Foundation",
-    "Win32_Security",
-    "Win32_Storage_FileSystem",
-    "Win32_System_Diagnostics_Debug",
-    "Win32_System_IO",
-    "Win32_System_Ioctl",
-    "Win32_System_Memory",
-    "Win32_System_Registry",
-    "Win32_System_SystemInformation",
-    "Win32_System_SystemServices",
-    "Win32_UI_Shell",
+  [target."cfg(windows)".dependencies.windows]
+  version = "0.39.0"
+  features = [
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_Storage_FileSystem",
+  "Win32_System_Diagnostics_Debug",
+  "Win32_System_IO",
+  "Win32_System_Ioctl",
+  "Win32_System_Memory",
+  "Win32_System_Registry",
+  "Win32_System_SystemInformation",
+  "Win32_System_SystemServices",
+  "Win32_UI_Shell"
 ]
 
+[target."cfg(windows)".build-dependencies]
+embed-resource = "1.6.4"
 
 [build-dependencies]
 hit = { version = "0.2.0", optional = true }
-home = "0.5.3"
-# bicycle
-dunce = "1.0.2"
-handlebars = "3.3.0"
-log = "0.4.11"
-serde = "1.0.114"
-serde_json = "1.0.57"
-thiserror = "1.0.20"
-
-[target.'cfg(windows)'.build-dependencies]
-embed-resource = "1.6.4"
+home = { version = "0.5.3", optional = true }
+dunce = { version = "1.0.2", optional = true }
+handlebars = { version = "3.3.0", optional = true }
+log = { version = "0.4.11", optional = true }
+serde = { version = "1.0.114", optional = true }
+serde_json = { version = "1.0.57", optional = true }
+thiserror = { version = "1.0.20", optional = true }

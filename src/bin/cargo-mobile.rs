@@ -1,3 +1,4 @@
+#![cfg(feature = "cli")]
 #![forbid(unsafe_code)]
 
 use std::path::PathBuf;
@@ -64,7 +65,7 @@ pub enum Command {
     },
     #[structopt(name = "open", about = "Open project in default code editor")]
     Open,
-    #[structopt(name = "update", about = "Update `cargo-mobile`")]
+    #[structopt(name = "update", about = "Update `tauri-mobile`")]
     Update {
         #[structopt(long = "init", help = "Regenerate project if update succeeds")]
         init: bool,
@@ -123,7 +124,7 @@ impl Reportable for Error {
             Self::OpenFailed(err) => {
                 Report::error("Failed to open project in default code editor", err)
             }
-            Self::UpdateFailed(err) => Report::error("Failed to update `cargo-mobile`", err),
+            Self::UpdateFailed(err) => Report::error("Failed to update `tauri-mobile`", err),
             #[cfg(target_os = "macos")]
             Self::AppleFailed(err) => err.report(),
             Self::AndroidFailed(err) => err.report(),

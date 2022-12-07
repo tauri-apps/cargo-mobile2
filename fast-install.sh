@@ -23,7 +23,7 @@ function copy {
     cp $cargoTargetDir/debug/cargo-$1 $cargoHome/bin/cargo-$1
 }
 
-cargo build -p cargo-mobile $@
+cargo build -p tauri-mobile $@
 copy "android"
 copy "apple"
 copy "mobile"

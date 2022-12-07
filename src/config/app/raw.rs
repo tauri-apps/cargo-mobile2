@@ -34,8 +34,8 @@ fn default_domain(_wrapper: &TextWrapper) -> Result<Option<String>, DefaultDomai
             #[cfg(not(feature = "brainium"))]
             if domain == "brainiumstudios.com" {
                 crate::util::cli::Report::action_request(
-                    "You have a Brainium email address, but you're using a non-Brainium installation of cargo-mobile!",
-                    "If that's not intentional, run `cargo install --force --git https://github.com/BrainiumLLC/cargo-mobile --features brainium`",
+                    "You have a Brainium email address, but you're using a non-Brainium installation of tauri-mobile!",
+                    "If that's not intentional, run `cargo install --force --git https://github.com/tauri-apps/tauri-mobile --features brainium`",
                 ).print(_wrapper);
             }
             Some(domain.to_owned())
