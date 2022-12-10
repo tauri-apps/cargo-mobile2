@@ -43,6 +43,7 @@ cli = [
   "env_logger"
 ]
 brainium = [ ]
+openssl-vendored = [ "openssl/vendored" ]
 default = [ "cli" ]
 
 [dependencies]
