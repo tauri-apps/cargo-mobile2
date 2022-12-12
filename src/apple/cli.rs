@@ -480,18 +480,23 @@ impl Exec for Input {
                         .map_err(Error::CompileLibFailed)?;
 
                     // Copy static lib .a to Xcode Project
-                    std::fs::create_dir_all(format!("Sources/{rust_triple}/{}", profile.as_str()))
+                    if rust_triple == "aarch64-apple-ios" {
+                        std::fs::create_dir_all(format!(
+                            "Sources/{rust_triple}/{}",
+                            profile.as_str()
+                        ))
                         .map_err(Error::CopyLibraryFailed)?;
-                    let lib_location = format!(
-                        "{rust_triple}/{}/lib{}.a",
-                        profile.as_str(),
-                        AsSnakeCase(config.app().name())
-                    );
-                    std::fs::copy(
-                        format!("../../target/{lib_location}"),
-                        format!("Sources/{lib_location}"),
-                    )
-                    .map_err(Error::CopyLibraryFailed)?;
+                        let lib_location = format!(
+                            "{rust_triple}/{}/lib{}.a",
+                            profile.as_str(),
+                            AsSnakeCase(config.app().name())
+                        );
+                        std::fs::copy(
+                            format!("../../target/{lib_location}"),
+                            format!("Sources/{lib_location}"),
+                        )
+                        .map_err(Error::CopyLibraryFailed)?;
+                    }
                 }
                 Ok(())
             }),
