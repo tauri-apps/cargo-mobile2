@@ -107,7 +107,7 @@ fn main() -> Result<()> {
                     unimplemented!();
                 };
 
-                Ok(Response::builder().header(CONTENT_TYPE, meta).body(data)?)
+                Ok(Response::builder().header(CONTENT_TYPE, meta).body(data.into())?)
             }
 
             #[cfg(target_os = "android")]
