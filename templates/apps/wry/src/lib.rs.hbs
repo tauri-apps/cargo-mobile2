@@ -112,7 +112,7 @@ fn main() -> Result<()> {
 
             #[cfg(target_os = "android")]
             {
-                Ok(Response::builder().body(vec![])?)
+                Ok(Response::builder().body(Vec::new().into())?)
             }
         })
         .build()?;
