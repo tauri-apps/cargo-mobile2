@@ -18,6 +18,7 @@ use thiserror::Error;
 static PACKAGES: &[PackageSpec] = &[
     PackageSpec::brew("xcodegen"),
     PackageSpec::brew("ios-deploy"),
+    PackageSpec::brew("libimobiledevice").with_bin_name("idevicesyslog"),
     PackageSpec::brew_or_gem("cocoapods").with_bin_name("pod"),
 ];
 
