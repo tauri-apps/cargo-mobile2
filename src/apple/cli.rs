@@ -354,7 +354,7 @@ impl Exec for Input {
                     .run(config, &env, noise_level, non_interactive, profile)
                     .and_then(|h| {
                         h.wait().map(|_| ()).map_err(|e| {
-                            RunError::DeployFailed(ios_deploy::RunError::DeployFailed(e))
+                            RunError::DeployFailed(ios_deploy::RunAndDebugError::DeployFailed(e))
                         })
                     })
                     .map_err(Error::RunFailed)

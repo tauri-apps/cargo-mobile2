@@ -28,7 +28,7 @@ pub enum RunError {
     #[error("Failed to unzip archive: {0}")]
     UnzipFailed(bossy::Error),
     #[error(transparent)]
-    DeployFailed(ios_deploy::RunError),
+    DeployFailed(ios_deploy::RunAndDebugError),
     #[error(transparent)]
     SimulatorDeployFailed(simctl::RunError),
 }
@@ -138,7 +138,8 @@ impl<'a> Device<'a> {
                 .run_and_wait()
                 .map_err(RunError::UnzipFailed)?;
 
-            ios_deploy::run(config, env, non_interactive, &self.id).map_err(RunError::DeployFailed)
+            ios_deploy::run_and_debug(config, env, non_interactive, &self.id)
+                .map_err(RunError::DeployFailed)
         }
     }
 }
