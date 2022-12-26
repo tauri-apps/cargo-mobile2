@@ -24,6 +24,7 @@ use crate::{
         prompt,
     },
 };
+use heck::AsSnakeCase;
 use std::{collections::HashMap, ffi::OsStr, path::PathBuf};
 use structopt::{clap::AppSettings, StructOpt};
 
@@ -174,6 +175,7 @@ pub enum Error {
     ArchInvalid { arch: String },
     CompileLibFailed(CompileLibError),
     PodCommandFailed(bossy::Error),
+    CopyLibraryFailed(std::io::Error),
 }
 
 impl Reportable for Error {
@@ -217,6 +219,7 @@ impl Reportable for Error {
             ),
             Self::CompileLibFailed(err) => err.report(),
             Self::PodCommandFailed(err) => Report::error("pod command failed", err),
+            Self::CopyLibraryFailed(err) => Report::error("Failed to copy static library to Xcode Project", err),
         }
     }
 }
@@ -440,9 +443,9 @@ impl Exec for Input {
 
                 for arch in arches {
                     // Set target-specific flags
-                    let triple = match arch.as_str() {
-                        "arm64" => "aarch64_apple_ios",
-                        "x86_64" => "x86_64_apple_ios",
+                    let (triple, rust_triple) = match arch.as_str() {
+                        "arm64" => ("aarch64_apple_ios", "aarch64-apple-ios"),
+                        "x86_64" => ("x86_64_apple_ios", "x86_64-apple-ios"),
                         _ => return Err(Error::ArchInvalid { arch }),
                     };
                     let cflags = format!("CFLAGS_{}", triple);
@@ -463,6 +466,7 @@ impl Exec for Input {
                             arch: arch.to_owned(),
                         })?
                     };
+
                     target
                         .compile_lib(
                             config,
@@ -474,6 +478,25 @@ impl Exec for Input {
                             target_env,
                         )
                         .map_err(Error::CompileLibFailed)?;
+
+                    // Copy static lib .a to Xcode Project
+                    if rust_triple == "aarch64-apple-ios" {
+                        std::fs::create_dir_all(format!(
+                            "Sources/{rust_triple}/{}",
+                            profile.as_str()
+                        ))
+                        .map_err(Error::CopyLibraryFailed)?;
+                        let lib_location = format!(
+                            "{rust_triple}/{}/lib{}.a",
+                            profile.as_str(),
+                            AsSnakeCase(config.app().name())
+                        );
+                        std::fs::copy(
+                            format!("../../target/{lib_location}"),
+                            format!("Sources/{lib_location}"),
+                        )
+                        .map_err(Error::CopyLibraryFailed)?;
+                    }
                 }
                 Ok(())
             }),
