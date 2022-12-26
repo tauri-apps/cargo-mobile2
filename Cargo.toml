@@ -1,6 +1,6 @@
 [package]
 name = "tauri-mobile"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
   "Tauri Programme within The Commons Conservancy",
   "Brainium Studios LLC",
@@ -11,13 +11,7 @@ description = "Rust on mobile made easy!"
 documentation = "https://docs.rs/tauri-mobile"
 repository = "https://github.com/tauri-apps/tauri-mobile"
 readme = "README.md"
-keywords = [
-  "cargo",
-  "mobile",
-  "ios",
-  "android",
-  "tauri"
-]
+keywords = [ "cargo", "mobile", "ios", "android", "tauri" ]
 categories = [ "development-tools::cargo-plugins" ]
 license = "Apache-2.0 OR MIT"
 
