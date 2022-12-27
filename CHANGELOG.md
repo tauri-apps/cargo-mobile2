@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.1.2]
+
+- Fix `android_binding!` macro usage in the `wry` template.
+  - [fd68c94](https://github.com/tauri-apps/tauri-mobile/commit/fd68c9435cdac5d591e22ff92ec2b7d36f07d8a7) fix: fix android_binding! usage in wry template on 2022-12-27
+
 ## \[0.1.1]
 
 - Show all application logs on iOS noninteractive mode.
