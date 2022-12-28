@@ -22,12 +22,14 @@ struct DeviceInfo {
 #[serde(tag = "Event")]
 enum Event {
     #[serde(rename_all = "PascalCase")]
+    #[allow(dead_code)]
     BundleCopy {
         percent: u32,
         overall_percent: u32,
         path: PathBuf,
     },
     #[serde(rename_all = "PascalCase")]
+    #[allow(dead_code)]
     BundleInstall {
         percent: u32,
         overall_percent: u32,
@@ -36,6 +38,7 @@ enum Event {
     #[serde(rename_all = "PascalCase")]
     DeviceDetected { device: DeviceInfo },
     #[serde(rename_all = "PascalCase")]
+    #[allow(dead_code)]
     Error { code: u32, status: String },
     #[serde(other)]
     Unknown,

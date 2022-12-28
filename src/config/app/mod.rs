@@ -6,11 +6,16 @@ mod raw;
 pub use self::raw::*;
 
 use crate::{
+    opts::Profile,
     templating::{self, Pack},
     util::{self, cli::Report},
 };
 use serde::Serialize;
-use std::path::{Path, PathBuf};
+use std::{
+    fmt::Debug,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 use thiserror::Error;
 
 pub static KEY: &str = "app";
@@ -52,7 +57,7 @@ impl Error {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct App {
     root_dir: PathBuf,
@@ -62,6 +67,21 @@ pub struct App {
     asset_dir: PathBuf,
     #[serde(skip)]
     template_pack: Pack,
+    #[serde(skip)]
+    target_dir_resolver: Option<Arc<Box<dyn Fn(&str, Profile) -> PathBuf>>>,
+}
+
+impl Debug for App {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("App")
+            .field("root_dir", &self.root_dir)
+            .field("name", &self.name)
+            .field("stylized_name", &self.stylized_name)
+            .field("domain", &self.domain)
+            .field("asset_dir", &self.asset_dir)
+            .field("template_pack", &self.template_pack)
+            .finish()
+    }
 }
 
 impl App {
@@ -128,11 +148,29 @@ impl App {
             domain,
             asset_dir,
             template_pack,
+            target_dir_resolver: None,
         })
+    }
+
+    pub fn with_target_dir_resolver<F: Fn(&str, Profile) -> PathBuf + 'static>(
+        mut self,
+        resolver: F,
+    ) -> Self {
+        self.target_dir_resolver
+            .replace(Arc::new(Box::new(resolver)));
+        self
     }
 
     pub fn root_dir(&self) -> &Path {
         &self.root_dir
+    }
+
+    pub fn target_dir(&self, triple: &str, profile: Profile) -> PathBuf {
+        if let Some(resolver) = &self.target_dir_resolver {
+            resolver(triple, profile)
+        } else {
+            self.prefix_path(format!("target/{}/{}", triple, profile.as_str()))
+        }
     }
 
     pub fn prefix_path(&self, path: impl AsRef<Path>) -> PathBuf {
