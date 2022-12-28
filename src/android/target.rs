@@ -306,12 +306,11 @@ impl<'a> Target<'a> {
         let jnilibs =
             JniLibs::create(config, *self).map_err(SymlinkLibsError::JniLibsCreationFailed)?;
 
-        let src = config.app().prefix_path(format!(
-            "target/{}/{}/{}",
-            &self.triple,
-            profile.as_str(),
-            config.so_name(),
-        ));
+        let src = config
+            .app()
+            .target_dir(&self.triple, profile)
+            .join(config.so_name());
+
         jnilibs
             .symlink_lib(&src)
             .map_err(SymlinkLibsError::SymlinkFailed)?;
