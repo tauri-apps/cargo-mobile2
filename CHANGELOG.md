@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.1.4]
+
+- Improve error message for missing library artifact.
+  - [807861a](https://github.com/tauri-apps/tauri-mobile/commit/807861acfedf50e31086db62e56d296a62638194) feat: validate library artifact existence on 2022-12-28
+
 ## \[0.1.3]
 
 - Allow specifying an app target dir resolver via `config::App::with_target_dir_resolver`.
