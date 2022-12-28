@@ -176,6 +176,7 @@ pub enum Error {
     CompileLibFailed(CompileLibError),
     PodCommandFailed(bossy::Error),
     CopyLibraryFailed(std::io::Error),
+    LibNotFound { path: PathBuf },
 }
 
 impl Reportable for Error {
@@ -220,6 +221,7 @@ impl Reportable for Error {
             Self::CompileLibFailed(err) => err.report(),
             Self::PodCommandFailed(err) => Report::error("pod command failed", err),
             Self::CopyLibraryFailed(err) => Report::error("Failed to copy static library to Xcode Project", err),
+            Self::LibNotFound { path } => Report::error("Library artifact not found", format!("Library not found at {}. Make sure your Cargo.toml file has a [lib] block with `crate-type = [\"staticlib\", \"cdylib\", \"rlib\"]`", path.display())),
         }
     }
 }
@@ -479,6 +481,17 @@ impl Exec for Input {
                         )
                         .map_err(Error::CompileLibFailed)?;
 
+                    let lib_location = format!(
+                        "{rust_triple}/{}/lib{}.a",
+                        profile.as_str(),
+                        AsSnakeCase(config.app().name())
+                    );
+                    let lib_path = PathBuf::from(format!("../../target/{lib_location}"));
+
+                    if !lib_path.exists() {
+                        return Err(Error::LibNotFound { path: lib_path });
+                    }
+
                     // Copy static lib .a to Xcode Project
                     if rust_triple == "aarch64-apple-ios" {
                         std::fs::create_dir_all(format!(
@@ -486,16 +499,9 @@ impl Exec for Input {
                             profile.as_str()
                         ))
                         .map_err(Error::CopyLibraryFailed)?;
-                        let lib_location = format!(
-                            "{rust_triple}/{}/lib{}.a",
-                            profile.as_str(),
-                            AsSnakeCase(config.app().name())
-                        );
-                        std::fs::copy(
-                            format!("../../target/{lib_location}"),
-                            format!("Sources/{lib_location}"),
-                        )
-                        .map_err(Error::CopyLibraryFailed)?;
+
+                        std::fs::copy(lib_path, format!("Sources/{lib_location}"))
+                            .map_err(Error::CopyLibraryFailed)?;
                     }
                 }
                 Ok(())

@@ -72,6 +72,8 @@ pub enum SymlinkLibsError {
     RequiredLibsFailed(ndk::RequiredLibsError),
     #[error("Failed to locate \"libc++_shared.so\": {0}")]
     LibcxxSharedPathFailed(ndk::MissingToolError),
+    #[error("Library artifact not found at {path}. Make sure your Cargo.toml file has a [lib] block with `crate-type = [\"staticlib\", \"cdylib\", \"rlib\"]`")]
+    LibNotFound { path: PathBuf },
 }
 
 impl Reportable for SymlinkLibsError {
@@ -310,6 +312,10 @@ impl<'a> Target<'a> {
             .app()
             .target_dir(&self.triple, profile)
             .join(config.so_name());
+
+        if !src.exists() {
+            return Err(SymlinkLibsError::LibNotFound { path: src });
+        }
 
         jnilibs
             .symlink_lib(&src)
