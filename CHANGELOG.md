@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.1.3]
+
+- Allow specifying an app target dir resolver via `config::App::with_target_dir_resolver`.
+  - [74c150a](https://github.com/tauri-apps/tauri-mobile/commit/74c150a7ad84db516fa39a6e9c7a4454de1d5d83) feat: allow setting a custom target dir resolver ([#68](https://github.com/tauri-apps/tauri-mobile/pull/68)) on 2022-12-28
+
 ## \[0.1.2]
 
 - Fix `android_binding!` macro usage in the `wry` template.
