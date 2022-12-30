@@ -24,8 +24,8 @@ app-permissions = [ "android.permission.INTERNET" ]
 app-theme-parent = "Theme.MaterialComponents.DayNight.DarkActionBar"
 
 [package.metadata.cargo-android.env-vars]
-WRY_ANDROID_REVERSED_DOMAIN = "{{reverse-domain app.domain}}"
-WRY_ANDROID_APP_NAME_SNAKE_CASE = "{{snake-case app.name}}"
+WRY_ANDROID_PACKAGE = "{{reverse-domain app.domain}}"
+WRY_ANDROID_LIBRARY = "{{snake-case app.name}}"
 WRY_ANDROID_KOTLIN_FILES_OUT_DIR = "<android-project-dir>/app/src/main/kotlin/{{dot-to-slash (reverse-domain app.domain)}}"
 
 [package.metadata.cargo-apple.ios]
