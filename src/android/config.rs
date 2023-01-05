@@ -251,7 +251,7 @@ impl Config {
     }
 
     pub fn so_name(&self) -> String {
-        format!("lib{}.so", self.app().name_snake())
+        format!("lib{}.so", self.app().lib_name())
     }
 
     pub fn min_sdk_version(&self) -> u32 {
@@ -261,7 +261,7 @@ impl Config {
     pub fn project_dir(&self) -> PathBuf {
         self.app
             .prefix_path(&self.project_dir)
-            .join(self.app().name())
+            .join(self.app().name_snake())
     }
 
     pub fn project_dir_exists(&self) -> bool {

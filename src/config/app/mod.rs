@@ -1,5 +1,6 @@
 mod common_email_providers;
 pub mod domain;
+pub mod lib_name;
 pub mod name;
 mod raw;
 
@@ -32,6 +33,8 @@ pub static DEFAULT_TEMPLATE_PACK: &str = if cfg!(feature = "brainium") {
 pub enum Error {
     #[error("app.name invalid: {0}")]
     NameInvalid(name::Invalid),
+    #[error("app.lib_name invalid: {0}")]
+    LibNameInvalid(lib_name::Invalid),
     #[error("`app.domain` {domain} isn't valid: {cause}")]
     DomainInvalid {
         domain: String,
@@ -62,6 +65,7 @@ impl Error {
 pub struct App {
     root_dir: PathBuf,
     name: String,
+    lib_name: Option<String>,
     stylized_name: String,
     domain: String,
     asset_dir: PathBuf,
@@ -89,6 +93,11 @@ impl App {
         assert!(root_dir.is_absolute(), "root must be absolute");
 
         let name = name::validate(raw.name).map_err(Error::NameInvalid)?;
+
+        let lib_name = raw
+            .lib_name
+            .map(|n| lib_name::validate(n).map_err(Error::LibNameInvalid))
+            .transpose()?;
 
         let stylized_name = raw.stylized_name.unwrap_or_else(|| name.clone());
 
@@ -144,6 +153,7 @@ impl App {
         Ok(Self {
             root_dir,
             name,
+            lib_name,
             stylized_name,
             domain,
             asset_dir,
@@ -188,6 +198,13 @@ impl App {
     pub fn name_snake(&self) -> String {
         use heck::ToSnekCase as _;
         self.name().to_snek_case()
+    }
+
+    pub fn lib_name(&self) -> String {
+        use heck::ToSnekCase as _;
+        self.lib_name
+            .clone()
+            .unwrap_or_else(|| self.name().to_snek_case())
     }
 
     pub fn stylized_name(&self) -> &str {

@@ -1,5 +1,5 @@
 use crate::{bossy, env::ExplicitEnv};
-use std::path::PathBuf;
+use std::{collections::HashMap, ffi::OsString, path::PathBuf};
 
 #[derive(Debug)]
 pub struct CargoCommand<'a> {
@@ -117,5 +117,17 @@ impl<'a> CargoCommand<'a> {
 
     pub fn into_command_pure(self, env: &impl ExplicitEnv) -> bossy::Command {
         self.into_command_inner(bossy::Command::pure("cargo").with_env_vars(env.explicit_env()))
+            .with_env_vars(explicit_cargo_env())
     }
+}
+
+fn explicit_cargo_env() -> HashMap<String, OsString> {
+    let mut vars = HashMap::new();
+    if let Some(target_dir) = std::env::var_os("CARGO_TARGET_DIR") {
+        vars.insert("CARGO_TARGET_DIR".into(), target_dir);
+    }
+    if let Some(target_dir) = std::env::var_os("CARGO_BUILD_TARGET_DIR") {
+        vars.insert("CARGO_TARGET_DIR".into(), target_dir);
+    }
+    vars
 }

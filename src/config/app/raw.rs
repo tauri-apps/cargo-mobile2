@@ -143,6 +143,7 @@ impl Display for PromptError {
 #[serde(rename_all = "kebab-case")]
 pub struct Raw {
     pub name: String,
+    pub lib_name: Option<String>,
     pub stylized_name: Option<String>,
     pub domain: String,
     pub asset_dir: Option<String>,
@@ -154,6 +155,7 @@ impl Raw {
         let defaults = Defaults::new(wrapper).map_err(DetectError::DefaultsFailed)?;
         Ok(Self {
             name: defaults.name.ok_or_else(|| DetectError::NameNotDetected)?,
+            lib_name: None,
             stylized_name: Some(defaults.stylized_name),
             domain: defaults.domain,
             asset_dir: None,
@@ -171,6 +173,7 @@ impl Raw {
             .filter(|pack| pack != super::IMPLIED_TEMPLATE_PACK);
         Ok(Self {
             name,
+            lib_name: None,
             stylized_name: Some(stylized_name),
             domain,
             asset_dir: None,
