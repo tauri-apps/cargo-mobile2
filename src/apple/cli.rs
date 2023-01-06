@@ -24,7 +24,6 @@ use crate::{
         prompt,
     },
 };
-use heck::AsSnakeCase;
 use std::{collections::HashMap, ffi::OsStr, path::PathBuf};
 use structopt::{clap::AppSettings, StructOpt};
 
