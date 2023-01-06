@@ -24,7 +24,6 @@ use crate::{
         prompt,
     },
 };
-use heck::AsSnakeCase;
 use std::{collections::HashMap, ffi::OsStr, path::PathBuf};
 use structopt::{clap::AppSettings, StructOpt};
 
@@ -484,7 +483,7 @@ impl Exec for Input {
                     let lib_location = format!(
                         "{rust_triple}/{}/lib{}.a",
                         profile.as_str(),
-                        AsSnakeCase(config.app().name())
+                        config.app().lib_name()
                     );
                     let lib_path = PathBuf::from(format!("../../target/{lib_location}"));
 
