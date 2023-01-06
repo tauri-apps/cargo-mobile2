@@ -127,7 +127,7 @@ fn explicit_cargo_env() -> HashMap<String, OsString> {
         vars.insert("CARGO_TARGET_DIR".into(), target_dir);
     }
     if let Some(target_dir) = std::env::var_os("CARGO_BUILD_TARGET_DIR") {
-        vars.insert("CARGO_TARGET_DIR".into(), target_dir);
+        vars.insert("CARGO_BUILD_TARGET_DIR".into(), target_dir);
     }
     vars
 }
