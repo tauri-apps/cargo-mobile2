@@ -201,10 +201,7 @@ impl App {
     }
 
     pub fn lib_name(&self) -> String {
-        use heck::ToSnekCase as _;
-        self.lib_name
-            .clone()
-            .unwrap_or_else(|| self.name().to_snek_case())
+        self.lib_name.clone().unwrap_or_else(|| self.name_snake())
     }
 
     pub fn stylized_name(&self) -> &str {
