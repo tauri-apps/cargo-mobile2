@@ -1,6 +1,8 @@
 # tauri-mobile
 
-*This project is a fork of [cargo-mobile](https://github.com/BrainiumLLC/cargo-mobile/).*
+> This project is a fork of [cargo-mobile](https://github.com/BrainiumLLC/cargo-mobile/). Tauri uses it as a library dependency instead of using its CLI directly. For more information, please visit [Tauri's mobile guide](https://next--tauri.netlify.app/next/mobile/).
+>
+> But tauri-mobile does contain the template of wry, please follow [wry's instruction](https://github.com/tauri-apps/wry#android--ios) if you want to use with it.
 
 *The answer to "how do I use Rust on iOS and Android?"*
 
