@@ -8,11 +8,12 @@ use anyhow::Result;
 use wry::android_binding;
 use wry::{
     application::{
+        event::{Event, StartCause, WindowEvent},
         event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
-        window::WindowBuilder, event::{Event, StartCause},
+        window::WindowBuilder,
     },
     http::{header::CONTENT_TYPE, Response},
-    webview::{WebViewBuilder, WebView},
+    webview::{WebView, WebViewBuilder},
 };
 
 #[cfg(target_os = "android")]
@@ -58,11 +59,17 @@ fn main() -> Result<()> {
     let mut webview = None;
     event_loop.run(move |event, event_loop, control_flow| {
         *control_flow = ControlFlow::Wait;
-        println!("{:?}", event);
 
         match event {
             Event::NewEvents(StartCause::Init) => {
                 webview = Some(build_webview(event_loop).unwrap());
+            }
+            Event::WindowEvent {
+                event: WindowEvent::CloseRequested { .. },
+                ..
+            } => {
+                webview.take();
+                *control_flow = ControlFlow::Exit;
             }
             _ => (),
         }
@@ -87,12 +94,18 @@ fn main() -> Result<()> {
             {
                 // Remove url scheme
                 let path = request.uri().path();
-                let mut resource = core_foundation::bundle::CFBundle::main_bundle()
-                    .resources_path()
-                    .unwrap();
-                resource.push(&path);
-                // Read the file content from file path
-                let content = read(canonicalize(&resource)?)?;
+
+                #[cfg(not(target_os = "ios"))]
+                let content = read(canonicalize(&path[1..])?)?;
+
+                #[cfg(target_os = "ios")]
+                let content = {
+                    let path = core_foundation::bundle::CFBundle::main_bundle()
+                        .resources_path()
+                        .unwrap()
+                        .join(&path);
+                    read(canonicalize(&path)?)?;
+                };
 
                 // Return asset contents and mime types based on file extentions
                 // If you don't want to do this manually, there are some crates for you.
@@ -108,11 +121,6 @@ fn main() -> Result<()> {
                 };
 
                 Ok(Response::builder().header(CONTENT_TYPE, meta).body(data.into())?)
-            }
-
-            #[cfg(target_os = "android")]
-            {
-                Ok(Response::builder().body(Vec::new().into())?)
             }
         })
         .build()?;
