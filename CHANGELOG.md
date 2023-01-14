@@ -1,5 +1,16 @@
 # Changelog
 
+## \[0.1.5]
+
+- Add support for `CARGO_TARGET_DIR` and `CARGO_BUILD_TARGET_DIR` env vars.
+  - [e66a6ab](https://github.com/tauri-apps/tauri-mobile/commit/e66a6ab0e5dc3b474dad6793621c499974953915) feat: improvements for lib name and cargo target dir env vars ([#73](https://github.com/tauri-apps/tauri-mobile/pull/73)) on 2023-01-06
+- Allow specifying `lib_name` in `mobile.toml` file. This useful if you set `[lib].name` in `Cargo.toml`.
+  - [e66a6ab](https://github.com/tauri-apps/tauri-mobile/commit/e66a6ab0e5dc3b474dad6793621c499974953915) feat: improvements for lib name and cargo target dir env vars ([#73](https://github.com/tauri-apps/tauri-mobile/pull/73)) on 2023-01-06
+- Adjust `wry` template for desktop usage also.
+  - [3978774](https://github.com/tauri-apps/tauri-mobile/commit/3978774e1b5e7810f3fa6833c328e3032d744e7e) Update wry template to work on desktop as well ([#76](https://github.com/tauri-apps/tauri-mobile/pull/76)) on 2023-01-13
+- Update `wry` template to use the new `wry` env vars.
+  - [0113d1f](https://github.com/tauri-apps/tauri-mobile/commit/0113d1fc5fcc976a8c5c9016ae55e94fcc182ea6) feat: update wry template to use the new env vars on 2022-12-30
+
 ## \[0.1.4]
 
 - Improve error message for missing library artifact.
