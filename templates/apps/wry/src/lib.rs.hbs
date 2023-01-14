@@ -122,6 +122,11 @@ fn main() -> Result<()> {
 
                 Ok(Response::builder().header(CONTENT_TYPE, meta).body(data.into())?)
             }
+
+            #[cfg(target_os = "android")]
+            {
+                Ok(Response::builder().body(Vec::new().into())?)
+            }
         })
         .build()?;
 
