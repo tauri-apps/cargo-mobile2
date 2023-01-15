@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.2.0]
+
+- Bump minor version as `0.1.5` add a new feature which was incompatible with `0.1.4`
+  - [969e8ef](https://github.com/tauri-apps/tauri-mobile/commit/969e8ef41ec6f5c51086b4971cb74318ed5fa0c3) chore: bump minor for urgent release on 2023-01-15
+
 ## \[0.1.5]
 
 - Add support for `CARGO_TARGET_DIR` and `CARGO_BUILD_TARGET_DIR` env vars.
