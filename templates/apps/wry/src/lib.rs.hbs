@@ -104,7 +104,7 @@ fn main() -> Result<()> {
                         .resources_path()
                         .unwrap()
                         .join(&path);
-                    read(canonicalize(&path)?)?;
+                    read(canonicalize(&path)?)?
                 };
 
                 // Return asset contents and mime types based on file extentions
