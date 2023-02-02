@@ -16,6 +16,7 @@ use std::{
 static ENABLED_FEATURES: &[&str] = &[
     #[cfg(feature = "brainium")]
     "brainium",
+    "cli",
 ];
 
 #[derive(Debug)]
