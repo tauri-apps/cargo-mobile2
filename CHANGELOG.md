@@ -1,5 +1,12 @@
 # Changelog
 
+## \[0.2.1]
+
+- Fix `cargo mobile update` target branch and enabled `cli` feature when update.
+  - [b5791ed](https://github.com/tauri-apps/tauri-mobile/commit/b5791ed37000b92db0f5beaa50d1f6c4af52a479) fix: enable cli feature when cargo mobile update, closes [#84](https://github.com/tauri-apps/tauri-mobile/pull/84) ([#86](https://github.com/tauri-apps/tauri-mobile/pull/86)) on 2023-02-02
+- Fix content assignment in ios template.
+  - [81b642d](https://github.com/tauri-apps/tauri-mobile/commit/81b642de9bd0c96b124ad9bca9edfbabe78f71d4) fix(template): fix variable assignment in wry's ios template ([#82](https://github.com/tauri-apps/tauri-mobile/pull/82)) on 2023-01-30
+
 ## \[0.2.0]
 
 - Bump minor version as `0.1.5` add a new feature which was incompatible with `0.1.4`
