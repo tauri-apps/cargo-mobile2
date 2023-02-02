@@ -16,6 +16,10 @@ categories = [ "development-tools::cargo-plugins" ]
 license = "Apache-2.0 OR MIT"
 
 [[bin]]
+name = "cargo-mobile"
+required-features = [ "cli" ]
+
+[[bin]]
 name = "cargo-apple"
 required-features = [ "cli" ]
 
