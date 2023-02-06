@@ -66,6 +66,7 @@ textwrap = { version = "0.11.0", features = [ "term_size" ] }
 thiserror = "1.0.20"
 toml = { version = "0.5.6", features = [ "preserve_order" ] }
 os_pipe = "1"
+which = "4.4.0"
 
 [dev-dependencies]
 rstest = "0.12"
