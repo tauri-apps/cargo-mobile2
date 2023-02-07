@@ -24,6 +24,7 @@ use windows::{
 };
 
 pub use env::Env;
+use which::which;
 
 #[derive(Debug, Error)]
 pub enum DetectEditorError {
@@ -167,25 +168,28 @@ const STUDIO_EXE_PATH: &str = "bin/studio64.exe";
 const STUDIO_EXE_PATH: &str = "bin/studio.exe";
 
 fn open_file_with_android_studio(path: impl AsRef<OsStr>, env: &Env) -> Result<(), OpenFileError> {
-    let mut buffer = [0; MAX_PATH as usize];
-    let lstatus = unsafe {
-        SHRegGetPathW(
-            HKEY_LOCAL_MACHINE,
-            PCWSTR::from_raw(ANDROID_STUDIO_UNINSTALL_KEY_PATH.as_ptr()),
-            PCWSTR::from_raw(ANDROID_STUDIO_UNINSTALLER_VALUE.as_ptr()),
-            &mut buffer,
-            0,
-        )
-    };
-    if lstatus.0 as u32 != ERROR_SUCCESS.0 {
-        return Err(OpenFileError::IOError(core::Error::from_win32().into()));
+    let mut application_path = which("studio.cmd").unwrap_or_default();
+    if !application_path.is_file() {
+        let mut buffer = [0; MAX_PATH as usize];
+        let lstatus = unsafe {
+            SHRegGetPathW(
+                HKEY_LOCAL_MACHINE,
+                PCWSTR::from_raw(ANDROID_STUDIO_UNINSTALL_KEY_PATH.as_ptr()),
+                PCWSTR::from_raw(ANDROID_STUDIO_UNINSTALLER_VALUE.as_ptr()),
+                &mut buffer,
+                0,
+            )
+        };
+        if lstatus.0 as u32 != ERROR_SUCCESS.0 {
+            return Err(OpenFileError::IOError(core::Error::from_win32().into()));
+        }
+        let len = NullTerminatedWTF16Iterator(buffer.as_ptr()).count();
+        let uninstaller_path = OsString::from_wide(&buffer[..len]);
+        application_path = Path::new(&uninstaller_path)
+            .parent()
+            .expect("Failed to get Android Studio uninstaller's parent path")
+            .join(STUDIO_EXE_PATH);
     }
-    let len = NullTerminatedWTF16Iterator(buffer.as_ptr()).count();
-    let uninstaller_path = OsString::from_wide(&buffer[..len]);
-    let application_path = Path::new(&uninstaller_path)
-        .parent()
-        .expect("Failed to get Android Studio uninstaller's parent path")
-        .join(STUDIO_EXE_PATH);
     bossy::Command::impure(application_path)
         .with_arg(
             dunce::canonicalize(Path::new(path.as_ref()))
