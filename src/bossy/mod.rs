@@ -349,8 +349,8 @@ impl Command {
     /// Run the command and block until it exits.
     pub fn run_and_wait(&mut self) -> Result<ExitStatus> {
         log::trace!("running command {:?} and waiting for exit", self.display);
-        //self.set_stdout(os_pipe::dup_stdout().unwrap());
-        //self.set_stderr(os_pipe::dup_stderr().unwrap());
+        self.set_stdout(os_pipe::dup_stdout().unwrap());
+        self.set_stderr(os_pipe::dup_stderr().unwrap());
         self.inner.status().map_err(|e| Error {
             command: self.display.clone(),
             cause: Cause::SpawnFailed(e),
