@@ -349,9 +349,12 @@ impl Command {
     /// Run the command and block until it exits.
     pub fn run_and_wait(&mut self) -> Result<ExitStatus> {
         log::trace!("running command {:?} and waiting for exit", self.display);
-        self.set_stdout(os_pipe::dup_stdout().unwrap());
-        self.set_stderr(os_pipe::dup_stderr().unwrap());
-        self.run_inner()?.wait()
+        //self.set_stdout(os_pipe::dup_stdout().unwrap());
+        //self.set_stderr(os_pipe::dup_stderr().unwrap());
+        self.inner.status().map_err(|e| Error {
+            command: self.display.clone(),
+            cause: Cause::SpawnFailed(e),
+        })
     }
 
     /// Run the command and block until its output is collected. This will
@@ -361,8 +364,13 @@ impl Command {
         log::trace!("running command {:?} and waiting for output", self.display);
         self.set_stdout_piped()
             .set_stderr_piped()
-            .run_inner()?
-            .wait_for_output()
+            .inner
+            .output()
+            .map(|o| Output::new(self.display.clone(), o))
+            .map_err(|e| Error {
+                command: self.display.clone(),
+                cause: Cause::SpawnFailed(e),
+            })
     }
 
     pub fn run_and_wait_for_str<T>(&mut self, f: impl FnOnce(&str) -> T) -> Result<T> {

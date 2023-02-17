@@ -91,7 +91,7 @@ pub fn open_file_with(
         .with_arg("-a")
         .with_args(&[application.as_ref(), path.as_ref()])
         .with_env_vars(env.explicit_env())
-        .run_and_wait()
+        .run_and_wait_for_output()
         .map_err(OpenFileError::BossyLaunchFailed)?;
     Ok(())
 }
