@@ -1,5 +1,15 @@
 # Changelog
 
+## \[0.2.2]
+
+- Added support for opening Android Studio installed by JetBrains Toolbox
+  - [448fa99](https://github.com/tauri-apps/tauri-mobile/commit/448fa9993de3a1312ee3076a5b8ed607738932ba) feat: add support for android studio which installed by jetbrains toolbox ([#88](https://github.com/tauri-apps/tauri-mobile/pull/88)) on 2023-02-08
+- Increased minimum iOS version from 9 to 13
+  - [ae11564](https://github.com/tauri-apps/tauri-mobile/commit/ae115647e7c80f1b03b678c3cf76b202f9f5324f) Update minimum iOS version to 13 ([#93](https://github.com/tauri-apps/tauri-mobile/pull/93)) on 2023-02-12
+- Fixed ADB and xcodebuild execution on environments like Node-API.
+  - [6ce6e1f](https://github.com/tauri-apps/tauri-mobile/commit/6ce6e1f2d1f4128938ddf366c41834b78873be61) fix: command execution in tauri's Node.js CLI ([#97](https://github.com/tauri-apps/tauri-mobile/pull/97)) on 2023-02-17
+  - [2f7d7a0](https://github.com/tauri-apps/tauri-mobile/commit/2f7d7a0c1136da2596d7614538411b333cddeda2) fix(apple): use duct to run xcodebuild ([#98](https://github.com/tauri-apps/tauri-mobile/pull/98)) on 2023-02-17
+
 ## \[0.2.1]
 
 - Fix `cargo mobile update` target branch and enabled `cli` feature when update.
