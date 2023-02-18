@@ -404,11 +404,7 @@ impl Config {
         let new = path(self.app.name());
         std::iter::once(&old)
             .chain(std::iter::once(&new))
-            .filter(|path| {
-                let found = path.is_file();
-                log::info!("IPA {}found at {:?}", if found { "" } else { "not " }, path);
-                found
-            })
+            .filter(|path| path.is_file())
             .next()
             .cloned()
             .ok_or_else(|| (old, new))
