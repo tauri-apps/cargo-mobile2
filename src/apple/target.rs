@@ -17,7 +17,7 @@ use crate::{
 use once_cell_regex::exports::once_cell::sync::OnceCell;
 use std::{
     collections::{BTreeMap, HashMap},
-    ffi::OsStr,
+    ffi::{OsStr, OsString},
 };
 use thiserror::Error;
 
@@ -98,7 +98,7 @@ impl Reportable for CompileLibError {
 
 #[derive(Debug, Error)]
 #[error(transparent)]
-pub struct BuildError(bossy::Error);
+pub struct BuildError(#[from] std::io::Error);
 
 impl Reportable for BuildError {
     fn report(&self) -> Report {
@@ -111,7 +111,7 @@ pub enum ArchiveError {
     #[error("Failed to set app version number: {0}")]
     SetVersionFailed(WithWorkingDirError<bossy::Error>),
     #[error("Failed to archive via `xcodebuild`: {0}")]
-    ArchiveFailed(bossy::Error),
+    ArchiveFailed(#[from] std::io::Error),
 }
 
 impl Reportable for ArchiveError {
@@ -125,7 +125,7 @@ impl Reportable for ArchiveError {
 
 #[derive(Debug, Error)]
 #[error(transparent)]
-pub struct ExportError(bossy::Error);
+pub struct ExportError(#[from] std::io::Error);
 
 impl Reportable for ExportError {
     fn report(&self) -> Report {
@@ -310,20 +310,30 @@ impl<'a> Target<'a> {
         profile: opts::Profile,
     ) -> Result<(), BuildError> {
         let configuration = profile.as_str();
-        bossy::Command::pure("xcodebuild")
-            .with_env_vars(env.explicit_env())
-            .with_env_var("FORCE_COLOR", "--force-color")
-            .with_args(verbosity(noise_level))
-            .with_args(&["-scheme", &config.scheme()])
-            .with_arg("-workspace")
-            .with_arg(&config.workspace_path())
-            .with_args(&["-sdk", self.sdk])
-            .with_args(&["-configuration", configuration])
-            .with_args(&["-arch", self.arch])
-            .with_arg("-allowProvisioningUpdates")
-            .with_arg("build")
-            .run_and_wait()
-            .map_err(BuildError)?;
+        let scheme = config.scheme();
+        let workspace_path = config.workspace_path();
+        let sdk = self.sdk.to_string();
+        let arch = self.arch.to_string();
+        let args: Vec<OsString> = vec![];
+        duct::cmd("xcodebuild", args)
+            .full_env(env.explicit_env())
+            .env("FORCE_COLOR", "--force-color")
+            .before_spawn(move |cmd| {
+                if let Some(v) = verbosity(noise_level) {
+                    cmd.arg(v);
+                }
+                cmd.args(&["-scheme", &scheme])
+                    .arg("-workspace")
+                    .arg(&workspace_path)
+                    .args(&["-sdk", &sdk])
+                    .args(&["-configuration", configuration])
+                    .args(&["-arch", &arch])
+                    .arg("-allowProvisioningUpdates")
+                    .arg("build");
+                Ok(())
+            })
+            .start()?
+            .wait()?;
         Ok(())
     }
 
@@ -343,23 +353,35 @@ impl<'a> Target<'a> {
             })
             .map_err(ArchiveError::SetVersionFailed)?;
         }
+
         let configuration = profile.as_str();
         let archive_path = config.archive_dir().join(&config.scheme());
-        bossy::Command::pure("xcodebuild")
-            .with_env_vars(env.explicit_env())
-            .with_args(verbosity(noise_level))
-            .with_args(&["-scheme", &config.scheme()])
-            .with_arg("-workspace")
-            .with_arg(&config.workspace_path())
-            .with_args(&["-sdk", self.sdk])
-            .with_args(&["-configuration", configuration])
-            .with_args(&["-arch", self.arch])
-            .with_arg("-allowProvisioningUpdates")
-            .with_arg("archive")
-            .with_arg("-archivePath")
-            .with_arg(&archive_path)
-            .run_and_wait()
-            .map_err(ArchiveError::ArchiveFailed)?;
+        let scheme = config.scheme();
+        let workspace_path = config.workspace_path();
+        let sdk = self.sdk.to_string();
+        let arch = self.arch.to_string();
+        let args: Vec<OsString> = vec![];
+        duct::cmd("xcodebuild", args)
+            .full_env(env.explicit_env())
+            .before_spawn(move |cmd| {
+                if let Some(v) = verbosity(noise_level) {
+                    cmd.arg(v);
+                }
+                cmd.args(&["-scheme", &scheme])
+                    .arg("-workspace")
+                    .arg(&workspace_path)
+                    .args(&["-sdk", &sdk])
+                    .args(&["-configuration", configuration])
+                    .args(&["-arch", &arch])
+                    .arg("-allowProvisioningUpdates")
+                    .arg("archive")
+                    .arg("-archivePath")
+                    .arg(&archive_path);
+                Ok(())
+            })
+            .start()?
+            .wait()?;
+
         Ok(())
     }
 
@@ -373,18 +395,28 @@ impl<'a> Target<'a> {
         let archive_path = config
             .archive_dir()
             .join(&format!("{}.xcarchive", config.scheme()));
-        bossy::Command::pure("xcodebuild")
-            .with_env_vars(env.explicit_env())
-            .with_args(verbosity(noise_level))
-            .with_arg("-exportArchive")
-            .with_arg("-archivePath")
-            .with_arg(&archive_path)
-            .with_arg("-exportOptionsPlist")
-            .with_arg(&config.export_plist_path())
-            .with_arg("-exportPath")
-            .with_arg(&config.export_dir())
-            .run_and_wait()
-            .map_err(ExportError)?;
+        let export_dir = config.export_dir();
+        let export_plist_path = config.export_plist_path();
+
+        let args: Vec<OsString> = vec![];
+        duct::cmd("xcodebuild", args)
+            .full_env(env.explicit_env())
+            .before_spawn(move |cmd| {
+                if let Some(v) = verbosity(noise_level) {
+                    cmd.arg(v);
+                }
+                cmd.arg("-exportArchive")
+                    .arg("-archivePath")
+                    .arg(&archive_path)
+                    .arg("-exportOptionsPlist")
+                    .arg(&export_plist_path)
+                    .arg("-exportPath")
+                    .arg(&export_dir);
+                Ok(())
+            })
+            .start()?
+            .wait()?;
+
         Ok(())
     }
 }
