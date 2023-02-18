@@ -2,4 +2,4 @@
 "tauri-mobile": patch
 ---
 
-Fixed command execution on environments like Node-API.
+Fixed ADB and xcodebuild execution on environments like Node-API.
