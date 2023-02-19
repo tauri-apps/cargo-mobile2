@@ -176,11 +176,12 @@ pub fn code_command() -> bossy::Command {
     bossy::Command::impure("code")
 }
 
-pub fn gradlew_command(project_dir: impl AsRef<OsStr>) -> bossy::Command {
+pub fn gradlew_command(project_dir: impl AsRef<OsStr>) -> duct::Expression {
     let gradle_path = Path::new(project_dir.as_ref()).join("gradlew");
-    bossy::Command::impure(&gradle_path)
-        .with_arg("--project-dir")
-        .with_arg(&project_dir)
+    duct::cmd(
+        &gradle_path,
+        [OsStr::new("--project-dir"), project_dir.as_ref()],
+    )
 }
 
 pub fn replace_path_separator(path: OsString) -> OsString {
