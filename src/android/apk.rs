@@ -7,7 +7,6 @@ use thiserror::Error;
 use super::{config::Config, env::Env, jnilibs, target::Target};
 use crate::{
     android::jnilibs::JniLibs,
-    bossy,
     opts::{NoiseLevel, Profile},
     util::{
         cli::{Report, Reportable},
@@ -16,33 +15,18 @@ use crate::{
 };
 
 #[derive(Debug, Error)]
-pub enum ApkBuildError {
+pub enum ApkError {
     #[error(transparent)]
     LibSymlinkCleaningFailed(jnilibs::RemoveBrokenLinksError),
     #[error("Failed to assemble APK: {0}")]
-    AssembleFailed(bossy::Error),
-}
-
-impl Reportable for ApkBuildError {
-    fn report(&self) -> Report {
-        match self {
-            Self::LibSymlinkCleaningFailed(err) => err.report(),
-            Self::AssembleFailed(err) => Report::error("Failed to assemble APK", err),
-        }
-    }
-}
-
-#[derive(Debug, Error)]
-
-pub enum ApkError {
-    #[error(transparent)]
-    ApkBuildError(ApkBuildError),
+    AssembleFailed(#[from] std::io::Error),
 }
 
 impl Reportable for ApkError {
     fn report(&self) -> Report {
         match self {
-            Self::ApkBuildError(err) => err.report(),
+            Self::LibSymlinkCleaningFailed(err) => err.report(),
+            Self::AssembleFailed(err) => Report::error("Failed to assemble APK", err),
         }
     }
 }
@@ -69,9 +53,7 @@ pub fn build<'a>(
     targets: Vec<&Target>,
     split_per_abi: bool,
 ) -> Result<Vec<PathBuf>, ApkError> {
-    JniLibs::remove_broken_links(config)
-        .map_err(ApkBuildError::LibSymlinkCleaningFailed)
-        .map_err(ApkError::ApkBuildError)?;
+    JniLibs::remove_broken_links(config).map_err(ApkError::LibSymlinkCleaningFailed)?;
 
     let build_ty = profile.as_str().to_upper_camel_case();
 
@@ -89,16 +71,18 @@ pub fn build<'a>(
             ),
         ]
     };
+
     gradlew(config, env)
-        .with_args(gradle_args)
-        .with_arg(match noise_level {
-            NoiseLevel::Polite => "--warn",
-            NoiseLevel::LoudAndProud => "--info",
-            NoiseLevel::FranklyQuitePedantic => "--debug",
+        .before_spawn(move |cmd| {
+            cmd.args(&gradle_args).arg(match noise_level {
+                NoiseLevel::Polite => "--warn",
+                NoiseLevel::LoudAndProud => "--info",
+                NoiseLevel::FranklyQuitePedantic => "--debug",
+            });
+            Ok(())
         })
-        .run_and_wait()
-        .map_err(ApkBuildError::AssembleFailed)
-        .map_err(ApkError::ApkBuildError)?;
+        .start()?
+        .wait()?;
 
     let mut outputs = Vec::new();
     if split_per_abi {

@@ -687,6 +687,10 @@ impl<T: Debug> Serialize for OneOrMany<T> {
 pub fn gradlew(
     config: &crate::android::config::Config,
     env: &crate::android::env::Env,
-) -> bossy::Command {
-    os::gradlew_command(&config.project_dir()).with_env_vars(env.explicit_env())
+) -> duct::Expression {
+    let mut cmd = os::gradlew_command(&config.project_dir());
+    for (k, v) in env.explicit_env() {
+        cmd = cmd.env(k, v);
+    }
+    cmd
 }

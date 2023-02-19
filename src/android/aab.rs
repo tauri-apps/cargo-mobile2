@@ -6,7 +6,6 @@ use thiserror::Error;
 
 use super::{config::Config, env::Env, target::Target};
 use crate::{
-    bossy,
     opts::{NoiseLevel, Profile},
     util::{
         cli::{Report, Reportable},
@@ -15,29 +14,15 @@ use crate::{
 };
 
 #[derive(Debug, Error)]
-pub enum AabBuildError {
-    #[error("Failed to build AAB: {0}")]
-    BuildFailed(bossy::Error),
-}
-
-impl Reportable for AabBuildError {
-    fn report(&self) -> Report {
-        match self {
-            Self::BuildFailed(err) => Report::error("Failed to build AAB", err),
-        }
-    }
-}
-
-#[derive(Debug, Error)]
 pub enum AabError {
-    #[error(transparent)]
-    AabBuildError(AabBuildError),
+    #[error("Failed to build AAB: {0}")]
+    BuildFailed(#[from] std::io::Error),
 }
 
 impl Reportable for AabError {
     fn report(&self) -> Report {
         match self {
-            Self::AabBuildError(err) => err.report(),
+            Self::BuildFailed(err) => Report::error("Failed to build AAB", err),
         }
     }
 }
@@ -68,15 +53,16 @@ pub fn build(
         ]
     };
     gradlew(config, env)
-        .with_args(gradle_args)
-        .with_arg(match noise_level {
-            NoiseLevel::Polite => "--warn",
-            NoiseLevel::LoudAndProud => "--info",
-            NoiseLevel::FranklyQuitePedantic => "--debug",
+        .before_spawn(move |cmd| {
+            cmd.args(&gradle_args).arg(match noise_level {
+                NoiseLevel::Polite => "--warn",
+                NoiseLevel::LoudAndProud => "--info",
+                NoiseLevel::FranklyQuitePedantic => "--debug",
+            });
+            Ok(())
         })
-        .run_and_wait()
-        .map_err(AabBuildError::BuildFailed)
-        .map_err(AabError::AabBuildError)?;
+        .start()?
+        .wait()?;
 
     let mut outputs = Vec::new();
     if split_per_abi {
