@@ -351,10 +351,13 @@ impl Command {
         log::trace!("running command {:?} and waiting for exit", self.display);
         self.set_stdout(os_pipe::dup_stdout().unwrap());
         self.set_stderr(os_pipe::dup_stderr().unwrap());
-        self.inner.status().map_err(|e| Error {
-            command: self.display.clone(),
-            cause: Cause::SpawnFailed(e),
-        })
+        self.inner
+            .status()
+            .map_err(|e| Error {
+                command: self.display.clone(),
+                cause: Cause::SpawnFailed(e),
+            })
+            .and_then(|status| Error::from_status_result(self.display.clone(), Ok(status)))
     }
 
     /// Run the command and block until its output is collected. This will
@@ -362,15 +365,10 @@ impl Command {
     /// don't want that to happen, then you're screwed.
     pub fn run_and_wait_for_output(&mut self) -> Result<Output> {
         log::trace!("running command {:?} and waiting for output", self.display);
-        self.set_stdout_piped()
-            .set_stderr_piped()
-            .inner
-            .output()
-            .map(|o| Output::new(self.display.clone(), o))
-            .map_err(|e| Error {
-                command: self.display.clone(),
-                cause: Cause::SpawnFailed(e),
-            })
+        Error::from_output_result(
+            self.display.clone(),
+            self.set_stdout_piped().set_stderr_piped().inner.output(),
+        )
     }
 
     pub fn run_and_wait_for_str<T>(&mut self, f: impl FnOnce(&str) -> T) -> Result<T> {
