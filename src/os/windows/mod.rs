@@ -271,7 +271,7 @@ pub fn gradlew_command(project_dir: impl AsRef<OsStr>) -> duct::Expression {
         .expect("Failed to canonicalize project dir");
     let gradlew_path = project_dir.join("gradlew.bat");
     duct::cmd(
-        &gradle_path,
+        &gradlew_path,
         [OsStr::new("--project-dir"), project_dir.as_ref()],
     )
 }
