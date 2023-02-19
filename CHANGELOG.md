@@ -1,5 +1,12 @@
 # Changelog
 
+## \[0.2.3]
+
+- Fixes regression when running commands and checking status code.
+  - [15b9420](https://github.com/tauri-apps/tauri-mobile/commit/15b94202784c9630a2811fcb5148e8d168a09b80) fix(bossy): regression on checking status code ([#102](https://github.com/tauri-apps/tauri-mobile/pull/102)) on 2023-02-19
+- Fixed gradlew execution on environments like Node-API.
+  - [25f77c1](https://github.com/tauri-apps/tauri-mobile/commit/25f77c19ed0265a350fef8fce6a1e4f726c56a31) feat: use duct to run gradlew ([#103](https://github.com/tauri-apps/tauri-mobile/pull/103)) on 2023-02-19
+
 ## \[0.2.2]
 
 - Added support for opening Android Studio installed by JetBrains Toolbox
