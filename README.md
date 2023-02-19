@@ -34,6 +34,17 @@ Whenever you want to update:
 cargo mobile update
 ```
 
+Run `cargo mobile doctor` to check your installation.
+
+### macOS
+
+On macOS you're going to need:
+
+```
+brew install xcodegen
+brew install ios-deploy
+```
+
 ## Usage
 
 To start a new project, all you need to do is make a directory with a cute name, `cd` into it, and then run this command:
