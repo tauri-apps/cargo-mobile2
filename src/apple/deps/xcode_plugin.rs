@@ -190,7 +190,10 @@ impl Context {
     // Step 2: update checkout
     fn update_repo(&self) -> Result<(), Error> {
         self.repo
-            .update("https://github.com/tauri-apps/rust-xcode-plugin.git")
+            .update(
+                "https://github.com/tauri-apps/rust-xcode-plugin.git",
+                "master",
+            )
             .map_err(Error::UpdateFailed)
     }
 

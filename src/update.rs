@@ -79,7 +79,7 @@ pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
             path: marker.to_owned(),
             cause,
         })?;
-        repo.update("https://github.com/tauri-apps/tauri-mobile")
+        repo.update("https://github.com/tauri-apps/tauri-mobile", "dev")
             .map_err(Error::UpdateFailed)?;
         println!("Installing updated `tauri-mobile`...");
         bossy::Command::impure_parse("cargo install --force --path")
