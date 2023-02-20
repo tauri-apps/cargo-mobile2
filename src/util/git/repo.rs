@@ -121,7 +121,7 @@ impl Repo {
             .map_err(Error::LogFailed)
     }
 
-    pub fn update(&self, url: impl AsRef<OsStr>) -> Result<(), Error> {
+    pub fn update(&self, url: impl AsRef<OsStr>, branch: &str) -> Result<(), Error> {
         let path = self.path();
         if !path.is_dir() {
             let parent = self
@@ -157,7 +157,7 @@ impl Repo {
                 .run_and_wait()
                 .map_err(Error::FetchFailed)?;
             self.git()
-                .command_parse("reset --hard origin/dev")
+                .command_parse(format!("reset --hard origin/{branch}"))
                 .run_and_wait()
                 .map_err(Error::ResetFailed)?;
             self.git()
