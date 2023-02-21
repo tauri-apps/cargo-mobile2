@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.2.4]
+
+- Allow to update repo with a specific branch.
+  - [9d782ad](https://github.com/tauri-apps/tauri-mobile/commit/9d782add9b992fecdef60ed97d93f62ed3cdc439) fix: allow repo to update with specific branch ([#106](https://github.com/tauri-apps/tauri-mobile/pull/106)) on 2023-02-20
+
 ## \[0.2.3]
 
 - Fixes regression when running commands and checking status code.
