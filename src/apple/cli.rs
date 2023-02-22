@@ -443,9 +443,17 @@ impl Exec for Input {
                 let isysroot = format!("-isysroot {}", sdk_root.display());
 
                 for arch in arches {
+                    // FIXME Build the rust crate for iOS Simulator target too.
+                    if arch == "Simulator" {
+                        continue;
+                    }
+
                     // Set target-specific flags
                     let (triple, rust_triple) = match arch.as_str() {
                         "arm64" => ("aarch64_apple_ios", "aarch64-apple-ios"),
+                        // FIXME triple for cflags seems incorrect and we don't actually need to
+                        // set it when cross compile simulator target.
+                        // "arm64-sim" => ("aarch64_apple_ios", "aarch64-apple-ios"),
                         "x86_64" => ("x86_64_apple_ios", "x86_64-apple-ios"),
                         _ => return Err(Error::ArchInvalid { arch }),
                     };
