@@ -14,9 +14,11 @@ use crate::{
     os::{self, command_path},
 };
 use once_cell_regex::{exports::regex::Captures, exports::regex::Regex, regex};
+use path_abs::PathOps;
 use serde::{ser::Serializer, Deserialize, Serialize};
 use std::{
     error::Error as StdError,
+    ffi::OsStr,
     fmt::{self, Debug, Display},
     io::{self, Write},
     path::{Path, PathBuf},
@@ -688,7 +690,21 @@ pub fn gradlew(
     config: &crate::android::config::Config,
     env: &crate::android::env::Env,
 ) -> duct::Expression {
-    let mut cmd = os::gradlew_command(&config.project_dir());
+    let project_dir = config.project_dir();
+    #[cfg(windows)]
+    let gradlew = "gradlew.bat";
+    #[cfg(not(windows))]
+    let gradlew = "gradlew";
+
+    let gradlew_p = project_dir.join(gradlew);
+    let mut cmd = if gradlew_p.exists() {
+        duct::cmd(
+            gradlew_p,
+            [OsStr::new("--project-dir"), project_dir.as_ref()],
+        )
+    } else {
+        duct::cmd(gradlew, [OsStr::new("--project-dir"), project_dir.as_ref()])
+    };
     for (k, v) in env.explicit_env() {
         cmd = cmd.env(k, v);
     }

@@ -265,17 +265,6 @@ pub fn code_command() -> bossy::Command {
     bossy::Command::impure_parse("powershell.exe -Command  code")
 }
 
-pub fn gradlew_command(project_dir: impl AsRef<OsStr>) -> duct::Expression {
-    // Path without verbatim prefix.
-    let project_dir = dunce::canonicalize(Path::new(project_dir.as_ref()))
-        .expect("Failed to canonicalize project dir");
-    let gradlew_path = project_dir.join("gradlew.bat");
-    duct::cmd(
-        &gradlew_path,
-        [OsStr::new("--project-dir"), project_dir.as_ref()],
-    )
-}
-
 pub fn replace_path_separator(path: OsString) -> OsString {
     let buf = path
         .encode_wide()
