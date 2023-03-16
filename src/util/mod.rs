@@ -692,9 +692,9 @@ pub fn gradlew(
 ) -> duct::Expression {
     let project_dir = config.project_dir();
     #[cfg(windows)]
-    let gradlew = "gradlew.bat";
+    let (gradlew, gradle) = ("gradlew.bat", "gradle.bat");
     #[cfg(not(windows))]
-    let gradlew = "gradlew";
+    let (gradlew, gradle) = ("gradlew", "gradle");
 
     let gradlew_p = project_dir.join(gradlew);
     let mut cmd = if gradlew_p.exists() {
@@ -702,8 +702,14 @@ pub fn gradlew(
             gradlew_p,
             [OsStr::new("--project-dir"), project_dir.as_ref()],
         )
-    } else {
+    } else if duct::cmd(gradlew, ["-v"])
+        .run()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+    {
         duct::cmd(gradlew, [OsStr::new("--project-dir"), project_dir.as_ref()])
+    } else {
+        duct::cmd(gradle, [OsStr::new("--project-dir"), project_dir.as_ref()])
     };
     for (k, v) in env.explicit_env() {
         cmd = cmd.env(k, v);
