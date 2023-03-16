@@ -7,7 +7,7 @@ use super::{
 use crate::{
     android::{DEFAULT_ACTIVITY, DEFAULT_THEME_PARENT},
     bicycle, bossy, dot_cargo,
-    os::{self, replace_path_separator},
+    os::replace_path_separator,
     target::TargetTrait as _,
     templating::{self, Pack},
     util::{
@@ -212,9 +212,6 @@ pub fn gen(
         path: dest.clone(),
         cause,
     })?;
-    os::ln::force_symlink_relative(config.app().asset_dir(), dest, ln::TargetStyle::Directory)
-        .map_err(Error::AssetDirSymlinkFailed)?;
-
     {
         for target in Target::all().values() {
             dot_cargo.insert_target(

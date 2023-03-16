@@ -363,6 +363,10 @@ impl Config {
         &self.app
     }
 
+    pub fn development_team(&self) -> &str {
+        &self.development_team
+    }
+
     pub fn project_dir(&self) -> PathBuf {
         self.app.prefix_path(&self.project_dir)
     }

@@ -314,6 +314,7 @@ impl<'a> Target<'a> {
         let workspace_path = config.workspace_path();
         let sdk = self.sdk.to_string();
         let arch = self.arch.to_string();
+        let development_team = config.development_team().to_string();
         let args: Vec<OsString> = vec![];
         duct::cmd("xcodebuild", args)
             .full_env(env.explicit_env())
@@ -322,6 +323,7 @@ impl<'a> Target<'a> {
                 if let Some(v) = verbosity(noise_level) {
                     cmd.arg(v);
                 }
+                cmd.arg(format!("DEVELOPMENT_TEAM={development_team}"));
                 cmd.args(&["-scheme", &scheme])
                     .arg("-workspace")
                     .arg(&workspace_path)
@@ -360,6 +362,7 @@ impl<'a> Target<'a> {
         let workspace_path = config.workspace_path();
         let sdk = self.sdk.to_string();
         let arch = self.arch.to_string();
+        let development_team = config.development_team().to_string();
         let args: Vec<OsString> = vec![];
         duct::cmd("xcodebuild", args)
             .full_env(env.explicit_env())
@@ -367,6 +370,7 @@ impl<'a> Target<'a> {
                 if let Some(v) = verbosity(noise_level) {
                     cmd.arg(v);
                 }
+                cmd.arg(format!("DEVELOPMENT_TEAM={development_team}"));
                 cmd.args(&["-scheme", &scheme])
                     .arg("-workspace")
                     .arg(&workspace_path)
@@ -397,6 +401,7 @@ impl<'a> Target<'a> {
             .join(&format!("{}.xcarchive", config.scheme()));
         let export_dir = config.export_dir();
         let export_plist_path = config.export_plist_path();
+        let development_team = config.development_team().to_string();
 
         let args: Vec<OsString> = vec![];
         duct::cmd("xcodebuild", args)
@@ -405,6 +410,7 @@ impl<'a> Target<'a> {
                 if let Some(v) = verbosity(noise_level) {
                     cmd.arg(v);
                 }
+                cmd.arg(format!("DEVELOPMENT_TEAM={development_team}"));
                 cmd.arg("-exportArchive")
                     .arg("-archivePath")
                     .arg(&archive_path)
