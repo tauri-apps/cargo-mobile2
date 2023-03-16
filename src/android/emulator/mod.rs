@@ -27,10 +27,17 @@ impl Emulator {
         &self.name
     }
 
-    pub fn start(&self, env: &Env) -> bossy::Result<bossy::Handle> {
+    fn start_inner(&self, env: &Env) -> bossy::Command {
         bossy::Command::impure(PathBuf::from(env.android_home()).join("emulator/emulator"))
             .with_args(&["-avd", &self.name])
             .with_env_vars(env.explicit_env())
-            .run()
+    }
+
+    pub fn start(&self, env: &Env) -> bossy::Result<bossy::Handle> {
+        self.start_inner(env).run()
+    }
+
+    pub fn start_detached(&self, env: &Env) -> bossy::Result<()> {
+        self.start_inner(env).run_and_detach()
     }
 }
