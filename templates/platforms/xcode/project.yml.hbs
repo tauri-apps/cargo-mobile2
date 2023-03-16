@@ -76,7 +76,7 @@ targets:
         ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: true
       groups: [app]
     dependencies:
-      - framework: lib{{app.lib_name}}.a
+      - framework: lib{{#if app.lib-name}}{{app.lib-name}}{{else}}{{snake-case app.name}}{{/if}}.a
         embed: false
       {{~#each ios-libraries}}
       - framework: {{this}}
@@ -116,8 +116,8 @@ targets:
         name: Build Rust Code
         basedOnDependencyAnalysis: false
         outputFiles:
-          - $(SRCROOT)/target/aarch64-apple-ios/${CONFIGURATION}/deps/lib{{app.lib_name}}.a
-          - $(SRCROOT)/target/x86_64-apple-ios/${CONFIGURATION}/deps/lib{{app.lib_name}}.a
+          - $(SRCROOT)/target/aarch64-apple-ios/${CONFIGURATION}/deps/lib{{#if app.lib-name}}{{app.lib-name}}{{else}}{{snake-case app.name}}{{/if}}.a
+          - $(SRCROOT)/target/x86_64-apple-ios/${CONFIGURATION}/deps/lib{{#if app.lib-name}}{{app.lib-name}}{{else}}{{snake-case app.name}}{{/if}}.a
     {{~#if ios-post-compile-scripts}}
     postCompileScripts:
       {{~#each ios-post-compile-scripts}}{{#if this.path}}
