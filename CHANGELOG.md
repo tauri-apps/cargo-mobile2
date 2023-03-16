@@ -1,5 +1,17 @@
 # Changelog
 
+## \[0.2.5]
+
+- Add `start_detached` method to start emulators.
+  - [ce1ba93](https://github.com/tauri-apps/tauri-mobile/commit/ce1ba93cd1865f6d5742eaa2d15ff776819e366d) feat: add `start_detached` to emulators ([#114](https://github.com/tauri-apps/tauri-mobile/pull/114)) on 2023-03-16
+- Fallback to `gradlew` or `gradle` from `PATH` if the one inside the generated template doesn't exist.
+  - [442f0d2](https://github.com/tauri-apps/tauri-mobile/commit/442f0d2c7328930db61058a55706d22e6a401c16) fix: fallback to gradlew from PATH if the template doesn't have one ([#111](https://github.com/tauri-apps/tauri-mobile/pull/111)) on 2023-03-07
+  - [c18c21e](https://github.com/tauri-apps/tauri-mobile/commit/c18c21e8f1edea04b46f22070098cce71efa0ad4) fix: fallback to `gradle` ([#113](https://github.com/tauri-apps/tauri-mobile/pull/113)) on 2023-03-16
+- Use correct lib name in xcode project.
+  - [2983144](https://github.com/tauri-apps/tauri-mobile/commit/298314485ed0f0acb1cb423b812275cd8dcafc0f) fix: use correct lib name in xcode project ([#110](https://github.com/tauri-apps/tauri-mobile/pull/110)) on 2023-03-02
+- Add xcode script back and skip it when building simulator target.
+  - [de422da](https://github.com/tauri-apps/tauri-mobile/commit/de422daecb6fe1cc0f45fcdd12d0119be4bd666f) Add xcode script back and skip it when building simulator target ([#108](https://github.com/tauri-apps/tauri-mobile/pull/108)) on 2023-02-22
+
 ## \[0.2.4]
 
 - Allow to update repo with a specific branch.

@@ -1,6 +1,6 @@
 [package]
 name = "tauri-mobile"
-version = "0.2.4"
+version = "0.2.5"
 authors = [
   "Tauri Programme within The Commons Conservancy",
   "Brainium Studios LLC",
