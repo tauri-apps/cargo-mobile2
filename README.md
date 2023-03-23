@@ -43,6 +43,9 @@ After some straightforward prompts, you'll be asked to select a template pack. T
 
 **Template pack contribution is welcomed**;
 
+> **Note**
+> For all the templates available now, currently `bevy` templates does not work and will encounter compile error if you try to build the project.
+
 Once you've generated your project, you can run `cargo run` as usual to run your app on desktop. However, now you can also do `cargo apple run` and `cargo android run` to run on connected iOS and Android devices respectively!
 
 If you prefer to work in the usual IDEs, you can use `cargo apple open` and `cargo android open` to open your project in Xcode and Android Studio respectively.
