@@ -1,20 +1,13 @@
 # tauri-mobile
 
-> This project is a fork of [cargo-mobile](https://github.com/BrainiumLLC/cargo-mobile/). Tauri uses it as a library dependency instead of using its CLI directly. For more information, please visit [Tauri's mobile guide](https://next--tauri.netlify.app/next/mobile/).
->
-> But tauri-mobile does contain the template of wry, please follow [wry's instruction](https://github.com/tauri-apps/wry#android--ios) if you want to use with it.
 
-*The answer to "how do I use Rust on iOS and Android?"*
+> *The answer to "how do I use Rust on iOS and Android?"*
+> 
+> cargo-mobile takes care of generating Xcode and Android Studio project files, building and running on device, generating project boilerplate, and a few other things!
 
-tauri-mobile takes care of generating Xcode and Android Studio project files, building and running on device, generating project boilerplate, and a few other things!
+This project is a fork of [cargo-mobile](https://github.com/BrainiumLLC/cargo-mobile/). Tauri uses it as a library dependency instead of using its CLI directly. For more information, please visit [Tauri's mobile guide](https://next--tauri.netlify.app/next/mobile/).
 
-## Status
-
-Everything here works and is already used internally! However, this hasn't seen a lot of external use yet, so there could still be some rough edges.
-
-**Building for iOS is broken on Rust 1.46.0, 1.47.0, and 1.48.0!**
-
-Sorry for the inconvenience! This is resolved in Rust 1.49.0, so please use 1.49 or higher.
+In the meantime, tauri-mobile contains the template of wry, please follow [wry's instruction](https://github.com/tauri-apps/wry#android--ios) if you want to use with it.
 
 ## Installation
 
@@ -48,7 +41,11 @@ After some straightforward prompts, you'll be asked to select a template pack. T
 | --------- | ------------------------------------- |
 | wry       | Minimal wry project |
 
-**Template pack contribution is welcomed**;
+**Template pack contribution is welcomed**
+
+> **Note**
+>
+> For all the templates available now, currently `bevy` templates do not work and will encounter compile error if you try to build the project.
 
 Once you've generated your project, you can run `cargo run` as usual to run your app on desktop. However, now you can also do `cargo apple run` and `cargo android run` to run on connected iOS and Android devices respectively!
 
