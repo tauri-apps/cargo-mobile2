@@ -41,7 +41,7 @@ After some straightforward prompts, you'll be asked to select a template pack. T
 | --------- | ------------------------------------- |
 | wry       | Minimal wry project |
 
-**Template pack contribution is welcomed**;
+**Template pack contribution is welcomed**
 
 > **Note**
 >
