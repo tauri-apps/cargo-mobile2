@@ -232,22 +232,6 @@ impl<'a> Target<'a> {
     ) -> Result<(), CompileLibError> {
         let min_sdk_version = config.min_sdk_version();
 
-        // workaround for missing libgcc in ndk versions higher then 23
-        // see https://github.com/rust-windowing/android-ndk-rs/pull/189
-        if env.ndk.version().unwrap_or_default().triple.major >= 23 {
-            let path = config.app().prefix_path(".cargo/libgcc.a");
-            if !path.exists() {
-                fs::create_dir_all(&path.parent().unwrap()).map_err(|cause| {
-                    CompileLibError::FileWrite {
-                        path: path.clone(),
-                        cause,
-                    }
-                })?;
-                fs::write(&path, "INPUT(-lunwind)")
-                    .map_err(|cause| CompileLibError::FileWrite { path, cause })?;
-            }
-        }
-
         // Force color, since gradle would otherwise give us uncolored output
         // (which Android Studio makes red, which is extra gross!)
         let color = if force_color { "always" } else { "auto" };
