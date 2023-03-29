@@ -8,7 +8,7 @@ use crate::{
     util::{
         self,
         cli::{Report, Reportable},
-        prefix_path,
+        last_modified, prefix_path,
     },
 };
 use bossy::Handle;
@@ -168,17 +168,23 @@ impl<'a> Device<'a> {
         adb::adb(env, &self.serial_no)
     }
 
-    fn apks_path(config: &Config, profile: Profile, flavor: &str) -> PathBuf {
-        prefix_path(
-            config.project_dir(),
-            format!(
-                "app/build/outputs/{}/app-{}-{}.{}",
-                format!("apk/{}/{}", flavor, profile.as_str()),
-                flavor,
-                profile.suffix(),
-                "apks"
-            ),
-        )
+    pub fn all_apks_paths(config: &Config, profile: Profile, flavor: &str) -> Vec<PathBuf> {
+        profile
+            .suffixes()
+            .iter()
+            .map(|suffix| {
+                prefix_path(
+                    config.project_dir(),
+                    format!(
+                        "app/build/outputs/{}/app-{}-{}.{}",
+                        format!("apk/{}/{}", flavor, profile.as_str()),
+                        flavor,
+                        suffix,
+                        "apk"
+                    ),
+                )
+            })
+            .collect()
     }
 
     fn wait_device_boot(&self, env: &Env) {
@@ -216,21 +222,16 @@ impl<'a> Device<'a> {
         profile: Profile,
     ) -> Result<(), ApkInstallError> {
         let flavor = self.target.arch;
-        let apk_path = apk::apk_path(config, profile, flavor);
+        let apk_path = apk::apks_paths(config, profile, flavor)
+            .into_iter()
+            .reduce(|prev, curr| last_modified(prev, curr))
+            .unwrap();
+
         self.adb(env)
             .with_arg("install")
             .with_arg(apk_path)
             .run_and_wait()
             .map_err(ApkInstallError::InstallFailed)?;
-        Ok(())
-    }
-
-    fn clean_apks(&self, config: &Config, profile: Profile) -> Result<(), ApksBuildError> {
-        let flavor = self.target.arch;
-        let apks_path = Self::apks_path(config, profile, flavor);
-        if apks_path.exists() {
-            std::fs::remove_file(&apks_path).map_err(ApksBuildError::CleanFailed)?;
-        }
         Ok(())
     }
 
@@ -254,12 +255,18 @@ impl<'a> Device<'a> {
 
     fn build_apks_from_aab(&self, config: &Config, profile: Profile) -> Result<(), ApksBuildError> {
         let flavor = self.target.arch;
-        let apks_path = Self::apks_path(config, profile, flavor);
+        // In the case that profile is `Release`, it is safe to pick the first one
+        // which should have the suffix `release` instead of `release-unsigned`.
+        // This is fine since we determine the resulting name before-hand unlike other situations
+        // where gradle is the one to determine it.
+        //
+        // and in the case that profile is `Debug` there will be only one path that has the suffix `debug`
+        let all_apks_path = &Self::all_apks_paths(config, profile, flavor)[0];
         let aab_path = aab::aab_path(config, profile, flavor);
         bundletool::command()
             .with_arg("build-apks")
             .with_arg(format!("--bundle={}", aab_path.to_str().unwrap()))
-            .with_arg(format!("--output={}", apks_path.to_str().unwrap()))
+            .with_arg(format!("--output={}", all_apks_path.to_str().unwrap()))
             .with_arg("--connected-device")
             .run_and_wait()
             .map_err(ApksBuildError::BuildFromAabFailed)?;
@@ -272,7 +279,10 @@ impl<'a> Device<'a> {
         profile: Profile,
     ) -> Result<(), ApkInstallError> {
         let flavor = self.target.arch;
-        let apks_path = Self::apks_path(config, profile, flavor);
+        let apks_path = Self::all_apks_paths(config, profile, flavor)
+            .into_iter()
+            .reduce(|prev, curr| last_modified(prev, curr))
+            .unwrap();
         bundletool::command()
             .with_arg("install-apks")
             .with_arg(format!("--apks={}", apks_path.to_str().unwrap()))
@@ -301,8 +311,6 @@ impl<'a> Device<'a> {
     ) -> Result<Handle, RunError> {
         if build_app_bundle {
             bundletool::install(reinstall_deps).map_err(RunError::BundletoolInstallFailed)?;
-            self.clean_apks(config, profile)
-                .map_err(RunError::ApksFromAabBuildFailed)?;
             self.build_aab(config, env, noise_level, profile)
                 .map_err(RunError::AabError)?;
             self.build_apks_from_aab(config, profile)

@@ -10,7 +10,7 @@ use crate::{
     opts::{NoiseLevel, Profile},
     util::{
         cli::{Report, Reportable},
-        gradlew, prefix_path,
+        gradlew, last_modified, prefix_path,
     },
 };
 
@@ -31,17 +31,23 @@ impl Reportable for ApkError {
     }
 }
 
-pub fn apk_path(config: &Config, profile: Profile, flavor: &str) -> PathBuf {
-    prefix_path(
-        config.project_dir(),
-        format!(
-            "app/build/outputs/{}/app-{}-{}.{}",
-            format!("apk/{}/{}", flavor, profile.as_str()),
-            flavor,
-            profile.suffix(),
-            "apk"
-        ),
-    )
+pub fn apks_paths(config: &Config, profile: Profile, flavor: &str) -> Vec<PathBuf> {
+    profile
+        .suffixes()
+        .iter()
+        .map(|suffix| {
+            prefix_path(
+                config.project_dir(),
+                format!(
+                    "app/build/outputs/{}/app-{}-{}.{}",
+                    format!("apk/{}/{}", flavor, profile.as_str()),
+                    flavor,
+                    suffix,
+                    "apk"
+                ),
+            )
+        })
+        .collect()
 }
 
 /// Builds APK(s) and returns the built APK(s) paths
@@ -86,13 +92,22 @@ pub fn build<'a>(
 
     let mut outputs = Vec::new();
     if split_per_abi {
-        outputs.extend(
-            targets
-                .iter()
-                .map(|t| dunce::simplified(&apk_path(config, profile, t.arch)).to_path_buf()),
-        );
+        let paths = targets
+            .iter()
+            .map(|t| {
+                apks_paths(config, profile, t.arch)
+                    .into_iter()
+                    .reduce(|prev, curr| last_modified(prev, curr))
+                    .unwrap()
+            })
+            .collect::<Vec<_>>();
+        outputs.extend(paths);
     } else {
-        outputs.push(dunce::simplified(&apk_path(config, profile, "universal")).to_path_buf());
+        let path = apks_paths(config, profile, "universal")
+            .into_iter()
+            .reduce(|prev, curr| last_modified(prev, curr))
+            .unwrap();
+        outputs.push(path);
     }
 
     Ok(outputs)
