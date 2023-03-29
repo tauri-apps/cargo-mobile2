@@ -237,6 +237,12 @@ impl<'a> Target<'a> {
         if env.ndk.version().unwrap_or_default().triple.major >= 23 {
             let path = config.app().prefix_path(".cargo/libgcc.a");
             if !path.exists() {
+                fs::create_dir_all(&path.parent().unwrap()).map_err(|cause| {
+                    CompileLibError::FileWrite {
+                        path: path.clone(),
+                        cause,
+                    }
+                })?;
                 fs::write(&path, "INPUT(-lunwind)")
                     .map_err(|cause| CompileLibError::FileWrite { path, cause })?;
             }
