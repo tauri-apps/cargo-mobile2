@@ -2,4 +2,4 @@
 "tauri-mobile": "minor"
 ---
 
-Remove `libgcca` redtirect to `libunwind` workaround for NDK 23 and higher
+Remove `libgcc` redirect to `libunwind` workaround for NDK 23 and higher
