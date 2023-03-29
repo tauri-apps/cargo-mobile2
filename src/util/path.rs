@@ -3,6 +3,7 @@ use std::{
     fmt::{self, Display},
     io,
     path::{Component, Path, PathBuf},
+    time::SystemTime,
 };
 use thiserror::Error;
 
@@ -221,6 +222,22 @@ pub fn under_root(
         let norm = dunce::simplified(&norm);
         norm.starts_with(dunce::simplified(root.as_ref()))
     })
+}
+
+pub fn last_modified(first: PathBuf, second: PathBuf) -> PathBuf {
+    let first_modified = first
+        .metadata()
+        .and_then(|m| m.modified())
+        .unwrap_or_else(|_| SystemTime::UNIX_EPOCH);
+    let second_modified = second
+        .metadata()
+        .and_then(|m| m.modified())
+        .unwrap_or_else(|_| SystemTime::UNIX_EPOCH);
+    match first_modified.cmp(&second_modified) {
+        std::cmp::Ordering::Less => second,
+        std::cmp::Ordering::Equal => first,
+        std::cmp::Ordering::Greater => first,
+    }
 }
 
 #[cfg(test)]

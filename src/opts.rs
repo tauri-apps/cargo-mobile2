@@ -74,11 +74,10 @@ impl Profile {
         }
     }
 
-    pub fn suffix(&self) -> &str {
+    pub fn suffixes(&self) -> &[&str] {
         match self {
-            Profile::Debug => self.as_str(),
-            // TODO: how to handle signed APKs?
-            Profile::Release => "release-unsigned",
+            Profile::Debug => &["debug"],
+            Profile::Release => &["release", "release-unsigned"],
         }
     }
 }
