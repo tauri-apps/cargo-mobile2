@@ -696,6 +696,7 @@ pub fn gradlew(
     #[cfg(not(windows))]
     let (gradlew, gradle) = ("gradlew", "gradle");
 
+    let project_dir = dunce::simplified(&project_dir);
     let gradlew_p = project_dir.join(gradlew);
     let mut cmd = if gradlew_p.exists() {
         duct::cmd(
