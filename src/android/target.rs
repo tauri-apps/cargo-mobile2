@@ -16,7 +16,7 @@ use crate::{
 };
 use once_cell_regex::exports::once_cell::sync::OnceCell;
 use serde::Serialize;
-use std::{collections::BTreeMap, fmt, fs, io, path::PathBuf, str};
+use std::{collections::BTreeMap, fmt, io, path::PathBuf, str};
 use thiserror::Error;
 
 #[derive(Clone, Copy, Debug)]

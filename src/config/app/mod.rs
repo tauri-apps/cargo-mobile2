@@ -178,6 +178,10 @@ impl App {
     pub fn target_dir(&self, triple: &str, profile: Profile) -> PathBuf {
         if let Some(resolver) = &self.target_dir_resolver {
             resolver(triple, profile)
+        } else if let Ok(target) = std::env::var("CARGO_TARGET_DIR") {
+            self.prefix_path(format!("{}/{}/{}", target, triple, profile.as_str()))
+        } else if let Ok(target) = std::env::var("CARGO_BUILD_TARGET_DIR") {
+            self.prefix_path(format!("{}/{}/{}", target, triple, profile.as_str()))
         } else {
             self.prefix_path(format!("target/{}/{}", triple, profile.as_str()))
         }
