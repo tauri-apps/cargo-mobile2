@@ -50,6 +50,18 @@ pub fn build(
                 "-PabiList={}",
                 targets.iter().map(|t| t.abi).collect::<Vec<_>>().join(",")
             ),
+            format!(
+                "-ParchList={}",
+                targets.iter().map(|t| t.arch).collect::<Vec<_>>().join(",")
+            ),
+            format!(
+                "-PtargetList={}",
+                targets
+                    .iter()
+                    .map(|t| t.triple.split('-').next().unwrap())
+                    .collect::<Vec<_>>()
+                    .join(",")
+            ),
         ]
     };
     gradlew(config, env)
