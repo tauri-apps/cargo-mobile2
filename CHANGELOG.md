@@ -1,5 +1,16 @@
 # Changelog
 
+## \[0.3.0]
+
+- This change manually instructs Java and Kotlin to use/generate code for the same JVM target.
+  - [fee2f07](https://github.com/tauri-apps/tauri-mobile/commit/fee2f07c41d43e9a6a801a05c879b5c7e211d837) Update build.gradle.kts.hbs to fix Kotlin incorrect version usage ([#122](https://github.com/tauri-apps/tauri-mobile/pull/122)) on 2023-03-25
+- Remove `libgcc` redirect to `libunwind` workaround for NDK 23 and higher
+  - [51a5072](https://github.com/tauri-apps/tauri-mobile/commit/51a5072be644d60e4854c60979b9ab425e7edf0e) refactor: remove libunwind workaround for ndk ([#125](https://github.com/tauri-apps/tauri-mobile/pull/125)) on 2023-03-29
+- Use signed apks if signing is configured in the gradle project.
+  - [2d37899](https://github.com/tauri-apps/tauri-mobile/commit/2d37899deaac6afe46bf710ef44719d10e398983) feat: handle signed apks ([#124](https://github.com/tauri-apps/tauri-mobile/pull/124)) on 2023-03-29
+- Build only specified rust targets for `cargo android apk build` and `cargo android aab build` instead of all.
+  - [ecb56d8](https://github.com/tauri-apps/tauri-mobile/commit/ecb56d8066d799488f4d200f865138fb2c22c6ca) fix: only build specified rust targets for aab/apk build ([#128](https://github.com/tauri-apps/tauri-mobile/pull/128)) on 2023-04-04
+
 ## \[0.2.5]
 
 - Add `start_detached` method to start emulators.
