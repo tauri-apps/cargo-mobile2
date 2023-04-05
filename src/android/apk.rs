@@ -69,13 +69,30 @@ pub fn build<'a>(
             .map(|t| format!("assemble{}{}", t.arch_upper_camel_case(), build_ty))
             .collect()
     } else {
-        vec![
-            format!("assembleUniversal{}", build_ty),
-            format!(
-                "-PabiList={}",
-                targets.iter().map(|t| t.abi).collect::<Vec<_>>().join(",")
-            ),
-        ]
+        let mut args = vec![format!("assembleUniversal{}", build_ty)];
+
+        if !targets.is_empty() {
+            args.extend_from_slice(&[
+                format!(
+                    "-PabiList={}",
+                    targets.iter().map(|t| t.abi).collect::<Vec<_>>().join(",")
+                ),
+                format!(
+                    "-ParchList={}",
+                    targets.iter().map(|t| t.arch).collect::<Vec<_>>().join(",")
+                ),
+                format!(
+                    "-PtargetList={}",
+                    targets
+                        .iter()
+                        .map(|t| t.triple.split('-').next().unwrap())
+                        .collect::<Vec<_>>()
+                        .join(",")
+                ),
+            ])
+        }
+
+        args
     };
 
     gradlew(config, env)
