@@ -99,8 +99,9 @@ pub fn aab_path(config: &Config, profile: Profile, flavor: &str) -> PathBuf {
     prefix_path(
         config.project_dir(),
         format!(
-            "app/build/outputs/{}/app-{}-{}.{}",
-            format!("bundle/{}{}", flavor, profile.as_str_pascal_case()),
+            "app/build/outputs/bundle/{}{}/app-{}-{}.{}",
+            flavor,
+            profile.as_str_pascal_case(),
             flavor,
             profile.as_str(),
             "aab"
@@ -124,7 +125,7 @@ pub mod cli {
             if split_per_abi { "(s)" } else { "" },
             targets
                 .iter()
-                .map(|t| t.triple.split("-").next().unwrap())
+                .map(|t| t.triple.split('-').next().unwrap())
                 .collect::<Vec<_>>()
                 .join(", ")
         );

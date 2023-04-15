@@ -190,7 +190,7 @@ impl<'a> Call<'a> {
             }
             Clobber::FileOrDirectory => {
                 if self.target_override.is_dir() {
-                    remove_dir_all(&self.target)
+                    remove_dir_all(self.target)
                         .map_err(|err| self.make_error(ErrorCause::IOError(err)))?;
                 }
                 command.add_arg("-f");

@@ -57,7 +57,7 @@ impl From<CustomEscapeFn> for EscapeFn {
 #[derive(Debug, Error)]
 pub enum RenderingError {
     #[error("Failed to render template: {0}")]
-    RenderingFailed(#[from] handlebars::TemplateRenderError),
+    RenderingFailed(#[from] Box<handlebars::TemplateRenderError>),
 }
 
 /// An error encountered when processing an [`Action`].
@@ -65,21 +65,21 @@ pub enum RenderingError {
 pub enum ProcessingError {
     /// Failed to traverse files.
     #[error("Failed to traverse templates at {src:?}: {cause}")]
-    TraversalFailed {
+    Traversal {
         src: PathBuf,
         #[source]
         cause: TraversalError<RenderingError>,
     },
     /// Failed to create directory.
     #[error("Failed to create directory at {dest:?}: {cause}")]
-    DirectoryCreationFailed {
+    DirectoryCreation {
         dest: PathBuf,
         #[source]
         cause: io::Error,
     },
     /// Failed to copy file.
     #[error("Failed to copy file {src:?} to {dest:?}: {cause}")]
-    FileCopyFailed {
+    FileCopy {
         src: PathBuf,
         dest: PathBuf,
         #[source]
@@ -87,21 +87,21 @@ pub enum ProcessingError {
     },
     /// Failed to open or read input file.
     #[error("Failed to read template at {src:?}: {cause}")]
-    TemplateReadFailed {
+    TemplateRead {
         src: PathBuf,
         #[source]
         cause: io::Error,
     },
     /// Failed to render template.
     #[error("Failed to render template at {src:?}: {cause}")]
-    TemplateRenderFailed {
+    TemplateRender {
         src: PathBuf,
         #[source]
         cause: RenderingError,
     },
     /// Failed to create or write output file.
     #[error("Failed to write template from {src:?} to {dest:?}: {cause}")]
-    TemplateWriteFailed {
+    TemplateWrite {
         src: PathBuf,
         dest: PathBuf,
         #[source]
@@ -209,6 +209,7 @@ impl Bicycle {
         insert_data(&mut data);
         self.handlebars
             .render_template(template, &data.0)
+            .map_err(Box::new)
             .map_err(Into::into)
     }
 
@@ -235,15 +236,13 @@ impl Bicycle {
         log::info!("{:#?}", action);
         match action {
             Action::CreateDirectory { dest } => {
-                fs::create_dir_all(&dest).map_err(|cause| {
-                    ProcessingError::DirectoryCreationFailed {
-                        dest: dest.clone(),
-                        cause,
-                    }
+                fs::create_dir_all(dest).map_err(|cause| ProcessingError::DirectoryCreation {
+                    dest: dest.clone(),
+                    cause,
                 })?;
             }
             Action::CopyFile { src, dest } => {
-                fs::copy(src, dest).map_err(|cause| ProcessingError::FileCopyFailed {
+                fs::copy(src, dest).map_err(|cause| ProcessingError::FileCopy {
                     src: src.clone(),
                     dest: dest.clone(),
                     cause,
@@ -253,19 +252,19 @@ impl Bicycle {
                 let mut template = String::new();
                 fs::File::open(src)
                     .and_then(|mut file| file.read_to_string(&mut template))
-                    .map_err(|cause| ProcessingError::TemplateReadFailed {
+                    .map_err(|cause| ProcessingError::TemplateRead {
                         src: src.clone(),
                         cause,
                     })?;
                 let rendered = self.render(&template, insert_data).map_err(|cause| {
-                    ProcessingError::TemplateRenderFailed {
+                    ProcessingError::TemplateRender {
                         src: src.clone(),
                         cause,
                     }
                 })?;
                 fs::File::create(dest)
                     .and_then(|mut file| file.write_all(rendered.as_bytes()))
-                    .map_err(|cause| ProcessingError::TemplateWriteFailed {
+                    .map_err(|cause| ProcessingError::TemplateWrite {
                         src: src.clone(),
                         dest: dest.clone(),
                         cause,
@@ -316,7 +315,7 @@ impl Bicycle {
             |path| self.transform_path(path, &insert_data),
             DEFAULT_TEMPLATE_EXT,
         )
-        .map_err(|cause| ProcessingError::TraversalFailed {
+        .map_err(|cause| ProcessingError::Traversal {
             src: src.to_owned(),
             cause,
         })
@@ -352,7 +351,7 @@ impl Bicycle {
                         if let Prefix::Disk(_) = prefix.kind() {
                             return p
                                 .to_str()
-                                .and_then(|s| Some(format!("\\\\?\\{}", s)))
+                                .map(|s| format!("\\\\?\\{}", s))
                                 .map(PathBuf::from)
                                 .unwrap_or_else(|| p);
                         }

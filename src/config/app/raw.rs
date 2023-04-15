@@ -29,7 +29,7 @@ fn default_domain(_wrapper: &TextWrapper) -> Result<Option<String>, DefaultDomai
         .last()
         .ok_or(DefaultDomainError::FailedToParseEmailAddr)?;
     Ok(
-        if !COMMON_EMAIL_PROVIDERS.contains(&domain) && domain::check_domain_syntax(&domain).is_ok()
+        if !COMMON_EMAIL_PROVIDERS.contains(&domain) && domain::check_domain_syntax(domain).is_ok()
         {
             #[cfg(not(feature = "brainium"))]
             if domain == "brainiumstudios.com" {
@@ -191,12 +191,8 @@ impl Raw {
         let mut rejected = None;
         let mut default_stylized = None;
         let name = loop {
-            let response = prompt::default(
-                "Project name",
-                default_name.as_ref().map(|s| s.as_str()),
-                None,
-            )
-            .map_err(PromptError::NamePromptFailed)?;
+            let response = prompt::default("Project name", default_name.as_deref(), None)
+                .map_err(PromptError::NamePromptFailed)?;
             match name::validate(response.clone()) {
                 Ok(response) => {
                     if default_name == Some(response.clone()) {
@@ -229,8 +225,8 @@ impl Raw {
         name: &str,
         default_stylized: Option<String>,
     ) -> Result<String, PromptError> {
-        let stylized = default_stylized
-            .unwrap_or_else(|| name.replace("-", " ").replace("_", " ").to_title_case());
+        let stylized =
+            default_stylized.unwrap_or_else(|| name.replace(['-', '_'], " ").to_title_case());
         prompt::default("Stylized name", Some(&stylized), None)
             .map_err(PromptError::StylizedNamePromptFailed)
     }
@@ -284,7 +280,7 @@ impl Raw {
                 .parse::<usize>()
                 .ok()
                 .and_then(|index| packs.get(index))
-                .map(|pack| pack.clone());
+                .cloned();
             if let Some(pack_name) = pack_name {
                 break Ok(pack_name);
             } else {

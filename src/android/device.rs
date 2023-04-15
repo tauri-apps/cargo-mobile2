@@ -173,8 +173,9 @@ impl<'a> Device<'a> {
                 prefix_path(
                     config.project_dir(),
                     format!(
-                        "app/build/outputs/{}/app-{}-{}.{}",
-                        format!("apk/{}/{}", flavor, profile.as_str()),
+                        "app/build/outputs/apk/{}/{}/app-{}-{}.{}",
+                        flavor,
+                        profile.as_str(),
                         flavor,
                         suffix,
                         "apk"
@@ -187,7 +188,7 @@ impl<'a> Device<'a> {
     fn wait_device_boot(&self, env: &Env) {
         loop {
             let cmd = self.adb(env).stdout_capture().before_spawn(move |cmd| {
-                cmd.args(&["shell", "getprop", "init.svc.bootanim"]);
+                cmd.args(["shell", "getprop", "init.svc.bootanim"]);
                 Ok(())
             });
             let handle = cmd.start();
@@ -227,7 +228,7 @@ impl<'a> Device<'a> {
         let flavor = self.target.arch;
         let apk_path = apk::apks_paths(config, profile, flavor)
             .into_iter()
-            .reduce(|prev, curr| last_modified(prev, curr))
+            .reduce(last_modified)
             .unwrap();
 
         self.adb(env)
@@ -287,7 +288,7 @@ impl<'a> Device<'a> {
         let flavor = self.target.arch;
         let apks_path = Self::all_apks_paths(config, profile, flavor)
             .into_iter()
-            .reduce(|prev, curr| last_modified(prev, curr))
+            .reduce(last_modified)
             .unwrap();
         bundletool::command()
             .with_arg("install-apks")
@@ -300,7 +301,7 @@ impl<'a> Device<'a> {
     fn wake_screen(&self, env: &Env) -> std::io::Result<()> {
         self.adb(env)
             .before_spawn(move |cmd| {
-                cmd.args(&["shell", "input", "keyevent", "KEYCODE_WAKEUP"]);
+                cmd.args(["shell", "input", "keyevent", "KEYCODE_WAKEUP"]);
                 Ok(())
             })
             .start()?
@@ -308,6 +309,7 @@ impl<'a> Device<'a> {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn run(
         &self,
         config: &Config,
@@ -347,7 +349,7 @@ impl<'a> Device<'a> {
         );
         self.adb(env)
             .before_spawn(move |cmd| {
-                cmd.args(&["shell", "am", "start", "-n", &activity]);
+                cmd.args(["shell", "am", "start", "-n", &activity]);
                 Ok(())
             })
             .start()?
@@ -405,7 +407,7 @@ impl<'a> Device<'a> {
         let logcat_filter_specs = config.logcat_filter_specs().to_vec();
         logcat = logcat.before_spawn(move |cmd| {
             if !pid.is_empty() {
-                cmd.args(&["--pid", &pid]);
+                cmd.args(["--pid", &pid]);
             }
             cmd.args(&logcat_filter_specs);
             Ok(())

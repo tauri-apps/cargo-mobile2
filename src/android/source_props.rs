@@ -106,7 +106,7 @@ pub struct SourceProps {
 impl SourceProps {
     pub fn from_path(path: impl AsRef<Path>) -> Result<Self, Error> {
         let path = path.as_ref();
-        let file = std::fs::File::open(&path).map_err(|source| Error::OpenFailed {
+        let file = std::fs::File::open(path).map_err(|source| Error::OpenFailed {
             path: path.to_owned(),
             source,
         })?;

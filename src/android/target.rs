@@ -170,11 +170,11 @@ impl<'a> TargetTrait<'a> for Target<'a> {
 
 impl<'a> Target<'a> {
     fn clang_triple(&self) -> &'a str {
-        self.clang_triple_override.unwrap_or_else(|| self.triple)
+        self.clang_triple_override.unwrap_or(self.triple)
     }
 
     fn binutils_triple(&self) -> &'a str {
-        self.binutils_triple_override.unwrap_or_else(|| self.triple)
+        self.binutils_triple_override.unwrap_or(self.triple)
     }
 
     pub fn for_abi(abi: &str) -> Option<&'a Self> {
@@ -220,6 +220,7 @@ impl<'a> Target<'a> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn compile_lib(
         &self,
         config: &Config,
@@ -264,7 +265,7 @@ impl<'a> Target<'a> {
                     .compiler_path(ndk::Compiler::Clangxx, self.clang_triple(), min_sdk_version)
                     .map_err(CompileLibError::MissingTool)?,
             )
-            .with_args(&["--color", color])
+            .with_args(["--color", color])
             .run_and_wait()
             .map_err(|cause| CompileLibError::CargoFailed { mode, cause })?;
         Ok(())
@@ -300,7 +301,7 @@ impl<'a> Target<'a> {
 
         let src = config
             .app()
-            .target_dir(&self.triple, profile)
+            .target_dir(self.triple, profile)
             .join(config.so_name());
 
         if !src.exists() {

@@ -120,7 +120,7 @@ impl Pack {
                         "specified a submodule commit, but the template pack {:?} isn't submodule-based", path
                     );
                 }
-                Ok(vec![&path])
+                Ok(vec![path])
             }
             Self::Fancy(pack) => pack.resolve(git, submodule_commit),
         }
@@ -171,7 +171,7 @@ pub fn list_app_packs() -> Result<Vec<String>, ListError> {
     Ok(if cfg!(feature = "brainium") {
         // This solution is slightly devious...
         BRAINIUM
-            .into_iter()
+            .iter()
             .map(ToString::to_string)
             .chain(packs)
             .collect()

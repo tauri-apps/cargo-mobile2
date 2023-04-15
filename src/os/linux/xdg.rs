@@ -32,17 +32,15 @@ pub fn query_mime_entry(mime_type: &str) -> Option<PathBuf> {
 // This other one does not give that idea:
 // https://specifications.freedesktop.org/menu-spec/latest/ar01s02.html
 pub fn find_entry_in_dir(dir_path: &Path, target: &Path) -> std::io::Result<Option<PathBuf>> {
-    for entry in dir_path.read_dir()? {
-        if let Ok(entry) = entry {
-            // If it is a file with that same _filename_ (not full path)
-            if entry.path().is_file() && entry.file_name() == target {
-                return Ok(Some(entry.path().into()));
-            } else if entry.path().is_dir() {
-                // I think if there are any dirs on that directory we have to
-                // recursively search on them
-                if let Some(result) = find_entry_in_dir(&entry.path(), target)? {
-                    return Ok(Some(result));
-                }
+    for entry in dir_path.read_dir()?.flatten() {
+        // If it is a file with that same _filename_ (not full path)
+        if entry.path().is_file() && entry.file_name() == target {
+            return Ok(Some(entry.path()));
+        } else if entry.path().is_dir() {
+            // I think if there are any dirs on that directory we have to
+            // recursively search on them
+            if let Some(result) = find_entry_in_dir(&entry.path(), target)? {
+                return Ok(Some(result));
             }
         }
     }
@@ -172,9 +170,7 @@ fn parse_unquoted_text(
     let result = replace_on_pattern(result, "", byte_regex!(r"%[^%]"));
 
     // Of course, the double percentage maps to percentage
-    let result = replace_on_pattern(&result, "%", byte_regex!("%%"));
-
-    result
+    replace_on_pattern(result, "%", byte_regex!("%%"))
 }
 
 // The exec field of the FreeDesktop entry may contain some flags that need to
@@ -227,7 +223,7 @@ pub fn parse_command(
             } else {
                 // When we find another ", we collected a text atom
                 // If there is text we store it
-                if text_atom.len() > 0 {
+                if !text_atom.is_empty() {
                     let text_atom_string = parse_quoted_text(
                         OsStr::from_bytes(&text_atom),
                         argument,
@@ -248,7 +244,7 @@ pub fn parse_command(
             } else {
                 // When we find another ', we collected a text atom
                 // If there is text we store it
-                if text_atom.len() > 0 {
+                if !text_atom.is_empty() {
                     let text_atom_string = parse_quoted_text(
                         OsStr::from_bytes(&text_atom),
                         argument,
@@ -264,7 +260,7 @@ pub fn parse_command(
         // If not quoting, or scaping, then space is a text atom separator
         } else if [b' ', b'\t', b'\n'].contains(&c) {
             // If there is text we store it
-            if text_atom.len() > 0 {
+            if !text_atom.is_empty() {
                 let text_atom_string = parse_unquoted_text(
                     OsStr::from_bytes(&text_atom),
                     argument,
@@ -285,7 +281,7 @@ pub fn parse_command(
     } // End of iteration over the command's bytes
 
     // At the end of the loop we flush whatever was being accumulated to the command parts
-    if text_atom.len() > 0 {
+    if !text_atom.is_empty() {
         // If the value was well formed, quoted strings end on a quote character, and
         // not on EOF, so this should be unquoted.
         let text_atom_string = parse_unquoted_text(
@@ -322,7 +318,7 @@ pub fn get_xdg_data_dirs() -> Vec<PathBuf> {
     }
 
     if let Ok(var) = env::var("XDG_DATA_DIRS") {
-        let entries = var.split(":").map(PathBuf::from);
+        let entries = var.split(':').map(PathBuf::from);
         result.extend(entries);
     } else {
         // These are the default ones we'll use in case the var is not set

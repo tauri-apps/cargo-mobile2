@@ -77,7 +77,7 @@ impl<'a> CargoCommand<'a> {
             command.add_arg("-vv");
         }
         if let Some(package) = self.package {
-            command.add_args(&["--package", package]);
+            command.add_args(["--package", package]);
         }
         if let Some(manifest_path) = self.manifest_path {
             if !manifest_path.exists() {
@@ -94,13 +94,13 @@ impl<'a> CargoCommand<'a> {
             // solution described in the aforementioned function, omitting the
             // default target here wouldn't actually have any negative effect,
             // but it wouldn't accomplish anything either.
-            command.add_args(&["--target", target]);
+            command.add_args(["--target", target]);
         }
         if self.no_default_features {
             command.add_arg("--no-default-features");
         }
         if let Some(features) = self.features {
-            command.add_args(&["--features", &features.join(" ")]);
+            command.add_args(["--features", &features.join(" ")]);
         }
         if let Some(args) = self.args {
             command.add_args(args);

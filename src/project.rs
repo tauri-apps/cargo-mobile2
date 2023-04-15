@@ -11,9 +11,9 @@ use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum Error {
-    GitInitFailed(bossy::Error),
-    TemplatePackResolveFailed(FancyPackResolveError),
-    ProcessingFailed {
+    GitInit(bossy::Error),
+    TemplatePackResolve(FancyPackResolveError),
+    Processing {
         src: PathBuf,
         dest: PathBuf,
         cause: bicycle::ProcessingError,
@@ -23,11 +23,9 @@ pub enum Error {
 impl Reportable for Error {
     fn report(&self) -> Report {
         match self {
-            Self::GitInitFailed(err) => Report::error("Failed to initialize git", err),
-            Self::TemplatePackResolveFailed(err) => {
-                Report::error("Failed to resolve template pack", err)
-            }
-            Self::ProcessingFailed { src, dest, cause } => Report::error(
+            Self::GitInit(err) => Report::error("Failed to initialize git", err),
+            Self::TemplatePackResolve(err) => Report::error("Failed to resolve template pack", err),
+            Self::Processing { src, dest, cause } => Report::error(
                 format!(
                     "Base project template processing from src {:?} to dest {:?} failed",
                     src, dest,
@@ -46,18 +44,18 @@ pub fn gen(
 ) -> Result<(), Error> {
     println!("Generating base project...");
     let root = config.app().root_dir();
-    let git = Git::new(&root);
-    git.init().map_err(Error::GitInitFailed)?;
+    let git = Git::new(root);
+    git.init().map_err(Error::GitInit)?;
     let pack_chain = config
         .app()
         .template_pack()
         .resolve(git, submodule_commit.as_deref())
-        .map_err(Error::TemplatePackResolveFailed)?;
+        .map_err(Error::TemplatePackResolve)?;
     log::info!("template pack chain: {:#?}", pack_chain);
     for pack in pack_chain {
         log::info!("traversing template pack {:#?}", pack);
-        bike.filter_and_process(&pack, &root, |_| (), filter.fun())
-            .map_err(|cause| Error::ProcessingFailed {
+        bike.filter_and_process(pack, root, |_| (), filter.fun())
+            .map_err(|cause| Error::Processing {
                 src: pack.to_owned(),
                 dest: root.to_owned(),
                 cause,

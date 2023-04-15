@@ -161,7 +161,7 @@ impl Exec for Input {
                 ".",
             )
             .map(|_| ())
-            .map_err(Error::InitFailed),
+            .map_err(|e| Error::InitFailed(*e)),
             Command::New {
                 skip_dev_tools: cli::SkipDevTools { skip_dev_tools },
                 reinstall_deps: cli::ReinstallDeps { reinstall_deps },
@@ -187,7 +187,7 @@ impl Exec for Input {
                     ".",
                 )
                 .map(|_| ())
-                .map_err(Error::InitFailed)
+                .map_err(|e| Error::InitFailed(*e))
             }
             Command::Open => util::open_in_editor(".").map_err(Error::OpenFailed),
             Command::Update { init } => {
@@ -202,7 +202,7 @@ impl Exec for Input {
                         Default::default(),
                         ".",
                     )
-                    .map_err(Error::InitFailed)?;
+                    .map_err(|e| Error::InitFailed(*e))?;
                 }
                 Ok(())
             }

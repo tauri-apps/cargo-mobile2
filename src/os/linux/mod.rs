@@ -91,7 +91,7 @@ impl Application {
     pub fn open_file(&self, path: impl AsRef<Path>) -> Result<(), OpenFileError> {
         let path = path.as_ref();
 
-        let maybe_icon = self.icon.as_ref().map(|icon_str| icon_str.as_os_str());
+        let maybe_icon = self.icon.as_deref();
 
         // Parse the xdg command field with all the needed data
         let command_parts = xdg::parse_command(
@@ -128,7 +128,7 @@ pub fn open_file_with(
         .iter()
         .find_map(|dir| {
             let dir = dir.join("applications");
-            let (entry, entry_path) = xdg::find_entry_by_app_name(&dir, &app_str)?;
+            let (entry, entry_path) = xdg::find_entry_by_app_name(&dir, app_str)?;
 
             let command_parts = entry
                 .section("Desktop Entry")
@@ -168,7 +168,7 @@ pub fn open_file_with(
 #[cfg(target_os = "linux")]
 pub fn command_path(name: &str) -> bossy::Result<bossy::Output> {
     bossy::Command::impure("sh")
-        .with_args(&["-c", &format!("command -v {}", name)])
+        .with_args(["-c", &format!("command -v {}", name)])
         .run_and_wait_for_output()
 }
 

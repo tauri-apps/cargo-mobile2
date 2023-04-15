@@ -164,15 +164,15 @@ fn validate_non_recursive<T: Deref<Target = str>>(app_name: T) -> Result<T, Inva
     // used.
     if !app_name.is_empty() {
         if app_name.is_ascii() {
-            if has_initial_number(&app_name.deref()) {
+            if has_initial_number(app_name.deref()) {
                 Err(Invalid::StartsWithDigit {
                     app_name: app_name.to_owned(),
                     suggested: None,
                 })
             } else {
-                match is_reserved(&app_name.deref()) {
+                match is_reserved(app_name.deref()) {
                     Ok(()) => {
-                        if app_name.chars().all(|c| char_allowed(c)) {
+                        if app_name.chars().all(char_allowed) {
                             Ok(app_name)
                         } else {
                             let mut naughty_chars = Vec::new();
@@ -208,35 +208,31 @@ pub fn validate<T: Deref<Target = str>>(app_name: T) -> Result<T, Invalid> {
     // Suggestion generation could recurse, so we have a separate slightly
     // dumber function that doesn't generate suggestions.
     let mut result = validate_non_recursive(app_name);
-    match result.as_mut() {
-        Err(err) => {
-            assert!(err.suggested().is_none());
-            match err {
-                Invalid::NotAscii {
-                    app_name,
-                    suggested,
-                } => {
-                    *suggested = transliterate(&app_name.deref());
-                }
-                Invalid::StartsWithDigit {
-                    app_name,
-                    suggested,
-                } => {
-                    *suggested = Some(transliterate_initial_number(&app_name.deref()));
-                }
-                Invalid::NotAlphanumericHyphenOrUnderscore {
-                    app_name,
-                    suggested,
-                    ..
-                } => {
-                    *suggested =
-                        validate_non_recursive(strip_naughty_chars(&normalize_case(&app_name)))
-                            .ok();
-                }
-                _ => (),
+    if let Err(err) = result.as_mut() {
+        assert!(err.suggested().is_none());
+        match err {
+            Invalid::NotAscii {
+                app_name,
+                suggested,
+            } => {
+                *suggested = transliterate(app_name.deref());
             }
+            Invalid::StartsWithDigit {
+                app_name,
+                suggested,
+            } => {
+                *suggested = Some(transliterate_initial_number(app_name.deref()));
+            }
+            Invalid::NotAlphanumericHyphenOrUnderscore {
+                app_name,
+                suggested,
+                ..
+            } => {
+                *suggested =
+                    validate_non_recursive(strip_naughty_chars(&normalize_case(app_name))).ok();
+            }
+            _ => (),
         }
-        _ => (),
     }
     result
 }

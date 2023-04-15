@@ -44,7 +44,7 @@ pub fn contract_home(path: impl AsRef<Path>) -> Result<String, ContractHomeError
     {
         let home = home_dir()?;
         let home = home.to_str().ok_or(ContractHomeError::HomeInvalidUtf8)?;
-        Ok(path.replace(home, "~").to_owned())
+        Ok(path.replace(home, "~"))
     }
     #[cfg(windows)]
     {
@@ -133,10 +133,8 @@ fn common_root(abs_src: &Path, abs_dest: &Path) -> PathBuf {
     loop {
         if abs_src.starts_with(&dest_root) {
             return dest_root;
-        } else {
-            if !dest_root.pop() {
-                unreachable!("`abs_src` and `abs_dest` have no common root");
-            }
+        } else if !dest_root.pop() {
+            unreachable!("`abs_src` and `abs_dest` have no common root");
         }
     }
 }
@@ -220,7 +218,7 @@ pub fn under_root(
     let root = dunce::simplified(root.as_ref());
     normalize_path(root.join(path)).map(|norm| {
         let norm = dunce::simplified(&norm);
-        norm.starts_with(dunce::simplified(root.as_ref()))
+        norm.starts_with(dunce::simplified(root))
     })
 }
 
@@ -228,11 +226,11 @@ pub fn last_modified(first: PathBuf, second: PathBuf) -> PathBuf {
     let first_modified = first
         .metadata()
         .and_then(|m| m.modified())
-        .unwrap_or_else(|_| SystemTime::UNIX_EPOCH);
+        .unwrap_or(SystemTime::UNIX_EPOCH);
     let second_modified = second
         .metadata()
         .and_then(|m| m.modified())
-        .unwrap_or_else(|_| SystemTime::UNIX_EPOCH);
+        .unwrap_or(SystemTime::UNIX_EPOCH);
     match first_modified.cmp(&second_modified) {
         std::cmp::Ordering::Less => second,
         std::cmp::Ordering::Equal => first,
