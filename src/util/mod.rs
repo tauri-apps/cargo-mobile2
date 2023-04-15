@@ -20,7 +20,7 @@ use std::{
     error::Error as StdError,
     ffi::OsStr,
     fmt::{self, Debug, Display},
-    io::{self, Write},
+    io,
     path::{Path, PathBuf},
 };
 use thiserror::Error;
@@ -494,32 +494,6 @@ impl Display for PipeError {
                 write!(f, "Failed to wait for receiving command to exit: {}", err)
             }
         }
-    }
-}
-
-pub fn pipe(mut tx_command: bossy::Command, rx_command: bossy::Command) -> Result<bool, PipeError> {
-    let tx_output = tx_command
-        .run_and_wait_for_output()
-        .map_err(PipeError::TxCommandFailed)?;
-    if !tx_output.stdout().is_empty() {
-        let mut rx_command = rx_command
-            .with_stdin_piped()
-            .with_stdout(bossy::Stdio::inherit())
-            .run()
-            .map_err(PipeError::RxCommandFailed)?;
-        let pipe_result = rx_command
-            .stdin()
-            .expect("developer error: `rx_command` stdin not captured")
-            .write_all(tx_output.stdout())
-            .map_err(PipeError::PipeFailed);
-        let wait_result = rx_command.wait_for_output().map_err(PipeError::WaitFailed);
-        // We try to wait even if the pipe failed, but the pipe error has higher
-        // priority than the wait error, since it's likely to be more relevant.
-        pipe_result?;
-        wait_result?;
-        Ok(true)
-    } else {
-        Ok(false)
     }
 }
 

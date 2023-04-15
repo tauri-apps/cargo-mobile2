@@ -14,6 +14,8 @@ pub enum Error {
     DumpsysFailed(#[source] super::RunCheckedError),
     #[error("Name regex didn't match anything.")]
     NotMatched,
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
 }
 
 impl Reportable for Error {
@@ -25,6 +27,7 @@ impl Reportable for Error {
                 err.report("Failed to run `adb shell dumpsys bluetooth_manager`")
             }
             Self::NotMatched => Report::error(msg, self),
+            Self::Io(err) => Report::error("IO error", err),
         }
     }
 }
@@ -33,21 +36,33 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
     if serial_no.starts_with("emulator") {
         super::check_authorized(
             adb(env, serial_no)
-                .with_args(&["emu", "avd", "name"])
-                .run_and_wait_for_str(|raw| Ok(raw.split('\n').next().unwrap().trim().into())),
+                .before_spawn(move |cmd| {
+                    cmd.args(&["emu", "avd", "name"]);
+                    Ok(())
+                })
+                .stdout_capture()
+                .start()?
+                .wait()?,
         )
-        .map_err(Error::EmuFailed)?
+        .map(|stdout| stdout.split('\n').next().unwrap().trim().into())
+        .map_err(Error::EmuFailed)
     } else {
         super::check_authorized(
             adb(env, serial_no)
-                .with_args(&["shell", "dumpsys", "bluetooth_manager"])
-                .run_and_wait_for_str(|raw| {
-                    regex!(r"\bname: (?P<name>.*)")
-                        .captures(raw)
-                        .map(|caps| caps["name"].to_owned())
-                        .ok_or_else(|| Error::NotMatched)
-                }),
+                .before_spawn(move |cmd| {
+                    cmd.args(&["shell", "dumpsys", "bluetooth_manager"]);
+                    Ok(())
+                })
+                .stdout_capture()
+                .start()?
+                .wait()?,
         )
-        .map_err(Error::DumpsysFailed)?
+        .map_err(Error::DumpsysFailed)
+        .and_then(|stdout| {
+            regex!(r"\bname: (?P<name>.*)")
+                .captures(&stdout)
+                .map(|caps| caps["name"].to_owned())
+                .ok_or_else(|| Error::NotMatched)
+        })
     }
 }

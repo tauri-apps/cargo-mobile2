@@ -19,5 +19,6 @@ pub mod target;
 mod templating;
 pub mod update;
 pub mod util;
+pub use duct::Handle as ChildHandle;
 
 pub static NAME: &str = "mobile";

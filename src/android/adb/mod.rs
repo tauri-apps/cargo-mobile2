@@ -6,19 +6,21 @@ pub use self::{device_list::device_list, device_name::device_name, get_prop::get
 
 use super::env::Env;
 use crate::{bossy, env::ExplicitEnv as _, util::cli::Report};
-use std::str;
+use std::{str, string::FromUtf8Error};
 use thiserror::Error;
 
-pub fn adb(env: &Env, serial_no: &str) -> bossy::Command {
-    bossy::Command::pure(env.platform_tools_path().join("adb"))
-        .with_env_vars(env.explicit_env())
-        .with_args(&["-s", serial_no])
+pub fn adb(env: &Env, serial_no: &str) -> duct::Expression {
+    let mut cmd = duct::cmd(env.platform_tools_path().join("adb"), ["-s", serial_no]);
+    for (k, v) in env.explicit_env() {
+        cmd = cmd.env(k, v);
+    }
+    cmd
 }
 
 #[derive(Debug, Error)]
 pub enum RunCheckedError {
     #[error(transparent)]
-    InvalidUtf8(bossy::Error),
+    InvalidUtf8(#[from] FromUtf8Error),
     #[error("This device doesn't yet trust this computer. On the device, you should see a prompt like \"Allow USB debugging?\". Pressing \"Allow\" should fix this.")]
     Unauthorized,
     #[error(transparent)]
@@ -35,17 +37,14 @@ impl RunCheckedError {
     }
 }
 
-fn check_authorized<T>(result: bossy::Result<T>) -> Result<T, RunCheckedError> {
-    if let Err(err) = &result {
-        if let Some(stderr) = err
-            .stderr_str()
-            .transpose()
-            .map_err(RunCheckedError::InvalidUtf8)?
-        {
+fn check_authorized(output: &std::process::Output) -> Result<String, RunCheckedError> {
+    if !output.status.success() {
+        if let Ok(stderr) = String::from_utf8(output.stderr.clone()) {
             if stderr.contains("error: device unauthorized") {
                 return Err(RunCheckedError::Unauthorized);
             }
         }
     }
-    result.map_err(RunCheckedError::CommandFailed)
+    let stdout = String::from_utf8(output.stdout.clone())?.trim().to_string();
+    Ok(stdout)
 }

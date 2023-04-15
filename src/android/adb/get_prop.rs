@@ -13,12 +13,15 @@ pub enum Error {
         prop: String,
         source: super::RunCheckedError,
     },
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
 }
 
 impl Error {
     fn prop(&self) -> &str {
         match self {
             Self::LookupFailed { prop, .. } => prop,
+            Self::Io(_) => unreachable!(),
         }
     }
 }
@@ -28,17 +31,22 @@ impl Reportable for Error {
         let msg = format!("Failed to run `adb shell getprop {}`", self.prop());
         match self {
             Self::LookupFailed { source, .. } => source.report(&msg),
+            Self::Io(err) => Report::error("IO error", err),
         }
     }
 }
 
 pub fn get_prop(env: &Env, serial_no: &str, prop: &str) -> Result<String, Error> {
-    super::check_authorized(
-        adb(env, serial_no)
-            .with_args(&["shell", "getprop", prop])
-            .run_and_wait_for_str(|s| s.trim().to_owned()),
-    )
-    .map_err(|source| Error::LookupFailed {
+    let prop_ = prop.to_string();
+    let handle = adb(env, serial_no)
+        .before_spawn(move |cmd| {
+            cmd.args(&["shell", "getprop", &prop_]);
+            Ok(())
+        })
+        .stdout_capture()
+        .start()?;
+    let output = handle.wait()?;
+    super::check_authorized(output).map_err(|source| Error::LookupFailed {
         prop: prop.to_owned(),
         source,
     })
