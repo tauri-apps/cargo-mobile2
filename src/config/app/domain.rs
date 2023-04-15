@@ -121,10 +121,10 @@ pub fn check_domain_syntax(domain_name: &str) -> Result<(), DomainError> {
     if domain_name.is_empty() {
         return Err(DomainError::Empty);
     }
-    if domain_name.starts_with(".") || domain_name.ends_with(".") {
+    if domain_name.starts_with('.') || domain_name.ends_with('.') {
         return Err(DomainError::StartsOrEndsWithADot);
     }
-    let labels = domain_name.split(".");
+    let labels = domain_name.split('.');
     for label in labels {
         if label.is_empty() {
             return Err(DomainError::EmptyLabel);
@@ -134,17 +134,15 @@ pub fn check_domain_syntax(domain_name: &str) -> Result<(), DomainError> {
                 keyword: label.to_owned(),
             });
         }
-        if label.chars().nth(0).unwrap().is_digit(10) {
+        if label.chars().next().unwrap().is_ascii_digit() {
             return Err(DomainError::StartsWithDigit {
                 label: label.to_owned(),
             });
         }
         let mut bad_chars = Vec::new();
         for c in label.chars() {
-            if !c.is_ascii_alphanumeric() {
-                if !bad_chars.contains(&c) {
-                    bad_chars.push(c);
-                }
+            if !c.is_ascii_alphanumeric() && !bad_chars.contains(&c) {
+                bad_chars.push(c);
             }
         }
         if !bad_chars.is_empty() {
@@ -175,7 +173,7 @@ mod test {
         case("synchronized2.com")
     )]
     fn test_check_domain_syntax_correct(input: &str) {
-        assert_eq!(check_domain_syntax(input).unwrap(), ())
+        check_domain_syntax(input).unwrap();
     }
 
     #[rstest(input, error,

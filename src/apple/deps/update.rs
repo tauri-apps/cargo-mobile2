@@ -105,12 +105,7 @@ impl Outdated {
             .map(|Raw { formulae }| {
                 formulae
                     .into_iter()
-                    .filter(|formula| {
-                        PACKAGES
-                            .iter()
-                            .find(|spec| formula.name == spec.pkg_name)
-                            .is_some()
-                    })
+                    .filter(|formula| PACKAGES.iter().any(|spec| formula.name == spec.pkg_name))
                     .map(Ok)
             })
     }

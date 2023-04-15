@@ -72,6 +72,7 @@ pub struct App {
     #[serde(skip)]
     template_pack: Pack,
     #[serde(skip)]
+    #[allow(clippy::type_complexity)]
     target_dir_resolver: Option<Arc<Box<dyn Fn(&str, Profile) -> PathBuf>>>,
 }
 

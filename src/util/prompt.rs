@@ -29,6 +29,7 @@ pub fn default(
         minimal(msg)
     }
     .map(|response| {
+        #[allow(clippy::unnecessary_unwrap)]
         if response.is_empty() && default.is_some() {
             default.unwrap().to_owned()
         } else {
@@ -43,7 +44,7 @@ pub fn yes_no(msg: impl Display, default: Option<bool>) -> io::Result<Option<boo
         Some(false) => "[y/N]",
         None => "[y/n]",
     };
-    minimal(&format!("{} {}", msg, y_n)).map(|response| {
+    minimal(format!("{} {}", msg, y_n)).map(|response| {
         if response.eq_ignore_ascii_case("y") {
             Some(true)
         } else if response.eq_ignore_ascii_case("n") {
@@ -94,7 +95,7 @@ pub fn list(
             Some(Color::Green),
         )?;
         if !response.is_empty() {
-            if let Some(index) = response.parse::<usize>().ok() {
+            if let Ok(index) = response.parse::<usize>() {
                 if index < choice_count {
                     return Ok(index);
                 } else {

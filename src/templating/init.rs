@@ -14,19 +14,14 @@ fn get_str<'a>(helper: &'a Helper) -> &'a str {
     helper
         .param(0)
         .and_then(|v| v.value().as_str())
-        .unwrap_or_else(|| "")
+        .unwrap_or("")
 }
 
-fn get_str_array<'a>(
-    helper: &'a Helper,
-    formatter: impl Fn(&str) -> String,
-) -> Option<Vec<String>> {
+fn get_str_array(helper: &Helper, formatter: impl Fn(&str) -> String) -> Option<Vec<String>> {
     helper.param(0).and_then(|v| {
-        v.value().as_array().and_then(|arr| {
-            arr.iter()
-                .map(|val| val.as_str().map(|s| formatter(s)))
-                .collect()
-        })
+        v.value()
+            .as_array()
+            .and_then(|arr| arr.iter().map(|val| val.as_str().map(&formatter)).collect())
     })
 }
 
@@ -49,7 +44,7 @@ fn join(
     out: &mut dyn Output,
 ) -> HelperResult {
     out.write(
-        &get_str_array(helper, |s| format!("{}", s))
+        &get_str_array(helper, |s| s.to_string())
             .ok_or_else(|| RenderError::new("`join` helper wasn't given an array"))?
             .join(", "),
     )
@@ -123,7 +118,7 @@ fn reverse_domain_snake_case(
         .map_err(Into::into)
 }
 
-fn app_root<'a>(ctx: &'a Context) -> Result<&'a str, RenderError> {
+fn app_root(ctx: &Context) -> Result<&str, RenderError> {
     let app_root = ctx
         .data()
         .get(app::KEY)
@@ -183,18 +178,16 @@ fn dot_to_slash(
     _: &mut RenderContext,
     out: &mut dyn Output,
 ) -> HelperResult {
-    out.write(&get_str(helper).replace(".", "/"))
+    out.write(&get_str(helper).replace('.', "/"))
         .map_err(Into::into)
 }
 
 fn detect_author() -> String {
     let git = Git::new(".".as_ref());
     let name_output = git.user_name().ok();
-    let name = name_output.as_deref().unwrap_or_else(|| "Watashi");
+    let name = name_output.as_deref().unwrap_or("Watashi");
     let email_output = git.user_email().ok();
-    let email = email_output
-        .as_deref()
-        .unwrap_or_else(|| "watashi@example.com");
+    let email = email_output.as_deref().unwrap_or("watashi@example.com");
     format!("{} <{}>", name.trim(), email.trim())
 }
 

@@ -188,12 +188,12 @@ impl Exec for Input {
             let (config, _origin) = OmniConfig::load_or_gen(".", non_interactive, wrapper)
                 .map_err(Error::ConfigFailed)?;
             let metadata =
-                OmniMetadata::load(&config.app().root_dir()).map_err(Error::MetadataFailed)?;
+                OmniMetadata::load(config.app().root_dir()).map_err(Error::MetadataFailed)?;
             let mut env = Env::new().map_err(Error::EnvInitFailed)?;
 
             if let Some(vars) = metadata.android().env_vars.as_ref() {
                 env.base = env.base.explicit_env_vars(
-                    vars.into_iter()
+                    vars.iter()
                         .map(|d| {
                             (
                                 d.0.to_owned(),
@@ -269,10 +269,10 @@ impl Exec for Input {
                     call_for_targets_with_fallback(
                         targets.iter(),
                         &detect_target_ok,
-                        &env,
+                        env,
                         |target: &Target| {
                             target
-                                .check(config, metadata, &env, noise_level, force_color)
+                                .check(config, metadata, env, noise_level, force_color)
                                 .map_err(Error::CheckFailed)
                         },
                     )
@@ -288,10 +288,10 @@ impl Exec for Input {
                 call_for_targets_with_fallback(
                     targets.iter(),
                     &detect_target_ok,
-                    &env,
+                    env,
                     |target: &Target| {
                         target
-                            .build(config, metadata, &env, noise_level, force_color, profile)
+                            .build(config, metadata, env, noise_level, force_color, profile)
                             .map_err(Error::BuildFailed)
                     },
                 )
@@ -305,11 +305,11 @@ impl Exec for Input {
             } => with_config(non_interactive, wrapper, |config, metadata, env| {
                 let build_app_bundle = metadata.asset_packs().is_some();
                 ensure_init(config)?;
-                device_prompt(&env)
+                device_prompt(env)
                     .map_err(Error::DevicePromptFailed)?
                     .run(
                         config,
-                        &env,
+                        env,
                         noise_level,
                         profile,
                         filter,
@@ -318,7 +318,7 @@ impl Exec for Input {
                         activity.unwrap_or_else(|| {
                             metadata
                                 .app_activity_name()
-                                .unwrap_or_else(|| DEFAULT_ACTIVITY)
+                                .unwrap_or(DEFAULT_ACTIVITY)
                                 .to_string()
                         }),
                     )
@@ -327,13 +327,13 @@ impl Exec for Input {
             }),
             Command::Stacktrace => with_config(non_interactive, wrapper, |config, _, env| {
                 ensure_init(config)?;
-                device_prompt(&env)
+                device_prompt(env)
                     .map_err(Error::DevicePromptFailed)?
-                    .stacktrace(config, &env)
+                    .stacktrace(config, env)
                     .map_err(Error::StacktraceFailed)
             }),
             Command::List => with_config(non_interactive, wrapper, |_, _, env| {
-                adb::device_list(&env)
+                adb::device_list(env)
                     .map_err(Error::ListFailed)
                     .map(|device_list| {
                         prompt::list_display_only(device_list.iter(), device_list.len());
@@ -349,7 +349,7 @@ impl Exec for Input {
 
                     apk::cli::build(
                         config,
-                        &env,
+                        env,
                         noise_level,
                         profile,
                         get_targets_or_all(targets)?,
@@ -367,7 +367,7 @@ impl Exec for Input {
                     ensure_init(config)?;
                     aab::cli::build(
                         config,
-                        &env,
+                        env,
                         noise_level,
                         profile,
                         get_targets_or_all(targets)?,

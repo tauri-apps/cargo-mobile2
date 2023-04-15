@@ -84,7 +84,7 @@ impl Metadata {
     }
 
     pub fn app_sources(&self) -> &[String] {
-        self.app_sources.as_deref().unwrap_or_else(|| &[])
+        self.app_sources.as_deref().unwrap_or(&[])
     }
 
     pub fn app_plugins(&self) -> Option<&[String]> {

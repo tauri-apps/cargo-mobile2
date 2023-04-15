@@ -61,7 +61,7 @@ impl Cause {
 #[derive(Debug)]
 pub struct Error {
     pub(crate) command: String,
-    pub(crate) cause: Cause,
+    pub(crate) cause: Box<Cause>,
 }
 
 impl Display for Error {
@@ -79,7 +79,7 @@ impl Display for Error {
             }
         }
 
-        match &self.cause {
+        match &*self.cause {
             Cause::SpawnFailed(err) => write!(
                 f,
                 "Failed to spawn child process for command {:?}: {}",
@@ -114,7 +114,7 @@ impl Display for Error {
 
 impl StdError for Error {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        match &self.cause {
+        match &*self.cause {
             Cause::SpawnFailed(err) => Some(err as _),
             Cause::WaitFailed(err) => Some(err as _),
             Cause::InvalidUtf8 { source, .. } => Some(source as _),
@@ -131,7 +131,10 @@ impl Error {
         result
             .map_err(Cause::from_io_err)
             .and_then(Cause::from_status)
-            .map_err(|cause| Self { command, cause })
+            .map_err(|cause| Self {
+                command,
+                cause: Box::new(cause),
+            })
     }
 
     pub(crate) fn from_output_result(
@@ -141,7 +144,10 @@ impl Error {
         result
             .map_err(Cause::from_io_err)
             .and_then(|output| Cause::from_output(command.clone(), output))
-            .map_err(|cause| Self { command, cause })
+            .map_err(|cause| Self {
+                command,
+                cause: Box::new(cause),
+            })
     }
 
     pub(crate) fn from_child_result(
@@ -153,7 +159,7 @@ impl Error {
             Ok(child) => Ok(Handle::new(command, child)),
             Err(err) => Err(Self {
                 command,
-                cause: Cause::from_io_err(err),
+                cause: Box::new(Cause::from_io_err(err)),
             }),
         }
     }
@@ -165,7 +171,7 @@ impl Error {
     ) -> std::result::Result<&'a str, Self> {
         result.map_err(|source| Self {
             command: command.to_owned(),
-            cause: Cause::InvalidUtf8 { stream, source },
+            cause: Box::new(Cause::InvalidUtf8 { stream, source }),
         })
     }
 

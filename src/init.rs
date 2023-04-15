@@ -100,7 +100,7 @@ pub fn exec(
     open_in_editor: bool,
     submodule_commit: Option<String>,
     cwd: impl AsRef<Path>,
-) -> Result<Config, Error> {
+) -> Result<Config, Box<Error>> {
     let cwd = cwd.as_ref();
     let (config, config_origin) =
         Config::load_or_gen(cwd, non_interactive, wrapper).map_err(Error::ConfigLoadOrGenFailed)?;
@@ -135,7 +135,7 @@ pub fn exec(
             .map_err(|cause| Error::AssetDirCreationFailed { asset_dir, cause })?;
     }
     if !skip_dev_tools && util::command_present("code").map_err(Error::CodeCommandPresentFailed)? {
-        let mut command = code_command().with_args(&["--install-extension", "vadimcn.vscode-lldb"]);
+        let mut command = code_command().with_args(["--install-extension", "vadimcn.vscode-lldb"]);
         if non_interactive {
             command.add_arg("--force");
         }
@@ -159,7 +159,7 @@ pub fn exec(
         util::host_target_triple().map_err(Error::HostTargetTripleDetectionFailed)?,
     );
 
-    let metadata = Metadata::load(&config.app().root_dir()).map_err(Error::MetadataFailed)?;
+    let metadata = Metadata::load(config.app().root_dir()).map_err(Error::MetadataFailed)?;
 
     // Generate Xcode project
     #[cfg(target_os = "macos")]

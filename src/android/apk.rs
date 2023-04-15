@@ -39,8 +39,9 @@ pub fn apks_paths(config: &Config, profile: Profile, flavor: &str) -> Vec<PathBu
             prefix_path(
                 config.project_dir(),
                 format!(
-                    "app/build/outputs/{}/app-{}-{}.{}",
-                    format!("apk/{}/{}", flavor, profile.as_str()),
+                    "app/build/outputs/apk/{}/{}/app-{}-{}.{}",
+                    flavor,
+                    profile.as_str(),
                     flavor,
                     suffix,
                     "apk"
@@ -51,7 +52,7 @@ pub fn apks_paths(config: &Config, profile: Profile, flavor: &str) -> Vec<PathBu
 }
 
 /// Builds APK(s) and returns the built APK(s) paths
-pub fn build<'a>(
+pub fn build(
     config: &Config,
     env: &Env,
     noise_level: NoiseLevel,
@@ -114,7 +115,7 @@ pub fn build<'a>(
             .map(|t| {
                 apks_paths(config, profile, t.arch)
                     .into_iter()
-                    .reduce(|prev, curr| last_modified(prev, curr))
+                    .reduce(last_modified)
                     .unwrap()
             })
             .collect::<Vec<_>>();
@@ -122,7 +123,7 @@ pub fn build<'a>(
     } else {
         let path = apks_paths(config, profile, "universal")
             .into_iter()
-            .reduce(|prev, curr| last_modified(prev, curr))
+            .reduce(last_modified)
             .unwrap();
         outputs.push(path);
     }
@@ -146,7 +147,7 @@ pub mod cli {
             if split_per_abi { "(s)" } else { "" },
             targets
                 .iter()
-                .map(|t| t.triple.split("-").next().unwrap())
+                .map(|t| t.triple.split('-').next().unwrap())
                 .collect::<Vec<_>>()
                 .join(", ")
         );

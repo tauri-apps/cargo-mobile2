@@ -75,7 +75,7 @@ impl Handle {
             .map_err(super::Cause::from_io_err)
             .map_err(|cause| Error {
                 command: command.to_string(),
-                cause,
+                cause: Box::new(cause),
             })
     }
 

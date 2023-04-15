@@ -70,7 +70,7 @@ impl FancyPack {
                     Pack::lookup(
                         path.parent()
                             .expect("developer error: templates dir had no parent"),
-                        &name,
+                        name,
                     )
                 })
                 .transpose()

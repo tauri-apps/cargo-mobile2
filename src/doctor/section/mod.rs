@@ -176,13 +176,10 @@ impl Section {
             // The `.to_string()` at the end is necessary for the color/bold to
             // actually show - otherwise, the colored string just `AsRef`s to
             // satisfy `TextWrapper::fill` and the formatting is left behind.
-            wrapper.fill(&self.label().format_title(&self.title).to_string())
+            wrapper.fill(&self.label().format_title(&self.title))
         );
         for report_bullet in &self.items {
-            println!(
-                "{}",
-                bullet_wrapper.fill(&report_bullet.format().to_string())
-            );
+            println!("{}", bullet_wrapper.fill(&report_bullet.format()));
         }
     }
 }

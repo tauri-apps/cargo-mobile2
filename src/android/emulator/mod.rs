@@ -29,7 +29,7 @@ impl Emulator {
 
     fn start_inner(&self, env: &Env) -> bossy::Command {
         bossy::Command::impure(PathBuf::from(env.android_home()).join("emulator/emulator"))
-            .with_args(&["-avd", &self.name])
+            .with_args(["-avd", &self.name])
             .with_env_vars(env.explicit_env())
     }
 

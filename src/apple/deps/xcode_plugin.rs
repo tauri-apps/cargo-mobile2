@@ -91,10 +91,7 @@ pub struct InstallationStatus {
 
 impl InstallationStatus {
     pub fn perfect(&self) -> bool {
-        self.plugin_present
-            && self.lang_metadata_present
-            && self.lang_metadata_present
-            && self.repo_fresh
+        self.plugin_present && self.lang_metadata_present && self.repo_fresh
     }
 }
 
@@ -112,7 +109,7 @@ impl UuidStatus {
                 self.uuid, xcode_version.0, xcode_version.1,
             ),
             "You won't be able to set breakpoints in Xcode until this is resolved! Please open an issue at https://github.com/tauri-apps/rust-xcode-plugin",
-        ).print(&wrapper);
+        ).print(wrapper);
     }
 }
 
@@ -241,7 +238,7 @@ impl Context {
             println!("`sudo` is required to add new languages to Xcode");
             bossy::Command::impure("sudo")
                 .with_arg("cp")
-                .with_args(&[&spec_src, &self.spec_dst])
+                .with_args([&spec_src, &self.spec_dst])
                 .run_and_wait()
                 .map_err(Error::SpecCopyFailed)?;
         } else {
@@ -254,7 +251,7 @@ impl Context {
                 })?;
             }
             bossy::Command::impure("cp")
-                .with_args(&[&spec_src, &self.spec_dst])
+                .with_args([&spec_src, &self.spec_dst])
                 .run_and_wait()
                 .map_err(Error::SpecCopyFailed)?;
         }
@@ -262,7 +259,7 @@ impl Context {
             let meta_src = checkout.join("Xcode.SourceCodeLanguage.Rust.plist");
             bossy::Command::impure("sudo")
                 .with_arg("cp")
-                .with_args(&[&meta_src, &self.meta_dst])
+                .with_args([&meta_src, &self.meta_dst])
                 .run_and_wait()
                 .map_err(Error::MetaCopyFailed)?;
         }
@@ -270,7 +267,7 @@ impl Context {
             "`rust-xcode-plugin` installed successfully!",
             "Please restart Xcode and click \"Load Bundle\" when an alert shows about `Rust.ideplugin`",
         )
-        .print(&wrapper);
+        .print(wrapper);
         Ok(())
     }
 }

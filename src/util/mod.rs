@@ -22,6 +22,7 @@ use std::{
     fmt::{self, Debug, Display},
     io,
     path::{Path, PathBuf},
+    str::FromStr,
 };
 use thiserror::Error;
 
@@ -51,7 +52,7 @@ pub fn reverse_domain(domain: &str) -> String {
 
 pub fn rustup_add(triple: &str) -> bossy::Result<bossy::ExitStatus> {
     bossy::Command::impure("rustup")
-        .with_args(&["target", "add", triple])
+        .with_args(["target", "add", triple])
         .run_and_wait()
 }
 
@@ -140,6 +141,50 @@ impl Serialize for VersionTriple {
     }
 }
 
+impl FromStr for VersionTriple {
+    type Err = VersionTripleError;
+
+    fn from_str(v: &str) -> Result<Self, Self::Err> {
+        match v.split('.').count() {
+            1 => Ok(VersionTriple {
+                major: v
+                    .parse()
+                    .map_err(|source| VersionTripleError::MajorInvalid {
+                        version: v.to_owned(),
+                        source,
+                    })?,
+                minor: 0,
+                patch: 0,
+            }),
+            2 => {
+                let mut s = v.split('.');
+                Ok(VersionTriple {
+                    major: s.next().unwrap().parse().map_err(|source| {
+                        VersionTripleError::MajorInvalid {
+                            version: v.to_owned(),
+                            source,
+                        }
+                    })?,
+                    minor: s.next().unwrap().parse().map_err(|source| {
+                        VersionTripleError::MinorInvalid {
+                            version: v.to_owned(),
+                            source,
+                        }
+                    })?,
+                    patch: 0,
+                })
+            }
+            3 => {
+                let mut s = v.split('.');
+                Self::from_split(&mut s, v)
+            }
+            _ => Err(VersionTripleError::VersionStringInvalid {
+                version: v.to_owned(),
+            }),
+        }
+    }
+}
+
 impl VersionTriple {
     pub const fn new(major: u32, minor: u32, patch: u32) -> Self {
         Self {
@@ -154,15 +199,15 @@ impl VersionTriple {
         Ok((
             Self {
                 major: parse!("major", VersionTripleError, MajorInvalid, version)(
-                    &caps,
+                    caps,
                     version_str,
                 )?,
                 minor: parse!("minor", VersionTripleError, MinorInvalid, version)(
-                    &caps,
+                    caps,
                     version_str,
                 )?,
                 patch: parse!("patch", VersionTripleError, PatchInvalid, version)(
-                    &caps,
+                    caps,
                     version_str,
                 )?,
             },
@@ -171,7 +216,7 @@ impl VersionTriple {
     }
 
     pub fn from_split(
-        split: &mut std::str::Split<&str>,
+        split: &mut std::str::Split<char>,
         version: &str,
     ) -> Result<Self, VersionTripleError> {
         Ok(VersionTriple {
@@ -194,46 +239,6 @@ impl VersionTriple {
                 }
             })?,
         })
-    }
-
-    pub fn from_str(v: &str) -> Result<Self, VersionTripleError> {
-        match v.split(".").count() {
-            1 => Ok(VersionTriple {
-                major: v
-                    .parse()
-                    .map_err(|source| VersionTripleError::MajorInvalid {
-                        version: v.to_owned(),
-                        source,
-                    })?,
-                minor: 0,
-                patch: 0,
-            }),
-            2 => {
-                let mut s = v.split(".");
-                Ok(VersionTriple {
-                    major: s.next().unwrap().parse().map_err(|source| {
-                        VersionTripleError::MajorInvalid {
-                            version: v.to_owned(),
-                            source,
-                        }
-                    })?,
-                    minor: s.next().unwrap().parse().map_err(|source| {
-                        VersionTripleError::MinorInvalid {
-                            version: v.to_owned(),
-                            source,
-                        }
-                    })?,
-                    patch: 0,
-                })
-            }
-            3 => {
-                let mut s = v.split(".");
-                Self::from_split(&mut s, v)
-            }
-            _ => Err(VersionTripleError::VersionStringInvalid {
-                version: v.to_owned(),
-            }),
-        }
     }
 }
 
@@ -277,13 +282,11 @@ impl Serialize for VersionDouble {
     }
 }
 
-impl VersionDouble {
-    pub const fn new(major: u32, minor: u32) -> Self {
-        Self { major, minor }
-    }
+impl FromStr for VersionDouble {
+    type Err = VersionDoubleError;
 
-    pub fn from_str(v: &str) -> Result<Self, VersionDoubleError> {
-        match v.split(".").count() {
+    fn from_str(v: &str) -> Result<Self, Self::Err> {
+        match v.split('.').count() {
             1 => Ok(VersionDouble {
                 major: v
                     .parse()
@@ -294,7 +297,7 @@ impl VersionDouble {
                 minor: 0,
             }),
             2 => {
-                let mut s = v.split(".");
+                let mut s = v.split('.');
                 Ok(VersionDouble {
                     major: s.next().unwrap().parse().map_err(|source| {
                         VersionDoubleError::MajorInvalid {
@@ -314,6 +317,12 @@ impl VersionDouble {
                 version: v.to_owned(),
             }),
         }
+    }
+}
+
+impl VersionDouble {
+    pub const fn new(major: u32, minor: u32) -> Self {
+        Self { major, minor }
     }
 }
 
@@ -511,7 +520,7 @@ pub fn run_and_search<T>(
     f: impl FnOnce(&str, Captures<'_>) -> T,
 ) -> Result<T, RunAndSearchError> {
     let command_string = command.display().to_owned();
-    Ok(command
+    command
         .run_and_wait_for_str(|output| {
             re.captures(output)
                 .ok_or_else(|| RunAndSearchError::SearchFailed {
@@ -520,7 +529,7 @@ pub fn run_and_search<T>(
                 })
                 .map(|caps| f(output, caps))
         })
-        .map_err(RunAndSearchError::from)??)
+        .map_err(RunAndSearchError::from)?
 }
 
 #[derive(Debug, Error)]
@@ -624,7 +633,7 @@ where
     let result = f().map_err(E::from)?;
     std::env::set_current_dir(&current_dir).map_err(|source| {
         WithWorkingDirError::CurrentDirSetFailed {
-            path: current_dir.into(),
+            path: current_dir,
             source,
         }
     })?;

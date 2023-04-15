@@ -13,17 +13,17 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum RemoveBrokenLinksError {
     #[error("Failed to list contents of jniLibs directory {dir}: {source}")]
-    ReadDirFailed {
+    ReadDir {
         dir: PathBuf,
         source: std::io::Error,
     },
     #[error("Failed to get entry in jniLibs directory {dir}: {source}")]
-    EntryFailed {
+    Entry {
         dir: PathBuf,
         source: std::io::Error,
     },
     #[error("Failed to remove broken symlink {path}: {source}")]
-    RemoveFailed {
+    Remove {
         path: PathBuf,
         source: std::io::Error,
     },
@@ -32,15 +32,15 @@ pub enum RemoveBrokenLinksError {
 impl Reportable for RemoveBrokenLinksError {
     fn report(&self) -> Report {
         match self {
-            Self::ReadDirFailed { dir, source } => Report::error(
+            Self::ReadDir { dir, source } => Report::error(
                 format!("Failed to list contents of jniLibs directory {:?}", dir),
                 source,
             ),
-            Self::EntryFailed { dir, source } => Report::error(
+            Self::Entry { dir, source } => Report::error(
                 format!("Failed to get entry in jniLibs directory {:?}", dir),
                 source,
             ),
-            Self::RemoveFailed { path, source } => Report::error(
+            Self::Remove { path, source } => Report::error(
                 format!("Failed to remove broken symlink {:?}", path),
                 source,
             ),
@@ -86,14 +86,14 @@ impl JniLibs {
             .map(|target| path(config, *target))
             .filter(|path| path.is_dir())
         {
-            for entry in std::fs::read_dir(&abi_dir).map_err(|source| {
-                RemoveBrokenLinksError::ReadDirFailed {
+            for entry in
+                std::fs::read_dir(&abi_dir).map_err(|source| RemoveBrokenLinksError::ReadDir {
                     dir: abi_dir.clone(),
                     source,
-                }
-            })? {
+                })?
+            {
                 let entry = entry
-                    .map_err(|source| RemoveBrokenLinksError::EntryFailed {
+                    .map_err(|source| RemoveBrokenLinksError::Entry {
                         dir: abi_dir.clone(),
                         source,
                     })?
@@ -106,9 +106,8 @@ impl JniLibs {
                             entry,
                             path
                         );
-                        std::fs::remove_file(entry).map_err(|source| {
-                            RemoveBrokenLinksError::RemoveFailed { path, source }
-                        })?;
+                        std::fs::remove_file(entry)
+                            .map_err(|source| RemoveBrokenLinksError::Remove { path, source })?;
                     }
                 }
             }
@@ -123,7 +122,7 @@ impl JniLibs {
                 src.file_name()
                     .expect("developer error: file had no file name"),
             );
-            os::ln::force_symlink(src, &dest, ln::TargetStyle::File)
+            os::ln::force_symlink(src, dest, ln::TargetStyle::File)
                 .map_err(SymlinkLibError::SymlinkFailed)?;
             Ok(())
         } else {

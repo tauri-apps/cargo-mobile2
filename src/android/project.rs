@@ -146,16 +146,12 @@ pub fn gen(
             );
             map.insert(
                 "android-app-activity-name",
-                metadata
-                    .app_activity_name()
-                    .unwrap_or_else(|| DEFAULT_ACTIVITY),
+                metadata.app_activity_name().unwrap_or(DEFAULT_ACTIVITY),
             );
             map.insert("android-app-permissions", metadata.app_permissions());
             map.insert(
                 "android-app-theme-parent",
-                metadata
-                    .app_theme_parent()
-                    .unwrap_or_else(|| DEFAULT_THEME_PARENT),
+                metadata.app_theme_parent().unwrap_or(DEFAULT_THEME_PARENT),
             );
             map.insert(
                 "asset-packs",
@@ -194,7 +190,7 @@ pub fn gen(
 
     let source_dest = dest.join("app");
     for source in metadata.app_sources() {
-        let source_src = config.app().root_dir().join(&source);
+        let source_src = config.app().root_dir().join(source);
         let source_file = source_src
             .file_name()
             .ok_or_else(|| Error::AssetSourceInvalid(source_src.clone()))?;
@@ -220,7 +216,7 @@ pub fn gen(
             dot_cargo.insert_target(
                 target.triple.to_owned(),
                 target
-                    .generate_cargo_config(config, &env)
+                    .generate_cargo_config(config, env)
                     .map_err(Error::DotCargoGenFailed)?,
             );
         }

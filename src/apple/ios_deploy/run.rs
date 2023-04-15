@@ -30,9 +30,9 @@ pub fn run_and_debug(
     let mut deploy_cmd = bossy::Command::pure("ios-deploy")
         .with_env_vars(env.explicit_env())
         .with_arg("--debug")
-        .with_args(&["--id", id])
+        .with_args(["--id", id])
         .with_arg("--bundle")
-        .with_arg(&config.app_path())
+        .with_arg(config.app_path())
         .with_args(if non_interactive {
             Some("--noninteractive")
         } else {

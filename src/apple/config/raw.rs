@@ -49,7 +49,7 @@ fn value_to_string(value: &PlistValue) -> String {
         PlistValue::Array(array) => {
             let string = array
                 .iter()
-                .map(|value| value_to_string(value))
+                .map(value_to_string)
                 .collect::<Vec<_>>()
                 .join(",");
             format!("[{}]", string)
@@ -95,7 +95,7 @@ impl Serialize for PlistDictionary {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(&dictionary_to_string(&self))
+        serializer.serialize_str(&dictionary_to_string(self))
     }
 }
 

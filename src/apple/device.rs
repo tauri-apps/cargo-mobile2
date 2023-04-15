@@ -129,12 +129,12 @@ impl<'a> Device<'a> {
                 })
                 .with_arg("-o") // -o = always overwrite
                 .with_arg(
-                    &config
+                    config
                         .ipa_path()
                         .map_err(|(old, new)| RunError::IpaMissing { old, new })?,
                 )
                 .with_arg("-d")
-                .with_arg(&config.export_dir())
+                .with_arg(config.export_dir())
                 .run_and_wait()
                 .map_err(RunError::UnzipFailed)?;
 

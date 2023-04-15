@@ -15,7 +15,7 @@ pub trait TargetTrait<'a>: Debug + Sized {
         Self: 'static,
     {
         static INSTANCE: OnceCell<Vec<&str>> = OnceCell::new();
-        INSTANCE.get_or_init(|| Self::all().keys().map(|key| *key).collect::<Vec<_>>())
+        INSTANCE.get_or_init(|| Self::all().keys().copied().collect::<Vec<_>>())
     }
 
     fn default_ref() -> &'a Self {
@@ -67,6 +67,7 @@ impl Display for TargetInvalid {
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub fn get_targets<'a, Iter, I, T, U>(
     targets: Iter,
     // we use `dyn` so the type doesn't need to be known when this is `None`

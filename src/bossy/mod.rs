@@ -355,7 +355,7 @@ impl Command {
             .status()
             .map_err(|e| Error {
                 command: self.display.clone(),
-                cause: Cause::SpawnFailed(e),
+                cause: Box::new(Cause::SpawnFailed(e)),
             })
             .and_then(|status| Error::from_status_result(self.display.clone(), Ok(status)))
     }

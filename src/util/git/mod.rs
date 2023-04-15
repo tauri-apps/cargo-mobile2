@@ -56,13 +56,13 @@ impl<'a> Git<'a> {
 
     pub fn user_name(&self) -> bossy::Result<String> {
         self.command()
-            .with_args(&["config", "user.name"])
+            .with_args(["config", "user.name"])
             .run_and_wait_for_string()
     }
 
     pub fn user_email(&self) -> bossy::Result<String> {
         self.command()
-            .with_args(&["config", "user.email"])
+            .with_args(["config", "user.email"])
             .run_and_wait_for_string()
     }
 }

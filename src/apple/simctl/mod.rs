@@ -50,7 +50,7 @@ impl Device {
 
     fn start_inner(&self, env: &Env) -> bossy::Command {
         bossy::Command::impure("open")
-            .with_args(&[
+            .with_args([
                 "-a",
                 "Simulator",
                 "--args",

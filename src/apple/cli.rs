@@ -246,7 +246,7 @@ impl Exec for Input {
             let (config, _origin) = OmniConfig::load_or_gen(".", non_interactive, wrapper)
                 .map_err(Error::ConfigFailed)?;
             let metadata =
-                OmniMetadata::load(&config.app().root_dir()).map_err(Error::MetadataFailed)?;
+                OmniMetadata::load(config.app().root_dir()).map_err(Error::MetadataFailed)?;
             if metadata.apple().supported() {
                 f(config.apple(), metadata.apple())
             } else {

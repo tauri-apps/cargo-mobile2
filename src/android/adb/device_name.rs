@@ -37,7 +37,7 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
         super::check_authorized(
             adb(env, serial_no)
                 .before_spawn(move |cmd| {
-                    cmd.args(&["emu", "avd", "name"]);
+                    cmd.args(["emu", "avd", "name"]);
                     Ok(())
                 })
                 .stdout_capture()
@@ -50,7 +50,7 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
         super::check_authorized(
             adb(env, serial_no)
                 .before_spawn(move |cmd| {
-                    cmd.args(&["shell", "dumpsys", "bluetooth_manager"]);
+                    cmd.args(["shell", "dumpsys", "bluetooth_manager"]);
                     Ok(())
                 })
                 .stdout_capture()

@@ -75,7 +75,7 @@ impl Action {
         match self {
             Self::CreateDirectory { dest }
             | Self::CopyFile { dest, .. }
-            | Self::WriteTemplate { dest, .. } => &dest,
+            | Self::WriteTemplate { dest, .. } => dest,
         }
     }
 }
@@ -110,21 +110,21 @@ fn file_action<E>(
 pub enum TraversalError<E: Debug + Display + StdError + 'static = super::RenderingError> {
     /// Failed to get directory listing.
     #[error("Failed to read directory at {path:?}: {cause}")]
-    DirectoryReadFailed {
+    DirectoryRead {
         path: PathBuf,
         #[source]
         cause: io::Error,
     },
     /// Failed to inspect entry from directory listing.
     #[error("Failed to read directory entry in {dir:?}: {cause}")]
-    EntryReadFailed {
+    EntryRead {
         dir: PathBuf,
         #[source]
         cause: io::Error,
     },
     /// Failed to transform path.
     #[error("Failed to transform path at {path:?}: {cause}")]
-    PathTransformFailed {
+    PathTransform {
         path: PathBuf,
         #[source]
         cause: E,
@@ -141,7 +141,7 @@ fn traverse_dir<E: Debug + Display + StdError>(
     if src.is_file() {
         actions.push_back(
             file_action(src, dest, transform_path, template_ext).map_err(|cause| {
-                TraversalError::PathTransformFailed {
+                TraversalError::PathTransform {
                     path: dest.to_owned(),
                     cause,
                 }
@@ -149,17 +149,17 @@ fn traverse_dir<E: Debug + Display + StdError>(
         );
     } else {
         actions.push_front(Action::new_create_directory(dest, transform_path).map_err(
-            |cause| TraversalError::PathTransformFailed {
+            |cause| TraversalError::PathTransform {
                 path: dest.to_owned(),
                 cause,
             },
         )?);
-        for entry in fs::read_dir(src).map_err(|cause| TraversalError::DirectoryReadFailed {
+        for entry in fs::read_dir(src).map_err(|cause| TraversalError::DirectoryRead {
             path: src.to_owned(),
             cause,
         })? {
             let path = entry
-                .map_err(|cause| TraversalError::EntryReadFailed {
+                .map_err(|cause| TraversalError::EntryRead {
                     dir: src.to_owned(),
                     cause,
                 })?
@@ -175,7 +175,7 @@ fn traverse_dir<E: Debug + Display + StdError>(
             } else {
                 actions.push_back(
                     file_action(&path, dest, transform_path, template_ext).map_err(|cause| {
-                        TraversalError::PathTransformFailed {
+                        TraversalError::PathTransform {
                             path: path.to_owned(),
                             cause,
                         }

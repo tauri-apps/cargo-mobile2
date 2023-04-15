@@ -40,7 +40,7 @@ pub fn get_prop(env: &Env, serial_no: &str, prop: &str) -> Result<String, Error>
     let prop_ = prop.to_string();
     let handle = adb(env, serial_no)
         .before_spawn(move |cmd| {
-            cmd.args(&["shell", "getprop", &prop_]);
+            cmd.args(["shell", "getprop", &prop_]);
             Ok(())
         })
         .stdout_capture()

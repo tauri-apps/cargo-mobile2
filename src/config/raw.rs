@@ -46,11 +46,11 @@ impl Reportable for DetectError {
 #[derive(Debug, Error)]
 pub enum LoadError {
     #[error("Failed to canonicalize path while searching for config file: {0}")]
-    DiscoverFailed(io::Error),
+    Discover(io::Error),
     #[error("Failed to read config file at {path}: {cause}")]
-    ReadFailed { path: PathBuf, cause: io::Error },
+    Read { path: PathBuf, cause: io::Error },
     #[error("Failed to parse config file at {path}: {cause}")]
-    ParseFailed {
+    Parse {
         path: PathBuf,
         cause: toml::de::Error,
     },
@@ -59,9 +59,9 @@ pub enum LoadError {
 #[derive(Debug, Error)]
 pub enum WriteError {
     #[error("Failed to serialize config: {0}")]
-    SerializeFailed(toml::ser::Error),
+    Serialize(toml::ser::Error),
     #[error("Failed to write config: {0}")]
-    WriteFailed(io::Error),
+    Write(io::Error),
 }
 
 impl Reportable for WriteError {
@@ -124,16 +124,16 @@ impl Raw {
 
     pub fn load(cwd: impl AsRef<Path>) -> Result<Option<(PathBuf, Self)>, LoadError> {
         Self::discover_root(cwd)
-            .map_err(LoadError::DiscoverFailed)?
+            .map_err(LoadError::Discover)?
             .map(|root_dir| {
                 let path = root_dir.join(super::file_name());
-                let bytes = fs::read(&path).map_err(|cause| LoadError::ReadFailed {
+                let bytes = fs::read(&path).map_err(|cause| LoadError::Read {
                     path: path.clone(),
                     cause,
                 })?;
                 toml::from_slice::<Self>(&bytes)
                     .map(|raw| (root_dir, raw))
-                    .map_err(|cause| LoadError::ParseFailed {
+                    .map_err(|cause| LoadError::Parse {
                         path: path.clone(),
                         cause,
                     })
@@ -142,9 +142,9 @@ impl Raw {
     }
 
     pub fn write(&self, root_dir: &Path) -> Result<(), WriteError> {
-        let bytes = toml::to_vec(self).map_err(WriteError::SerializeFailed)?;
+        let bytes = toml::to_vec(self).map_err(WriteError::Serialize)?;
         let path = root_dir.join(super::file_name());
         log::info!("writing config to {:?}", path);
-        fs::write(path, bytes).map_err(WriteError::WriteFailed)
+        fs::write(path, bytes).map_err(WriteError::Write)
     }
 }
