@@ -29,9 +29,9 @@ pub fn run(
     println!("Deploying app to device...");
     let handle = bossy::Command::pure("xcrun")
         .with_env_vars(env.explicit_env())
-        .with_args(&["simctl", "install", id])
+        .with_args(["simctl", "install", id])
         .with_arg(
-            &config
+            config
                 .export_dir()
                 .join(format!("{}_iOS.xcarchive", config.app().name()))
                 .join("Products/Applications")
@@ -46,7 +46,7 @@ pub fn run(
 
     let mut launcher_cmd = bossy::Command::pure("xcrun")
         .with_env_vars(env.explicit_env())
-        .with_args(&["simctl", "launch"])
+        .with_args(["simctl", "launch"])
         .with_args(if non_interactive {
             Some("--console")
         } else {
@@ -62,7 +62,7 @@ pub fn run(
             .map_err(RunError::DeployFailed)?;
         bossy::Command::pure("xcrun")
             .with_env_vars(env.explicit_env())
-            .with_args(&["simctl", "spawn", &id, "log", "stream"])
+            .with_args(["simctl", "spawn", id, "log", "stream"])
             .with_args(["--level", "debug"])
             .with_arg("--predicate")
             .with_arg(format!("subsystem == \"{app_id}\""))

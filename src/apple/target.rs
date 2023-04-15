@@ -252,7 +252,7 @@ impl<'a> Target<'a> {
             CargoCommand::new(subcommand)
                 .with_package(Some(config.app().name()))
                 .with_manifest_path(Some(config.app().manifest_path()))
-                .with_target(Some(&self.triple))
+                .with_target(Some(self.triple))
                 .with_no_default_features(metadata.no_default_features())
                 .with_args(metadata.cargo_args())
                 .with_features(metadata.features())
@@ -278,6 +278,7 @@ impl<'a> Target<'a> {
     // NOTE: it's up to Xcode to pass the verbose flag here, so even when
     // using our build/run commands it won't get passed.
     // TODO: do something about that?
+    #[allow(clippy::too_many_arguments)]
     pub fn compile_lib(
         &self,
         config: &Config,
@@ -296,7 +297,7 @@ impl<'a> Target<'a> {
             .with_release(profile.release())
             .into_command_pure(env)
             .with_env_vars(cc_env)
-            .with_args(&["--color", color])
+            .with_args(["--color", color])
             .run_and_wait()
             .map_err(CompileLibError::CargoBuildFailed)?;
         Ok(())
@@ -322,12 +323,12 @@ impl<'a> Target<'a> {
                 if let Some(v) = verbosity(noise_level) {
                     cmd.arg(v);
                 }
-                cmd.args(&["-scheme", &scheme])
+                cmd.args(["-scheme", &scheme])
                     .arg("-workspace")
                     .arg(&workspace_path)
-                    .args(&["-sdk", &sdk])
-                    .args(&["-configuration", configuration])
-                    .args(&["-arch", &arch])
+                    .args(["-sdk", &sdk])
+                    .args(["-configuration", configuration])
+                    .args(["-arch", &arch])
                     .arg("-allowProvisioningUpdates")
                     .arg("build");
                 Ok(())
@@ -348,14 +349,14 @@ impl<'a> Target<'a> {
         if let Some(build_number) = build_number {
             util::with_working_dir(config.project_dir(), || {
                 bossy::Command::pure_parse("xcrun agvtool new-version -all")
-                    .with_arg(&build_number.to_string())
+                    .with_arg(build_number.to_string())
                     .run_and_wait()
             })
             .map_err(ArchiveError::SetVersionFailed)?;
         }
 
         let configuration = profile.as_str();
-        let archive_path = config.archive_dir().join(&config.scheme());
+        let archive_path = config.archive_dir().join(config.scheme());
         let scheme = config.scheme();
         let workspace_path = config.workspace_path();
         let sdk = self.sdk.to_string();
@@ -367,12 +368,12 @@ impl<'a> Target<'a> {
                 if let Some(v) = verbosity(noise_level) {
                     cmd.arg(v);
                 }
-                cmd.args(&["-scheme", &scheme])
+                cmd.args(["-scheme", &scheme])
                     .arg("-workspace")
                     .arg(&workspace_path)
-                    .args(&["-sdk", &sdk])
-                    .args(&["-configuration", configuration])
-                    .args(&["-arch", &arch])
+                    .args(["-sdk", &sdk])
+                    .args(["-configuration", configuration])
+                    .args(["-arch", &arch])
                     .arg("-allowProvisioningUpdates")
                     .arg("archive")
                     .arg("-archivePath")
@@ -394,7 +395,7 @@ impl<'a> Target<'a> {
         // Super fun discrepancy in expectation of `-archivePath` value
         let archive_path = config
             .archive_dir()
-            .join(&format!("{}.xcarchive", config.scheme()));
+            .join(format!("{}.xcarchive", config.scheme()));
         let export_dir = config.export_dir();
         let export_plist_path = config.export_plist_path();
 

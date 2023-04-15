@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
     path::PathBuf,
+    str::FromStr,
 };
 use thiserror::Error;
 
@@ -87,11 +88,11 @@ impl Platform {
     }
 
     pub fn libraries(&self) -> &[String] {
-        self.libraries.as_deref().unwrap_or_else(|| &[])
+        self.libraries.as_deref().unwrap_or(&[])
     }
 
     pub fn frameworks(&self) -> &[String] {
-        self.frameworks.as_deref().unwrap_or_else(|| &[])
+        self.frameworks.as_deref().unwrap_or(&[])
     }
 
     pub fn valid_archs(&self) -> Option<&[String]> {
@@ -99,11 +100,11 @@ impl Platform {
     }
 
     pub fn vendor_frameworks(&self) -> &[String] {
-        self.vendor_frameworks.as_deref().unwrap_or_else(|| &[])
+        self.vendor_frameworks.as_deref().unwrap_or(&[])
     }
 
     pub fn vendor_sdks(&self) -> &[String] {
-        self.vendor_sdks.as_deref().unwrap_or_else(|| &[])
+        self.vendor_sdks.as_deref().unwrap_or(&[])
     }
 
     pub fn asset_catalogs(&self) -> Option<&[PathBuf]> {
@@ -404,10 +405,9 @@ impl Config {
         let new = path(self.app.name());
         std::iter::once(&old)
             .chain(std::iter::once(&new))
-            .filter(|path| path.is_file())
-            .next()
+            .find(|path| path.is_file())
             .cloned()
-            .ok_or_else(|| (old, new))
+            .ok_or((old, new))
     }
 
     pub fn app_path(&self) -> PathBuf {

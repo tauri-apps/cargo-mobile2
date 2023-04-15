@@ -60,6 +60,7 @@ impl Reportable for Error {
 
 // unprefixed app_root seems pretty dangerous!!
 // TODO: figure out what I meant by that
+#[allow(clippy::too_many_arguments)]
 pub fn gen(
     config: &Config,
     metadata: &Metadata,
@@ -108,10 +109,7 @@ pub fn gen(
             map.insert("ios-frameworks", metadata.ios().frameworks());
             map.insert(
                 "ios-valid-archs",
-                metadata
-                    .ios()
-                    .valid_archs()
-                    .unwrap_or_else(|| &default_archs),
+                metadata.ios().valid_archs().unwrap_or(&default_archs),
             );
             #[cfg(target_arch = "aarch64")]
             map.insert("ios-sim-arch", "aarch64-apple-ios-sim");
@@ -192,7 +190,7 @@ pub fn gen(
     // often necessary.
     println!("Generating Xcode project...");
     bossy::Command::impure("xcodegen")
-        .with_args(&["generate", "--spec"])
+        .with_args(["generate", "--spec"])
         .with_arg(dest.join("project.yml"))
         .run_and_wait()
         .map_err(Error::XcodegenFailed)?;

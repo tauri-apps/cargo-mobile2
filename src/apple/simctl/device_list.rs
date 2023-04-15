@@ -27,21 +27,20 @@ impl Reportable for DeviceListError {
     }
 }
 
-fn parse_device_list<'a>(output: &bossy::Output) -> Result<BTreeSet<Device>, DeviceListError> {
+fn parse_device_list(output: &bossy::Output) -> Result<BTreeSet<Device>, DeviceListError> {
     let stdout = output.stdout_str()?;
 
     let devices = serde_json::from_str::<DeviceListOutput>(stdout)?
         .devices
         .into_iter()
         .filter(|(k, _)| k.contains("iOS"))
-        .map(|(_, v)| v)
-        .flatten()
+        .flat_map(|(_, v)| v)
         .collect();
 
     Ok(devices)
 }
 
-pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device>, DeviceListError> {
+pub fn device_list(env: &Env) -> Result<BTreeSet<Device>, DeviceListError> {
     let result = bossy::Command::pure_parse("xcrun simctl list --json devices available")
         .with_env_vars(env.explicit_env())
         .run_and_wait_for_output();

@@ -45,7 +45,7 @@ enum Event {
 }
 
 impl Event {
-    fn parse_list<'a>(s: &str) -> Vec<Self> {
+    fn parse_list(s: &str) -> Vec<Self> {
         fn parse_and_push(s: &str, docs: &mut Vec<Event>) {
             if !s.is_empty() {
                 match serde_json::from_str(s) {

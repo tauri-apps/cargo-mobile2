@@ -1,6 +1,9 @@
 use crate::util::{VersionTriple, VersionTripleError};
 use serde::{ser::Serializer, Serialize};
-use std::fmt::{self, Debug, Display};
+use std::{
+    fmt::{self, Debug, Display},
+    str::FromStr,
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -41,20 +44,11 @@ impl Serialize for VersionNumber {
     }
 }
 
-impl VersionNumber {
-    pub fn new_from_triple(triple: VersionTriple) -> Self {
-        Self {
-            triple,
-            extra: None,
-        }
-    }
+impl FromStr for VersionNumber {
+    type Err = VersionNumberError;
 
-    pub const fn new(triple: VersionTriple, extra: Option<Vec<u32>>) -> Self {
-        Self { triple, extra }
-    }
-
-    pub fn from_str(v: &str) -> Result<Self, VersionNumberError> {
-        match v.split(".").count() {
+    fn from_str(v: &str) -> Result<Self, Self::Err> {
+        match v.split('.').count() {
             1 | 2 | 3 => {
                 let triple = VersionTriple::from_str(v)?;
                 Ok(Self {
@@ -66,7 +60,7 @@ impl VersionNumber {
             // (the full string, which could be the empty string)
             0 => unreachable!(),
             _ => {
-                let mut s = v.split(".");
+                let mut s = v.split('.');
                 let triple = VersionTriple::from_split(&mut s, v)?;
                 let extra = Some(
                     s.map(|s| {
@@ -81,6 +75,19 @@ impl VersionNumber {
                 Ok(Self { triple, extra })
             }
         }
+    }
+}
+
+impl VersionNumber {
+    pub fn new_from_triple(triple: VersionTriple) -> Self {
+        Self {
+            triple,
+            extra: None,
+        }
+    }
+
+    pub const fn new(triple: VersionTriple, extra: Option<Vec<u32>>) -> Self {
+        Self { triple, extra }
     }
 
     pub fn push_extra(&mut self, number: u32) {

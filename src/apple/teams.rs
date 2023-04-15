@@ -10,7 +10,7 @@ use thiserror::Error;
 
 pub fn get_pem_list(name_substr: &str) -> bossy::Result<bossy::Output> {
     bossy::Command::impure("security")
-        .with_args(&["find-certificate", "-p", "-a", "-c", name_substr])
+        .with_args(["find-certificate", "-p", "-a", "-c", name_substr])
         .run_and_wait_for_output()
 }
 
@@ -45,7 +45,7 @@ pub fn get_x509_field(
 ) -> Result<String, X509FieldError> {
     subject_name
         .entries_by_nid(field_nid)
-        .nth(0)
+        .next()
         .ok_or(X509FieldError::FieldMissing {
             name: field_name,
             id: field_nid,
