@@ -10,6 +10,7 @@ use crate::{
         cli::{Report, Reportable},
         last_modified, prefix_path,
     },
+    DuctExpressionExt,
 };
 use std::{
     fmt::{self, Display},
@@ -369,7 +370,7 @@ impl<'a> Device<'a> {
         );
 
         let stdout = loop {
-            let mut cmd = duct::cmd(
+            let cmd = duct::cmd(
                 env.platform_tools_path().join("adb"),
                 [
                     "shell",
@@ -382,10 +383,8 @@ impl<'a> Device<'a> {
                     ),
                 ],
             )
+            .vars(env.explicit_env())
             .stdout_capture();
-            for (k, v) in env.explicit_env() {
-                cmd = cmd.env(k, v);
-            }
             let handle = cmd.start()?;
             if let Ok(out) = handle.wait() {
                 if out.status.success() {
@@ -398,11 +397,8 @@ impl<'a> Device<'a> {
         let mut logcat = duct::cmd(
             env.platform_tools_path().join("adb"),
             ["logcat", "-v", "color", "-s", &filter],
-        );
-
-        for (k, v) in env.explicit_env() {
-            logcat = logcat.env(k, v);
-        }
+        )
+        .vars(env.explicit_env());
 
         let logcat_filter_specs = config.logcat_filter_specs().to_vec();
         logcat = logcat.before_spawn(move |cmd| {
@@ -431,15 +427,13 @@ impl<'a> Device<'a> {
             cmd.arg(&jnilib_path);
             Ok(())
         });
-        let mut stack_command =
-            duct::cmd::<PathBuf, [String; 0]>(env.ndk.home().join(consts::NDK_STACK), []);
-        for (k, v) in env.explicit_env() {
-            stack_command = stack_command.env(k, v);
-        }
-        stack_command = stack_command.env(
-            "PATH",
-            util::prepend_to_path(env.ndk.home().display(), env.path().to_string_lossy()),
-        );
+        let stack_command =
+            duct::cmd::<PathBuf, [String; 0]>(env.ndk.home().join(consts::NDK_STACK), [])
+                .vars(env.explicit_env())
+                .env(
+                    "PATH",
+                    util::prepend_to_path(env.ndk.home().display(), env.path().to_string_lossy()),
+                );
 
         if logcat_command.pipe(stack_command).start()?.wait().is_err() {
             println!("  -- no stacktrace --");

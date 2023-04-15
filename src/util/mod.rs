@@ -12,6 +12,7 @@ use crate::{
     bossy,
     env::ExplicitEnv,
     os::{self, command_path},
+    DuctExpressionExt,
 };
 use once_cell_regex::{exports::regex::Captures, exports::regex::Regex, regex};
 use path_abs::PathOps;
@@ -681,22 +682,21 @@ pub fn gradlew(
 
     let project_dir = dunce::simplified(&project_dir);
     let gradlew_p = project_dir.join(gradlew);
-    let mut cmd = if gradlew_p.exists() {
+    if gradlew_p.exists() {
         duct::cmd(
             gradlew_p,
             [OsStr::new("--project-dir"), project_dir.as_ref()],
         )
+        .vars(env.explicit_env())
     } else if duct::cmd(gradlew, ["-v"])
         .run()
         .map(|o| o.status.success())
         .unwrap_or(false)
     {
         duct::cmd(gradlew, [OsStr::new("--project-dir"), project_dir.as_ref()])
+            .vars(env.explicit_env())
     } else {
         duct::cmd(gradle, [OsStr::new("--project-dir"), project_dir.as_ref()])
-    };
-    for (k, v) in env.explicit_env() {
-        cmd = cmd.env(k, v);
+            .vars(env.explicit_env())
     }
-    cmd
 }

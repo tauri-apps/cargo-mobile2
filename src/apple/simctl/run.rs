@@ -1,15 +1,15 @@
 use crate::{
     apple::config::Config,
-    bossy,
     env::{Env, ExplicitEnv as _},
     util::cli::{Report, Reportable},
+    DuctExpressionExt,
 };
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum RunError {
     #[error("Failed to deploy app to simulator: {0}")]
-    DeployFailed(bossy::Error),
+    DeployFailed(std::io::Error),
 }
 
 impl Reportable for RunError {
@@ -25,48 +25,61 @@ pub fn run(
     env: &Env,
     non_interactive: bool,
     id: &str,
-) -> Result<bossy::Handle, RunError> {
+) -> Result<duct::Handle, RunError> {
     println!("Deploying app to device...");
-    let handle = bossy::Command::pure("xcrun")
-        .with_env_vars(env.explicit_env())
-        .with_args(["simctl", "install", id])
-        .with_arg(
-            config
-                .export_dir()
-                .join(format!("{}_iOS.xcarchive", config.app().name()))
-                .join("Products/Applications")
-                .join(format!("{}.app", config.app().name())),
-        )
-        .run()
-        .map_err(RunError::DeployFailed)?;
+
+    let app_dir = config
+        .export_dir()
+        .join(format!("{}_iOS.xcarchive", config.app().name()))
+        .join("Products/Applications")
+        .join(format!("{}.app", config.app().name()));
+    let cmd = duct::cmd("xcrun", ["simctl", "install", id])
+        .vars(env.explicit_env())
+        .before_spawn(move |cmd| {
+            cmd.arg(&app_dir);
+            Ok(())
+        });
+
+    let handle = cmd.start().map_err(RunError::DeployFailed)?;
 
     handle.wait().map_err(RunError::DeployFailed)?;
 
     let app_id = format!("{}.{}", config.app().reverse_domain(), config.app().name());
 
-    let mut launcher_cmd = bossy::Command::pure("xcrun")
-        .with_env_vars(env.explicit_env())
-        .with_args(["simctl", "launch"])
-        .with_args(if non_interactive {
-            Some("--console")
-        } else {
-            None
-        })
-        .with_arg(id)
-        .with_arg(&app_id);
+    let mut launcher_cmd =
+        duct::cmd("xcrun", ["simctl", "launch", id, &app_id]).vars(env.explicit_env());
+
     if non_interactive {
-        launcher_cmd.run().map_err(RunError::DeployFailed)
+        launcher_cmd = launcher_cmd.before_spawn(|cmd| {
+            cmd.arg("--console");
+            Ok(())
+        });
+    }
+    if non_interactive {
+        launcher_cmd.start().map_err(RunError::DeployFailed)
     } else {
         launcher_cmd
-            .run_and_wait()
+            .start()
+            .map_err(RunError::DeployFailed)?
+            .wait()
             .map_err(RunError::DeployFailed)?;
-        bossy::Command::pure("xcrun")
-            .with_env_vars(env.explicit_env())
-            .with_args(["simctl", "spawn", id, "log", "stream"])
-            .with_args(["--level", "debug"])
-            .with_arg("--predicate")
-            .with_arg(format!("subsystem == \"{app_id}\""))
-            .run()
-            .map_err(RunError::DeployFailed)
+
+        duct::cmd(
+            "xcrun",
+            [
+                "simctl",
+                "spawn",
+                id,
+                "log",
+                "stream",
+                "--level",
+                "debug",
+                "--predicate",
+                &format!("subsystem == \"{app_id}\""),
+            ],
+        )
+        .vars(env.explicit_env())
+        .start()
+        .map_err(RunError::DeployFailed)
     }
 }
