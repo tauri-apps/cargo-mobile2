@@ -19,6 +19,24 @@ pub mod target;
 mod templating;
 pub mod update;
 pub mod util;
+use std::ffi::OsStr;
+
 pub use duct::Handle as ChildHandle;
 
 pub static NAME: &str = "mobile";
+
+trait DuctExpressionExt {
+    fn vars(self, vars: impl IntoIterator<Item = (impl AsRef<OsStr>, impl AsRef<OsStr>)>) -> Self;
+}
+
+impl DuctExpressionExt for duct::Expression {
+    fn vars(
+        mut self,
+        vars: impl IntoIterator<Item = (impl AsRef<OsStr>, impl AsRef<OsStr>)>,
+    ) -> Self {
+        for (k, v) in vars {
+            self = self.env(&k, &v);
+        }
+        self
+    }
+}

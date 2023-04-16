@@ -5,16 +5,12 @@ pub mod get_prop;
 pub use self::{device_list::device_list, device_name::device_name, get_prop::get_prop};
 
 use super::env::Env;
-use crate::{bossy, env::ExplicitEnv as _, util::cli::Report};
+use crate::{bossy, env::ExplicitEnv as _, util::cli::Report, DuctExpressionExt};
 use std::{str, string::FromUtf8Error};
 use thiserror::Error;
 
 pub fn adb(env: &Env, serial_no: &str) -> duct::Expression {
-    let mut cmd = duct::cmd(env.platform_tools_path().join("adb"), ["-s", serial_no]);
-    for (k, v) in env.explicit_env() {
-        cmd = cmd.env(k, v);
-    }
-    cmd
+    duct::cmd(env.platform_tools_path().join("adb"), ["-s", serial_no]).vars(env.explicit_env())
 }
 
 #[derive(Debug, Error)]

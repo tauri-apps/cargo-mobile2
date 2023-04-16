@@ -1,15 +1,15 @@
 use crate::{
     apple::config::Config,
-    bossy,
     env::{Env, ExplicitEnv as _},
     util::cli::{Report, Reportable},
+    DuctExpressionExt,
 };
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum RunAndDebugError {
     #[error("Failed to deploy app to device: {0}")]
-    DeployFailed(bossy::Error),
+    DeployFailed(std::io::Error),
 }
 
 impl Reportable for RunAndDebugError {
@@ -25,31 +25,33 @@ pub fn run_and_debug(
     env: &Env,
     non_interactive: bool,
     id: &str,
-) -> Result<bossy::Handle, RunAndDebugError> {
+) -> Result<duct::Handle, RunAndDebugError> {
     println!("Deploying app to device...");
-    let mut deploy_cmd = bossy::Command::pure("ios-deploy")
-        .with_env_vars(env.explicit_env())
-        .with_arg("--debug")
-        .with_args(["--id", id])
-        .with_arg("--bundle")
-        .with_arg(config.app_path())
-        .with_args(if non_interactive {
-            Some("--noninteractive")
-        } else {
-            None
-        })
-        .with_arg("--no-wifi");
+
+    let app_path = config.app_path();
+    let deploy_cmd = duct::cmd("ios-deploy", ["--debug", "--id", id, "--no-wifi"])
+        .vars(env.explicit_env())
+        .before_spawn(move |cmd| {
+            cmd.arg("--bundle").arg(&app_path);
+            if non_interactive {
+                cmd.arg("--noninteractive");
+            } else {
+                cmd.arg("--justlaunch");
+            }
+            Ok(())
+        });
+
     if non_interactive {
-        Ok(deploy_cmd.run().map_err(RunAndDebugError::DeployFailed)?)
+        Ok(deploy_cmd.start().map_err(RunAndDebugError::DeployFailed)?)
     } else {
-        deploy_cmd = deploy_cmd.with_arg("--justlaunch");
         deploy_cmd
-            .run_and_wait()
+            .start()
+            .map_err(RunAndDebugError::DeployFailed)?
+            .wait()
             .map_err(RunAndDebugError::DeployFailed)?;
-        bossy::Command::pure("idevicesyslog")
-            .with_env_vars(env.explicit_env())
-            .with_args(["--process", config.app().name()])
-            .run()
+        duct::cmd("idevicesyslog", ["--process", config.app().name()])
+            .vars(env.explicit_env())
+            .start()
             .map_err(RunAndDebugError::DeployFailed)
     }
 }

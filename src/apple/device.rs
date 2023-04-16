@@ -4,10 +4,10 @@ use super::{
     target::{ArchiveError, BuildError, ExportError, Target},
 };
 use crate::{
-    bossy,
     env::{Env, ExplicitEnv as _},
     opts,
     util::cli::{Report, Reportable},
+    DuctExpressionExt,
 };
 use std::{
     fmt::{self, Display},
@@ -26,7 +26,7 @@ pub enum RunError {
     #[error("IPA appears to be missing. Not found at either {old} or {new}")]
     IpaMissing { old: PathBuf, new: PathBuf },
     #[error("Failed to unzip archive: {0}")]
-    UnzipFailed(bossy::Error),
+    UnzipFailed(std::io::Error),
     #[error(transparent)]
     DeployFailed(ios_deploy::RunAndDebugError),
     #[error(transparent)]
@@ -100,7 +100,7 @@ impl<'a> Device<'a> {
         noise_level: opts::NoiseLevel,
         non_interactive: bool,
         profile: opts::Profile,
-    ) -> Result<bossy::Handle, RunError> {
+    ) -> Result<duct::Handle, RunError> {
         // TODO: These steps are run unconditionally, which is slooooooow
         println!("Building app...");
         self.target
@@ -120,22 +120,24 @@ impl<'a> Device<'a> {
                 .export(config, env, noise_level)
                 .map_err(RunError::ExportFailed)?;
             println!("Extracting IPA...");
-            bossy::Command::pure("unzip")
-                .with_env_vars(env.explicit_env())
-                .with_args(if noise_level.pedantic() {
-                    None
-                } else {
-                    Some("-q")
-                })
-                .with_arg("-o") // -o = always overwrite
-                .with_arg(
-                    config
-                        .ipa_path()
-                        .map_err(|(old, new)| RunError::IpaMissing { old, new })?,
-                )
-                .with_arg("-d")
-                .with_arg(config.export_dir())
-                .run_and_wait()
+
+            let ipa_path = config
+                .ipa_path()
+                .map_err(|(old, new)| RunError::IpaMissing { old, new })?;
+            let export_dir = config.export_dir();
+            let cmd = duct::cmd::<&str, [String; 0]>("unzip", [])
+                .vars(env.explicit_env())
+                .before_spawn(move |cmd| {
+                    if noise_level.pedantic() {
+                        cmd.arg("-q");
+                    }
+                    cmd.arg("-o").arg(&ipa_path).arg("-d").arg(&export_dir);
+                    Ok(())
+                });
+
+            cmd.start()
+                .map_err(RunError::UnzipFailed)?
+                .wait()
                 .map_err(RunError::UnzipFailed)?;
 
             ios_deploy::run_and_debug(config, env, non_interactive, &self.id)
