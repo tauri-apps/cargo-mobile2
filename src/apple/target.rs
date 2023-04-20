@@ -12,6 +12,7 @@ use crate::{
         cli::{Report, Reportable},
         CargoCommand, WithWorkingDirError,
     },
+    DuctExpressionExt,
 };
 use once_cell_regex::exports::once_cell::sync::OnceCell;
 use std::{
@@ -295,7 +296,7 @@ impl<'a> Target<'a> {
             .with_verbose(noise_level.pedantic())
             .with_release(profile.release())
             .build(env)
-            .with_env_vars(cc_env)
+            .vars(cc_env)
             .with_args(["--color", color])
             .run_and_wait()
             .map_err(CompileLibError::CargoBuildFailed)?;

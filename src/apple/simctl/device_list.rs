@@ -48,17 +48,14 @@ pub fn device_list(env: &Env) -> Result<BTreeSet<Device>, DeviceListError> {
     .vars(env.explicit_env())
     .run();
     match result {
-        Ok(output) => parse_device_list(&output),
-        Err(err) => {
-            let output = err
-                .output()
-                .expect("developer error: `simctl list` output wasn't collected");
+        Ok(output) => {
             if output.stdout().is_empty() && output.stderr().is_empty() {
                 log::info!("device detection returned a non-zero exit code, but stdout and stderr are both empty; interpreting as a successful run with no devices connected");
                 Ok(Default::default())
             } else {
-                Err(DeviceListError::DetectionFailed(err))
+                parse_device_list(&output)
             }
         }
+        Err(err) => Err(DeviceListError::DetectionFailed(err)),
     }
 }
