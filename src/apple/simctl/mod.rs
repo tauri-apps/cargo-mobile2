@@ -57,7 +57,7 @@ impl Device {
                 &self.udid,
             ],
         )
-        .with_env_vars(env.explicit_env())
+        .vars(env.explicit_env())
     }
 
     pub fn start(&self, env: &Env) -> std::io::Result<duct::Handle> {

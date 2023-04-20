@@ -66,7 +66,7 @@ pub fn xcode_developer_dir() -> Result<PathBuf, Error> {
             let stdout = String::from_utf8_lossy(&output.stdout).to_string();
             // This output is expected to end with a newline, but we'll err on
             // the safe side and proceed gracefully if it doesn't.
-            std::ffi::OsStr::from_bytes(stdout.strip_suffix(b"\n").unwrap_or(stdout)).into()
+            PathBuf::from(stdout.strip_suffix('\n').unwrap_or(stdout))
         })
         .map_err(Error::XcodeSelectFailed)
 }

@@ -89,7 +89,11 @@ pub fn open_file_with(
 ) -> Result<(), OpenFileError> {
     duct::cmd(
         "open",
-        ["-a", &application.as_ref().to_string_lossy(), path.as_ref()],
+        [
+            "-a",
+            &application.as_ref().to_string_lossy(),
+            &path.as_ref().to_string_lossy(),
+        ],
     )
     .vars(env.explicit_env())
     .run()

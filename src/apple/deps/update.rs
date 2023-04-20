@@ -100,7 +100,7 @@ impl Outdated {
         duct::cmd("brew", ["outdated", "--json=v2"])
             .run()
             .map_err(OutdatedError::CommandFailed)
-            .and_then(|output| serde_json::from_slice(output.stdout()).map_err(Into::into))
+            .and_then(|output| serde_json::from_slice(&output.stdout).map_err(Into::into))
             .map(|Raw { formulae }| {
                 formulae
                     .into_iter()

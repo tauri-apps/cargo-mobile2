@@ -294,7 +294,7 @@ impl<'a> Target<'a> {
             .map_err(CompileLibError::VersionCheckFailed)?
             .with_verbose(noise_level.pedantic())
             .with_release(profile.release())
-            .into_command_pure(env)
+            .build(env)
             .with_env_vars(cc_env)
             .with_args(["--color", color])
             .run_and_wait()
