@@ -87,10 +87,13 @@ pub fn open_file_with(
     path: impl AsRef<OsStr>,
     env: &Env,
 ) -> Result<(), OpenFileError> {
-    duct::cmd("open", ["-a", application.as_ref(), path.as_ref()])
-        .vars(env.explicit_env())
-        .run()
-        .map_err(OpenFileError::DuctLaunchFailed)?;
+    duct::cmd(
+        "open",
+        ["-a", &application.as_ref().to_string_lossy(), path.as_ref()],
+    )
+    .vars(env.explicit_env())
+    .run()
+    .map_err(OpenFileError::DuctLaunchFailed)?;
     Ok(())
 }
 

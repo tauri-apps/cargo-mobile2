@@ -1,6 +1,7 @@
 use super::target::Target;
 use crate::apple::device::Device as AppleDevice;
 use crate::env::{Env, ExplicitEnv};
+use crate::DuctExpressionExt;
 use serde::Deserialize;
 
 use std::fmt::Display;
@@ -46,7 +47,7 @@ impl Device {
     }
 
     fn command(&self, env: &Env) -> duct::Expression {
-        duct(
+        duct::cmd(
             "open",
             [
                 "-a",
@@ -60,7 +61,7 @@ impl Device {
     }
 
     pub fn start(&self, env: &Env) -> std::io::Result<duct::Handle> {
-        self.command(env).run()
+        self.command(env).start()
     }
     pub fn start_detached(&self, env: &Env) -> std::io::Result<()> {
         self.command(env).run_and_detach()

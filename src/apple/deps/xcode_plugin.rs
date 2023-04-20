@@ -63,7 +63,7 @@ pub fn xcode_developer_dir() -> Result<PathBuf, Error> {
     duct::cmd("xcode-select", ["-p"])
         .run()
         .map(|output| {
-            let stdout = output.stdout();
+            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
             // This output is expected to end with a newline, but we'll err on
             // the safe side and proceed gracefully if it doesn't.
             std::ffi::OsStr::from_bytes(stdout.strip_suffix(b"\n").unwrap_or(stdout)).into()
@@ -261,7 +261,7 @@ impl Context {
                 })?;
             }
             duct::cmd("cp", [&spec_src, &self.spec_dst])
-                .run_and_wait()
+                .run()
                 .map_err(Error::SpecCopyFailed)?;
         }
         if self.xcode_version.0 >= 11 {
@@ -274,7 +274,7 @@ impl Context {
                     &self.meta_dst.to_string_lossy(),
                 ],
             )
-            .run_and_wait()
+            .run()
             .map_err(Error::MetaCopyFailed)?;
         }
         Report::victory(

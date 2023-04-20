@@ -268,8 +268,8 @@ impl<'a> Target<'a> {
         self.cargo(config, metadata, "check")
             .map_err(CheckError::VersionCheckFailed)?
             .with_verbose(noise_level.pedantic())
-            .into_command_pure(env)
-            .run_and_wait()
+            .build(env)
+            .run()
             .map_err(CheckError::CargoCheckFailed)?;
         Ok(())
     }

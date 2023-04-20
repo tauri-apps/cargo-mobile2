@@ -6,7 +6,7 @@ pub use avd_list::avd_list;
 use duct::Handle;
 
 use super::env::Env;
-use crate::DuctExpressionExt;
+use crate::{env::ExplicitEnv, DuctExpressionExt};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Emulator {

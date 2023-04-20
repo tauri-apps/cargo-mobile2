@@ -40,7 +40,7 @@ pub enum Error {
     #[error("Failed to update package `{package}`")]
     PackageNotUpdated { package: &'static str },
     #[error("Failed to list installed gems: {0}")]
-    GemListFailed(#[from] std::io::Error),
+    GemListFailed(std::io::Error),
     #[error("Regex match failed for output of `gem list`")]
     RegexMatchFailed,
     #[error(transparent)]

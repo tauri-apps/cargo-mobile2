@@ -113,9 +113,9 @@ impl Team {
 pub fn find_development_teams() -> Result<Vec<Team>, Error> {
     let certs = {
         let new = get_pem_list_new_name_scheme().map_err(Error::SecurityCommandFailed)?;
-        let mut certs = X509::stack_from_pem(new.stdout()).map_err(Error::X509ParseFailed)?;
+        let mut certs = X509::stack_from_pem(new.stdout).map_err(Error::X509ParseFailed)?;
         let old = get_pem_list_old_name_scheme().map_err(Error::SecurityCommandFailed)?;
-        certs.append(&mut X509::stack_from_pem(old.stdout()).map_err(Error::X509ParseFailed)?);
+        certs.append(&mut X509::stack_from_pem(old.stdout).map_err(Error::X509ParseFailed)?);
         certs
     };
     Ok(certs

@@ -28,9 +28,9 @@ impl Reportable for DeviceListError {
 }
 
 fn parse_device_list(output: &std::process::Output) -> Result<BTreeSet<Device>, DeviceListError> {
-    let stdout = output.stdout_str()?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
 
-    let devices = serde_json::from_str::<DeviceListOutput>(stdout)?
+    let devices = serde_json::from_str::<DeviceListOutput>(&stdout)?
         .devices
         .into_iter()
         .filter(|(k, _)| k.contains("iOS"))

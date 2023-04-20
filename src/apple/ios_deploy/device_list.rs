@@ -3,6 +3,7 @@ use crate::{
     apple::{device::Device, target::Target},
     env::{Env, ExplicitEnv as _},
     util::cli::{Report, Reportable},
+    DuctExpressionExt,
 };
 use std::collections::BTreeSet;
 use thiserror::Error;
@@ -24,7 +25,8 @@ impl Reportable for DeviceListError {
 fn parse_device_list<'a>(
     output: &std::process::Output,
 ) -> Result<BTreeSet<Device<'a>>, DeviceListError> {
-    Event::parse_list(output.stdout_str()?)
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    Event::parse_list(&stdout)
         .into_iter()
         .flat_map(|event| event.device_info().cloned())
         .map(
