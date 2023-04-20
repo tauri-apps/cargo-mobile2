@@ -296,8 +296,11 @@ impl<'a> Target<'a> {
             .with_verbose(noise_level.pedantic())
             .with_release(profile.release())
             .build(env)
+            .before_spawn(|cmd| {
+                cmd.args(["--color", color]);
+                Ok(())
+            })
             .vars(cc_env)
-            .with_args(["--color", color])
             .run_and_wait()
             .map_err(CompileLibError::CargoBuildFailed)?;
         Ok(())

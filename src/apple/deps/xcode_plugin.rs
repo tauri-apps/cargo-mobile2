@@ -59,7 +59,6 @@ pub fn xcode_user_dir() -> Result<PathBuf, Error> {
 }
 
 pub fn xcode_developer_dir() -> Result<PathBuf, Error> {
-    use std::os::unix::ffi::OsStrExt as _;
     duct::cmd("xcode-select", ["-p"])
         .run()
         .map(|output| {
