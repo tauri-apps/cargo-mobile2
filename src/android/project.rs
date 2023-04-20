@@ -6,7 +6,7 @@ use super::{
 };
 use crate::{
     android::{DEFAULT_ACTIVITY, DEFAULT_THEME_PARENT},
-    bicycle, bossy, dot_cargo,
+    bicycle, dot_cargo,
     os::{self, replace_path_separator},
     target::TargetTrait as _,
     templating::{self, Pack},
@@ -27,7 +27,7 @@ pub static ASSET_PACK_TEMPLATE_PACK: &str = "android-studio-asset-pack";
 
 #[derive(Debug)]
 pub enum Error {
-    RustupFailed(bossy::Error),
+    RustupFailed(std::io::Error),
     MissingPack(templating::LookupError),
     TemplateProcessingFailed(bicycle::ProcessingError),
     DirectoryCreationFailed {

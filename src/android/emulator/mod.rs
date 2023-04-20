@@ -3,9 +3,10 @@ mod avd_list;
 use std::{fmt::Display, path::PathBuf};
 
 pub use avd_list::avd_list;
+use duct::Handle;
 
 use super::env::Env;
-use crate::{bossy, env::ExplicitEnv};
+use crate::DuctExpressionExt;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Emulator {
@@ -27,17 +28,20 @@ impl Emulator {
         &self.name
     }
 
-    fn start_inner(&self, env: &Env) -> bossy::Command {
-        bossy::Command::impure(PathBuf::from(env.android_home()).join("emulator/emulator"))
-            .with_args(["-avd", &self.name])
-            .with_env_vars(env.explicit_env())
+    fn command(&self, env: &Env) -> duct::Expression {
+        duct::cmd(
+            PathBuf::from(env.android_home()).join("emulator/emulator"),
+            ["-avd", &self.name],
+        )
+        .vars(env.explicit_env())
     }
 
-    pub fn start(&self, env: &Env) -> bossy::Result<bossy::Handle> {
-        self.start_inner(env).run()
+    pub fn start(&self, env: &Env) -> Result<Handle, std::io::Error> {
+        self.command(env).start()
     }
 
-    pub fn start_detached(&self, env: &Env) -> bossy::Result<()> {
-        self.start_inner(env).run_and_detach()
+    pub fn start_detached(&self, env: &Env) -> Result<(), std::io::Error> {
+        self.command(env).run_and_detach()?;
+        Ok(())
     }
 }

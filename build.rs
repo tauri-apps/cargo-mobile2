@@ -4,12 +4,12 @@ fn main() {}
 #[cfg(feature = "cli")]
 fn main() {
     use std::path::PathBuf;
+    use std::process::Command;
     #[path = "src/bicycle/mod.rs"]
     mod bicycle;
 
     let manifest_dir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
 
-    use hit::repo::Repo;
     use std::path::Path;
 
     let pkg_name = std::env::var("CARGO_PKG_NAME").unwrap();
@@ -19,8 +19,14 @@ fn main() {
     std::fs::create_dir_all(&install_dir).expect("failed to create install dir");
 
     // Copy version info
-    match Repo::from_path(&manifest_dir).latest_subject() {
-        Ok(msg) => {
+    match Command::new("git")
+        .arg("-C")
+        .arg(&manifest_dir)
+        .args(["log", "-1", "--pretty=%s"])
+        .output()
+    {
+        Ok(output) => {
+            let msg = String::from_utf8_lossy(&output.stdout).to_string();
             if let Err(err) = std::fs::write(install_dir.join("commit"), msg) {
                 println!(
                     "cargo:warning=failed to write current commit message: {}",

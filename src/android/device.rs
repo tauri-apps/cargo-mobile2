@@ -1,7 +1,6 @@
 use super::{aab, adb, bundletool, config::Config, env::Env, jnilibs, target::Target};
 use crate::{
     android::apk,
-    bossy,
     env::ExplicitEnv as _,
     opts::{FilterLevel, NoiseLevel, Profile},
     os::consts,
@@ -23,7 +22,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum AabBuildError {
     #[error("Failed to build AAB: {0}")]
-    BuildFailed(bossy::Error),
+    BuildFailed(std::io::Error),
 }
 
 impl Reportable for AabBuildError {
@@ -39,7 +38,7 @@ pub enum ApksBuildError {
     #[error("Failed to clean old APKS: {0}")]
     CleanFailed(std::io::Error),
     #[error("Failed to build APKS from AAB: {0}")]
-    BuildFromAabFailed(bossy::Error),
+    BuildFromAabFailed(std::io::Error),
 }
 
 impl Reportable for ApksBuildError {
@@ -56,7 +55,7 @@ pub enum ApkInstallError {
     #[error("Failed to install APK: {0}")]
     InstallFailed(#[from] std::io::Error),
     #[error("Failed to install APK from AAB: {0}")]
-    InstallFromAabFailed(bossy::Error),
+    InstallFromAabFailed(std::io::Error),
 }
 
 impl Reportable for ApkInstallError {
@@ -77,7 +76,7 @@ pub enum RunError {
     #[error(transparent)]
     ApkInstallFailed(ApkInstallError),
     #[error("Failed to wake device screen: {0}")]
-    WakeScreenFailed(bossy::Error),
+    WakeScreenFailed(std::io::Error),
     #[error(transparent)]
     BundletoolInstallFailed(bundletool::InstallError),
     #[error(transparent)]
@@ -269,14 +268,19 @@ impl<'a> Device<'a> {
         // where gradle is the one to determine it.
         //
         // and in the case that profile is `Debug` there will be only one path that has the suffix `debug`
-        let all_apks_path = &Self::all_apks_paths(config, profile, flavor)[0];
+        let all_apks_path = Self::all_apks_paths(config, profile, flavor)[0].clone();
         let aab_path = aab::aab_path(config, profile, flavor);
         bundletool::command()
-            .with_arg("build-apks")
-            .with_arg(format!("--bundle={}", aab_path.to_str().unwrap()))
-            .with_arg(format!("--output={}", all_apks_path.to_str().unwrap()))
-            .with_arg("--connected-device")
-            .run_and_wait()
+            .before_spawn(move |cmd| {
+                cmd.args([
+                    "build-apks",
+                    &format!("--bundle={}", aab_path.to_str().unwrap()),
+                    &format!("--output={}", all_apks_path.to_str().unwrap()),
+                    "--connected-device",
+                ]);
+                Ok(())
+            })
+            .run()
             .map_err(ApksBuildError::BuildFromAabFailed)?;
         Ok(())
     }
@@ -292,9 +296,15 @@ impl<'a> Device<'a> {
             .reduce(last_modified)
             .unwrap();
         bundletool::command()
-            .with_arg("install-apks")
-            .with_arg(format!("--apks={}", apks_path.to_str().unwrap()))
-            .run_and_wait()
+            .before_spawn(move |cmd| {
+                cmd.args([
+                    "install-apks",
+                    &format!("--apks={}", apks_path.to_str().unwrap()),
+                ]);
+
+                Ok(())
+            })
+            .run()
             .map_err(ApkInstallError::InstallFromAabFailed)?;
         Ok(())
     }

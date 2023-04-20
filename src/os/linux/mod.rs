@@ -8,8 +8,8 @@ use std::{
 };
 use thiserror::Error;
 
+use crate::DuctExpressionExt;
 pub use crate::{
-    bossy,
     env::{Env, ExplicitEnv},
     util::ln,
 };
@@ -33,7 +33,7 @@ pub enum DetectEditorError {
 #[derive(Debug, Error)]
 pub enum OpenFileError {
     #[error("Launch failed: {0}")]
-    LaunchFailed(bossy::Error),
+    LaunchFailed(std::io::Error),
     #[error("Command parsing failed")]
     CommandParsingFailed,
 }
@@ -103,11 +103,9 @@ impl Application {
 
         if !command_parts.is_empty() {
             // If command_parts has at least one element this works. If it has a single
-            // element, &command_parts[1..] should be an empty slice (&[]) and bossy
-            // `with_args` does not add any argument on that case, although the docs
-            // do not make it obvious.
-            bossy::Command::impure(&command_parts[0])
-                .with_args(&command_parts[1..])
+            // element, &command_parts[1..] should be an empty slice (&[]) and duct
+            // does not add any argument on that case
+            duct::cmd(&command_parts[0], &command_parts[1..])
                 .run_and_detach()
                 .map_err(OpenFileError::LaunchFailed)
         } else {
@@ -156,9 +154,8 @@ pub fn open_file_with(
         .unwrap_or_else(|| vec![app_str.to_os_string()]);
 
     // If command_parts has at least one element, this won't panic from Out of Bounds
-    bossy::Command::impure(&command_parts[0])
-        .with_args(&command_parts[1..])
-        .with_env_vars(env.explicit_env())
+    duct::cmd(&command_parts[0], &command_parts[1..])
+        .vars(env.explicit_env())
         .run_and_detach()
         .map_err(OpenFileError::LaunchFailed)
 }
@@ -166,14 +163,12 @@ pub fn open_file_with(
 // We use "sh" in order to access "command -v", as that is a bultin command on sh.
 // Linux does not require a binary "command" in path, so this seems the way to go.
 #[cfg(target_os = "linux")]
-pub fn command_path(name: &str) -> bossy::Result<bossy::Output> {
-    bossy::Command::impure("sh")
-        .with_args(["-c", &format!("command -v {}", name)])
-        .run_and_wait_for_output()
+pub fn command_path(name: &str) -> std::io::Result<std::process::Output> {
+    duct::cmd("sh", ["-c", "command", "-v", name]).run()
 }
 
-pub fn code_command() -> bossy::Command {
-    bossy::Command::impure("code")
+pub fn code_command() -> duct::Expression {
+    duct::cmd!("code")
 }
 
 pub fn replace_path_separator(path: OsString) -> OsString {

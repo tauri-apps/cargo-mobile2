@@ -2,7 +2,6 @@ use super::{
     util::{self, CaptureGroupError},
     GemCache, PACKAGES,
 };
-use crate::bossy;
 use once_cell_regex::regex;
 use serde::Deserialize;
 use thiserror::Error;
@@ -18,7 +17,7 @@ pub enum RegexError {
 #[derive(Debug, Error)]
 pub enum OutdatedError {
     #[error("Failed to check for outdated packages: {0}")]
-    CommandFailed(#[from] bossy::Error),
+    CommandFailed(#[from] std::io::Error),
     #[error("Failed to parse outdated package list: {0}")]
     ParseFailed(#[from] serde_json::Error),
     #[error(transparent)]
@@ -98,8 +97,8 @@ impl Outdated {
             formulae: Vec<Formula>,
         }
 
-        bossy::Command::impure_parse("brew outdated --json=v2")
-            .run_and_wait_for_output()
+        duct::cmd("brew", ["outdated", "--json=v2"])
+            .rn()
             .map_err(OutdatedError::CommandFailed)
             .and_then(|output| serde_json::from_slice(output.stdout()).map_err(Into::into))
             .map(|Raw { formulae }| {
@@ -111,8 +110,8 @@ impl Outdated {
     }
 
     pub fn load(gem_cache: &mut GemCache) -> Result<Self, OutdatedError> {
-        let outdated_strings = bossy::Command::impure_parse("gem outdated")
-            .run_and_wait_for_string()
+        let outdated_strings = duct::cmd("gem", ["outdated"])
+            .read()
             .map_err(OutdatedError::CommandFailed)?;
         let packages = Self::outdated_brew_deps()?
             .chain(Self::outdated_gem_deps(&outdated_strings, gem_cache)?)

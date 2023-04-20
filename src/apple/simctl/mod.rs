@@ -1,9 +1,6 @@
 use super::target::Target;
 use crate::apple::device::Device as AppleDevice;
-use crate::{
-    bossy,
-    env::{Env, ExplicitEnv},
-};
+use crate::env::{Env, ExplicitEnv};
 use serde::Deserialize;
 
 use std::fmt::Display;
@@ -48,22 +45,24 @@ impl Device {
         &self.name
     }
 
-    fn start_inner(&self, env: &Env) -> bossy::Command {
-        bossy::Command::impure("open")
-            .with_args([
+    fn command(&self, env: &Env) -> duct::Expression {
+        duct(
+            "open",
+            [
                 "-a",
                 "Simulator",
                 "--args",
                 "-CurrentDeviceUDID",
                 &self.udid,
-            ])
-            .with_env_vars(env.explicit_env())
+            ],
+        )
+        .with_env_vars(env.explicit_env())
     }
 
-    pub fn start(&self, env: &Env) -> bossy::Result<bossy::Handle> {
-        self.start_inner(env).run()
+    pub fn start(&self, env: &Env) -> std::io::Result<duct::Handle> {
+        self.command(env).run()
     }
-    pub fn start_detached(&self, env: &Env) -> bossy::Result<()> {
-        self.start_inner(env).run_and_detach()
+    pub fn start_detached(&self, env: &Env) -> std::io::Result<()> {
+        self.command(env).run_and_detach()
     }
 }

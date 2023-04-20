@@ -1,7 +1,7 @@
 mod ffi;
 pub(super) mod info;
 
-use crate::{bossy, env::ExplicitEnv};
+use crate::{env::ExplicitEnv, DuctExpressionExt};
 use core_foundation::{
     array::CFArray,
     base::{OSStatus, TCFType},
@@ -34,7 +34,7 @@ pub enum OpenFileError {
     #[error("Status code {0}")]
     LaunchFailed(OSStatus),
     #[error("Launch failed: {0}")]
-    BossyLaunchFailed(bossy::Error),
+    DuctLaunchFailed(std::io::Error),
 }
 
 #[derive(Debug)]
@@ -87,24 +87,20 @@ pub fn open_file_with(
     path: impl AsRef<OsStr>,
     env: &Env,
 ) -> Result<(), OpenFileError> {
-    bossy::Command::impure("open")
-        .with_arg("-a")
-        .with_args([application.as_ref(), path.as_ref()])
-        .with_env_vars(env.explicit_env())
-        .run_and_wait_for_output()
-        .map_err(OpenFileError::BossyLaunchFailed)?;
+    duct::cmd("open", ["-a", application.as_ref(), path.as_ref()])
+        .vars(env.explicit_env())
+        .run()
+        .map_err(OpenFileError::DuctLaunchFailed)?;
     Ok(())
 }
 
 #[cfg(target_os = "macos")]
-pub fn command_path(name: &str) -> bossy::Result<bossy::Output> {
-    bossy::Command::impure("command")
-        .with_args(["-v", name])
-        .run_and_wait_for_output()
+pub fn command_path(name: &str) -> std::io::Result<std::process::Output> {
+    duct::cmd("command", ["-v", name]).run()
 }
 
-pub fn code_command() -> bossy::Command {
-    bossy::Command::impure("code")
+pub fn code_command() -> duct::Expression {
+    duct::cmd!("code")
 }
 
 pub fn replace_path_separator(path: OsString) -> OsString {
@@ -112,10 +108,9 @@ pub fn replace_path_separator(path: OsString) -> OsString {
 }
 
 pub fn open_in_xcode(path: impl AsRef<OsStr>) -> Result<(), OpenFileError> {
-    bossy::Command::impure("xed")
-        .with_arg(path.as_ref())
-        .run_and_wait()
-        .map_err(OpenFileError::BossyLaunchFailed)?;
+    duct::cmd("xed", [path.as_ref()])
+        .run()
+        .map_err(OpenFileError::DuctLaunchFailed)?;
     Ok(())
 }
 

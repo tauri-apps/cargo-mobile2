@@ -4,7 +4,6 @@ use super::{
     version_number::VersionNumber,
 };
 use crate::{
-    bossy,
     env::{Env, ExplicitEnv as _},
     opts::{self, NoiseLevel, Profile},
     target::TargetTrait,
@@ -67,7 +66,7 @@ impl Reportable for VersionCheckError {
 #[derive(Debug)]
 pub enum CheckError {
     VersionCheckFailed(VersionCheckError),
-    CargoCheckFailed(bossy::Error),
+    CargoCheckFailed(std::io::Error),
 }
 
 impl Reportable for CheckError {
@@ -84,7 +83,7 @@ pub enum CompileLibError {
     #[error(transparent)]
     VersionCheckFailed(VersionCheckError),
     #[error("Failed to run `cargo build`: {0}")]
-    CargoBuildFailed(bossy::Error),
+    CargoBuildFailed(std::io::Error),
 }
 
 impl Reportable for CompileLibError {
@@ -109,7 +108,7 @@ impl Reportable for BuildError {
 #[derive(Debug, Error)]
 pub enum ArchiveError {
     #[error("Failed to set app version number: {0}")]
-    SetVersionFailed(WithWorkingDirError<bossy::Error>),
+    SetVersionFailed(WithWorkingDirError<std::io::Error>),
     #[error("Failed to archive via `xcodebuild`: {0}")]
     ArchiveFailed(#[from] std::io::Error),
 }
@@ -348,9 +347,11 @@ impl<'a> Target<'a> {
     ) -> Result<(), ArchiveError> {
         if let Some(build_number) = build_number {
             util::with_working_dir(config.project_dir(), || {
-                bossy::Command::pure_parse("xcrun agvtool new-version -all")
-                    .with_arg(build_number.to_string())
-                    .run_and_wait()
+                duct::cmd(
+                    "xcrun",
+                    ["agvtool", "new-version", "-all", &build_number.to_string()],
+                )
+                .run()
             })
             .map_err(ArchiveError::SetVersionFailed)?;
         }

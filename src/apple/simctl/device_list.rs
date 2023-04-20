@@ -1,8 +1,8 @@
 use super::Device;
 use crate::{
-    bossy,
     env::{Env, ExplicitEnv as _},
     util::cli::{Report, Reportable},
+    DuctExpressionExt,
 };
 use serde::Deserialize;
 use std::collections::{BTreeSet, HashMap};
@@ -11,7 +11,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum DeviceListError {
     #[error("Failed to request device list from `simctl`: {0}")]
-    DetectionFailed(#[from] bossy::Error),
+    DetectionFailed(#[from] std::io::Error),
     #[error("`simctl list` returned an invalid JSON: {0}")]
     InvalidDeviceList(#[from] serde_json::Error),
 }
@@ -27,7 +27,7 @@ impl Reportable for DeviceListError {
     }
 }
 
-fn parse_device_list(output: &bossy::Output) -> Result<BTreeSet<Device>, DeviceListError> {
+fn parse_device_list(output: &std::process::Output) -> Result<BTreeSet<Device>, DeviceListError> {
     let stdout = output.stdout_str()?;
 
     let devices = serde_json::from_str::<DeviceListOutput>(stdout)?
@@ -41,9 +41,12 @@ fn parse_device_list(output: &bossy::Output) -> Result<BTreeSet<Device>, DeviceL
 }
 
 pub fn device_list(env: &Env) -> Result<BTreeSet<Device>, DeviceListError> {
-    let result = bossy::Command::pure_parse("xcrun simctl list --json devices available")
-        .with_env_vars(env.explicit_env())
-        .run_and_wait_for_output();
+    let result = duct::cmd(
+        "xcrun",
+        ["simctl", "list", "--json", "devices", "available"],
+    )
+    .vars(env.explicit_env())
+    .run();
     match result {
         Ok(output) => parse_device_list(&output),
         Err(err) => {

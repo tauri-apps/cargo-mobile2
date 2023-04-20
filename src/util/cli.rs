@@ -229,14 +229,14 @@ mod interface {
     fn init_logging(noise_level: opts::NoiseLevel) {
         use env_logger::{Builder, Env};
         let default_level = match noise_level {
-        opts::NoiseLevel::Polite => "warn",
-        opts::NoiseLevel::LoudAndProud => {
-            "cargo_mobile=info,cargo_android=info,cargo_apple=info,bossy=info,hit=info"
-        }
-        opts::NoiseLevel::FranklyQuitePedantic => {
-            "info,cargo_mobile=debug,cargo_android=debug,cargo_apple=debug,bossy=debug,hit=debug"
-        }
-    };
+            opts::NoiseLevel::Polite => "warn",
+            opts::NoiseLevel::LoudAndProud => {
+                "cargo_mobile=info,cargo_android=info,cargo_apple=info,hit=info"
+            }
+            opts::NoiseLevel::FranklyQuitePedantic => {
+                "info,cargo_mobile=debug,cargo_android=debug,cargo_apple=debug,hit=debug"
+            }
+        };
         let env = Env::default().default_filter_or(default_level);
         Builder::from_env(env).init();
     }

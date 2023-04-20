@@ -2,7 +2,7 @@ mod env;
 pub(super) mod info;
 pub mod ln;
 
-use crate::{bossy, env::ExplicitEnv};
+use crate::{env::ExplicitEnv, DuctExpressionExt};
 use std::{
     ffi::{OsStr, OsString},
     os::windows::ffi::{OsStrExt, OsStringExt},
@@ -43,7 +43,7 @@ impl From<core::Error> for DetectEditorError {
 #[derive(Debug, Error)]
 pub enum OpenFileError {
     #[error("Launch Failed: {0}")]
-    LaunchFailed(#[source] bossy::Error),
+    LaunchFailed(#[source] std::io::Error),
     #[error("An error occured while calling OS API: {0}")]
     IOError(#[source] std::io::Error),
 }
@@ -71,10 +71,10 @@ impl Application {
             .iter()
             .map(|arg| Self::replace_command_arg(arg, &path.as_ref().as_os_str()))
             .collect::<Vec<_>>();
-        bossy::Command::impure(&self.argv[0])
-            .with_args(&args)
+        duct::cmd(&self.argv[0], args)
             .run_and_detach()
-            .map_err(OpenFileError::LaunchFailed)
+            .map_err(OpenFileError::LaunchFailed)?;
+        Ok(())
     }
 
     fn detect_associated_command(ext: &HSTRING) -> Result<Vec<u16>, DetectEditorError> {
@@ -190,21 +190,21 @@ fn open_file_with_android_studio(path: impl AsRef<OsStr>, env: &Env) -> Result<(
             .expect("Failed to get Android Studio uninstaller's parent path")
             .join(STUDIO_EXE_PATH);
     }
-    bossy::Command::impure(application_path)
-        .with_arg(
+    duct::cmd(
+        application_path,
+        [
             dunce::canonicalize(Path::new(path.as_ref()))
                 .expect("Failed to canonicalize file path"),
-        )
-        .with_env_vars(env.explicit_env())
-        .run_and_wait()
-        .map_err(OpenFileError::LaunchFailed)?;
+        ],
+    )
+    .vars(env.explicit_env())
+    .run()
+    .map_err(OpenFileError::LaunchFailed)?;
     Ok(())
 }
 
-pub fn command_path(name: &str) -> bossy::Result<bossy::Output> {
-    bossy::Command::impure("where.exe")
-        .with_arg(name)
-        .run_and_wait_for_output()
+pub fn command_path(name: &str) -> std::io::Result<std::process::Output> {
+    duct::cmd("where.exe", [name]).run()
 }
 
 struct NativeArgv {
@@ -261,8 +261,8 @@ impl Iterator for NullTerminatedWTF16Iterator {
 // For example, if running `cargo mobile new foo` in C:\Users\MyHome,
 // %~dp0 will expand to C:\Users\MyHome\foo in code.cmd, which is completely broken.
 // Running it through powershell.exe does not have this problem.
-pub fn code_command() -> bossy::Command {
-    bossy::Command::impure_parse("powershell.exe -Command  code")
+pub fn code_command() -> duct::Expression {
+    duct::cmd!("code.cmd")
 }
 
 pub fn replace_path_separator(path: OsString) -> OsString {

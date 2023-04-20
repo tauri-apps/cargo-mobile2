@@ -1,7 +1,6 @@
 use super::{Item, Section};
 use crate::{
     apple::{deps::xcode_plugin, system_profile::DeveloperTools, teams},
-    bossy,
     util::prompt,
 };
 use std::path::Path;
@@ -33,9 +32,8 @@ fn validate_developer_dir() -> Result<String, String> {
                 }
             };
             if answer {
-                bossy::Command::impure_parse("xcode-select -s")
-                    .with_arg(SUGGESTED)
-                    .run_and_wait()
+                duct::cmd("xcode-select", ["-s", SUGGESTED])
+                    .run()
                     .map_err(|err| format!("Failed to update Xcode developer dir: {}", err))?;
                 Path::new(SUGGESTED)
             } else {
@@ -113,13 +111,15 @@ pub fn check() -> Section {
         )
         .with_item(validate_developer_dir())
         .with_item(
-            bossy::Command::impure_parse("ios-deploy --version")
-                .run_and_wait_for_str(|version| format!("ios-deploy v{}", version.trim()))
+            duct::cmd("ios-deploy", ["--version"])
+                .read()
+                .map(|version| format!("ios-deploy v{}", version.trim()))
                 .map_err(|err| format!("Failed to check ios-deploy version: {}", err)),
         )
         .with_item(
-            bossy::Command::impure_parse("xcodegen --version")
-                .run_and_wait_for_str(|version| version.trim().replace("Version: ", "XcodeGen v"))
+            duct::cmd("xcodegen", ["--version"])
+                .read()
+                .map(|version| version.trim().replace("Version: ", "XcodeGen v"))
                 .map_err(|err| format!("Failed to check ios-deploy version: {}", err)),
         );
     let section = if let Ok(version) = xcode_version {

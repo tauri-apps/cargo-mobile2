@@ -1,5 +1,4 @@
 use super::{lfs, Git};
-use crate::bossy;
 use once_cell_regex::regex;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -15,9 +14,12 @@ pub enum Cause {
     IndexCheckFailed(io::Error),
     InitCheckFailed(io::Error),
     PathInvalidUtf8,
-    AddFailed(bossy::Error),
-    InitFailed(bossy::Error),
-    CheckoutFailed { commit: String, cause: bossy::Error },
+    AddFailed(std::io::Error),
+    InitFailed(std::io::Error),
+    CheckoutFailed {
+        commit: String,
+        cause: std::io::Error,
+    },
 }
 
 #[derive(Debug)]
@@ -140,14 +142,23 @@ impl Submodule {
             cause: Box::new(Cause::IndexCheckFailed(cause)),
         })?;
         let initialized = if !in_index {
-            let path_str = self.path.to_str().ok_or_else(|| Error {
-                submodule: self.clone(),
-                cause: Box::new(Cause::PathInvalidUtf8),
-            })?;
+            let path_str = self
+                .path
+                .to_str()
+                .ok_or_else(|| Error {
+                    submodule: self.clone(),
+                    cause: Box::new(Cause::PathInvalidUtf8),
+                })?
+                .to_owned();
             log::info!("adding submodule: {:#?}", self);
+            let remote = self.remote.clone();
+            let name = name.to_owned();
             git.command()
-                .with_args(["submodule", "add", "--name", name, &self.remote, path_str])
-                .run_and_wait()
+                .before_spawn(move |cmd| {
+                    cmd.args(["submodule", "add", "--name", &name, &remote, &path_str]);
+                    Ok(())
+                })
+                .run()
                 .map_err(|cause| Error {
                     submodule: self.clone(),
                     cause: Box::new(Cause::AddFailed(cause)),
@@ -163,8 +174,11 @@ impl Submodule {
         if !initialized {
             log::info!("initializing submodule: {:#?}", self);
             git.command()
-                .with_parsed_args("submodule update --init --recursive")
-                .run_and_wait()
+                .before_spawn(|cmd| {
+                    cmd.args(["submodule", "update", "--init", "--recursive"]);
+                    Ok(())
+                })
+                .run()
                 .map_err(|cause| Error {
                     submodule: self.clone(),
                     cause: Box::new(Cause::InitFailed(cause)),
@@ -179,16 +193,18 @@ impl Submodule {
                 commit,
                 path
             );
+            let commit = commit.to_owned();
+            let commit_c = commit.clone();
             Git::new(&path)
                 .command()
-                .with_args(["checkout", commit])
-                .run_and_wait()
+                .before_spawn(move |cmd| {
+                    cmd.args(["checkout", &commit_c]);
+                    Ok(())
+                })
+                .run()
                 .map_err(|cause| Error {
                     submodule: self.clone(),
-                    cause: Box::new(Cause::CheckoutFailed {
-                        commit: commit.to_owned(),
-                        cause,
-                    }),
+                    cause: Box::new(Cause::CheckoutFailed { commit, cause }),
                 })?;
         }
         Ok(())

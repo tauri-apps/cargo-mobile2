@@ -1,7 +1,6 @@
 use super::{DeviceInfo, Event};
 use crate::{
     apple::{device::Device, target::Target},
-    bossy,
     env::{Env, ExplicitEnv as _},
     util::cli::{Report, Reportable},
 };
@@ -11,7 +10,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum DeviceListError {
     #[error("Failed to request device list from `ios-deploy`: {0}")]
-    DetectionFailed(#[from] bossy::Error),
+    DetectionFailed(#[from] std::io::Error),
     #[error("{0:?} isn't a valid target arch.")]
     ArchInvalid(String),
 }
@@ -22,7 +21,9 @@ impl Reportable for DeviceListError {
     }
 }
 
-fn parse_device_list<'a>(output: &bossy::Output) -> Result<BTreeSet<Device<'a>>, DeviceListError> {
+fn parse_device_list<'a>(
+    output: &std::process::Output,
+) -> Result<BTreeSet<Device<'a>>, DeviceListError> {
     Event::parse_list(output.stdout_str()?)
         .into_iter()
         .flat_map(|event| event.device_info().cloned())
@@ -42,9 +43,12 @@ fn parse_device_list<'a>(output: &bossy::Output) -> Result<BTreeSet<Device<'a>>,
 }
 
 pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListError> {
-    let result = bossy::Command::pure_parse("ios-deploy --detect --timeout 1 --json --no-wifi")
-        .with_env_vars(env.explicit_env())
-        .run_and_wait_for_output();
+    let result = duct::cmd(
+        "ios-deploy",
+        ["--detect", "--timeout", "1", "--json", "--no-wifi"],
+    )
+    .vars(env.explicit_env())
+    .run();
     match result {
         Ok(output) => parse_device_list(&output),
         Err(err) => {

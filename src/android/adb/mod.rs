@@ -5,7 +5,7 @@ pub mod get_prop;
 pub use self::{device_list::device_list, device_name::device_name, get_prop::get_prop};
 
 use super::env::Env;
-use crate::{bossy, env::ExplicitEnv as _, util::cli::Report, DuctExpressionExt};
+use crate::{env::ExplicitEnv as _, util::cli::Report, DuctExpressionExt};
 use std::{str, string::FromUtf8Error};
 use thiserror::Error;
 
@@ -20,7 +20,7 @@ pub enum RunCheckedError {
     #[error("This device doesn't yet trust this computer. On the device, you should see a prompt like \"Allow USB debugging?\". Pressing \"Allow\" should fix this.")]
     Unauthorized,
     #[error(transparent)]
-    CommandFailed(bossy::Error),
+    CommandFailed(std::io::Error),
 }
 
 impl RunCheckedError {
