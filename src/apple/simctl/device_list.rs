@@ -46,6 +46,8 @@ pub fn device_list(env: &Env) -> Result<BTreeSet<Device>, DeviceListError> {
         ["simctl", "list", "--json", "devices", "available"],
     )
     .vars(env.explicit_env())
+    .stdout_capture()
+    .stderr_capture()
     .run();
     match result {
         Ok(output) => {

@@ -49,6 +49,8 @@ pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListErro
         "ios-deploy",
         ["--detect", "--timeout", "1", "--json", "--no-wifi"],
     )
+    .stdout_capture()
+    .stderr_capture()
     .vars(env.explicit_env())
     .run();
     match result {
