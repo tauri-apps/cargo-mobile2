@@ -1,5 +1,16 @@
 # Changelog
 
+## \[0.4.0]
+
+- Use `duct` to run the ADB commands.
+  - [8caa30c](https://github.com/tauri-apps/tauri-mobile/commit/8caa30c8fc3369b94f5da18c246bf945e32c8a4f) fix(android): use duct to run the ADB commands ([#134](https://github.com/tauri-apps/tauri-mobile/pull/134)) on 2023-04-15
+- **Breaking** Replace `bossy` with `duct` across the crate. bossy has two ways to create commands, impure and pure. The pure version won't inherit env variables. This causes child processes won't get the env varialbes and results in issues like openssl cross compilation.
+  - [6ee75fb](https://github.com/tauri-apps/tauri-mobile/commit/6ee75fbb10a17624e3a3ec64ab04dad2928ef9ed) refactor: replace bossy with duct ([#143](https://github.com/tauri-apps/tauri-mobile/pull/143)) on 2023-04-22
+- Return `duct::Handle` in `apple::Device::run` to keep compatibility with Android.
+  - [84311da](https://github.com/tauri-apps/tauri-mobile/commit/84311da4aec6f30c9158f60caea285e61ffef32f) refactor(apple): use duct for Device::run commands ([#137](https://github.com/tauri-apps/tauri-mobile/pull/137)) on 2023-04-15
+- Update `wry` template to `wry@0.28`
+  - [0b9580f](https://github.com/tauri-apps/tauri-mobile/commit/0b9580ff702d57ba5d3095de95ce77e4539b7874) chore: update wry template ([#141](https://github.com/tauri-apps/tauri-mobile/pull/141)) on 2023-04-17
+
 ## \[0.3.0]
 
 - This change manually instructs Java and Kotlin to use/generate code for the same JVM target.

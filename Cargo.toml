@@ -1,31 +1,31 @@
 [package]
 name = "tauri-mobile"
-version = "0.3.0"
+version = "0.4.0"
 authors = [
   "Tauri Programme within The Commons Conservancy",
   "Brainium Studios LLC",
-  "Francesca Lovebloom <francesca@brainiumstudios.com>",
+  "Francesca Lovebloom <francesca@brainiumstudios.com>"
 ]
 edition = "2018"
 description = "Rust on mobile made easy!"
 documentation = "https://docs.rs/tauri-mobile"
 repository = "https://github.com/tauri-apps/tauri-mobile"
 readme = "README.md"
-keywords = ["cargo", "mobile", "ios", "android", "tauri"]
-categories = ["development-tools::cargo-plugins"]
+keywords = [ "cargo", "mobile", "ios", "android", "tauri" ]
+categories = [ "development-tools::cargo-plugins" ]
 license = "Apache-2.0 OR MIT"
 
 [[bin]]
 name = "cargo-mobile"
-required-features = ["cli"]
+required-features = [ "cli" ]
 
 [[bin]]
 name = "cargo-apple"
-required-features = ["cli"]
+required-features = [ "cli" ]
 
 [[bin]]
 name = "cargo-android"
-required-features = ["cli"]
+required-features = [ "cli" ]
 
 [features]
 cli = [
@@ -37,11 +37,11 @@ cli = [
   "serde_json",
   "thiserror",
   "structopt",
-  "env_logger",
+  "env_logger"
 ]
-brainium = []
-openssl-vendored = ["openssl/vendored"]
-default = ["cli"]
+brainium = [ ]
+openssl-vendored = [ "openssl/vendored" ]
+default = [ "cli" ]
 
 [dependencies]
 handlebars = "3.3.0"
@@ -59,11 +59,11 @@ java-properties = { version = "1.2.0" }
 log = "0.4.8"
 once-cell-regex = "0.2.1"
 path_abs = "0.5.0"
-serde = { version = "1.0.105", features = ["derive"] }
+serde = { version = "1.0.105", features = [ "derive" ] }
 structopt = { version = "0.3.12", optional = true }
-textwrap = { version = "0.11.0", features = ["term_size"] }
+textwrap = { version = "0.11.0", features = [ "term_size" ] }
 thiserror = "1.0.20"
-toml = { version = "0.5.6", features = ["preserve_order"] }
+toml = { version = "0.5.6", features = [ "preserve_order" ] }
 os_pipe = "1"
 duct = "0.13"
 which = "4.4.0"
@@ -102,7 +102,7 @@ features = [
   "Win32_System_Registry",
   "Win32_System_SystemInformation",
   "Win32_System_SystemServices",
-  "Win32_UI_Shell",
+  "Win32_UI_Shell"
 ]
 
 [target."cfg(windows)".build-dependencies]
