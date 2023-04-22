@@ -296,7 +296,7 @@ impl<'a> Target<'a> {
             .with_verbose(noise_level.pedantic())
             .with_release(profile.release())
             .build(env)
-            .before_spawn(|cmd| {
+            .before_spawn(move |cmd| {
                 cmd.args(["--color", color]);
                 Ok(())
             })
