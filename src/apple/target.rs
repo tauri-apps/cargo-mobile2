@@ -301,7 +301,7 @@ impl<'a> Target<'a> {
                 Ok(())
             })
             .vars(cc_env)
-            .run_and_wait()
+            .run()
             .map_err(CompileLibError::CargoBuildFailed)?;
         Ok(())
     }
