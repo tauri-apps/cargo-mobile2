@@ -1,7 +1,4 @@
-use crate::{
-    bossy,
-    util::{self, Git},
-};
+use crate::util::{self, Git};
 use std::{
     ffi::OsStr,
     fmt::{self, Display},
@@ -12,14 +9,14 @@ use std::{
 #[derive(Debug)]
 pub enum Error {
     NoHomeDir(util::NoHomeDir),
-    FetchFailed(bossy::Error),
-    RevParseLocalFailed(bossy::Error),
-    RevParseRemoteFailed(bossy::Error),
-    LogFailed(bossy::Error),
+    FetchFailed(std::io::Error),
+    RevParseLocalFailed(std::io::Error),
+    RevParseRemoteFailed(std::io::Error),
+    LogFailed(std::io::Error),
     ParentDirCreationFailed { path: PathBuf, cause: io::Error },
-    CloneFailed(bossy::Error),
-    ResetFailed(bossy::Error),
-    CleanFailed(bossy::Error),
+    CloneFailed(std::io::Error),
+    ResetFailed(std::io::Error),
+    CleanFailed(std::io::Error),
 }
 
 impl Display for Error {
@@ -88,17 +85,17 @@ impl Repo {
         } else {
             let git = self.git();
             git.command_parse("fetch origin")
-                .run_and_wait()
+                .run()
                 .map_err(Error::FetchFailed)?;
             let local = git
                 .command_parse("rev-parse HEAD")
-                .run_and_wait_for_output()
+                .run()
                 .map_err(Error::RevParseLocalFailed)?;
             let remote = git
                 .command_parse("rev-parse @{u}")
-                .run_and_wait_for_output()
+                .run()
                 .map_err(Error::RevParseRemoteFailed)?;
-            if local.stdout() != remote.stdout() {
+            if local.stdout != remote.stdout {
                 Status::Stale
             } else {
                 Status::Fresh
@@ -110,14 +107,16 @@ impl Repo {
     pub fn latest_subject(&self) -> Result<String, Error> {
         self.git()
             .command_parse("log -1 --pretty=%s")
-            .run_and_wait_for_str(|s| s.trim().to_owned())
+            .read()
+            .map(|s| s.trim().to_owned())
             .map_err(Error::LogFailed)
     }
 
     pub fn latest_hash(&self) -> Result<String, Error> {
         self.git()
             .command_parse("log -1 --pretty=%H")
-            .run_and_wait_for_str(|s| s.trim().to_owned())
+            .read()
+            .map(|s| s.trim().to_owned())
             .map_err(Error::LogFailed)
     }
 
@@ -137,10 +136,12 @@ impl Repo {
                 })?;
             }
             Git::new(parent)
-                .command_parse("clone --depth 1 --single-branch")
-                .with_arg(url)
-                .with_arg(path)
-                .run_and_wait()
+                .command_parse(format!(
+                    "clone --depth 1 --single-branch {} {}",
+                    url.as_ref().to_string_lossy(),
+                    path.to_string_lossy()
+                ))
+                .run()
                 .map_err(Error::CloneFailed)?;
         } else {
             println!(
@@ -154,15 +155,15 @@ impl Repo {
             );
             self.git()
                 .command_parse("fetch --depth 1")
-                .run_and_wait()
+                .run()
                 .map_err(Error::FetchFailed)?;
             self.git()
                 .command_parse(format!("reset --hard origin/{branch}"))
-                .run_and_wait()
+                .run()
                 .map_err(Error::ResetFailed)?;
             self.git()
                 .command_parse("clean -dfx --exclude /target")
-                .run_and_wait()
+                .run()
                 .map_err(Error::CleanFailed)?;
         }
         Ok(())

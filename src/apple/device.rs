@@ -135,10 +135,7 @@ impl<'a> Device<'a> {
                     Ok(())
                 });
 
-            cmd.start()
-                .map_err(RunError::UnzipFailed)?
-                .wait()
-                .map_err(RunError::UnzipFailed)?;
+            cmd.run().map_err(RunError::UnzipFailed)?;
 
             ios_deploy::run_and_debug(config, env, non_interactive, &self.id)
                 .map_err(RunError::DeployFailed)

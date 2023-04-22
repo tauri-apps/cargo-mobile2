@@ -1,8 +1,9 @@
-use crate::{bossy, util};
+use crate::util;
 use once_cell_regex::exports::once_cell::sync::OnceCell;
 use std::{
     collections::BTreeMap,
     fmt::{self, Debug, Display},
+    process::ExitStatus,
 };
 
 pub trait TargetTrait<'a>: Debug + Sized {
@@ -36,11 +37,11 @@ pub trait TargetTrait<'a>: Debug + Sized {
 
     fn arch(&'a self) -> &'a str;
 
-    fn install(&'a self) -> bossy::Result<bossy::ExitStatus> {
+    fn install(&'a self) -> Result<ExitStatus, std::io::Error> {
         util::rustup_add(self.triple())
     }
 
-    fn install_all() -> bossy::Result<()>
+    fn install_all() -> Result<(), std::io::Error>
     where
         Self: 'a,
     {

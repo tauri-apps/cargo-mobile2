@@ -1,10 +1,7 @@
-use crate::{
-    bossy,
-    util::{
-        self,
-        cli::{Report, TextWrapper},
-        repo::{self, Repo},
-    },
+use crate::util::{
+    self,
+    cli::{Report, TextWrapper},
+    repo::{self, Repo},
 };
 use std::{
     fmt::{self, Display},
@@ -25,7 +22,7 @@ pub enum Error {
     StatusFailed(repo::Error),
     MarkerCreateFailed { path: PathBuf, cause: io::Error },
     UpdateFailed(repo::Error),
-    InstallFailed(bossy::Error),
+    InstallFailed(std::io::Error),
     MarkerDeleteFailed { path: PathBuf, cause: io::Error },
 }
 
@@ -82,14 +79,15 @@ pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
         repo.update("https://github.com/tauri-apps/tauri-mobile", "dev")
             .map_err(Error::UpdateFailed)?;
         println!("Installing updated `tauri-mobile`...");
-        bossy::Command::impure_parse("cargo install --force --path")
-            .with_arg(repo.path())
-            .with_parsed_args("--no-default-features --features")
-            // Using `with_arg` instead of `with_args`/`with_parsed_args` here
-            // is intentional; we want the feature list to be treated as a
-            // single argument.
-            .with_arg(ENABLED_FEATURES.join(" "))
-            .run_and_wait()
+        let repo_c = repo.clone();
+        duct::cmd("cargo", ["install", "--force", "--path"])
+            .before_spawn(move |cmd| {
+                cmd.arg(repo_c.path());
+                cmd.args(["--no-default-features", "--features"]);
+                cmd.arg(ENABLED_FEATURES.join(" "));
+                Ok(())
+            })
+            .run()
             .map_err(Error::InstallFailed)?;
         fs::remove_file(&marker).map_err(|cause| Error::MarkerDeleteFailed {
             path: marker.to_owned(),

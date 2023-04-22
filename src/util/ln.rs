@@ -1,4 +1,3 @@
-use crate::bossy;
 use std::{
     borrow::Cow,
     fmt::{self, Display},
@@ -56,7 +55,7 @@ impl Display for TargetStyle {
 #[derive(Debug)]
 pub enum ErrorCause {
     MissingFileName,
-    CommandFailed(bossy::Error),
+    CommandFailed(std::io::Error),
     IOError(std::io::Error),
     SymlinkNotAllowed,
 }
@@ -177,30 +176,29 @@ impl<'a> Call<'a> {
     }
 
     pub fn exec(self) -> Result<(), Error> {
-        let mut command = bossy::Command::impure("ln");
-
-        command.add_arg("-n"); // don't follow symlinks
-
+        let mut args = vec!["-n" /* don't follow symlinks */];
         if let LinkType::Symbolic = self.link_type {
-            command.add_arg("-s");
+            args.push("-s");
         }
         match self.force {
             Clobber::FileOnly => {
-                command.add_arg("-f");
+                args.push("-f");
             }
             Clobber::FileOrDirectory => {
                 if self.target_override.is_dir() {
                     remove_dir_all(self.target)
                         .map_err(|err| self.make_error(ErrorCause::IOError(err)))?;
                 }
-                command.add_arg("-f");
+                args.push("-f");
             }
             _ => (),
         }
-        command.add_arg(self.source);
-        command.add_arg(self.target_override.as_ref());
-        command
-            .run_and_wait()
+        let source = self.source.to_string_lossy();
+        let target_override = self.target_override.as_ref().to_string_lossy();
+        args.push(&source);
+        args.push(&target_override);
+        duct::cmd("ln", args)
+            .run()
             .map_err(|err| self.make_error(ErrorCause::CommandFailed(err)))?;
         Ok(())
     }

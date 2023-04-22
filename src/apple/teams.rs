@@ -1,4 +1,3 @@
-use crate::bossy;
 use once_cell_regex::regex;
 use openssl::{
     error::ErrorStack as OpenSslError,
@@ -8,24 +7,26 @@ use openssl::{
 use std::collections::BTreeSet;
 use thiserror::Error;
 
-pub fn get_pem_list(name_substr: &str) -> bossy::Result<bossy::Output> {
-    bossy::Command::impure("security")
-        .with_args(["find-certificate", "-p", "-a", "-c", name_substr])
-        .run_and_wait_for_output()
+pub fn get_pem_list(name_substr: &str) -> std::io::Result<std::process::Output> {
+    duct::cmd(
+        "security",
+        ["find-certificate", "-p", "-a", "-c", name_substr],
+    )
+    .run()
 }
 
-pub fn get_pem_list_old_name_scheme() -> bossy::Result<bossy::Output> {
+pub fn get_pem_list_old_name_scheme() -> std::io::Result<std::process::Output> {
     get_pem_list("Developer:")
 }
 
-pub fn get_pem_list_new_name_scheme() -> bossy::Result<bossy::Output> {
+pub fn get_pem_list_new_name_scheme() -> std::io::Result<std::process::Output> {
     get_pem_list("Development:")
 }
 
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Failed to call `security` command: {0}")]
-    SecurityCommandFailed(#[from] bossy::Error),
+    SecurityCommandFailed(#[from] std::io::Error),
     #[error("Failed to parse X509 cert: {0}")]
     X509ParseFailed(#[source] OpenSslError),
 }
@@ -112,9 +113,9 @@ impl Team {
 pub fn find_development_teams() -> Result<Vec<Team>, Error> {
     let certs = {
         let new = get_pem_list_new_name_scheme().map_err(Error::SecurityCommandFailed)?;
-        let mut certs = X509::stack_from_pem(new.stdout()).map_err(Error::X509ParseFailed)?;
+        let mut certs = X509::stack_from_pem(&new.stdout).map_err(Error::X509ParseFailed)?;
         let old = get_pem_list_old_name_scheme().map_err(Error::SecurityCommandFailed)?;
-        certs.append(&mut X509::stack_from_pem(old.stdout()).map_err(Error::X509ParseFailed)?);
+        certs.append(&mut X509::stack_from_pem(&old.stdout).map_err(Error::X509ParseFailed)?);
         certs
     };
     Ok(certs

@@ -1,4 +1,4 @@
-use crate::{bossy, util};
+use crate::util;
 use once_cell_regex::regex;
 use thiserror::Error;
 
@@ -31,11 +31,9 @@ impl DeveloperTools {
         // The `-xml` flag can be used to get this info in plist format, but
         // there don't seem to be any high quality plist crates, and parsing
         // XML sucks, we'll be lazy for now.
-        let mut command = bossy::Command::impure_parse("system_profiler SPDeveloperToolsDataType");
-        let command_string = command.display().to_owned();
-        let output = command
-            .run_and_wait_for_string()
-            .map_err(util::RunAndSearchError::from)?;
+        let command = duct::cmd("system_profiler", ["SPDeveloperToolsDataType"]);
+        let command_string = format!("{command:?}");
+        let output = command.read().map_err(util::RunAndSearchError::from)?;
         if output.is_empty() {
             Err(Error::XcodeNotInstalled)
         } else {

@@ -4,7 +4,7 @@ use super::{
     target::Target,
 };
 use crate::{
-    bicycle, bossy,
+    bicycle,
     target::TargetTrait as _,
     templating::{self, Pack},
     util::{
@@ -19,7 +19,7 @@ pub static TEMPLATE_PACK: &str = "xcode";
 
 #[derive(Debug)]
 pub enum Error {
-    RustupFailed(bossy::Error),
+    RustupFailed(std::io::Error),
     RustVersionCheckFailed(util::RustVersionError),
     DepsInstallFailed(deps::Error),
     MissingPack(templating::LookupError),
@@ -29,8 +29,8 @@ pub enum Error {
         path: PathBuf,
         cause: std::io::Error,
     },
-    XcodegenFailed(bossy::Error),
-    PodInstallFailed(bossy::Error),
+    XcodegenFailed(std::io::Error),
+    PodInstallFailed(std::io::Error),
 }
 
 impl Reportable for Error {
@@ -189,17 +189,25 @@ pub fn gen(
     // Note that Xcode doesn't always reload the project nicely; reopening is
     // often necessary.
     println!("Generating Xcode project...");
-    bossy::Command::impure("xcodegen")
-        .with_args(["generate", "--spec"])
-        .with_arg(dest.join("project.yml"))
-        .run_and_wait()
+    let project_yml_path = dest.join("project.yml");
+    duct::cmd("xcodegen", ["generate", "--spec"])
+        .before_spawn(move |cmd| {
+            cmd.arg(&project_yml_path);
+            Ok(())
+        })
+        .run()
         .map_err(Error::XcodegenFailed)?;
 
     if !ios_pods.is_empty() || !macos_pods.is_empty() {
-        bossy::Command::impure_parse("pod install")
-            .with_arg(format!("--project-directory={}", dest.display()))
-            .run_and_wait()
-            .map_err(Error::PodInstallFailed)?;
+        duct::cmd(
+            "pod",
+            [
+                "install",
+                &format!("--project-directory={}", dest.display()),
+            ],
+        )
+        .run()
+        .map_err(Error::PodInstallFailed)?;
     }
     Ok(())
 }

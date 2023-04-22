@@ -3,13 +3,10 @@ pub(crate) mod xcode_plugin;
 
 use self::update::{Outdated, OutdatedError};
 use super::system_profile::{self, DeveloperTools};
-use crate::{
-    bossy,
-    util::{
-        self,
-        cli::{Report, TextWrapper},
-        prompt,
-    },
+use crate::util::{
+    self,
+    cli::{Report, TextWrapper},
+    prompt,
 };
 use once_cell_regex::regex;
 use std::collections::hash_set::HashSet;
@@ -29,12 +26,12 @@ pub enum Error {
     #[error("Failed to check for presence of `{package}`: {source}")]
     PresenceCheckFailed {
         package: &'static str,
-        source: bossy::Error,
+        source: std::io::Error,
     },
     #[error("Failed to install `{package}`: {source}")]
     InstallFailed {
         package: &'static str,
-        source: bossy::Error,
+        source: std::io::Error,
     },
     #[error("Failed to prompt to install updates: {0}")]
     PromptFailed(#[from] std::io::Error),
@@ -43,7 +40,7 @@ pub enum Error {
     #[error("Failed to update package `{package}`")]
     PackageNotUpdated { package: &'static str },
     #[error("Failed to list installed gems: {0}")]
-    GemListFailed(#[from] bossy::Error),
+    GemListFailed(std::io::Error),
     #[error("Regex match failed for output of `gem list`")]
     RegexMatchFailed,
     #[error(transparent)]
@@ -62,8 +59,8 @@ impl GemCache {
 
     pub fn initialize(&mut self) -> Result<(), Error> {
         if self.set.is_empty() {
-            self.set = bossy::Command::impure_parse("gem list")
-                .run_and_wait_for_string()
+            self.set = duct::cmd("gem", ["list"])
+                .read()
                 .map_err(Error::GemListFailed)?
                 .lines()
                 .flat_map(|string| {
@@ -93,27 +90,22 @@ impl GemCache {
             println!("`sudo` is required to install {} using gem", package);
             "sudo gem install"
         };
-        bossy::Command::impure_parse(command)
-            .with_arg(package)
-            .run_and_wait()
+        duct::cmd(command, [package])
+            .run()
             .map_err(|source| Error::InstallFailed { package, source })?;
         Ok(())
     }
 }
 
 fn installed_with_brew(package: &str) -> bool {
-    bossy::Command::impure_parse("brew list")
-        .with_arg(package)
-        .run_and_wait_for_output()
-        .is_ok()
+    duct::cmd("brew", ["list", package]).run().is_ok()
 }
 
 fn brew_reinstall(package: &'static str) -> Result<(), Error> {
     // reinstall works even if it's not installed yet, and will upgrade
     // if it's already installed!
-    bossy::Command::impure_parse("brew reinstall")
-        .with_arg(package)
-        .run_and_wait()
+    duct::cmd("brew", ["reinstall", package])
+        .run()
         .map_err(|source| Error::InstallFailed { package, source })?;
     Ok(())
 }

@@ -1,5 +1,6 @@
-use crate::{bossy, env::ExplicitEnv};
 use std::{collections::HashMap, ffi::OsString, path::PathBuf};
+
+use crate::{env::ExplicitEnv, DuctExpressionExt};
 
 #[derive(Debug)]
 pub struct CargoCommand<'a> {
@@ -71,19 +72,22 @@ impl<'a> CargoCommand<'a> {
         self
     }
 
-    fn into_command_inner(self, mut command: bossy::Command) -> bossy::Command {
-        command.add_arg(self.subcommand);
+    pub fn build(self, env: &impl ExplicitEnv) -> duct::Expression {
+        let mut args = vec![self.subcommand.to_owned()];
         if self.verbose {
-            command.add_arg("-vv");
+            args.push("-vv".into());
         }
         if let Some(package) = self.package {
-            command.add_args(["--package", package]);
+            args.extend_from_slice(&["--package".into(), package.to_owned()]);
         }
         if let Some(manifest_path) = self.manifest_path {
             if !manifest_path.exists() {
                 log::error!("manifest path {:?} doesn't exist!", manifest_path);
             }
-            command.add_arg("--manifest-path").add_arg(manifest_path);
+            args.extend_from_slice(&[
+                "--manifest-path".into(),
+                manifest_path.to_string_lossy().to_string(),
+            ]);
         }
         if let Some(target) = self.target {
             // We used to use `util::host_target_triple` to avoid explicitly
@@ -94,30 +98,25 @@ impl<'a> CargoCommand<'a> {
             // solution described in the aforementioned function, omitting the
             // default target here wouldn't actually have any negative effect,
             // but it wouldn't accomplish anything either.
-            command.add_args(["--target", target]);
+            args.extend_from_slice(&["--target".into(), target.to_owned()]);
         }
         if self.no_default_features {
-            command.add_arg("--no-default-features");
+            args.push("--no-default-features".into());
         }
         if let Some(features) = self.features {
-            command.add_args(["--features", &features.join(" ")]);
+            let features = features.join(" ");
+            args.extend_from_slice(&["--features".into(), features.as_str().to_string()]);
         }
-        if let Some(args) = self.args {
-            command.add_args(args);
+        if let Some(a) = self.args {
+            args.extend_from_slice(a);
         }
         if self.release {
-            command.add_arg("--release");
+            args.push("--release".into());
         }
-        command
-    }
 
-    pub fn into_command_impure(self) -> bossy::Command {
-        self.into_command_inner(bossy::Command::impure("cargo"))
-    }
-
-    pub fn into_command_pure(self, env: &impl ExplicitEnv) -> bossy::Command {
-        self.into_command_inner(bossy::Command::pure("cargo").with_env_vars(env.explicit_env()))
-            .with_env_vars(explicit_cargo_env())
+        duct::cmd("cargo", args)
+            .vars(env.explicit_env())
+            .vars(explicit_cargo_env())
     }
 }
 

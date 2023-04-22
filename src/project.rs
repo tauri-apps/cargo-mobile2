@@ -1,5 +1,5 @@
 use crate::{
-    bicycle, bossy,
+    bicycle,
     config::Config,
     templating::{self, FancyPackResolveError},
     util::{
@@ -11,7 +11,7 @@ use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum Error {
-    GitInit(bossy::Error),
+    GitInit(std::io::Error),
     TemplatePackResolve(FancyPackResolveError),
     Processing {
         src: PathBuf,

@@ -6,7 +6,6 @@ use crate::{
         target::{ArchiveError, BuildError, CheckError, CompileLibError, ExportError, Target},
         NAME,
     },
-    bossy,
     config::{
         metadata::{self, Metadata as OmniMetadata},
         Config as OmniConfig, LoadOrGenError,
@@ -167,13 +166,13 @@ pub enum Error {
     RunFailed(RunError),
     ListFailed(ios_deploy::DeviceListError),
     NoHomeDir(util::NoHomeDir),
-    CargoEnvFailed(bossy::Error),
+    CargoEnvFailed(std::io::Error),
     SdkRootInvalid { sdk_root: PathBuf },
     IncludeDirInvalid { include_dir: PathBuf },
     MacosSdkRootInvalid { macos_sdk_root: PathBuf },
     ArchInvalid { arch: String },
     CompileLibFailed(CompileLibError),
-    PodCommandFailed(bossy::Error),
+    PodCommandFailed(std::io::Error),
     CopyLibraryFailed(std::io::Error),
     LibNotFound { path: PathBuf },
 }
@@ -368,14 +367,13 @@ impl Exec for Input {
                 .map(|device_list| {
                     prompt::list_display_only(device_list.iter(), device_list.len());
                 }),
-            Command::Pod { arguments } => with_config(non_interactive, wrapper, |config, _| {
-                bossy::Command::impure_parse("pod")
-                    .with_args(arguments)
-                    .with_arg(format!(
-                        "--project-directory={}",
-                        config.project_dir().display()
-                    ))
-                    .run_and_wait()
+            Command::Pod { mut arguments } => with_config(non_interactive, wrapper, |config, _| {
+                arguments.push(format!(
+                    "--project-directory={}",
+                    config.project_dir().display()
+                ));
+                duct::cmd("pod", arguments)
+                    .run()
                     .map_err(Error::PodCommandFailed)?;
                 Ok(())
             }),

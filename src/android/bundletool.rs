@@ -1,9 +1,6 @@
 #[cfg(not(target_os = "macos"))]
 use crate::util;
-use crate::{
-    bossy,
-    util::cli::{Report, Reportable},
-};
+use crate::util::cli::{Report, Reportable};
 #[cfg(not(target_os = "macos"))]
 use std::path::PathBuf;
 use thiserror::Error;
@@ -36,20 +33,23 @@ impl BundletoolJarInfo {
         )
     }
 
-    fn run_command(&self) -> bossy::Command {
+    fn run_command(&self) -> duct::Expression {
         let installation_path = self.installation_path();
-        bossy::Command::impure_parse("java -jar").with_arg(installation_path)
+        duct::cmd("java", ["-jar"]).before_spawn(move |cmd| {
+            cmd.arg(&installation_path);
+            Ok(())
+        })
     }
 }
 
-pub fn command() -> bossy::Command {
+pub fn command() -> duct::Expression {
     #[cfg(not(target_os = "macos"))]
     {
         BUNDLE_TOOL_JAR_INFO.run_command()
     }
     #[cfg(target_os = "macos")]
     {
-        bossy::Command::impure("bundletool")
+        duct::cmd!("bundletool")
     }
 }
 

@@ -1,4 +1,3 @@
-use crate::bossy;
 use freedesktop_entry_parser::{parse_entry, Entry as FreeDesktopEntry};
 use once_cell_regex::{byte_regex, exports::regex::bytes::Regex};
 use std::{
@@ -12,9 +11,9 @@ use std::{
 // Detects which .desktop file contains the data on how to handle a given
 // mime type (like: "with which program do I open a text/rust file?")
 pub fn query_mime_entry(mime_type: &str) -> Option<PathBuf> {
-    bossy::Command::impure_parse("xdg-mime query default")
-        .with_arg(mime_type)
-        .run_and_wait_for_str(|out_str| {
+    duct::cmd("xdg-mime", ["query", "default", mime_type])
+        .read()
+        .map(|out_str| {
             log::debug!("query_mime_entry got output {:?}", out_str);
             if !out_str.is_empty() {
                 Some(PathBuf::from(out_str.trim()))

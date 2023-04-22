@@ -5,7 +5,6 @@ use super::{
     ndk,
 };
 use crate::{
-    bossy,
     dot_cargo::DotCargoTarget,
     opts::{NoiseLevel, Profile},
     target::TargetTrait,
@@ -50,7 +49,7 @@ pub enum CompileLibError {
     #[error("`Failed to run `cargo {mode}`: {cause}")]
     CargoFailed {
         mode: CargoMode,
-        cause: bossy::Error,
+        cause: std::io::Error,
     },
     #[error("`Failed to write file at {path} : {cause}")]
     FileWrite { path: PathBuf, cause: io::Error },
@@ -245,28 +244,31 @@ impl<'a> Target<'a> {
             .with_args(metadata.cargo_args())
             .with_features(metadata.features())
             .with_release(profile.release())
-            .into_command_pure(env)
-            .with_env_var("ANDROID_NATIVE_API_LEVEL", min_sdk_version.to_string())
-            .with_env_var(
+            .build(env)
+            .env("ANDROID_NATIVE_API_LEVEL", min_sdk_version.to_string())
+            .env(
                 "TARGET_AR",
                 env.ndk
                     .ar_path(self.triple)
                     .map_err(CompileLibError::MissingTool)?,
             )
-            .with_env_var(
+            .env(
                 "TARGET_CC",
                 env.ndk
                     .compiler_path(ndk::Compiler::Clang, self.clang_triple(), min_sdk_version)
                     .map_err(CompileLibError::MissingTool)?,
             )
-            .with_env_var(
+            .env(
                 "TARGET_CXX",
                 env.ndk
                     .compiler_path(ndk::Compiler::Clangxx, self.clang_triple(), min_sdk_version)
                     .map_err(CompileLibError::MissingTool)?,
             )
-            .with_args(["--color", color])
-            .run_and_wait()
+            .before_spawn(move |cmd| {
+                cmd.args(["--color", color]);
+                Ok(())
+            })
+            .run()
             .map_err(|cause| CompileLibError::CargoFailed { mode, cause })?;
         Ok(())
     }

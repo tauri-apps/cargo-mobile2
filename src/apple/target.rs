@@ -4,7 +4,6 @@ use super::{
     version_number::VersionNumber,
 };
 use crate::{
-    bossy,
     env::{Env, ExplicitEnv as _},
     opts::{self, NoiseLevel, Profile},
     target::TargetTrait,
@@ -13,6 +12,7 @@ use crate::{
         cli::{Report, Reportable},
         CargoCommand, WithWorkingDirError,
     },
+    DuctExpressionExt,
 };
 use once_cell_regex::exports::once_cell::sync::OnceCell;
 use std::{
@@ -67,7 +67,7 @@ impl Reportable for VersionCheckError {
 #[derive(Debug)]
 pub enum CheckError {
     VersionCheckFailed(VersionCheckError),
-    CargoCheckFailed(bossy::Error),
+    CargoCheckFailed(std::io::Error),
 }
 
 impl Reportable for CheckError {
@@ -84,7 +84,7 @@ pub enum CompileLibError {
     #[error(transparent)]
     VersionCheckFailed(VersionCheckError),
     #[error("Failed to run `cargo build`: {0}")]
-    CargoBuildFailed(bossy::Error),
+    CargoBuildFailed(std::io::Error),
 }
 
 impl Reportable for CompileLibError {
@@ -109,7 +109,7 @@ impl Reportable for BuildError {
 #[derive(Debug, Error)]
 pub enum ArchiveError {
     #[error("Failed to set app version number: {0}")]
-    SetVersionFailed(WithWorkingDirError<bossy::Error>),
+    SetVersionFailed(WithWorkingDirError<std::io::Error>),
     #[error("Failed to archive via `xcodebuild`: {0}")]
     ArchiveFailed(#[from] std::io::Error),
 }
@@ -269,8 +269,8 @@ impl<'a> Target<'a> {
         self.cargo(config, metadata, "check")
             .map_err(CheckError::VersionCheckFailed)?
             .with_verbose(noise_level.pedantic())
-            .into_command_pure(env)
-            .run_and_wait()
+            .build(env)
+            .run()
             .map_err(CheckError::CargoCheckFailed)?;
         Ok(())
     }
@@ -295,10 +295,13 @@ impl<'a> Target<'a> {
             .map_err(CompileLibError::VersionCheckFailed)?
             .with_verbose(noise_level.pedantic())
             .with_release(profile.release())
-            .into_command_pure(env)
-            .with_env_vars(cc_env)
-            .with_args(["--color", color])
-            .run_and_wait()
+            .build(env)
+            .before_spawn(move |cmd| {
+                cmd.args(["--color", color]);
+                Ok(())
+            })
+            .vars(cc_env)
+            .run()
             .map_err(CompileLibError::CargoBuildFailed)?;
         Ok(())
     }
@@ -348,9 +351,11 @@ impl<'a> Target<'a> {
     ) -> Result<(), ArchiveError> {
         if let Some(build_number) = build_number {
             util::with_working_dir(config.project_dir(), || {
-                bossy::Command::pure_parse("xcrun agvtool new-version -all")
-                    .with_arg(build_number.to_string())
-                    .run_and_wait()
+                duct::cmd(
+                    "xcrun",
+                    ["agvtool", "new-version", "-all", &build_number.to_string()],
+                )
+                .run()
             })
             .map_err(ArchiveError::SetVersionFailed)?;
         }

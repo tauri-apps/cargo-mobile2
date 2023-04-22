@@ -1,8 +1,8 @@
 use super::Device;
 use crate::{
-    bossy,
     env::{Env, ExplicitEnv as _},
     util::cli::{Report, Reportable},
+    DuctExpressionExt,
 };
 use serde::Deserialize;
 use std::collections::{BTreeSet, HashMap};
@@ -11,7 +11,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum DeviceListError {
     #[error("Failed to request device list from `simctl`: {0}")]
-    DetectionFailed(#[from] bossy::Error),
+    DetectionFailed(#[from] std::io::Error),
     #[error("`simctl list` returned an invalid JSON: {0}")]
     InvalidDeviceList(#[from] serde_json::Error),
 }
@@ -27,10 +27,10 @@ impl Reportable for DeviceListError {
     }
 }
 
-fn parse_device_list(output: &bossy::Output) -> Result<BTreeSet<Device>, DeviceListError> {
-    let stdout = output.stdout_str()?;
+fn parse_device_list(output: &std::process::Output) -> Result<BTreeSet<Device>, DeviceListError> {
+    let stdout = String::from_utf8_lossy(&output.stdout);
 
-    let devices = serde_json::from_str::<DeviceListOutput>(stdout)?
+    let devices = serde_json::from_str::<DeviceListOutput>(&stdout)?
         .devices
         .into_iter()
         .filter(|(k, _)| k.contains("iOS"))
@@ -41,21 +41,23 @@ fn parse_device_list(output: &bossy::Output) -> Result<BTreeSet<Device>, DeviceL
 }
 
 pub fn device_list(env: &Env) -> Result<BTreeSet<Device>, DeviceListError> {
-    let result = bossy::Command::pure_parse("xcrun simctl list --json devices available")
-        .with_env_vars(env.explicit_env())
-        .run_and_wait_for_output();
+    let result = duct::cmd(
+        "xcrun",
+        ["simctl", "list", "--json", "devices", "available"],
+    )
+    .vars(env.explicit_env())
+    .stdout_capture()
+    .stderr_capture()
+    .run();
     match result {
-        Ok(output) => parse_device_list(&output),
-        Err(err) => {
-            let output = err
-                .output()
-                .expect("developer error: `simctl list` output wasn't collected");
-            if output.stdout().is_empty() && output.stderr().is_empty() {
+        Ok(output) => {
+            if output.stdout.is_empty() && output.stderr.is_empty() {
                 log::info!("device detection returned a non-zero exit code, but stdout and stderr are both empty; interpreting as a successful run with no devices connected");
                 Ok(Default::default())
             } else {
-                Err(DeviceListError::DetectionFailed(err))
+                parse_device_list(&output)
             }
         }
+        Err(err) => Err(DeviceListError::DetectionFailed(err)),
     }
 }

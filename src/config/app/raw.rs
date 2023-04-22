@@ -1,6 +1,6 @@
 use super::{common_email_providers::COMMON_EMAIL_PROVIDERS, domain, name};
 use crate::{
-    bossy, templating,
+    templating,
     util::{cli::TextWrapper, prompt, Git},
 };
 use colored::{Color, Colorize as _};
@@ -15,7 +15,7 @@ use std::{
 
 #[derive(Debug)]
 enum DefaultDomainError {
-    FailedToGetGitEmailAddr(bossy::Error),
+    FailedToGetGitEmailAddr(std::io::Error),
     FailedToParseEmailAddr,
 }
 

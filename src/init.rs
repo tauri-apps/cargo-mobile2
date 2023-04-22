@@ -2,7 +2,6 @@ use crate::android;
 #[cfg(target_os = "macos")]
 use crate::apple;
 use crate::{
-    bossy,
     config::{
         self,
         metadata::{self, Metadata},
@@ -51,8 +50,8 @@ pub enum Error {
         asset_dir: PathBuf,
         cause: io::Error,
     },
-    CodeCommandPresentFailed(bossy::Error),
-    LldbExtensionInstallFailed(bossy::Error),
+    CodeCommandPresentFailed(std::io::Error),
+    LldbExtensionInstallFailed(std::io::Error),
     DotCargoLoadFailed(dot_cargo::LoadError),
     HostTargetTripleDetectionFailed(util::HostTargetTripleError),
     MetadataFailed(metadata::Error),
@@ -135,12 +134,15 @@ pub fn exec(
             .map_err(|cause| Error::AssetDirCreationFailed { asset_dir, cause })?;
     }
     if !skip_dev_tools && util::command_present("code").map_err(Error::CodeCommandPresentFailed)? {
-        let mut command = code_command().with_args(["--install-extension", "vadimcn.vscode-lldb"]);
-        if non_interactive {
-            command.add_arg("--force");
-        }
-        command
-            .run_and_wait()
+        code_command()
+            .before_spawn(move |cmd| {
+                cmd.args(["--install-extension", "vadimcn.vscode-lldb"]);
+                if non_interactive {
+                    cmd.arg("--force");
+                }
+                Ok(())
+            })
+            .run()
             .map_err(Error::LldbExtensionInstallFailed)?;
     }
     let mut dot_cargo =
