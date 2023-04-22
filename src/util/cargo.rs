@@ -115,8 +115,6 @@ impl<'a> CargoCommand<'a> {
         }
 
         duct::cmd("cargo", args)
-            // with the SDKROOT env var we get the `using sys root for 'iPhoneSimulator' but targeting 'MacOSX'` error
-            .env_remove("SDKROOT")
             .vars(env.explicit_env())
             .vars(explicit_cargo_env())
     }
