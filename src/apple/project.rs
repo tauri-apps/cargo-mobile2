@@ -189,16 +189,14 @@ pub fn gen(
     // Note that Xcode doesn't always reload the project nicely; reopening is
     // often necessary.
     println!("Generating Xcode project...");
-    duct::cmd(
-        "xcodegen",
-        [
-            "generate",
-            "--spec",
-            &dest.join("project.yml").to_string_lossy(),
-        ],
-    )
-    .run()
-    .map_err(Error::XcodegenFailed)?;
+    let project_yml_path = dest.join("project.yml");
+    duct::cmd("xcodegen", ["generate", "--spec"])
+        .before_spawn(move |cmd| {
+            cmd.arg(&project_yml_path);
+            Ok(())
+        })
+        .run()
+        .map_err(Error::XcodegenFailed)?;
 
     if !ios_pods.is_empty() || !macos_pods.is_empty() {
         duct::cmd(

@@ -192,17 +192,14 @@ impl Context {
     // Step 3: check if uuid is supported, and prompt user to open issue if not
     pub fn check_uuid(&self) -> Result<UuidStatus, Error> {
         let info_path = self.xcode_app_dir.join("Info");
-        let uuid = duct::cmd(
-            "defaults",
-            [
-                "read",
-                &info_path.to_string_lossy(),
-                "DVTPlugInCompatibilityUUID",
-            ],
-        )
-        .read()
-        .map(|s| s.trim().to_owned())
-        .map_err(Error::UuidLookupFailed)?;
+        let uuid = duct::cmd("defaults", ["read"])
+            .before_spawn(move |cmd| {
+                cmd.arg(&info_path).arg("DVTPlugInCompatibilityUUID");
+                Ok(())
+            })
+            .read()
+            .map(|s| s.trim().to_owned())
+            .map_err(Error::UuidLookupFailed)?;
         let plist_path = self
             .repo
             .path()
@@ -227,29 +224,26 @@ impl Context {
             })?;
         }
         let checkout = self.repo.path();
-        duct::cmd(
-            "cp",
-            [
-                "-r",
-                &checkout.join("Plug-ins/Rust.ideplugin").to_string_lossy(),
-                &self.xcode_plugins_dir.to_string_lossy(),
-            ],
-        )
-        .run()
-        .map_err(Error::PluginCopyFailed)?;
+        let ide_plugin_path = checkout.join("Plug-ins/Rust.ideplugin");
+        let xcode_plugins_dir = self.xcode_plugins_dir.clone();
+        duct::cmd("cp", ["-r"])
+            .before_spawn(move |cmd| {
+                cmd.arg(&ide_plugin_path).arg(&xcode_plugins_dir);
+                Ok(())
+            })
+            .run()
+            .map_err(Error::PluginCopyFailed)?;
         let spec_src = checkout.join("Specifications/Rust.xclangspec");
         if self.xcode_version.0 >= 11 {
+            let spec_dst = self.spec_dst.clone();
             println!("`sudo` is required to add new languages to Xcode");
-            duct::cmd(
-                "sudo",
-                [
-                    "cp",
-                    &spec_src.to_string_lossy(),
-                    &self.spec_dst.to_string_lossy(),
-                ],
-            )
-            .run()
-            .map_err(Error::SpecCopyFailed)?;
+            duct::cmd("sudo", ["cp"])
+                .before_spawn(move |cmd| {
+                    cmd.arg(&spec_src).arg(&spec_dst);
+                    Ok(())
+                })
+                .run()
+                .map_err(Error::SpecCopyFailed)?;
         } else {
             if !self.xcode_spec_dir.is_dir() {
                 std::fs::create_dir_all(&self.xcode_spec_dir).map_err(|cause| {
@@ -265,16 +259,14 @@ impl Context {
         }
         if self.xcode_version.0 >= 11 {
             let meta_src = checkout.join("Xcode.SourceCodeLanguage.Rust.plist");
-            duct::cmd(
-                "sudo",
-                [
-                    "cp",
-                    &meta_src.to_string_lossy(),
-                    &self.meta_dst.to_string_lossy(),
-                ],
-            )
-            .run()
-            .map_err(Error::MetaCopyFailed)?;
+            let meta_dst = self.meta_dst.clone();
+            duct::cmd("sudo", ["cp"])
+                .before_spawn(move |cmd| {
+                    cmd.arg(&meta_src).arg(&meta_dst);
+                    Ok(())
+                })
+                .run()
+                .map_err(Error::MetaCopyFailed)?;
         }
         Report::victory(
             "`rust-xcode-plugin` installed successfully!",

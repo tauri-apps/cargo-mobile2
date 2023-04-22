@@ -281,14 +281,16 @@ impl Env {
         elf: &Path,
         triple: &str,
     ) -> Result<HashSet<String>, RequiredLibsError> {
+        let elf_path = dunce::simplified(elf).to_owned();
         Ok(regex_multi_line!(r"\(NEEDED\)\s+Shared library: \[(.+)\]")
             .captures_iter(
-                duct::cmd(
-                    self.readelf_path(triple)?,
-                    ["-d", &dunce::simplified(elf).to_string_lossy()],
-                )
-                .read()?
-                .as_str(),
+                duct::cmd(self.readelf_path(triple)?, ["-d"])
+                    .before_spawn(move |cmd| {
+                        cmd.arg(&elf_path);
+                        Ok(())
+                    })
+                    .read()?
+                    .as_str(),
             )
             .map(|caps| {
                 let lib = caps

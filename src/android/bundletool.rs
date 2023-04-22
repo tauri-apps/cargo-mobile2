@@ -35,7 +35,10 @@ impl BundletoolJarInfo {
 
     fn run_command(&self) -> duct::Expression {
         let installation_path = self.installation_path();
-        duct::cmd("java", ["-jar", &installation_path.to_string_lossy()])
+        duct::cmd("java", ["-jar"]).before_spawn(move |cmd| {
+            cmd.arg(installation_path);
+            Ok(())
+        })
     }
 }
 
