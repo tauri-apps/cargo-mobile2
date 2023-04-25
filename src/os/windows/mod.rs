@@ -198,7 +198,7 @@ fn open_file_with_android_studio(path: impl AsRef<OsStr>, env: &Env) -> Result<(
         ],
     )
     .vars(env.explicit_env())
-    .run()
+    .run_and_detach()
     .map_err(OpenFileError::LaunchFailed)?;
     Ok(())
 }
