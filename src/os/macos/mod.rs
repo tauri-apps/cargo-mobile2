@@ -95,7 +95,7 @@ pub fn open_file_with(
             Ok(())
         })
         .vars(env.explicit_env())
-        .run()
+        .run_and_detach()
         .map_err(OpenFileError::DuctLaunchFailed)?;
     Ok(())
 }
@@ -115,7 +115,7 @@ pub fn replace_path_separator(path: OsString) -> OsString {
 
 pub fn open_in_xcode(path: impl AsRef<OsStr>) -> Result<(), OpenFileError> {
     duct::cmd("xed", [path.as_ref()])
-        .run()
+        .run_and_detach()
         .map_err(OpenFileError::DuctLaunchFailed)?;
     Ok(())
 }
