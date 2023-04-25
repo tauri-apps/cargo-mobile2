@@ -60,6 +60,7 @@ pub fn xcode_user_dir() -> Result<PathBuf, Error> {
 
 pub fn xcode_developer_dir() -> Result<PathBuf, Error> {
     duct::cmd("xcode-select", ["-p"])
+        .stdout_capture()
         .run()
         .map(|output| {
             let stdout = String::from_utf8_lossy(&output.stdout).to_string();

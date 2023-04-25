@@ -89,10 +89,12 @@ impl Repo {
                 .map_err(Error::FetchFailed)?;
             let local = git
                 .command_parse("rev-parse HEAD")
+                .stdout_capture()
                 .run()
                 .map_err(Error::RevParseLocalFailed)?;
             let remote = git
                 .command_parse("rev-parse @{u}")
+                .stdout_capture()
                 .run()
                 .map_err(Error::RevParseRemoteFailed)?;
             if local.stdout != remote.stdout {
