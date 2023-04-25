@@ -12,10 +12,15 @@ fn main() {
 
     use std::path::Path;
 
-    let pkg_name = std::env::var("CARGO_PKG_NAME").unwrap();
-    let install_dir = home::home_dir()
-        .expect("failed to get user's home dir")
-        .join(format!(".{}", pkg_name));
+    let dir_name = concat!(".", env!("CARGO_PKG_NAME"));
+    let install_dir = std::env::var("CARGO_HOME")
+        .map(|p| PathBuf::from(p).join(dir_name))
+        .unwrap_or_else(|_| {
+            home::home_dir()
+                .map(|home| home.join(".cargo").join(dir_name))
+                .expect("failed to get user's home dir")
+        });
+
     std::fs::create_dir_all(&install_dir).expect("failed to create install dir");
 
     // Copy version info
