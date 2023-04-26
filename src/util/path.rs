@@ -53,7 +53,10 @@ pub fn contract_home(path: impl AsRef<Path>) -> Result<String, ContractHomeError
 }
 
 pub fn install_dir() -> Result<PathBuf, NoHomeDir> {
-    home_dir().map(|home| home.join(concat!(".", env!("CARGO_PKG_NAME"))))
+    let dir_name = concat!(".", env!("CARGO_PKG_NAME"));
+    std::env::var("CARGO_HOME")
+        .map(|p| PathBuf::from(p).join(dir_name))
+        .or_else(|_| home_dir().map(|home| home.join(".cargo").join(dir_name)))
 }
 
 pub fn checkouts_dir() -> Result<PathBuf, NoHomeDir> {
