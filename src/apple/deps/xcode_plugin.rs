@@ -60,12 +60,11 @@ pub fn xcode_user_dir() -> Result<PathBuf, Error> {
 
 pub fn xcode_developer_dir() -> Result<PathBuf, Error> {
     duct::cmd("xcode-select", ["-p"])
-        .run()
+        .read()
         .map(|output| {
-            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
             // This output is expected to end with a newline, but we'll err on
             // the safe side and proceed gracefully if it doesn't.
-            PathBuf::from(stdout.strip_suffix('\n').unwrap_or(&stdout))
+            PathBuf::from(output.strip_suffix('\n').unwrap_or(&output))
         })
         .map_err(Error::XcodeSelectFailed)
 }

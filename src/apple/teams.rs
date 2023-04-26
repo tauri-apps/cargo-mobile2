@@ -12,6 +12,7 @@ pub fn get_pem_list(name_substr: &str) -> std::io::Result<std::process::Output> 
         "security",
         ["find-certificate", "-p", "-a", "-c", name_substr],
     )
+    .stdout_capture()
     .run()
 }
 
