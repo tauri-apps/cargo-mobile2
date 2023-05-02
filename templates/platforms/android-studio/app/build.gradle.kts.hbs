@@ -27,8 +27,8 @@ android {
             isJniDebuggable = true
             isMinifyEnabled = false
             packaging {
-                {{~#each targets}}
-                jniLibs.keepDebugSymbols.add("*/{{this.abi}}/*.so"){{/each}}
+                {{~#each abi-list}}
+                jniLibs.keepDebugSymbols.add("*/{{this}}/*.so"){{/each}}
             }
         }
         getByName("release") {

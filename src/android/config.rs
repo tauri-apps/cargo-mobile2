@@ -260,9 +260,7 @@ impl Config {
     }
 
     pub fn project_dir(&self) -> PathBuf {
-        self.app
-            .prefix_path(&self.project_dir)
-            .join(self.app().name_snake())
+        self.app.prefix_path(&self.project_dir)
     }
 
     pub fn project_dir_exists(&self) -> bool {

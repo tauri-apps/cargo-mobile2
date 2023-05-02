@@ -17,7 +17,7 @@ open class RustPlugin : Plugin<Project> {
     override fun apply(project: Project) = with(project) {
         config = extensions.create("rust", Config::class.java)
 
-        val abiList = (findProperty("abitList") as? String)?.split(',') ?: listOf({{quote-and-join abi-list}})
+        val abiList = (findProperty("abiList") as? String)?.split(',') ?: listOf({{quote-and-join abi-list}})
         val targetsList = (findProperty("targetList") as? String)?.split(',') ?: listOf({{quote-and-join target-list}})
         val archList = (findProperty("archList") as? String)?.split(',') ?: listOf({{quote-and-join arch-list}})
 
