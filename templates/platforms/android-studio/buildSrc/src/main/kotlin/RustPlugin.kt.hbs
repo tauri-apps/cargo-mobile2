@@ -76,6 +76,7 @@ open class RustPlugin : Plugin<Project> {
                         release = profile == "release"
                     }
 
+                    buildTask.dependsOn(targetBuildTask)
                     tasks["merge$targetArchCapitalized${profileCapitalized}JniLibFolders"].dependsOn(
                         targetBuildTask
                     )
