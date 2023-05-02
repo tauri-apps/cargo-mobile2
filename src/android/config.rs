@@ -11,7 +11,7 @@ use std::{
 use thiserror::Error;
 
 const DEFAULT_MIN_SDK_VERSION: u32 = 24;
-const DEFAULT_VULKAN_VALIDATION: bool = true;
+pub const DEFAULT_VULKAN_VALIDATION: bool = true;
 static DEFAULT_PROJECT_DIR: &str = "gen/android";
 
 const fn default_true() -> bool {
@@ -43,6 +43,7 @@ pub struct Metadata {
     pub app_permissions: Option<Vec<String>>,
     pub app_theme_parent: Option<String>,
     pub env_vars: Option<HashMap<String, String>>,
+    pub vulkan_validation: Option<bool>,
 }
 
 impl Default for Metadata {
@@ -62,6 +63,7 @@ impl Default for Metadata {
             app_permissions: None,
             app_theme_parent: None,
             env_vars: None,
+            vulkan_validation: None,
         }
     }
 }
@@ -117,6 +119,10 @@ impl Metadata {
 
     pub fn app_theme_parent(&self) -> Option<&str> {
         self.app_theme_parent.as_deref()
+    }
+
+    pub fn vulkan_validation(&self) -> Option<bool> {
+        self.vulkan_validation
     }
 }
 
@@ -174,7 +180,6 @@ impl Error {
 #[serde(rename_all = "kebab-case")]
 pub struct Raw {
     pub min_sdk_version: Option<u32>,
-    pub vulkan_validation: Option<bool>,
     pub project_dir: Option<String>,
     pub no_default_features: Option<bool>,
     pub features: Option<Vec<String>>,
@@ -188,7 +193,6 @@ pub struct Config {
     #[serde(skip_serializing)]
     app: App,
     min_sdk_version: u32,
-    vulkan_validation: bool,
     project_dir: PathBuf,
     logcat_filter_specs: Vec<String>,
 }
@@ -198,8 +202,6 @@ impl Config {
         let raw = raw.unwrap_or_default();
 
         let min_sdk_version = raw.min_sdk_version.unwrap_or(DEFAULT_MIN_SDK_VERSION);
-
-        let vulkan_validation = raw.vulkan_validation.unwrap_or(DEFAULT_VULKAN_VALIDATION);
 
         let project_dir = if let Some(project_dir) = raw.project_dir {
             if project_dir == DEFAULT_PROJECT_DIR {
@@ -236,7 +238,6 @@ impl Config {
         Ok(Self {
             app,
             min_sdk_version,
-            vulkan_validation,
             project_dir,
             logcat_filter_specs: raw.logcat_filter_specs,
         })

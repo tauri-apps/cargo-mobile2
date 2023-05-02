@@ -23,7 +23,6 @@ open class BuildTask : DefaultTask() {
             workingDir(File(project.projectDir, rootDirRel))
             executable("cargo")
             args(listOf("android", "build"))
-            args(target)
             if (project.logger.isEnabled(LogLevel.DEBUG)) {
                 args("-vv")
             } else if (project.logger.isEnabled(LogLevel.INFO)) {
@@ -32,6 +31,7 @@ open class BuildTask : DefaultTask() {
             if (release) {
                 args("--release")
             }
+            args(target)
         }.assertNormalExitValue()
     }
 }

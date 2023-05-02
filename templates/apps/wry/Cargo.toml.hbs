@@ -22,6 +22,7 @@ project-dependencies = [ "org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.21" ]
 app-plugins = [ "org.jetbrains.kotlin.android" ]
 app-permissions = [ "android.permission.INTERNET" ]
 app-theme-parent = "Theme.MaterialComponents.DayNight.DarkActionBar"
+vulkan-validation = false
 
 [package.metadata.cargo-android.env-vars]
 WRY_ANDROID_PACKAGE = "{{reverse-domain app.domain}}.{{snake-case app.name}}"
