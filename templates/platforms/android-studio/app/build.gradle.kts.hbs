@@ -1,11 +1,14 @@
 plugins {
     id("com.android.application")
-    id("rustPlugin")
+    id("rust")
     {{~#each android-app-plugins}}
     id("{{this}}"){{/each}}
 }
 
 android {
+    namespace="{{reverse-domain app.domain}}.{{snake-case app.name}}"
+    // TODO: add assetPacks line if asset-packs len > 1
+    assetPacks += mutableSetOf({{quote-and-join-colon-prefix asset-packs}})
     compileSdk = 33
     defaultConfig {
         applicationId = "{{reverse-domain app.domain}}.{{snake-case app.name}}"
@@ -24,45 +27,27 @@ android {
             isDebuggable = true
             isJniDebuggable = true
             isMinifyEnabled = false
-            packagingOptions {
+            packaging {
                 {{~#each targets}}
                 jniLibs.keepDebugSymbols.add("*/{{this.abi}}/*.so"){{/each}}
             }
         }
         getByName("release") {
             isMinifyEnabled = true
-            val proguards = fileTree(".") {
-              include("**/*.pro")
-            }
-            proguardFiles(*proguards.toList().toTypedArray())
+             proguardFiles(
+                *fileTree(".") { include("**/*.pro") }
+                    .plus(getDefaultProguardFile("proguard-android-optimize.txt"))
+                    .toList().toTypedArray()
+            )
         }
     }
-    flavorDimensions.add("abi")
-    productFlavors {
-        create("universal") {
-            dimension = "abi"
-            ndk {
-                abiFilters +=  (findProperty("abiList") as? String)?.split(',') ?: listOf(
-                    {{~#each targets}}
-                    "{{this.abi}}",{{/each}}
-                )
-            }
-        }{{~#each targets}}
-        create("{{this.arch}}") {
-            dimension = "abi"
-            ndk {
-                abiFilters += listOf("{{this.abi}}")
-            }
-        }{{/each}}
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
-
-    assetPacks += mutableSetOf({{quote-and-join-colon-prefix asset-packs}})
 }
 
 rust {
     rootDirRel = "{{root-dir-rel}}"
-    targets = (findProperty("targetList") as? String)?.split(',') ?: listOf({{quote-and-join target-names}})
-    arches = (findProperty("archList") as? String)?.split(',') ?: listOf({{quote-and-join arches}})
 }
 
 dependencies {
@@ -70,17 +55,4 @@ dependencies {
     implementation(platform("{{this}}")){{/each}}
     {{~#each android-app-dependencies}}
     implementation("{{this}}"){{/each}}
-}
-
-afterEvaluate {
-    android.applicationVariants.all {
-        tasks["mergeUniversalReleaseJniLibFolders"].dependsOn(tasks["rustBuildRelease"])
-        tasks["mergeUniversalDebugJniLibFolders"].dependsOn(tasks["rustBuildDebug"])
-        if (findProperty("archList") == null) {
-            productFlavors.filter{ it.name != "universal" }.forEach { _ ->
-                val archAndBuildType = name.capitalize()
-                tasks["merge${archAndBuildType}JniLibFolders"].dependsOn(tasks["rustBuild${archAndBuildType}"])
-            }
-        }
-    }
 }

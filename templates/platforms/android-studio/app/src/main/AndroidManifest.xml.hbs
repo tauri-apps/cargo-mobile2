@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="{{reverse-domain app.domain}}.{{snake-case app.name}}">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
     {{~#each android-app-permissions}}
     <uses-permission android:name="{{this}}" />{{/each}}
     <application android:hasCode="{{has-code}}" android:supportsRtl="true" android:icon="@mipmap/ic_launcher"
@@ -11,7 +10,6 @@
             <meta-data android:name="android.app.func_name" android:value="ANativeActivity_onCreate" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
