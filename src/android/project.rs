@@ -5,7 +5,7 @@ use super::{
     target::Target,
 };
 use crate::{
-    android::{DEFAULT_ACTIVITY, DEFAULT_THEME_PARENT},
+    android::{config::DEFAULT_VULKAN_VALIDATION, DEFAULT_ACTIVITY, DEFAULT_THEME_PARENT},
     bicycle, dot_cargo,
     os::{self, replace_path_separator},
     target::TargetTrait as _,
@@ -119,10 +119,16 @@ pub fn gen(
                 )),
             );
             map.insert("root-dir", config.app().root_dir());
-            map.insert("targets", Target::all().values().collect::<Vec<_>>());
-            map.insert("target-names", Target::all().keys().collect::<Vec<_>>());
             map.insert(
-                "arches",
+                "abi-list",
+                Target::all()
+                    .values()
+                    .map(|target| target.abi)
+                    .collect::<Vec<_>>(),
+            );
+            map.insert("target-list", Target::all().keys().collect::<Vec<_>>());
+            map.insert(
+                "arch-list",
                 Target::all()
                     .values()
                     .map(|target| target.arch)
@@ -148,18 +154,23 @@ pub fn gen(
                 "android-app-activity-name",
                 metadata.app_activity_name().unwrap_or(DEFAULT_ACTIVITY),
             );
+            map.insert(
+                "android-vulkan-validation",
+                metadata
+                    .vulkan_validation()
+                    .unwrap_or(DEFAULT_VULKAN_VALIDATION),
+            );
             map.insert("android-app-permissions", metadata.app_permissions());
             map.insert(
                 "android-app-theme-parent",
                 metadata.app_theme_parent().unwrap_or(DEFAULT_THEME_PARENT),
             );
-            map.insert(
-                "asset-packs",
-                asset_packs
-                    .iter()
-                    .map(|p| p.name.as_str())
-                    .collect::<Vec<_>>(),
-            );
+            let asset_packs = asset_packs
+                .iter()
+                .map(|p| p.name.as_str())
+                .collect::<Vec<_>>();
+            map.insert("has-asset-packs", !asset_packs.is_empty());
+            map.insert("asset-packs", asset_packs);
             map.insert("windows", cfg!(windows));
         },
         filter.fun(),

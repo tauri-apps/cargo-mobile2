@@ -12,21 +12,22 @@ name = "{{app.name}}-desktop"
 path = "gen/bin/desktop.rs"
 
 [package.metadata.cargo-android]
-app-activity-name = ".MainActivity"
+app-activity-name = "{{reverse-domain app.domain}}.{{snake-case app.name}}.MainActivity"
 app-dependencies = [
-    "androidx.webkit:webkit:1.4.0",
-    "androidx.appcompat:appcompat:1.5.0",
-    "com.google.android.material:material:1.6.1",
+    "androidx.webkit:webkit:1.6.1",
+    "androidx.appcompat:appcompat:1.6.1",
+    "com.google.android.material:material:1.8.0",
 ]
-project-dependencies = [ "org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10" ]
+project-dependencies = [ "org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.21" ]
 app-plugins = [ "org.jetbrains.kotlin.android" ]
 app-permissions = [ "android.permission.INTERNET" ]
 app-theme-parent = "Theme.MaterialComponents.DayNight.DarkActionBar"
+vulkan-validation = false
 
 [package.metadata.cargo-android.env-vars]
 WRY_ANDROID_PACKAGE = "{{reverse-domain app.domain}}.{{snake-case app.name}}"
 WRY_ANDROID_LIBRARY = "{{snake-case app.name}}"
-WRY_ANDROID_KOTLIN_FILES_OUT_DIR = "<android-project-dir>/app/src/main/kotlin/{{dot-to-slash (reverse-domain app.domain)}}"
+WRY_ANDROID_KOTLIN_FILES_OUT_DIR = "<android-project-dir>/app/src/main/kotlin/{{dot-to-slash (reverse-domain app.domain)}}/{{snake-case app.name}}"
 
 [package.metadata.cargo-apple.ios]
 frameworks = [ "WebKit" ]
