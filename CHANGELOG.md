@@ -1,5 +1,12 @@
 # Changelog
 
+## \[0.5.0]
+
+- [`c2abaf5`](https://github.com/tauri-apps/tauri-mobile/commit/c2abaf54135bf65b1165a38d3b1d84e8d57f5d6c)([#148](https://github.com/tauri-apps/tauri-mobile/pull/148)) Detach launched processes for CLI `open` commands on macOS and Windwos.
+- [`489d812`](https://github.com/tauri-apps/tauri-mobile/commit/489d812c134efdc80fb08c70b3936a8395fd4216)([#149](https://github.com/tauri-apps/tauri-mobile/pull/149)) Fix several commands fail because stdout isn't captured.
+- [`1245540`](https://github.com/tauri-apps/tauri-mobile/commit/12455407f447ea7becfce19e16fcdca6b4f843f8)([#153](https://github.com/tauri-apps/tauri-mobile/pull/153)) Update android template to gradle 8.0
+- [`8f6c122`](https://github.com/tauri-apps/tauri-mobile/commit/8f6c122f886d69b13df045cfc593b8d510b02dc7)([#152](https://github.com/tauri-apps/tauri-mobile/pull/152)) Change CLI template directory to `$CARGO_HOME/.tauri-mobile` instead of `$HOME/.tauri-mobile`.
+
 ## \[0.4.0]
 
 - Use `duct` to run the ADB commands.
