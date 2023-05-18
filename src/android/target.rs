@@ -232,6 +232,16 @@ impl<'a> Target<'a> {
     ) -> Result<(), CompileLibError> {
         let min_sdk_version = config.min_sdk_version();
 
+        let compiler_path = env
+            .ndk
+            .compiler_path(
+                ndk::Compiler::Clang,
+                self.clang_triple(),
+                config.min_sdk_version(),
+            )
+            .map_err(CompileLibError::MissingTool)?;
+        let compiler_folder = compiler_path.parent().unwrap();
+
         // Force color, since gradle would otherwise give us uncolored output
         // (which Android Studio makes red, which is extra gross!)
         let color = if force_color { "always" } else { "auto" };
@@ -264,6 +274,14 @@ impl<'a> Target<'a> {
                     .compiler_path(ndk::Compiler::Clangxx, self.clang_triple(), min_sdk_version)
                     .map_err(CompileLibError::MissingTool)?,
             )
+            .env(
+                "PATH",
+                crate::util::prepend_to_path(
+                    compiler_folder.display().to_string(),
+                    env.path().to_string_lossy(),
+                ),
+            )
+            .env("RANLIB", compiler_folder.join("llvm-ranlib"))
             .before_spawn(move |cmd| {
                 cmd.args(["--color", color]);
                 Ok(())
