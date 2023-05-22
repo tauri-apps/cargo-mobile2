@@ -247,13 +247,17 @@ impl Env {
 
     pub fn libcxx_shared_path(&self, target: Target<'_>) -> Result<PathBuf, MissingToolError> {
         static LIB: &str = "libc++_shared.so";
-        MissingToolError::check_file(
+        let ndk_ver = self.version().unwrap_or_default();
+        let so_path = if ndk_ver.triple.major >= 22 {
+            self.prebuilt_dir()?
+                .join("sysroot/usr/lib")
+                .join(target.triple)
+        } else {
             self.ndk_home
                 .join("sources/cxx-stl/llvm-libc++/libs")
                 .join(target.abi)
-                .join(LIB),
-            LIB,
-        )
+        };
+        MissingToolError::check_file(so_path.join(LIB), LIB)
     }
 
     pub fn ar_path(&self, triple: &str) -> Result<PathBuf, MissingToolError> {
