@@ -249,7 +249,7 @@ impl Env {
         static LIB: &str = "libc++_shared.so";
         let ndk_ver = self.version().unwrap_or_default();
         let so_path = if ndk_ver.triple.major >= 22 {
-            let ndk_triple = if target.triple == "armv7a-linux-androideabi" {
+            let ndk_triple = if target.triple == "armv7-linux-androideabi" {
                 "arm-linux-androideabi"
             } else {
                 target.triple
