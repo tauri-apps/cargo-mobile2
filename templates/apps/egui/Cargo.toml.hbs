@@ -1,0 +1,38 @@
+[package]
+name = "{{app.name}}"
+version = "0.1.0"
+authors = ["{{author}}"]
+edition = "2018"
+resolver = "2"
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "{{app.name}}-desktop"
+path = "gen/bin/desktop.rs"
+
+[package.metadata.cargo-android]
+app-dependencies = [
+    "com.google.android.material:material:1.8.0",
+]
+project-dependencies = [ "org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.21" ]
+app-plugins = [ "org.jetbrains.kotlin.android" ]
+app-theme-parent = "Theme.MaterialComponents.DayNight.DarkActionBar"
+
+[dependencies] 
+log = "0.4.14"
+chrono = "0.4"
+pollster = "0.2"
+egui = "0.22"
+wgpu = "0.16"
+winit = { version = "0.28", features = ["android-native-activity"] }
+egui_demo_lib = "0.22"
+egui-winit = { version = "0.22", default-features = false }
+egui-wgpu = { version = "0.22", features = [ "winit" ] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.13.1"
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+env_logger = "0.9"
