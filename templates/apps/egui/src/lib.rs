@@ -1,14 +1,12 @@
-use winit::event_loop::{EventLoop, EventLoopBuilder, EventLoopWindowTarget};
-
 #[cfg(target_os = "android")]
 use winit::platform::android::activity::AndroidApp;
 
-use winit::event_loop::ControlFlow;
+use winit::event::Event::*;
+use winit::event_loop::{ControlFlow, EventLoop, EventLoopBuilder, EventLoopWindowTarget};
 
 use egui_wgpu::winit::Painter;
 use egui_winit::State;
 
-use winit::event::Event::*;
 const INITIAL_WIDTH: u32 = 1920;
 const INITIAL_HEIGHT: u32 = 1080;
 
