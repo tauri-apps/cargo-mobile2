@@ -7,7 +7,7 @@ use winit::event_loop::ControlFlow;
 
 use egui_wgpu::winit::Painter;
 use egui_winit::State;
-//use egui_winit_platform::{Platform, PlatformDescriptor};
+
 use winit::event::Event::*;
 const INITIAL_WIDTH: u32 = 1920;
 const INITIAL_HEIGHT: u32 = 1080;
@@ -72,8 +72,8 @@ fn _main(event_loop: EventLoop<Event>) {
     let mut state = State::new(&event_loop);
     let mut painter = Painter::new(
         egui_wgpu::WgpuConfiguration::default(),
-        1,    // msaa samples
-        None, // depth bits
+        1, // msaa samples
+        None,
         false,
     );
     let mut window: Option<winit::window::Window> = None;
@@ -161,7 +161,7 @@ fn android_main(app: AndroidApp) {
 #[cfg(not(target_os = "android"))]
 fn main() {
     env_logger::builder()
-        .filter_level(log::LevelFilter::Warn) // Default Log Level
+        .filter_level(log::LevelFilter::Warn)
         .parse_default_env()
         .init();
 
