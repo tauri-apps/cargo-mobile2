@@ -37,9 +37,10 @@ cargo mobile init
 
 After some straightforward prompts, you'll be asked to select a template pack. Template packs are used to generate project boilerplate, i.e. using the `wry` template pack gives you a [wry](https://github.com/tauri-apps/wry) project that runs out-of-the-box on desktop and mobile.
 
-| name      | info                                  |
-| --------- | ------------------------------------- |
-| wry       | Minimal wry project |
+| name      | info                                                                                                                  |
+| --------- | ----------------------------------------------------------------------------------------------------------------------|
+| wry       | Minimal wry project                                                                                                   |
+| egui      | Full egui + winit + wgpu example based on [agdk-egui example](https://github.com/rust-mobile/rust-android-examples)   |
 
 **Template pack contribution is welcomed**
 
