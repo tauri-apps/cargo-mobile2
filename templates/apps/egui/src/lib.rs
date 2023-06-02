@@ -139,6 +139,40 @@ fn _main(event_loop: EventLoop<Event>) {
     });
 }
 
+#[cfg(any(target_os = "ios", target_os = "android"))]
+fn stop_unwind<F: FnOnce() -> T, T>(f: F) -> T {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+        Ok(t) => t,
+        Err(err) => {
+            eprintln!("attempt to unwind out of `rust` with err: {:?}", err);
+            std::process::abort()
+        }
+    }
+}
+
+#[cfg(target_os = "ios")]
+fn _start_app() {
+    stop_unwind(|| main());
+}
+
+#[no_mangle]
+#[inline(never)]
+#[cfg(target_os = "ios")]
+pub extern "C" fn start_app() {
+    _start_app();
+}
+
+#[cfg(not(target_os = "android"))]
+pub fn main() {
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Warn)
+        .parse_default_env()
+        .init();
+
+    let event_loop = EventLoopBuilder::with_user_event().build();
+    _main(event_loop);
+}
+
 #[allow(dead_code)]
 #[cfg(target_os = "android")]
 #[no_mangle]
@@ -152,17 +186,5 @@ fn android_main(app: AndroidApp) {
     let event_loop = EventLoopBuilder::with_user_event()
         .with_android_app(app)
         .build();
-    _main(event_loop);
-}
-
-#[allow(dead_code)]
-#[cfg(not(target_os = "android"))]
-fn main() {
-    env_logger::builder()
-        .filter_level(log::LevelFilter::Warn)
-        .parse_default_env()
-        .init();
-
-    let event_loop = EventLoopBuilder::with_user_event().build();
-    _main(event_loop);
+    stop_unwind(|| _main(event_loop));
 }
