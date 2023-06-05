@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.5.1]
+
+- [`e1bf612`](https://github.com/tauri-apps/tauri-mobile/commit/e1bf612e6f2cf1f1ff21401d01129946dffe9abb)([#162](https://github.com/tauri-apps/tauri-mobile/pull/162)) Update the path to `libc++_shared.so` for NDK versions 22 and above.
+- [`7b46c30`](https://github.com/tauri-apps/tauri-mobile/commit/7b46c30764e1c410e25f519a95192346f41a9e3b)([#169](https://github.com/tauri-apps/tauri-mobile/pull/169)) Added the `native-tls` (enabled by default) and `rustls` features to allow compiling without native-tls.
+
 ## \[0.5.0]
 
 - [`c2abaf5`](https://github.com/tauri-apps/tauri-mobile/commit/c2abaf54135bf65b1165a38d3b1d84e8d57f5d6c)([#148](https://github.com/tauri-apps/tauri-mobile/pull/148)) Detach launched processes for CLI `open` commands on macOS and Windwos.
