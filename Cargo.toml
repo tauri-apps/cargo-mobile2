@@ -40,8 +40,10 @@ cli = [
   "env_logger"
 ]
 brainium = [ ]
+rustls = [ "ureq/tls" ]
+native-tls = [ "ureq/native-tls" ]
 openssl-vendored = [ "openssl/vendored" ]
-default = [ "cli" ]
+default = [ "cli", "ureq/native-tls" ]
 
 [dependencies]
 handlebars = "3.3.0"
@@ -80,7 +82,7 @@ objc = "0.2.7"
 objc_id = "0.1.1"
 
 [target."cfg(not(target_os = \"macos\"))".dependencies]
-ureq = "2.4.0"
+ureq = { version = "2.4.0", default-features = false, features = ["gzip"] }
 
 [target."cfg(target_os = \"linux\")".dependencies]
 freedesktop_entry_parser = "1.1"
