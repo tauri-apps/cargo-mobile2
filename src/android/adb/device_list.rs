@@ -45,16 +45,16 @@ pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, Error> {
         .vars(env.explicit_env())
         .stdout_capture();
 
-    super::check_authorized(cmd.start()?.wait()?)
+    super::check_authorized(&cmd.run()?)
         .map(|raw_list| {
             regex_multi_line!(ADB_DEVICE_REGEX)
                 .captures_iter(&raw_list)
                 .map(|caps| {
                     assert_eq!(caps.len(), 2);
                     let serial_no = caps.get(1).unwrap().as_str().to_owned();
-                    let name = device_name(env, &serial_no).map_err(Error::NameFailed)?;
                     let model = get_prop(env, &serial_no, "ro.product.model")
                         .map_err(Error::ModelFailed)?;
+                    let name = device_name(env, &serial_no).unwrap_or_else(|_| model.clone());
                     let abi = get_prop(env, &serial_no, "ro.product.cpu.abi")
                         .map_err(Error::AbiFailed)?;
                     let target =
