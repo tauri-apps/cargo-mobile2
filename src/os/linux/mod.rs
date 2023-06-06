@@ -164,7 +164,7 @@ pub fn open_file_with(
 // Linux does not require a binary "command" in path, so this seems the way to go.
 #[cfg(target_os = "linux")]
 pub fn command_path(name: &str) -> std::io::Result<std::process::Output> {
-    duct::cmd("sh", ["-c", "command", "-v", name]).run()
+    duct::cmd("sh", ["-c", format!("command -v {name}").as_str()]).run()
 }
 
 pub fn code_command() -> duct::Expression {
