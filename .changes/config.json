@@ -4,14 +4,13 @@
     "rust": {
       "version": true,
       "getPublishedVersion": "cargo search ${ pkg.pkg } --limit 1 | sed -nE 's/^[^\"]*\"//; s/\".*//1p' -",
-      "publish": [
-        "cargo publish"
-      ]
+      "publish": ["cargo publish"]
     }
   },
   "packages": {
     "tauri-mobile": {
       "path": ".",
+      "postversion": ["cargo check"],
       "manager": "rust"
     }
   }
