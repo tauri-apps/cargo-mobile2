@@ -402,7 +402,7 @@ impl Config {
         let path = |tail: &str| self.export_dir().join(format!("{}.ipa", tail));
         let old = path(&self.scheme());
         // It seems like the format changed recently?
-        let new = path(self.app.name());
+        let new = path(self.app.stylized_name());
         std::iter::once(&old)
             .chain(std::iter::once(&new))
             .find(|path| path.is_file())
@@ -412,7 +412,7 @@ impl Config {
 
     pub fn app_path(&self) -> PathBuf {
         self.export_dir()
-            .join(format!("Payload/{}.app", self.app.name()))
+            .join(format!("Payload/{}.app", self.app.stylized_name()))
     }
 
     pub fn scheme(&self) -> String {
