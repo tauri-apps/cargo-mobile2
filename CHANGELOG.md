@@ -1,5 +1,11 @@
 # Changelog
 
+## \[0.5.2]
+
+- [`4f3e4d7`](https://github.com/tauri-apps/tauri-mobile/commit/4f3e4d71af9282a2a5d054a49324909df3884a7a)([#172](https://github.com/tauri-apps/tauri-mobile/pull/172)) Fix `cargo android run` crashing because it can't detect device name using bluetooth_manager for devices without bluetooth like geneymotion.
+- [`43b2a3b`](https://github.com/tauri-apps/tauri-mobile/commit/43b2a3ba3a05b9ca3d3c9d8d7eafbeb4f24bf396)([#174](https://github.com/tauri-apps/tauri-mobile/pull/174)) On Linux, fix crash after false detection of VSCode.
+- [`6b8cf77`](https://github.com/tauri-apps/tauri-mobile/commit/6b8cf7758464caaa5a5cf07151cc981d04e20759)([#182](https://github.com/tauri-apps/tauri-mobile/pull/182)) Use stylized_name config for iOS product name.
+
 ## \[0.5.1]
 
 - [`e1bf612`](https://github.com/tauri-apps/tauri-mobile/commit/e1bf612e6f2cf1f1ff21401d01129946dffe9abb)([#162](https://github.com/tauri-apps/tauri-mobile/pull/162)) Update the path to `libc++_shared.so` for NDK versions 22 and above.
