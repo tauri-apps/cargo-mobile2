@@ -32,7 +32,7 @@ pub fn run(
         .export_dir()
         .join(format!("{}_iOS.xcarchive", config.app().name()))
         .join("Products/Applications")
-        .join(format!("{}.app", config.app().name()));
+        .join(format!("{}.app", config.app().stylized_name()));
     let cmd = duct::cmd("xcrun", ["simctl", "install", id])
         .vars(env.explicit_env())
         .before_spawn(move |cmd| {
