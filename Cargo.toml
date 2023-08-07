@@ -46,7 +46,7 @@ openssl-vendored = [ "openssl/vendored" ]
 default = [ "cli", "ureq/native-tls" ]
 
 [dependencies]
-handlebars = "3.3.0"
+handlebars = "4.3.7"
 serde_json = "1.0.57"
 colored = "1.9.3"
 deunicode = "1.1.1"
@@ -113,7 +113,7 @@ embed-resource = "1.6.4"
 [build-dependencies]
 home = { version = "0.5.3", optional = true }
 dunce = { version = "1.0.2", optional = true }
-handlebars = { version = "3.3.0", optional = true }
+handlebars = { version = "4.3.7", optional = true }
 log = { version = "0.4.11", optional = true }
 serde = { version = "1.0.114", optional = true }
 serde_json = { version = "1.0.57", optional = true }

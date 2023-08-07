@@ -57,7 +57,7 @@ impl From<CustomEscapeFn> for EscapeFn {
 #[derive(Debug, Error)]
 pub enum RenderingError {
     #[error("Failed to render template: {0}")]
-    RenderingFailed(#[from] Box<handlebars::TemplateRenderError>),
+    RenderingFailed(#[from] Box<handlebars::RenderError>),
 }
 
 /// An error encountered when processing an [`Action`].
