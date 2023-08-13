@@ -1,8 +1,8 @@
 plugins {
     id("com.android.application")
     id("rust")
-    {{~#each android-app-plugins}}
-    id("{{this}}"){{/each}}
+    {{#if android-app-plugins}}{{~#each android-app-plugins}}
+    id("{{this}}"){{/each}}{{/if}}
 }
 
 android {
@@ -50,8 +50,8 @@ rust {
 }
 
 dependencies {
-    {{~#each android-app-dependencies-platform}}
-    implementation(platform("{{this}}")){{/each}}
-    {{~#each android-app-dependencies}}
-    implementation("{{this}}"){{/each}}
+    {{#if android-app-dependencies-platform}}{{~#each android-app-dependencies-platform}}
+    implementation(platform("{{this}}")){{/each}}{{/if}}
+    {{#if android-app-dependencies}}{{~#each android-app-dependencies}}
+    implementation("{{this}}"){{/each}}{{/if}}
 }
