@@ -2,18 +2,18 @@
 
 target '{{app.name}}_iOS' do
 platform :ios, '{{apple.ios-version}}'
-  {{#each ios-pod-options}}{{this}}{{/each}}
+  {{#if ios-pod-options}}{{#each ios-pod-options}}{{this}}{{/each}}{{/if}}
 
   # Pods for {{app.name}}_iOS
-  {{~#each ios-pods}}
-  pod '{{this.name}}'{{#if this.version}}, '{{this.version}}'{{/if}}{{/each}}
+  {{#if ios-pods}}{{~#each ios-pods}}
+  pod '{{this.name}}'{{#if this.version}}, '{{this.version}}'{{/if}}{{/each}}{{/if}}
 end
 
 target '{{app.name}}_macOS' do
 platform :osx, '{{apple.macos-version}}'
-  {{#each macos-pod-options}}{{this}}{{/each}}
+  {{#if macos-pod-options}}{{#each macos-pod-options}}{{this}}{{/each}}{{/if}}
 
   # Pods for {{app.name}}_macOS
-  {{~#each macos-pods}}
-  pod '{{this.name}}'{{#if this.version}}, '{{this.version}}'{{/if}}{{/each}}
+  {{#if macos-pods}}{{~#each macos-pods}}
+  pod '{{this.name}}'{{#if this.version}}, '{{this.version}}'{{/if}}{{/each}}{{/if}}
 end
