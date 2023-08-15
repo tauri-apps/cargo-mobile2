@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.5.3]
+
+- [`9719aae`](https://github.com/tauri-apps/tauri-mobile/commit/9719aaeaae14560109f0ee81956f1f9083c1cc3a)([#185](https://github.com/tauri-apps/tauri-mobile/pull/185)) Fix template failing to be rendered due to missing variables on strict mode.
+
 ## \[0.5.2]
 
 - [`4f3e4d7`](https://github.com/tauri-apps/tauri-mobile/commit/4f3e4d71af9282a2a5d054a49324909df3884a7a)([#172](https://github.com/tauri-apps/tauri-mobile/pull/172)) Fix `cargo android run` crashing because it can't detect device name using bluetooth_manager for devices without bluetooth like geneymotion.
