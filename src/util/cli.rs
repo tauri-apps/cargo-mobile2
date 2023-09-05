@@ -181,6 +181,15 @@ mod interface {
     }
 
     #[derive(Clone, Copy, Debug, StructOpt)]
+    pub struct SkipTargetsInstall {
+        #[structopt(
+            long = "skip-targets-install",
+            help = "Skip installing andriod/ios targets for rust through rustup "
+        )]
+        pub skip_targets_install: bool,
+    }
+
+    #[derive(Clone, Copy, Debug, StructOpt)]
     pub struct ReinstallDeps {
         #[structopt(long = "reinstall-deps", help = "Reinstall dependencies")]
         pub reinstall_deps: bool,
