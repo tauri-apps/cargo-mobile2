@@ -49,7 +49,7 @@ pub fn run_and_debug(
             .map_err(RunAndDebugError::DeployFailed)?
             .wait()
             .map_err(RunAndDebugError::DeployFailed)?;
-        duct::cmd("idevicesyslog", ["--process", config.app().name()])
+        duct::cmd("idevicesyslog", ["--process", config.app().stylized_name()])
             .vars(env.explicit_env())
             .start()
             .map_err(RunAndDebugError::DeployFailed)
