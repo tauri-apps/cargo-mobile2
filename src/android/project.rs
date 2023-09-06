@@ -97,9 +97,12 @@ pub fn gen(
     wrapper: &TextWrapper,
     filter: &templating::Filter,
     dot_cargo: &mut dot_cargo::DotCargo,
+    skip_targets_install: bool,
 ) -> Result<(), Error> {
-    println!("Installing Android toolchains...");
-    Target::install_all().map_err(Error::RustupFailed)?;
+    if !skip_targets_install {
+        println!("Installing Android toolchains...");
+        Target::install_all().map_err(Error::RustupFailed)?;
+    }
     println!("Generating Android Studio project...");
     let src = Pack::lookup_platform(TEMPLATE_PACK)
         .map_err(Error::MissingPack)?

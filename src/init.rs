@@ -95,6 +95,7 @@ pub fn exec(
     wrapper: &TextWrapper,
     non_interactive: bool,
     skip_dev_tools: bool,
+    skip_targets_install: bool,
     #[cfg_attr(not(target_os = "macos"), allow(unused))] reinstall_deps: bool,
     open_in_editor: bool,
     submodule_commit: Option<String>,
@@ -176,6 +177,7 @@ pub fn exec(
             skip_dev_tools,
             reinstall_deps,
             &filter,
+            skip_targets_install,
         )
         .map_err(Error::AppleInitFailed)?;
     } else {
@@ -193,6 +195,7 @@ pub fn exec(
                 wrapper,
                 &filter,
                 &mut dot_cargo,
+                skip_targets_install,
             )
             .map_err(Error::AndroidInitFailed)?,
             Err(err) => {

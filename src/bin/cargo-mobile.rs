@@ -39,6 +39,8 @@ pub enum Command {
         #[structopt(flatten)]
         skip_dev_tools: cli::SkipDevTools,
         #[structopt(flatten)]
+        skip_targets_install: cli::SkipTargetsInstall,
+        #[structopt(flatten)]
         reinstall_deps: cli::ReinstallDeps,
         #[structopt(long = "open", help = "Open in default code editor")]
         open_in_editor: bool,
@@ -49,6 +51,8 @@ pub enum Command {
     New {
         #[structopt(flatten)]
         skip_dev_tools: cli::SkipDevTools,
+        #[structopt(flatten)]
+        skip_targets_install: cli::SkipTargetsInstall,
         #[structopt(flatten)]
         reinstall_deps: cli::ReinstallDeps,
         #[structopt(long = "open", help = "Open in default code editor")]
@@ -148,6 +152,10 @@ impl Exec for Input {
         match command {
             Command::Init {
                 skip_dev_tools: cli::SkipDevTools { skip_dev_tools },
+                skip_targets_install:
+                    cli::SkipTargetsInstall {
+                        skip_targets_install,
+                    },
                 reinstall_deps: cli::ReinstallDeps { reinstall_deps },
                 open_in_editor,
                 submodule_commit,
@@ -155,6 +163,7 @@ impl Exec for Input {
                 wrapper,
                 non_interactive,
                 skip_dev_tools,
+                skip_targets_install,
                 reinstall_deps,
                 open_in_editor,
                 submodule_commit,
@@ -164,6 +173,10 @@ impl Exec for Input {
             .map_err(|e| Error::InitFailed(*e)),
             Command::New {
                 skip_dev_tools: cli::SkipDevTools { skip_dev_tools },
+                skip_targets_install:
+                    cli::SkipTargetsInstall {
+                        skip_targets_install,
+                    },
                 reinstall_deps: cli::ReinstallDeps { reinstall_deps },
                 open_in_editor,
                 submodule_commit,
@@ -181,6 +194,7 @@ impl Exec for Input {
                     wrapper,
                     non_interactive,
                     skip_dev_tools,
+                    skip_targets_install,
                     reinstall_deps,
                     open_in_editor,
                     submodule_commit,
@@ -196,6 +210,7 @@ impl Exec for Input {
                     init::exec(
                         wrapper,
                         non_interactive,
+                        Default::default(),
                         Default::default(),
                         Default::default(),
                         Default::default(),

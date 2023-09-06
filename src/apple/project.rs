@@ -71,9 +71,12 @@ pub fn gen(
     skip_dev_tools: bool,
     reinstall_deps: bool,
     filter: &templating::Filter,
+    skip_targets_install: bool,
 ) -> Result<(), Error> {
-    println!("Installing iOS toolchains...");
-    Target::install_all().map_err(Error::RustupFailed)?;
+    if !skip_targets_install {
+        println!("Installing iOS toolchains...");
+        Target::install_all().map_err(Error::RustupFailed)?;
+    }
     rust_version_check(wrapper).map_err(Error::RustVersionCheckFailed)?;
 
     deps::install_all(wrapper, non_interactive, skip_dev_tools, reinstall_deps)
