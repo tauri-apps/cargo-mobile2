@@ -33,7 +33,7 @@ fn parse_device_list(output: &std::process::Output) -> Result<BTreeSet<Device>, 
     let devices = serde_json::from_str::<DeviceListOutput>(&stdout)?
         .devices
         .into_iter()
-        .filter(|(k, _)| k.contains("iOS"))
+        .filter(|(k, _)| k.contains("iOS") || k.contains("xrOS"))
         .flat_map(|(_, v)| v)
         .collect();
 
