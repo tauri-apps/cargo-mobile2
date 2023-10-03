@@ -1,7 +1,6 @@
 plugins {
     id("com.android.application")
-    id("rust")
-    {{#if android-app-plugins}}{{~#each android-app-plugins}}
+    id("rust"){{#if android-app-plugins}}{{~#each android-app-plugins}}
     id("{{this}}"){{/each}}{{/if}}
 }
 
@@ -26,8 +25,7 @@ android {
             isDebuggable = true
             isJniDebuggable = true
             isMinifyEnabled = false
-            packaging {
-                {{~#each abi-list}}
+            packaging { {{~#each abi-list}}
                 jniLibs.keepDebugSymbols.add("*/{{this}}/*.so"){{/each}}
             }
         }
@@ -49,9 +47,7 @@ rust {
     rootDirRel = "{{root-dir-rel}}"
 }
 
-dependencies {
-    {{#if android-app-dependencies-platform}}{{~#each android-app-dependencies-platform}}
-    implementation(platform("{{this}}")){{/each}}{{/if}}
-    {{#if android-app-dependencies}}{{~#each android-app-dependencies}}
-    implementation("{{this}}"){{/each}}{{/if}}
+dependencies { {{~#each android-app-dependencies-platform}}
+    implementation(platform("{{this}}")){{/each}}{{~#each android-app-dependencies}}
+    implementation("{{this}}"){{/each}}
 }
