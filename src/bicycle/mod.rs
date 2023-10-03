@@ -131,7 +131,7 @@ impl Bicycle {
     ///
     /// # Examples
     /// ```
-    /// use tauri_mobile::bicycle::{
+    /// use cargo_mobile2::bicycle::{
     ///     handlebars::{handlebars_helper, HelperDef},
     ///     Bicycle, EscapeFn, JsonMap,
     /// };
@@ -192,7 +192,7 @@ impl Bicycle {
     ///
     /// # Examples
     /// ```
-    /// use tauri_mobile::bicycle::Bicycle;
+    /// use cargo_mobile2::bicycle::Bicycle;
     ///
     /// let bike = Bicycle::default();
     /// let rendered = bike.render("Hello {{name}}!", |map| {

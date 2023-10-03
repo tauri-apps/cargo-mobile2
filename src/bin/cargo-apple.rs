@@ -3,7 +3,7 @@
 
 #[cfg(target_os = "macos")]
 fn main() {
-    use tauri_mobile::{
+    use cargo_mobile2::{
         apple::{cli::Input, NAME},
         util::cli::exec,
     };
@@ -12,7 +12,7 @@ fn main() {
 
 #[cfg(not(target_os = "macos"))]
 fn main() {
-    use tauri_mobile::util::cli::{Exit, Report};
+    use cargo_mobile2::util::cli::{Exit, Report};
     Exit::main(|_wrapper| {
         Err(Exit::Report(Report::error(
             "`cargo-apple` can only be used on macOS",
