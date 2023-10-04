@@ -8,7 +8,7 @@
     }
   },
   "packages": {
-    "tauri-mobile": {
+    "cargo-mobile2": {
       "path": ".",
       "postversion": ["cargo check"],
       "manager": "rust"
