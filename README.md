@@ -1,8 +1,4 @@
-# ❗⚠️ WARNING - DEPRECATION NOTICE ❗⚠️
-
-THIS CRATE HAS BEEN DEPRECATED, AND HAS BEEN RENAMED TO `cargo-mobile2`
-
-# tauri-mobile
+# cargo-mobile2
 
 > _The answer to "how do I use Rust on iOS and Android?"_
 >
@@ -10,17 +6,17 @@ THIS CRATE HAS BEEN DEPRECATED, AND HAS BEEN RENAMED TO `cargo-mobile2`
 
 This project is a fork of [cargo-mobile](https://github.com/BrainiumLLC/cargo-mobile/). Tauri uses it as a library dependency instead of using its CLI directly. For more information, please visit [Tauri's mobile guide](https://next--tauri.netlify.app/next/mobile/).
 
-In the meantime, tauri-mobile contains the template of wry, please follow [wry's instruction](https://github.com/tauri-apps/wry#android--ios) if you want to use with it.
+In the meantime, cargo-mobile2 contains the template of wry, please follow [wry's instruction](https://github.com/tauri-apps/wry#android--ios) if you want to use with it.
 
 ## Installation
 
 The build will probably take a bit, so feel free to go get a snack or something.
 
 ```bash
-cargo install --git https://github.com/tauri-apps/tauri-mobile
+cargo install --git https://github.com/tauri-apps/cargo-mobile2
 ```
 
-tauri-mobile is currently supported on macOS, Linux and Windows. Note that it's not possible to target iOS on platforms other than macOS! You'll still get to target Android either way.
+cargo-mobile2 is currently supported on macOS, Linux and Windows. Note that it's not possible to target iOS on platforms other than macOS! You'll still get to target Android either way.
 
 You'll need to have Xcode and the Android SDK/NDK installed. Some of this will ideally be automated in the future, or at least we'll provide a helpful guide and diagnostics.
 

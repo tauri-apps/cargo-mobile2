@@ -1,10 +1,9 @@
 ---
 name: Feature request
-about: Suggest an idea for Tauri-mobile
-title: ''
+about: Suggest an idea for cargo-mobile2
+title: ""
 labels: feature request
-assignees: ''
-
+assignees: ""
 ---
 
 **Is your feature request related to a problem? Please describe.**
@@ -17,10 +16,9 @@ A clear and concise description of what you want to happen.
 A clear and concise description of any alternative solutions or features you've considered.
 
 **Would you want to assign yourself to implement this feature?**
+
 - [ ] Yes
 - [ ] No
 
 **Additional context**
 Add any other context or screenshots about the feature request here.
-
-

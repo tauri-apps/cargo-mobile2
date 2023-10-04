@@ -1,2 +1,2 @@
-path = "~/.tauri-mobile/templates/apps/bevy"
+path = "~/.cargo-mobile2/templates/apps/bevy"
 base = "bevy-demo"

@@ -131,7 +131,7 @@ pub fn check() -> Section {
         Ok(teams) => {
             section.with_victories(teams.into_iter().map(|team| {
                 // TODO: improve development/developer consistency throughout
-                // tauri-mobile
+                // cargo-mobile2
                 format!("Development team: {} ({})", team.name, team.id)
             }))
         }

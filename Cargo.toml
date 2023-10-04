@@ -1,5 +1,5 @@
 [package]
-name = "tauri-mobile"
+name = "cargo-mobile2"
 version = "0.5.4"
 authors = [
   "Tauri Programme within The Commons Conservancy",
@@ -8,8 +8,8 @@ authors = [
 ]
 edition = "2021"
 description = "Rust on mobile made easy!"
-documentation = "https://docs.rs/tauri-mobile"
-repository = "https://github.com/tauri-apps/tauri-mobile"
+documentation = "https://docs.rs/cargo-mobile2"
+repository = "https://github.com/tauri-apps/cargo-mobile2"
 readme = "README.md"
 keywords = [ "cargo", "mobile", "ios", "android", "tauri" ]
 categories = [ "development-tools::cargo-plugins" ]
