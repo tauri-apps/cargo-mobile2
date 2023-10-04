@@ -104,7 +104,7 @@ version = "0.6.0"
 dependencies = [
  "cocoa",
  "colored",
- "core-foundation 0.7.0",
+ "core-foundation 0.9.3",
  "deunicode",
  "duct",
  "dunce",
