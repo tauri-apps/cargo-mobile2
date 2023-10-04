@@ -89,7 +89,7 @@ freedesktop_entry_parser = "1.1"
 lexical-core = "0.7.6"
 
 [target."cfg(unix)".dependencies]
-libc = "0.2.81"
+libc = "0.2.148"
 
 [target."cfg(windows)".dependencies.windows]
 version = "0.39.0"
