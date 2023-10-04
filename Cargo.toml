@@ -52,7 +52,7 @@ colored = "1.9"
 deunicode = "1.1"
 dunce = "1.0"
 english-numbers = "0.3"
-env_logger = { version = "0.7", optional = true }
+env_logger = { version = "0.10", optional = true }
 heck = "0.4"
 home = "0.5"
 ignore = "0.4"
