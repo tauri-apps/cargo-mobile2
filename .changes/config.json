@@ -1,5 +1,5 @@
 {
-  "gitSiteUrl": "https://github.com/tauri-apps/tauri-mobile/",
+  "gitSiteUrl": "https://github.com/tauri-apps/cargo-mobile2/",
   "pkgManagers": {
     "rust": {
       "version": true,
@@ -8,7 +8,7 @@
     }
   },
   "packages": {
-    "tauri-mobile": {
+    "cargo-mobile2": {
       "path": ".",
       "postversion": ["cargo check"],
       "manager": "rust"

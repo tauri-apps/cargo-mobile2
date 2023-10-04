@@ -42,7 +42,7 @@ pub fn check() -> Result<Section, Unrecoverable> {
                 ))
             } else {
                 Err(format!(
-                    "The tauri-mobile installation directory is missing! Checked at {:?}",
+                    "The cargo-mobile2 installation directory is missing! Checked at {:?}",
                     install_dir,
                 ))
             }),

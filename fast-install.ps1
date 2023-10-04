@@ -18,7 +18,7 @@ function copyy {
     cp "$cargoTargetDir\debug\cargo-$args.exe" "$cargoHome\bin\cargo-$args.exe"
 }
 
-cargo build -p tauri-mobile
+cargo build -p cargo-mobile2
 copyy "android"
 copyy "apple"
 copyy "mobile"
