@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.6.0]
+
+- [`5f17581`](https://github.com/tauri-apps/cargo-mobile2/commit/5f175810ee87074e67ba966461f0b0c805453971)([#219](https://github.com/tauri-apps/cargo-mobile2/pull/219)) Rename this crate to `cargo-mobile2`
+
 ## \[0.5.4]
 
 - [`21b1386`](https://github.com/tauri-apps/tauri-mobile/commit/21b13866be1a96b01bc52d63d0b005248a014862)([#208](https://github.com/tauri-apps/tauri-mobile/pull/208)) Allow selecting "Apple Vision Pro" as an emulator.
