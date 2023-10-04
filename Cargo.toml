@@ -61,7 +61,7 @@ java-properties = { version = "1.2.0" }
 log = "0.4.8"
 once-cell-regex = "0.2.1"
 path_abs = "0.5.0"
-serde = { version = "1.0.105", features = [ "derive" ] }
+serde = { version = "1.0.188", features = [ "derive" ] }
 structopt = { version = "0.3.12", optional = true }
 textwrap = { version = "0.11.0", features = [ "term_size" ] }
 thiserror = "1.0.48"
@@ -115,6 +115,6 @@ home = { version = "0.5.3", optional = true }
 dunce = { version = "1.0.2", optional = true }
 handlebars = { version = "4.3.7", optional = true }
 log = { version = "0.4.11", optional = true }
-serde = { version = "1.0.114", optional = true }
+serde = { version = "1.0.188", optional = true }
 serde_json = { version = "1.0.57", optional = true }
 thiserror = { version = "1.0.48", optional = true }
