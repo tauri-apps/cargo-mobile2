@@ -1,31 +1,31 @@
 [package]
 name = "tauri-mobile"
-version = "0.5.3"
+version = "0.5.4"
 authors = [
   "Tauri Programme within The Commons Conservancy",
   "Brainium Studios LLC",
-  "Francesca Lovebloom <francesca@brainiumstudios.com>",
+  "Francesca Lovebloom <francesca@brainiumstudios.com>"
 ]
 edition = "2021"
 description = "Rust on mobile made easy!"
 documentation = "https://docs.rs/tauri-mobile"
 repository = "https://github.com/tauri-apps/tauri-mobile"
 readme = "README.md"
-keywords = ["cargo", "mobile", "ios", "android", "tauri"]
-categories = ["development-tools::cargo-plugins"]
+keywords = [ "cargo", "mobile", "ios", "android", "tauri" ]
+categories = [ "development-tools::cargo-plugins" ]
 license = "Apache-2.0 OR MIT"
 
 [[bin]]
 name = "cargo-mobile"
-required-features = ["cli"]
+required-features = [ "cli" ]
 
 [[bin]]
 name = "cargo-apple"
-required-features = ["cli"]
+required-features = [ "cli" ]
 
 [[bin]]
 name = "cargo-android"
-required-features = ["cli"]
+required-features = [ "cli" ]
 
 [features]
 cli = [
@@ -37,13 +37,13 @@ cli = [
   "serde_json",
   "thiserror",
   "structopt",
-  "env_logger",
+  "env_logger"
 ]
-brainium = []
-rustls = ["ureq/tls"]
-native-tls = ["ureq/native-tls"]
-openssl-vendored = ["openssl/vendored"]
-default = ["cli", "ureq/native-tls"]
+brainium = [ ]
+rustls = [ "ureq/tls" ]
+native-tls = [ "ureq/native-tls" ]
+openssl-vendored = [ "openssl/vendored" ]
+default = [ "cli", "ureq/native-tls" ]
 
 [dependencies]
 handlebars = "4.3"
@@ -61,11 +61,11 @@ java-properties = { version = "1.2" }
 log = "0.4"
 once-cell-regex = "0.2"
 path_abs = "0.5"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", features = [ "derive" ] }
 structopt = { version = "0.3", optional = true }
-textwrap = { version = "0.11", features = ["term_size"] }
+textwrap = { version = "0.11", features = [ "term_size" ] }
 thiserror = "1.0"
-toml = { version = "0.5", features = ["preserve_order"] }
+toml = { version = "0.5", features = [ "preserve_order" ] }
 os_pipe = "1"
 duct = "0.13"
 which = "4.4"
@@ -82,7 +82,7 @@ objc = "0.2"
 objc_id = "0.1"
 
 [target."cfg(not(target_os = \"macos\"))".dependencies]
-ureq = { version = "2.4", default-features = false, features = ["gzip"] }
+ureq = { version = "2.4", default-features = false, features = [ "gzip" ] }
 
 [target."cfg(target_os = \"linux\")".dependencies]
 freedesktop_entry_parser = "1.1"
@@ -104,7 +104,7 @@ features = [
   "Win32_System_Registry",
   "Win32_System_SystemInformation",
   "Win32_System_SystemServices",
-  "Win32_UI_Shell",
+  "Win32_UI_Shell"
 ]
 
 [target."cfg(windows)".build-dependencies]
