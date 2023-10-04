@@ -1,8 +1,11 @@
+# ❗⚠️ WARNING - DEPRECATION NOTICE ❗⚠️
+
+THIS CRATE HAS BEEN DEPRECATED, AND HAS BEEN RENAMED TO `cargo-mobile2`
+
 # tauri-mobile
 
-
-> *The answer to "how do I use Rust on iOS and Android?"*
-> 
+> _The answer to "how do I use Rust on iOS and Android?"_
+>
 > cargo-mobile takes care of generating Xcode and Android Studio project files, building and running on device, generating project boilerplate, and a few other things!
 
 This project is a fork of [cargo-mobile](https://github.com/BrainiumLLC/cargo-mobile/). Tauri uses it as a library dependency instead of using its CLI directly. For more information, please visit [Tauri's mobile guide](https://next--tauri.netlify.app/next/mobile/).
@@ -37,10 +40,10 @@ cargo mobile init
 
 After some straightforward prompts, you'll be asked to select a template pack. Template packs are used to generate project boilerplate, i.e. using the `wry` template pack gives you a [wry](https://github.com/tauri-apps/wry) project that runs out-of-the-box on desktop and mobile.
 
-| name      | info                                                                                                                  |
-| --------- | ----------------------------------------------------------------------------------------------------------------------|
-| wry       | Minimal wry project                                                                                                   |
-| egui      | Full egui + winit + wgpu example based on [agdk-egui example](https://github.com/rust-mobile/rust-android-examples)   |
+| name | info                                                                                                                |
+| ---- | ------------------------------------------------------------------------------------------------------------------- |
+| wry  | Minimal wry project                                                                                                 |
+| egui | Full egui + winit + wgpu example based on [agdk-egui example](https://github.com/rust-mobile/rust-android-examples) |
 
 **Template pack contribution is welcomed**
 

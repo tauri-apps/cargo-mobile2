@@ -1,5 +1,12 @@
 # Changelog
 
+## \[0.5.4]
+
+- [`21b1386`](https://github.com/tauri-apps/tauri-mobile/commit/21b13866be1a96b01bc52d63d0b005248a014862)([#208](https://github.com/tauri-apps/tauri-mobile/pull/208)) Allow selecting "Apple Vision Pro" as an emulator.
+- [`02dd3e3`](https://github.com/tauri-apps/tauri-mobile/commit/02dd3e3c37bc1d35a4e710ffd4a950815308cfd3)([#214](https://github.com/tauri-apps/tauri-mobile/pull/214)) Fix Android template generation.
+- [`a82bf57`](https://github.com/tauri-apps/tauri-mobile/commit/a82bf571ec69eadd07424402def6bd8565076884)([#202](https://github.com/tauri-apps/tauri-mobile/pull/202)) Fixes `Device::run` not showing logs.
+- [`a26988a`](https://github.com/tauri-apps/tauri-mobile/commit/a26988af02c13a2cce2d34b95809a8b8a4671164)([#206](https://github.com/tauri-apps/tauri-mobile/pull/206)) Add `--skip-targets-install` option for `cargo mobile new` and `cargo mobile init`
+
 ## \[0.5.3]
 
 - [`9719aae`](https://github.com/tauri-apps/tauri-mobile/commit/9719aaeaae14560109f0ee81956f1f9083c1cc3a)([#185](https://github.com/tauri-apps/tauri-mobile/pull/185)) Fix template failing to be rendered due to missing variables on strict mode.
