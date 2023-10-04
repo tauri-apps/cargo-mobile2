@@ -140,12 +140,15 @@ pub fn gen(
             map.insert("android-app-plugins", metadata.app_plugins());
             map.insert(
                 "android-project-dependencies",
-                metadata.project_dependencies(),
+                metadata.project_dependencies().unwrap_or_default(),
             );
-            map.insert("android-app-dependencies", metadata.app_dependencies());
+            map.insert(
+                "android-app-dependencies",
+                metadata.app_dependencies().unwrap_or_default(),
+            );
             map.insert(
                 "android-app-dependencies-platform",
-                metadata.app_dependencies_platform(),
+                metadata.app_dependencies_platform().unwrap_or_default(),
             );
             map.insert(
                 "has-code",

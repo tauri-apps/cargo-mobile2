@@ -4,9 +4,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:8.0.0")
-        {{#if android-project-dependencies}}{{~#each android-project-dependencies}}
-        classpath("{{this}}"){{/each}}{{/if}}
+        classpath("com.android.tools.build:gradle:8.0.0"){{~#each android-project-dependencies}}
+        classpath("{{this}}"){{/each}}
     }
 }
 
