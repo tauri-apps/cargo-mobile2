@@ -71,7 +71,7 @@ duct = "0.13"
 which = "4.4"
 
 [dev-dependencies]
-rstest = "0.12"
+rstest = "0.18"
 simple_logger = "1.11"
 
 [target."cfg(target_os = \"macos\")".dependencies]
