@@ -6,7 +6,7 @@ authors = [
   "Brainium Studios LLC",
   "Francesca Lovebloom <francesca@brainiumstudios.com>"
 ]
-edition = "2018"
+edition = "2021"
 description = "Rust on mobile made easy!"
 documentation = "https://docs.rs/tauri-mobile"
 repository = "https://github.com/tauri-apps/tauri-mobile"
