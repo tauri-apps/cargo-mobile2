@@ -1,4 +1,4 @@
-use super::target::Target;
+use super::super::target::Target;
 use crate::apple::device::Device as AppleDevice;
 use crate::env::{Env, ExplicitEnv};
 use crate::DuctExpressionExt;

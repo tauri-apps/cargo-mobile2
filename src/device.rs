@@ -6,7 +6,7 @@ use std::{
 };
 
 #[derive(Debug, thiserror::Error)]
-pub enum PromptErrorCause<T: Reportable + Error> {
+pub enum PromptErrorCause<T: Display> {
     #[error(transparent)]
     DetectionFailed(T),
     #[error(transparent)]
@@ -16,12 +16,12 @@ pub enum PromptErrorCause<T: Reportable + Error> {
 }
 
 #[derive(Debug)]
-pub struct PromptError<T: Reportable + Error> {
+pub struct PromptError<T: Display> {
     name: &'static str,
     cause: PromptErrorCause<T>,
 }
 
-impl<T: Reportable + Error> Display for PromptError<T> {
+impl<T: Display> Display for PromptError<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.cause {
             PromptErrorCause::DetectionFailed(err) => write!(f, "{}", err),
@@ -37,12 +37,14 @@ impl<T: Reportable + Error> Display for PromptError<T> {
     }
 }
 
-impl<T: Reportable + Error> Error for PromptError<T> {}
+impl<T: Debug + Display> Error for PromptError<T> {}
 
-impl<T: Reportable + Error> Reportable for PromptError<T> {
+impl<T: Debug + Display> Reportable for PromptError<T> {
     fn report(&self) -> Report {
         match &self.cause {
-            PromptErrorCause::DetectionFailed(err) => err.report(),
+            PromptErrorCause::DetectionFailed(err) => {
+                Report::error("failed to detect devices", err)
+            }
             PromptErrorCause::PromptFailed(err) => {
                 Report::error(format!("Failed to prompt for {} device", self.name), err)
             }
@@ -54,7 +56,7 @@ impl<T: Reportable + Error> Reportable for PromptError<T> {
     }
 }
 
-impl<T: Reportable + Error> PromptError<T> {
+impl<T: Debug + Display> PromptError<T> {
     pub fn new(name: &'static str, cause: PromptErrorCause<T>) -> Self {
         Self { name, cause }
     }

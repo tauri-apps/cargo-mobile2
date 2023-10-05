@@ -2,7 +2,10 @@ mod update;
 pub(crate) mod xcode_plugin;
 
 use self::update::{Outdated, OutdatedError};
-use super::system_profile::{self, DeveloperTools};
+use super::{
+    system_profile::{self, DeveloperTools},
+    use_ios_deploy,
+};
 use crate::util::{
     self,
     cli::{Report, TextWrapper},
@@ -14,7 +17,6 @@ use thiserror::Error;
 
 static PACKAGES: &[PackageSpec] = &[
     PackageSpec::brew("xcodegen"),
-    PackageSpec::brew("ios-deploy"),
     PackageSpec::brew("libimobiledevice").with_bin_name("idevicesyslog"),
     PackageSpec::brew_or_gem("cocoapods").with_bin_name("pod"),
 ];
@@ -187,6 +189,9 @@ pub fn install_all(
     let mut gem_cache = GemCache::new();
     for package in PACKAGES {
         package.install(reinstall_deps, &mut gem_cache)?;
+    }
+    if use_ios_deploy() {
+        PackageSpec::brew("ios-deploy").install(reinstall_deps, &mut gem_cache)?;
     }
     gem_cache.initialize()?;
     let outdated = Outdated::load(&mut gem_cache)?;

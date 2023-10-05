@@ -1,19 +1,26 @@
 use super::{
     config::Config,
-    ios_deploy, simctl,
     target::{ArchiveError, BuildError, ExportError, Target},
 };
 use crate::{
+    apple::use_ios_deploy,
     env::{Env, ExplicitEnv as _},
     opts,
     util::cli::{Report, Reportable},
     DuctExpressionExt,
 };
 use std::{
+    collections::BTreeSet,
     fmt::{self, Display},
     path::PathBuf,
 };
 use thiserror::Error;
+
+mod devicectl;
+mod ios_deploy;
+mod simctl;
+
+pub use simctl::Device as Simulator;
 
 #[derive(Debug, Error)]
 pub enum RunError {
@@ -27,10 +34,8 @@ pub enum RunError {
     IpaMissing { old: PathBuf, new: PathBuf },
     #[error("Failed to unzip archive: {0}")]
     UnzipFailed(std::io::Error),
-    #[error(transparent)]
-    DeployFailed(ios_deploy::RunAndDebugError),
-    #[error(transparent)]
-    SimulatorDeployFailed(simctl::RunError),
+    #[error("{0}")]
+    DeployFailed(String),
 }
 
 impl Reportable for RunError {
@@ -44,8 +49,7 @@ impl Reportable for RunError {
                 format!("Not found at either {:?} or {:?}", old, new),
             ),
             Self::UnzipFailed(err) => Report::error("Failed to unzip archive", err),
-            Self::DeployFailed(err) => err.report(),
-            Self::SimulatorDeployFailed(err) => err.report(),
+            Self::DeployFailed(err) => Report::error("Failed to deploy app", err),
         }
     }
 }
@@ -113,7 +117,7 @@ impl<'a> Device<'a> {
 
         if self.simulator {
             simctl::run(config, env, non_interactive, &self.id)
-                .map_err(RunError::SimulatorDeployFailed)
+                .map_err(|e| RunError::DeployFailed(e.to_string()))
         } else {
             println!("Exporting app...");
             self.target
@@ -137,8 +141,25 @@ impl<'a> Device<'a> {
 
             cmd.run().map_err(RunError::UnzipFailed)?;
 
-            ios_deploy::run_and_debug(config, env, non_interactive, &self.id)
-                .map_err(RunError::DeployFailed)
+            if use_ios_deploy() {
+                ios_deploy::run_and_debug(config, env, non_interactive, &self.id)
+                    .map_err(|e| RunError::DeployFailed(e.to_string()))
+            } else {
+                devicectl::run(config, env, non_interactive, &self.id)
+                    .map_err(|e| RunError::DeployFailed(e.to_string()))
+            }
         }
     }
+}
+
+pub fn list_devices<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, String> {
+    if use_ios_deploy() {
+        ios_deploy::device_list(env).map_err(|e| e.to_string())
+    } else {
+        devicectl::device_list(env).map_err(|e| e.to_string())
+    }
+}
+
+pub fn list_simulators<'a>(env: &Env) -> Result<BTreeSet<Simulator>, String> {
+    simctl::device_list(env).map_err(|e| e.to_string())
 }

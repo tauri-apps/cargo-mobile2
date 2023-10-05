@@ -3,9 +3,7 @@ pub mod cli;
 pub mod config;
 pub mod deps;
 pub mod device;
-pub mod ios_deploy;
 pub mod project;
-pub mod simctl;
 pub(crate) mod system_profile;
 pub mod target;
 pub mod teams;
@@ -25,4 +23,11 @@ pub fn rust_version_check(wrapper: &TextWrapper) -> Result<(), util::RustVersion
             "This is fixed in Rust 1.49.0 and later:\n`rustup update stable && rustup default stable`",
         ).print(wrapper);
     })
+}
+
+pub fn use_ios_deploy() -> bool {
+    matches!(
+        os_info::get().version(),
+        os_info::Version::Semantic(major, _, _)
+        if *major < 14)
 }
