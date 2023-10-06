@@ -77,7 +77,7 @@ fn parse_device_list<'a>(json: String) -> Result<BTreeSet<Device<'a>>, DeviceLis
         .devices
         .into_iter()
         .filter(|device| {
-            device.connection_properties.tunnel_state == "available"
+            device.connection_properties.tunnel_state != "unavailable"
                 && (device.hardware_properties.platform.contains("iOS")
                     || device.hardware_properties.platform.contains("xrOS"))
         })
