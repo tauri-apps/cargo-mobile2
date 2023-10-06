@@ -3,8 +3,8 @@ pub(crate) mod xcode_plugin;
 
 use self::update::{Outdated, OutdatedError};
 use super::{
+    device_ctl_available,
     system_profile::{self, DeveloperTools},
-    use_ios_deploy,
 };
 use crate::util::{
     self,
@@ -190,7 +190,7 @@ pub fn install_all(
     for package in PACKAGES {
         package.install(reinstall_deps, &mut gem_cache)?;
     }
-    if use_ios_deploy() {
+    if !device_ctl_available() {
         PackageSpec::brew("ios-deploy").install(reinstall_deps, &mut gem_cache)?;
     }
     gem_cache.initialize()?;

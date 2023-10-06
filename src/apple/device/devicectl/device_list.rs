@@ -1,5 +1,8 @@
 use crate::{
-    apple::{device::Device, target::Target},
+    apple::{
+        device::{Device, DeviceKind},
+        target::Target,
+    },
     env::{Env, ExplicitEnv as _},
     util::cli::{Report, Reportable},
     DuctExpressionExt,
@@ -39,7 +42,15 @@ pub struct HardwareProperties {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ConnectionProperties {
+    pairing_state: String,
+    tunnel_state: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DeviceListDevice {
+    connection_properties: ConnectionProperties,
     device_properties: DeviceProperties,
     hardware_properties: HardwareProperties,
 }
@@ -66,8 +77,9 @@ fn parse_device_list<'a>(json: String) -> Result<BTreeSet<Device<'a>>, DeviceLis
         .devices
         .into_iter()
         .filter(|device| {
-            device.hardware_properties.platform.contains("iOS")
-                || device.hardware_properties.platform.contains("xrOS")
+            device.connection_properties.tunnel_state == "available"
+                && (device.hardware_properties.platform.contains("iOS")
+                    || device.hardware_properties.platform.contains("xrOS"))
         })
         .map(|device| {
             Device::new(
@@ -85,7 +97,9 @@ fn parse_device_list<'a>(json: String) -> Result<BTreeSet<Device<'a>>, DeviceLis
                     Target::for_arch("x86_64")
                 }
                 .expect("invalid target arch"),
+                DeviceKind::DeviceCtlDevice,
             )
+            .paired(device.connection_properties.pairing_state == "paired")
         })
         .collect();
 

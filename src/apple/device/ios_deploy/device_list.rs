@@ -1,6 +1,9 @@
 use super::{DeviceInfo, Event};
 use crate::{
-    apple::{device::Device, target::Target},
+    apple::{
+        device::{Device, DeviceKind},
+        target::Target,
+    },
     env::{Env, ExplicitEnv as _},
     util::cli::{Report, Reportable},
     DuctExpressionExt,
@@ -37,7 +40,15 @@ fn parse_device_list<'a>(
                  model_name,
              }| {
                 Target::for_arch(&model_arch)
-                    .map(|target| Device::new(device_identifier, device_name, model_name, target))
+                    .map(|target| {
+                        Device::new(
+                            device_identifier,
+                            device_name,
+                            model_name,
+                            target,
+                            DeviceKind::IosDeployDevice,
+                        )
+                    })
                     .ok_or_else(|| DeviceListError::ArchInvalid(model_arch))
             },
         )

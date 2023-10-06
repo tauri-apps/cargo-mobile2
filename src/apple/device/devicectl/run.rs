@@ -56,15 +56,18 @@ pub fn run(
     env: &Env,
     non_interactive: bool,
     id: &str,
+    paired: bool,
 ) -> Result<duct::Handle, RunError> {
-    println!("Pairing with device...");
+    if !paired {
+        println!("Pairing with device...");
 
-    // ignore errors if the device was already paired
-    let _ = duct::cmd("xcrun", ["devicectl", "manage", "pair", "--device", id])
-        .vars(env.explicit_env())
-        .stdout_capture()
-        .stderr_capture()
-        .run();
+        duct::cmd("xcrun", ["devicectl", "manage", "pair", "--device", id])
+            .vars(env.explicit_env())
+            .stdout_capture()
+            .stderr_capture()
+            .run()
+            .map_err(RunError::DeployFailed)?;
+    }
 
     println!("Deploying app to device...");
 

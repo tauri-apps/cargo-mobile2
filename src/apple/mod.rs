@@ -25,9 +25,9 @@ pub fn rust_version_check(wrapper: &TextWrapper) -> Result<(), util::RustVersion
     })
 }
 
-pub fn use_ios_deploy() -> bool {
+pub fn device_ctl_available() -> bool {
     matches!(
         os_info::get().version(),
         os_info::Version::Semantic(major, _, _)
-        if *major < 14)
+        if *major >= 14)
 }

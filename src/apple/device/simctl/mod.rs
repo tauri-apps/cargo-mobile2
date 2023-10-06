@@ -1,4 +1,5 @@
 use super::super::target::Target;
+use super::DeviceKind;
 use crate::apple::device::Device as AppleDevice;
 use crate::env::{Env, ExplicitEnv};
 use crate::DuctExpressionExt;
@@ -36,8 +37,8 @@ impl<'a> From<Device> for AppleDevice<'a> {
                 "x86_64"
             })
             .unwrap(),
+            DeviceKind::Simulator,
         )
-        .simulator()
     }
 }
 

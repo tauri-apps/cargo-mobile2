@@ -1,9 +1,9 @@
 use super::{
     config::Config,
+    deps::{GemCache, PackageSpec},
     target::{ArchiveError, BuildError, ExportError, Target},
 };
 use crate::{
-    apple::use_ios_deploy,
     env::{Env, ExplicitEnv as _},
     opts,
     util::cli::{Report, Reportable},
@@ -55,12 +55,20 @@ impl Reportable for RunError {
 }
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum DeviceKind {
+    Simulator,
+    IosDeployDevice,
+    DeviceCtlDevice,
+}
+
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Device<'a> {
     id: String,
     name: String,
     model: String,
     target: &'a Target<'a>,
-    simulator: bool,
+    kind: DeviceKind,
+    paired: bool,
 }
 
 impl<'a> Display for Device<'a> {
@@ -70,18 +78,25 @@ impl<'a> Display for Device<'a> {
 }
 
 impl<'a> Device<'a> {
-    pub(super) fn new(id: String, name: String, model: String, target: &'a Target<'a>) -> Self {
+    pub(super) fn new(
+        id: String,
+        name: String,
+        model: String,
+        target: &'a Target<'a>,
+        kind: DeviceKind,
+    ) -> Self {
         Self {
             id,
             name,
             model,
             target,
-            simulator: false,
+            kind,
+            paired: true,
         }
     }
 
-    pub fn simulator(mut self) -> Self {
-        self.simulator = true;
+    pub fn paired(mut self, paired: bool) -> Self {
+        self.paired = paired;
         self
     }
 
@@ -115,48 +130,70 @@ impl<'a> Device<'a> {
             .archive(config, env, noise_level, profile, None)
             .map_err(RunError::ArchiveFailed)?;
 
-        if self.simulator {
-            simctl::run(config, env, non_interactive, &self.id)
-                .map_err(|e| RunError::DeployFailed(e.to_string()))
-        } else {
-            println!("Exporting app...");
-            self.target
-                .export(config, env, noise_level)
-                .map_err(RunError::ExportFailed)?;
-            println!("Extracting IPA...");
+        match self.kind {
+            DeviceKind::Simulator => simctl::run(config, env, non_interactive, &self.id)
+                .map_err(|e| RunError::DeployFailed(e.to_string())),
+            DeviceKind::IosDeployDevice | DeviceKind::DeviceCtlDevice => {
+                println!("Exporting app...");
+                self.target
+                    .export(config, env, noise_level)
+                    .map_err(RunError::ExportFailed)?;
+                println!("Extracting IPA...");
 
-            let ipa_path = config
-                .ipa_path()
-                .map_err(|(old, new)| RunError::IpaMissing { old, new })?;
-            let export_dir = config.export_dir();
-            let cmd = duct::cmd::<&str, [String; 0]>("unzip", [])
-                .vars(env.explicit_env())
-                .before_spawn(move |cmd| {
-                    if noise_level.pedantic() {
-                        cmd.arg("-q");
-                    }
-                    cmd.arg("-o").arg(&ipa_path).arg("-d").arg(&export_dir);
-                    Ok(())
-                });
+                let ipa_path = config
+                    .ipa_path()
+                    .map_err(|(old, new)| RunError::IpaMissing { old, new })?;
+                let export_dir = config.export_dir();
+                let cmd = duct::cmd::<&str, [String; 0]>("unzip", [])
+                    .vars(env.explicit_env())
+                    .before_spawn(move |cmd| {
+                        if noise_level.pedantic() {
+                            cmd.arg("-q");
+                        }
+                        cmd.arg("-o").arg(&ipa_path).arg("-d").arg(&export_dir);
+                        Ok(())
+                    });
 
-            cmd.run().map_err(RunError::UnzipFailed)?;
+                cmd.run().map_err(RunError::UnzipFailed)?;
 
-            if use_ios_deploy() {
-                ios_deploy::run_and_debug(config, env, non_interactive, &self.id)
-                    .map_err(|e| RunError::DeployFailed(e.to_string()))
-            } else {
-                devicectl::run(config, env, non_interactive, &self.id)
-                    .map_err(|e| RunError::DeployFailed(e.to_string()))
+                if self.kind == DeviceKind::IosDeployDevice {
+                    ios_deploy::run_and_debug(config, env, non_interactive, &self.id)
+                        .map_err(|e| RunError::DeployFailed(e.to_string()))
+                } else {
+                    devicectl::run(config, env, non_interactive, &self.id, self.paired)
+                        .map_err(|e| RunError::DeployFailed(e.to_string()))
+                }
             }
         }
     }
 }
 
 pub fn list_devices<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, String> {
-    if use_ios_deploy() {
-        ios_deploy::device_list(env).map_err(|e| e.to_string())
+    let mut devices = BTreeSet::default();
+    let mut error = None;
+
+    // devicectl
+    match devicectl::device_list(env) {
+        Ok(d) => {
+            devices.extend(d);
+        }
+        Err(e) => {
+            error = Some(e);
+        }
+    }
+
+    // if we could not find a device with devicectl, let's use ios-deploy
+    if devices.is_empty() {
+        PackageSpec::brew("ios-deploy")
+            .install(false, &mut GemCache::new())
+            .map_err(|e| e.to_string())?;
+        return ios_deploy::device_list(env).map_err(|e| e.to_string());
+    }
+
+    if let Some(err) = error {
+        Err(err.to_string())
     } else {
-        devicectl::device_list(env).map_err(|e| e.to_string())
+        Ok(devices)
     }
 }
 
