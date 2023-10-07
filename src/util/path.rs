@@ -67,10 +67,6 @@ pub fn tools_dir() -> Result<PathBuf, NoHomeDir> {
     install_dir().map(|install_dir| install_dir.join("tools"))
 }
 
-pub fn temp_dir() -> PathBuf {
-    std::env::temp_dir().join("com.brainiumstudios.cargo-mobile2")
-}
-
 #[derive(Debug)]
 pub struct PathNotPrefixed {
     path: PathBuf,

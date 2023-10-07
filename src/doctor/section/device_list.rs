@@ -9,8 +9,7 @@ pub fn check(env: &Env) -> Section {
 
     #[cfg(target_os = "macos")]
     let section = {
-        use crate::apple::ios_deploy;
-        match ios_deploy::device_list(env) {
+        match crate::apple::device::list_devices(env) {
             Ok(list) => section.with_victories(list),
             Err(err) => section.with_failure(format!("Failed to get iOS device list: {}", err)),
         }

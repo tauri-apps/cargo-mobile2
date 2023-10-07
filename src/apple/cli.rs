@@ -1,8 +1,8 @@
 use crate::{
     apple::{
         config::{Config, Metadata},
-        device::{Device, RunError},
-        ios_deploy, rust_version_check,
+        device::{self, Device, RunError},
+        rust_version_check,
         target::{ArchiveError, BuildError, CheckError, CompileLibError, ExportError, Target},
         NAME,
     },
@@ -152,7 +152,7 @@ pub enum Command {
 pub enum Error {
     EnvInitFailed(EnvError),
     RustVersionCheckFailed(util::RustVersionError),
-    DevicePromptFailed(PromptError<ios_deploy::DeviceListError>),
+    DevicePromptFailed(PromptError<String>),
     TargetInvalid(TargetInvalid),
     ConfigFailed(LoadOrGenError),
     MetadataFailed(metadata::Error),
@@ -164,7 +164,7 @@ pub enum Error {
     ArchiveFailed(ArchiveError),
     ExportFailed(ExportError),
     RunFailed(RunError),
-    ListFailed(ios_deploy::DeviceListError),
+    ListFailed(String),
     NoHomeDir(util::NoHomeDir),
     CargoEnvFailed(std::io::Error),
     SdkRootInvalid { sdk_root: PathBuf },
@@ -197,7 +197,7 @@ impl Reportable for Error {
             Self::ArchiveFailed(err) => err.report(),
             Self::ExportFailed(err) => err.report(),
             Self::RunFailed(err) => err.report(),
-            Self::ListFailed(err) => err.report(),
+            Self::ListFailed(err) => Report::error("Failed to list devices", err),
             Self::NoHomeDir(err) => Report::error("Failed to load cargo env profile", err),
             Self::CargoEnvFailed(err) => Report::error("Failed to load cargo env profile", err),
             Self::SdkRootInvalid { sdk_root } => Report::error(
@@ -232,7 +232,7 @@ impl Exec for Input {
     }
 
     fn exec(self, wrapper: &TextWrapper) -> Result<(), Self::Report> {
-        define_device_prompt!(ios_deploy::device_list, ios_deploy::DeviceListError, iOS);
+        define_device_prompt!(crate::apple::device::list_devices, String, iOS);
         fn detect_target_ok<'a>(env: &Env) -> Option<&'a Target<'a>> {
             device_prompt(env).map(|device| device.target()).ok()
         }
@@ -356,17 +356,19 @@ impl Exec for Input {
                     .map_err(Error::DevicePromptFailed)?
                     .run(config, &env, noise_level, non_interactive, profile)
                     .and_then(|h| {
-                        h.wait().map(|_| ()).map_err(|e| {
-                            RunError::DeployFailed(ios_deploy::RunAndDebugError::DeployFailed(e))
-                        })
+                        h.wait()
+                            .map(|_| ())
+                            .map_err(|e| RunError::DeployFailed(e.to_string()))
                     })
                     .map_err(Error::RunFailed)
             }),
-            Command::List => ios_deploy::device_list(&env)
-                .map_err(Error::ListFailed)
-                .map(|device_list| {
-                    prompt::list_display_only(device_list.iter(), device_list.len());
-                }),
+            Command::List => {
+                device::list_devices(&env)
+                    .map_err(Error::ListFailed)
+                    .map(|device_list| {
+                        prompt::list_display_only(device_list.iter(), device_list.len());
+                    })
+            }
             Command::Pod { mut arguments } => with_config(non_interactive, wrapper, |config, _| {
                 arguments.push(format!(
                     "--project-directory={}",
