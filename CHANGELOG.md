@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.7.0]
+
+- [`739c965`](https://github.com/tauri-apps/cargo-mobile2/commit/739c965ffe7aa4bbf4162d293aea4613902bd588)([#241](https://github.com/tauri-apps/cargo-mobile2/pull/241)) Use `devicectl` on macOS 14+ to connect to iOS 17+ devices.
+
 ## \[0.6.0]
 
 - [`5f17581`](https://github.com/tauri-apps/cargo-mobile2/commit/5f175810ee87074e67ba966461f0b0c805453971)([#219](https://github.com/tauri-apps/cargo-mobile2/pull/219)) Rename this crate to `cargo-mobile2`
