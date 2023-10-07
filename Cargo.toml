@@ -72,7 +72,7 @@ which = "4.4"
 
 [dev-dependencies]
 rstest = "0.18"
-simple_logger = "1.11"
+simple_logger = "4.2"
 
 [target."cfg(target_os = \"macos\")".dependencies]
 cocoa = "0.20"
