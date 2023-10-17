@@ -11,11 +11,10 @@ use std::{
 };
 use thiserror::Error;
 use windows::{
-    core::{self, HSTRING, PCWSTR, PWSTR},
-    w,
+    core::{self, w, PCWSTR, PWSTR},
     Win32::{
-        Foundation::{ERROR_NO_ASSOCIATION, ERROR_SUCCESS, MAX_PATH},
-        System::{Memory::LocalFree, Registry::HKEY_LOCAL_MACHINE},
+        Foundation::{LocalFree, ERROR_NO_ASSOCIATION, HLOCAL, MAX_PATH},
+        System::Registry::HKEY_LOCAL_MACHINE,
         UI::Shell::{
             AssocQueryStringW, CommandLineToArgvW, SHRegGetPathW, ASSOCF_INIT_IGNOREUNKNOWN,
             ASSOCSTR_COMMAND,
@@ -52,8 +51,8 @@ pub struct Application {
     argv: Vec<OsString>,
 }
 
-const RUST_EXT: &HSTRING = w!(".rs");
-const TEXT_EXT: &HSTRING = w!(".txt");
+const RUST_EXT: PCWSTR = w!(".rs");
+const TEXT_EXT: PCWSTR = w!(".txt");
 
 impl Application {
     pub fn detect_editor() -> Result<Self, DetectEditorError> {
@@ -77,11 +76,11 @@ impl Application {
         Ok(())
     }
 
-    fn detect_associated_command(ext: &HSTRING) -> Result<Vec<u16>, DetectEditorError> {
+    fn detect_associated_command(ext: PCWSTR) -> Result<Vec<u16>, DetectEditorError> {
         let mut len: u32 = 0;
         if let Err(e) = unsafe {
             AssocQueryStringW(
-                ASSOCF_INIT_IGNOREUNKNOWN as u32,
+                ASSOCF_INIT_IGNOREUNKNOWN,
                 ASSOCSTR_COMMAND,
                 // In Shlwapi.h, this parameter's type is `LPCWSTR`.
                 // So it's not modified actually.
@@ -90,6 +89,7 @@ impl Application {
                 PWSTR::null(),
                 &mut len as _,
             )
+            .ok()
         } {
             if e.code().0 == (0x80070000 | ERROR_NO_ASSOCIATION.0) as i32 {
                 return Err(DetectEditorError::NoDefaultEditorSet);
@@ -99,7 +99,7 @@ impl Application {
         let mut command: Vec<u16> = vec![0; len as usize];
         unsafe {
             AssocQueryStringW(
-                ASSOCF_INIT_IGNOREUNKNOWN as u32,
+                ASSOCF_INIT_IGNOREUNKNOWN,
                 ASSOCSTR_COMMAND,
                 // In Shlwapi.h, this parameter's type is `LPCWSTR`.
                 // So it's not modified actually.
@@ -108,7 +108,8 @@ impl Application {
                 PWSTR(command.as_mut_ptr()),
                 &mut len as _,
             )
-        }?;
+            .ok()?;
+        }
         Ok(command)
     }
 
@@ -159,9 +160,9 @@ pub fn open_file_with(
     }
 }
 
-const ANDROID_STUDIO_UNINSTALL_KEY_PATH: &HSTRING =
+const ANDROID_STUDIO_UNINSTALL_KEY_PATH: PCWSTR =
     w!("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Android Studio");
-const ANDROID_STUDIO_UNINSTALLER_VALUE: &HSTRING = w!("UninstallString");
+const ANDROID_STUDIO_UNINSTALLER_VALUE: PCWSTR = w!("UninstallString");
 #[cfg(target_pointer_width = "64")]
 const STUDIO_EXE_PATH: &str = "bin/studio64.exe";
 #[cfg(target_pointer_width = "32")]
@@ -171,7 +172,7 @@ fn open_file_with_android_studio(path: impl AsRef<OsStr>, env: &Env) -> Result<(
     let mut application_path = which("studio.cmd").unwrap_or_default();
     if !application_path.is_file() {
         let mut buffer = [0; MAX_PATH as usize];
-        let lstatus = unsafe {
+        unsafe {
             SHRegGetPathW(
                 HKEY_LOCAL_MACHINE,
                 PCWSTR::from_raw(ANDROID_STUDIO_UNINSTALL_KEY_PATH.as_ptr()),
@@ -179,10 +180,8 @@ fn open_file_with_android_studio(path: impl AsRef<OsStr>, env: &Env) -> Result<(
                 &mut buffer,
                 0,
             )
+            .map_err(|e| OpenFileError::IOError(e.into()))?
         };
-        if lstatus.0 as u32 != ERROR_SUCCESS.0 {
-            return Err(OpenFileError::IOError(core::Error::from_win32().into()));
-        }
         let len = NullTerminatedWTF16Iterator(buffer.as_ptr()).count();
         let uninstaller_path = OsString::from_wide(&buffer[..len]);
         application_path = Path::new(&uninstaller_path)
@@ -225,7 +224,7 @@ impl NativeArgv {
 
 impl Drop for NativeArgv {
     fn drop(&mut self) {
-        unsafe { LocalFree(self.argv as _) };
+        let _ = unsafe { LocalFree(HLOCAL(self.argv as _)) };
     }
 }
 
