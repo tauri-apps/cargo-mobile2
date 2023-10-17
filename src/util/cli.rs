@@ -184,7 +184,7 @@ mod interface {
     pub struct SkipTargetsInstall {
         #[structopt(
             long = "skip-targets-install",
-            help = "Skip installing andriod/ios targets for rust through rustup "
+            help = "Skip installing android/ios targets for rust through rustup "
         )]
         pub skip_targets_install: bool,
     }

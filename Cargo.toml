@@ -1,6 +1,6 @@
 [package]
 name = "cargo-mobile2"
-version = "0.6.0"
+version = "0.7.0"
 authors = [
   "Tauri Programme within The Commons Conservancy",
   "Brainium Studios LLC",
@@ -74,9 +74,10 @@ rstest = "0.18"
 [target."cfg(target_os = \"macos\")".dependencies]
 core-foundation = "0.9"
 openssl = "0.10"
+os_info = "3"
 
 [target."cfg(not(target_os = \"macos\"))".dependencies]
-ureq = { version = "2.4", default-features = false, features = [ "gzip" ] }
+ureq = { version = "2.8", default-features = false, features = [ "gzip" ] }
 
 [target."cfg(target_os = \"linux\")".dependencies]
 freedesktop_entry_parser = "1.3"
