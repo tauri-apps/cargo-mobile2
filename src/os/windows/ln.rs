@@ -11,12 +11,11 @@ use std::{
 use windows::{
     core::{self, PCWSTR},
     Win32::{
-        Foundation::{CloseHandle, ERROR_PRIVILEGE_NOT_HELD, HANDLE},
+        Foundation::{CloseHandle, ERROR_PRIVILEGE_NOT_HELD, GENERIC_READ, HANDLE},
         Storage::FileSystem::{
-            CreateFileW, FILE_ACCESS_FLAGS, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_DELETE_ON_CLOSE,
+            CreateFileW, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_DELETE_ON_CLOSE,
             FILE_FLAG_OPEN_REPARSE_POINT, FILE_SHARE_READ, OPEN_EXISTING,
         },
-        System::SystemServices::GENERIC_READ,
     },
 };
 
@@ -107,15 +106,15 @@ fn delete_symlink(filename: &Path) -> Result<(), core::Error> {
     if let Ok(handle) = unsafe {
         CreateFileW(
             PCWSTR::from_raw(filename.as_ptr()),
-            FILE_ACCESS_FLAGS(GENERIC_READ),
+            GENERIC_READ.0,
             FILE_SHARE_READ,
-            std::ptr::null(),
+            None,
             OPEN_EXISTING,
             FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_DELETE_ON_CLOSE,
             HANDLE(0),
         )
     } {
-        unsafe { CloseHandle(handle) };
+        unsafe { CloseHandle(handle)? };
         Ok(())
     } else {
         Err(core::Error::from_win32())

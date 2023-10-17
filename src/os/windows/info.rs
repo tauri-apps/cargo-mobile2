@@ -90,7 +90,7 @@ pub fn check() -> Result<Info, Error> {
         } else {
             (condition_mask, type_mask)
         };
-        if unsafe { VerifyVersionInfoW(&mut osvi as *mut _, type_mask, condition_mask) }.as_bool() {
+        if unsafe { VerifyVersionInfoW(&mut osvi as *mut _, type_mask, condition_mask) }.is_ok() {
             return Ok(Info {
                 name: name.to_string(),
                 version: format!("{}.{}", major, minor),
