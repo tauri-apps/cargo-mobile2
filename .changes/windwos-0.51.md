@@ -2,4 +2,4 @@
 "cargo-mobile2": "patch"
 ---
 
-Update `windows`crate version to `0.51`
+Update `windows` crate version to `0.51`
