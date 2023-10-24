@@ -141,7 +141,7 @@ pub fn check_domain_syntax(domain_name: &str) -> Result<(), DomainError> {
         }
         let mut bad_chars = Vec::new();
         for c in label.chars() {
-            if !c.is_ascii_alphanumeric() && !bad_chars.contains(&c) {
+            if !c.is_ascii_alphanumeric() && !['.', '-'].contains(&c) && !bad_chars.contains(&c) {
                 bad_chars.push(c);
             }
         }
