@@ -66,7 +66,7 @@ textwrap = { version = "0.11", features = [ "term_size" ] }
 thiserror = "1.0"
 toml = { version = "0.5", features = [ "preserve_order" ] }
 duct = "0.13"
-which = "4.4"
+which = "5.0"
 
 [dev-dependencies]
 rstest = "0.18"
