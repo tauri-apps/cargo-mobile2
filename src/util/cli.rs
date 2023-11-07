@@ -8,6 +8,15 @@ pub static VERSION_SHORT: &str = concat!("v", env!("CARGO_PKG_VERSION"));
 #[derive(Clone)]
 pub struct TextWrapper(pub textwrap::Options<'static>);
 
+impl Default for TextWrapper {
+    fn default() -> Self {
+        Self(
+            textwrap::Options::with_termwidth()
+                .word_splitter(textwrap::word_splitters::WordSplitter::NoHyphenation),
+        )
+    }
+}
+
 impl TextWrapper {
     pub fn fill(&self, text: &str) -> String {
         textwrap::fill(text, &self.0)
@@ -283,10 +292,7 @@ mod interface {
         }
 
         pub fn main(inner: impl FnOnce(&TextWrapper) -> Result<(), Self>) {
-            let wrapper = TextWrapper(
-                textwrap::Options::with_termwidth()
-                    .word_splitter(textwrap::word_splitters::WordSplitter::NoHyphenation),
-            );
+            let wrapper = TextWrapper::default();
             if let Err(exit) = inner(&wrapper) {
                 exit.do_the_thing(wrapper)
             }
