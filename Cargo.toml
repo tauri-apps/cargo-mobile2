@@ -62,7 +62,7 @@ once-cell-regex = "0.2"
 path_abs = "0.5"
 serde = { version = "1.0", features = [ "derive" ] }
 structopt = { version = "0.3", optional = true }
-textwrap = { version = "0.16", features = [ "term_size" ] }
+textwrap = { version = "0.16", features = [ "terminal_size" ] }
 thiserror = "1.0"
 toml = { version = "0.5", features = [ "preserve_order" ] }
 duct = "0.13"

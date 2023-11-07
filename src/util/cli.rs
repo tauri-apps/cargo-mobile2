@@ -5,7 +5,14 @@ pub use interface::*;
 
 pub static VERSION_SHORT: &str = concat!("v", env!("CARGO_PKG_VERSION"));
 
-pub type TextWrapper = textwrap::Wrapper<'static, textwrap::NoHyphenation>;
+#[derive(Clone)]
+pub struct TextWrapper(pub textwrap::Options<'static>);
+
+impl TextWrapper {
+    pub fn fill(&self, text: &str) -> String {
+        textwrap::fill(text, &self.0)
+    }
+}
 
 pub mod colors {
     use colored::Color::{self, *};
@@ -93,10 +100,13 @@ impl Report {
         } else {
             wrapper.fill(&format!("{}: {}", self.label.as_str(), &self.msg))
         };
-        let wrapper = wrapper
-            .clone()
-            .initial_indent(INDENT)
-            .subsequent_indent(INDENT);
+        let wrapper = TextWrapper(
+            wrapper
+                .clone()
+                .0
+                .initial_indent(INDENT)
+                .subsequent_indent(INDENT),
+        );
         format!("{}\n{}\n", head, wrapper.fill(&self.details))
     }
 
@@ -273,8 +283,10 @@ mod interface {
         }
 
         pub fn main(inner: impl FnOnce(&TextWrapper) -> Result<(), Self>) {
-            let wrapper =
-                TextWrapper::with_splitter(textwrap::termwidth(), textwrap::NoHyphenation);
+            let wrapper = TextWrapper(
+                textwrap::Options::with_termwidth()
+                    .word_splitter(textwrap::word_splitters::WordSplitter::NoHyphenation),
+            );
             if let Err(exit) = inner(&wrapper) {
                 exit.do_the_thing(wrapper)
             }
