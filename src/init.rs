@@ -91,6 +91,7 @@ impl Reportable for Error {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn exec(
     wrapper: &TextWrapper,
     non_interactive: bool,
