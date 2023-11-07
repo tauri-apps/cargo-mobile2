@@ -56,7 +56,7 @@ env_logger = { version = "0.10", optional = true }
 heck = "0.4"
 home = "0.5"
 ignore = "0.4"
-java-properties = "1.4"
+java-properties = "2.0"
 log = "0.4"
 once-cell-regex = "0.2"
 path_abs = "0.5"
