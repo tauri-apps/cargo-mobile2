@@ -167,10 +167,13 @@ impl Section {
     pub fn print(&self, wrapper: &TextWrapper) {
         static BULLET_INDENT: &str = "    ";
         static HANGING_INDENT: &str = "      ";
-        let bullet_wrapper = wrapper
-            .clone()
-            .initial_indent(BULLET_INDENT)
-            .subsequent_indent(HANGING_INDENT);
+        let bullet_wrapper = TextWrapper(
+            wrapper
+                .clone()
+                .0
+                .initial_indent(BULLET_INDENT)
+                .subsequent_indent(HANGING_INDENT),
+        );
         println!(
             "\n{}",
             // The `.to_string()` at the end is necessary for the color/bold to
