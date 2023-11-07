@@ -1,5 +1,11 @@
 # Changelog
 
+## \[0.8.0]
+
+- [`cceff7e`](https://github.com/tauri-apps/cargo-mobile2/commit/cceff7e332a4b14d109b85579cc211871ef5e2d5)([#247](https://github.com/tauri-apps/cargo-mobile2/pull/247)) Fix `devicectl` listing disconnected devices.
+- [`95f77b3`](https://github.com/tauri-apps/cargo-mobile2/commit/95f77b39407d7fb25925388a82268cfcd1fa1927)([#233](https://github.com/tauri-apps/cargo-mobile2/pull/233)) Update `textwrap` to 0.16.
+- [`9f39389`](https://github.com/tauri-apps/cargo-mobile2/commit/9f39389cc21c552c1805c880634ca6c5df6cce7b)([#245](https://github.com/tauri-apps/cargo-mobile2/pull/245)) Update `windows` crate version to `0.51`
+
 ## \[0.7.0]
 
 - [`739c965`](https://github.com/tauri-apps/cargo-mobile2/commit/739c965ffe7aa4bbf4162d293aea4613902bd588)([#241](https://github.com/tauri-apps/cargo-mobile2/pull/241)) Use `devicectl` on macOS 14+ to connect to iOS 17+ devices.
