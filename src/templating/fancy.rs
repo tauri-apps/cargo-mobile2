@@ -52,11 +52,12 @@ impl FancyPack {
 
         let path = path.as_ref();
         let raw = {
-            let bytes = fs::read(path).map_err(|cause| FancyPackParseError::ReadFailed {
-                path: path.to_owned(),
-                cause,
-            })?;
-            toml::from_slice::<Raw>(&bytes).map_err(|cause| FancyPackParseError::ParseFailed {
+            let toml_str =
+                fs::read_to_string(path).map_err(|cause| FancyPackParseError::ReadFailed {
+                    path: path.to_owned(),
+                    cause,
+                })?;
+            toml::from_str::<Raw>(&toml_str).map_err(|cause| FancyPackParseError::ParseFailed {
                 path: path.to_owned(),
                 cause,
             })?

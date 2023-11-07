@@ -89,6 +89,7 @@ impl Reportable for Error {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn gen(
     config: &Config,
     metadata: &Metadata,

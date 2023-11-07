@@ -197,20 +197,14 @@ impl VersionTriple {
 
     pub fn from_caps<'a>(caps: &'a Captures<'a>) -> Result<(Self, &'a str), VersionTripleError> {
         let version_str = &caps["version"];
+        let parse_major = parse!("major", VersionTripleError, MajorInvalid, version);
+        let parse_minor = parse!("minor", VersionTripleError, MinorInvalid, version);
+        let parse_patch = parse!("patch", VersionTripleError, PatchInvalid, version);
         Ok((
             Self {
-                major: parse!("major", VersionTripleError, MajorInvalid, version)(
-                    caps,
-                    version_str,
-                )?,
-                minor: parse!("minor", VersionTripleError, MinorInvalid, version)(
-                    caps,
-                    version_str,
-                )?,
-                patch: parse!("patch", VersionTripleError, PatchInvalid, version)(
-                    caps,
-                    version_str,
-                )?,
+                major: parse_major(caps, version_str)?,
+                minor: parse_minor(caps, version_str)?,
+                patch: parse_patch(caps, version_str)?,
             },
             version_str,
         ))
@@ -425,18 +419,15 @@ impl RustVersion {
                         .name("details")
                         .map(|_details| -> Result<_, RustVersionError> {
                             let date_str = &caps["date"];
+                            let parse_year = parse!("year", RustVersionError, YearInvalid, date);
+                            let parse_month = parse!("month", RustVersionError, MonthInvalid, date);
+                            let parse_day = parse!("day", RustVersionError, DayInvalid, date);
                             Ok(RustVersionDetails {
                                 hash: caps["hash"].to_owned(),
                                 date: (
-                                    parse!("year", RustVersionError, YearInvalid, date)(
-                                        &caps, date_str,
-                                    )?,
-                                    parse!("month", RustVersionError, MonthInvalid, date)(
-                                        &caps, date_str,
-                                    )?,
-                                    parse!("day", RustVersionError, DayInvalid, date)(
-                                        &caps, date_str,
-                                    )?,
+                                    parse_year(&caps, date_str)?,
+                                    parse_month(&caps, date_str)?,
+                                    parse_day(&caps, date_str)?,
                                 ),
                             })
                         })
