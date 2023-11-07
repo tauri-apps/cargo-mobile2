@@ -48,7 +48,7 @@ default = [ "cli", "ureq/native-tls" ]
 [dependencies]
 handlebars = "4.4"
 serde_json = "1.0"
-colored = "1.9"
+colored = "2.0"
 deunicode = "1.4"
 dunce = "1.0"
 english-numbers = "0.3"
