@@ -85,6 +85,6 @@ fn main() {
         let manifest_path = manifest_dir.join("cargo-mobile.exe.manifest");
         println!("cargo:rerun-if-changed={}", resource_path.display());
         println!("cargo:rerun-if-changed={}", manifest_path.display());
-        embed_resource::compile("cargo-mobile-manifest.rc");
+        embed_resource::compile("cargo-mobile-manifest.rc", embed_resource::NONE);
     }
 }
