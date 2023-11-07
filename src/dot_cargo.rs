@@ -105,11 +105,11 @@ impl DotCargo {
             })?;
         }
         if path.is_file() {
-            let bytes = fs::read(&path).map_err(|cause| LoadError::ReadFailed {
+            let toml_str = fs::read_to_string(&path).map_err(|cause| LoadError::ReadFailed {
                 path: path.clone(),
                 cause,
             })?;
-            toml::from_slice(&bytes).map_err(|cause| LoadError::DeserializeFailed { path, cause })
+            toml::from_str(&toml_str).map_err(|cause| LoadError::DeserializeFailed { path, cause })
         } else {
             Ok(Self::default())
         }

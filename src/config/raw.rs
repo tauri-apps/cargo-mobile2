@@ -127,11 +127,11 @@ impl Raw {
             .map_err(LoadError::Discover)?
             .map(|root_dir| {
                 let path = root_dir.join(super::file_name());
-                let bytes = fs::read(&path).map_err(|cause| LoadError::Read {
+                let toml_str = fs::read_to_string(&path).map_err(|cause| LoadError::Read {
                     path: path.clone(),
                     cause,
                 })?;
-                toml::from_slice::<Self>(&bytes)
+                toml::from_str::<Self>(&toml_str)
                     .map(|raw| (root_dir, raw))
                     .map_err(|cause| LoadError::Parse {
                         path: path.clone(),
@@ -142,9 +142,9 @@ impl Raw {
     }
 
     pub fn write(&self, root_dir: &Path) -> Result<(), WriteError> {
-        let bytes = toml::to_vec(self).map_err(WriteError::Serialize)?;
+        let toml_str = toml::to_string(self).map_err(WriteError::Serialize)?;
         let path = root_dir.join(super::file_name());
         log::info!("writing config to {:?}", path);
-        fs::write(path, bytes).map_err(WriteError::Write)
+        fs::write(path, toml_str).map_err(WriteError::Write)
     }
 }
