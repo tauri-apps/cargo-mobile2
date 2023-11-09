@@ -1,5 +1,4 @@
 use crate::util;
-use once_cell_regex::exports::once_cell::sync::OnceCell;
 use std::{
     collections::BTreeMap,
     fmt::{self, Debug, Display},
@@ -13,11 +12,7 @@ pub trait TargetTrait<'a>: Debug + Sized {
 
     fn name_list() -> &'static [&'a str]
     where
-        Self: 'static,
-    {
-        static INSTANCE: OnceCell<Vec<&str>> = OnceCell::new();
-        INSTANCE.get_or_init(|| Self::all().keys().copied().collect::<Vec<_>>())
-    }
+        Self: 'static;
 
     fn default_ref() -> &'a Self {
         Self::all()
