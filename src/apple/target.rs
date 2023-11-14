@@ -188,12 +188,8 @@ impl<'a> TargetTrait<'a> for Target<'a> {
         })
     }
 
-    fn name_list() -> &'static [&'a str]
-    where
-        Self: 'static,
-    {
-        static INSTANCE: OnceCell<Vec<&str>> = OnceCell::new();
-        INSTANCE.get_or_init(|| Self::all().keys().copied().collect::<Vec<_>>())
+    fn name_list() -> Vec<&'a str> {
+        Self::all().keys().copied().collect::<Vec<_>>()
     }
 
     fn triple(&'a self) -> &'a str {

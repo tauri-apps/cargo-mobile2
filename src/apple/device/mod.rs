@@ -197,6 +197,6 @@ pub fn list_devices<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, String> {
     }
 }
 
-pub fn list_simulators<'a>(env: &Env) -> Result<BTreeSet<Simulator>, String> {
+pub fn list_simulators(env: &Env) -> Result<BTreeSet<Simulator>, String> {
     simctl::device_list(env).map_err(|e| e.to_string())
 }

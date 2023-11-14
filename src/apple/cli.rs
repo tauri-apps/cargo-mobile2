@@ -65,12 +65,12 @@ pub enum Command {
     Open,
     #[structopt(name = "check", about = "Checks if code compiles for target(s)")]
     Check {
-        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = Target::name_list())]
+        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = &Target::name_list())]
         targets: Vec<String>,
     },
     #[structopt(name = "build", about = "Builds static libraries for target(s)")]
     Build {
-        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = Target::name_list())]
+        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = &Target::name_list())]
         targets: Vec<String>,
         #[structopt(flatten)]
         profile: cli::Profile,
@@ -79,7 +79,7 @@ pub enum Command {
     Archive {
         #[structopt(long = "build-number")]
         build_number: Option<u32>,
-        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = Target::name_list())]
+        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = &Target::name_list())]
         targets: Vec<String>,
         #[structopt(flatten)]
         profile: cli::Profile,

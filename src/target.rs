@@ -10,9 +10,7 @@ pub trait TargetTrait<'a>: Debug + Sized {
 
     fn all() -> &'a BTreeMap<&'a str, Self>;
 
-    fn name_list() -> &'static [&'a str]
-    where
-        Self: 'static;
+    fn name_list() -> Vec<&'a str>;
 
     fn default_ref() -> &'a Self {
         Self::all()
