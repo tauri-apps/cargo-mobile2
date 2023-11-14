@@ -52,12 +52,12 @@ pub enum Command {
     Open,
     #[structopt(name = "check", about = "Checks if code compiles for target(s)")]
     Check {
-        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = Target::name_list())]
+        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = &Target::name_list())]
         targets: Vec<String>,
     },
     #[structopt(name = "build", about = "Builds dynamic libraries for target(s)")]
     Build {
-        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = Target::name_list())]
+        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = &Target::name_list())]
         targets: Vec<String>,
         #[structopt(flatten)]
         profile: cli::Profile,
@@ -97,7 +97,7 @@ pub enum Command {
 pub enum ApkSubcommand {
     #[structopt(about = "build APKs (Android Package Kit)")]
     Build {
-        #[structopt(name = "targets", possible_values = Target::name_list())]
+        #[structopt(name = "targets", possible_values = &Target::name_list())]
         /// Which targets to build (all by default).
         targets: Vec<String>,
         #[structopt(flatten)]
@@ -110,7 +110,7 @@ pub enum ApkSubcommand {
 pub enum AabSubcommand {
     #[structopt(about = "build AABs (Android App Bundle)")]
     Build {
-        #[structopt(name = "targets", possible_values = Target::name_list())]
+        #[structopt(name = "targets", possible_values = &Target::name_list())]
         /// Which targets to build (all by default).
         targets: Vec<String>,
         #[structopt(flatten)]

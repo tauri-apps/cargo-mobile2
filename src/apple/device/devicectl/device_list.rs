@@ -122,6 +122,6 @@ pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListErro
         .run()
         .map_err(DeviceListError::DetectionFailed)?;
 
-    let contents = read_to_string(&json_output_path_)?;
+    let contents = read_to_string(json_output_path_)?;
     parse_device_list(contents)
 }

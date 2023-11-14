@@ -188,6 +188,10 @@ impl<'a> TargetTrait<'a> for Target<'a> {
         })
     }
 
+    fn name_list() -> Vec<&'a str> {
+        Self::all().keys().copied().collect::<Vec<_>>()
+    }
+
     fn triple(&'a self) -> &'a str {
         self.triple
     }

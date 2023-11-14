@@ -49,7 +49,7 @@ impl FromStr for VersionNumber {
 
     fn from_str(v: &str) -> Result<Self, Self::Err> {
         match v.split('.').count() {
-            1 | 2 | 3 => {
+            1..=3 => {
                 let triple = VersionTriple::from_str(v)?;
                 Ok(Self {
                     triple,
