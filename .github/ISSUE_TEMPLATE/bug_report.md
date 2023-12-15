@@ -22,13 +22,7 @@ If applicable, add screenshots to help explain your problem.
 Host OS:
 Target OS:
 Rustc:
-`cargo mobile doctor`:
-(if you build with specific commit, please list it as well)
-
-**Would you want to assign yourself to resolve this bug?**
-
-- [ ] Yes
-- [ ] No
+Ouput of `cargo mobile doctor`:                <!-- (if you build with specific commit, please list it as well) -->
 
 **Additional context**
 Add any other context about the problem here.
