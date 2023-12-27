@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.9.1]
+
+- [`01d52ca`](https://github.com/tauri-apps/cargo-mobile2/commit/01d52ca2c1a582cb5a06193629d2b0bec3282ac6)([#265](https://github.com/tauri-apps/cargo-mobile2/pull/265)) Use devicectl even if iOS device is disconnected.
+
 ## \[0.9.0]
 
 - [`cfd674e`](https://github.com/tauri-apps/cargo-mobile2/commit/cfd674e8c2f1471088bc9933be35673c9c2304d6)([#254](https://github.com/tauri-apps/cargo-mobile2/pull/254)) Fixes conflicts between Apple and Android targets. `Target::name_list` now returns `Vec<&str>`.
