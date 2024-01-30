@@ -10,8 +10,8 @@ use std::fmt::Display;
 mod device_list;
 mod run;
 
-pub use device_list::{device_list, DeviceListError};
-pub use run::{run, RunError};
+pub use device_list::device_list;
+pub use run::run;
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Device {
