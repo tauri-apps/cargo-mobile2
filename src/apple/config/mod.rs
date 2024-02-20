@@ -281,7 +281,7 @@ impl VersionInfo {
 pub struct Config {
     #[serde(skip_serializing)]
     app: App,
-    development_team: String,
+    development_team: Option<String>,
     project_dir: String,
     bundle_version: VersionNumber,
     bundle_version_short: VersionTriple,
@@ -296,7 +296,12 @@ impl Config {
     pub fn from_raw(app: App, raw: Option<Raw>) -> Result<Self, Error> {
         let raw = raw.ok_or_else(|| Error::DevelopmentTeamMissing)?;
 
-        if raw.development_team.is_empty() {
+        if raw
+            .development_team
+            .as_ref()
+            .map(|t| t.is_empty())
+            .unwrap_or_default()
+        {
             return Err(Error::DevelopmentTeamEmpty);
         }
 
