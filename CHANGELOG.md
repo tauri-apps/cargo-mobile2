@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.10.0]
+
+- [`d90ccf4`](https://github.com/tauri-apps/cargo-mobile2/commit/d90ccf4c50dc180e082693b310d1f34f67d977e7)([#273](https://github.com/tauri-apps/cargo-mobile2/pull/273)) The development team configuration is now optional so you can develop on a simulator without a signing certificate.
+
 ## \[0.9.1]
 
 - [`01d52ca`](https://github.com/tauri-apps/cargo-mobile2/commit/01d52ca2c1a582cb5a06193629d2b0bec3282ac6)([#265](https://github.com/tauri-apps/cargo-mobile2/pull/265)) Use devicectl even if iOS device is disconnected.
