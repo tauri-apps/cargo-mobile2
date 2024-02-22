@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.10.2]
+
+- [\`\`](https://github.com/tauri-apps/cargo-mobile2/commit/undefined) Fix adb usage for NAPI context following v0.10.1 fix.
+
 ## \[0.10.1]
 
 - [`b12ef08`](https://github.com/tauri-apps/cargo-mobile2/commit/b12ef081c0dba630e92f924a34d4c768ef1fa522)([#277](https://github.com/tauri-apps/cargo-mobile2/pull/277)) Fix child process spawning on NAPI contexts.

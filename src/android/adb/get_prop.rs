@@ -44,6 +44,7 @@ pub fn get_prop(env: &Env, serial_no: &str, prop: &str) -> Result<String, Error>
             cmd.args(["shell", "getprop", &prop_]);
             Ok(())
         })
+        .stdin_file(os_pipe::dup_stdin().unwrap())
         .stdout_capture()
         .stderr_capture()
         .start()?;
