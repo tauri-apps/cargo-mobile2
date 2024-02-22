@@ -152,7 +152,8 @@ impl<'a> Device<'a> {
                         }
                         cmd.arg("-o").arg(&ipa_path).arg("-d").arg(&export_dir);
                         Ok(())
-                    });
+                    })
+                    .dup_stdio();
 
                 cmd.run().map_err(RunError::UnzipFailed)?;
 

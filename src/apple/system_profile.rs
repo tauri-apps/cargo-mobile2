@@ -31,7 +31,7 @@ impl DeveloperTools {
         // The `-xml` flag can be used to get this info in plist format, but
         // there don't seem to be any high quality plist crates, and parsing
         // XML sucks, we'll be lazy for now.
-        let command = duct::cmd("system_profiler", ["SPDeveloperToolsDataType"]);
+        let command = duct::cmd("system_profiler", ["SPDeveloperToolsDataType"]).stderr_capture();
         let command_string = format!("{command:?}");
         let output = command.read().map_err(util::RunAndSearchError::from)?;
         if output.is_empty() {

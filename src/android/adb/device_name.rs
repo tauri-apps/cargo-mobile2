@@ -40,6 +40,7 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
                     cmd.args(["emu", "avd", "name"]);
                     Ok(())
                 })
+                .stderr_capture()
                 .stdout_capture()
                 .start()?
                 .wait()?,
@@ -53,6 +54,7 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
                     cmd.args(["shell", "dumpsys", "bluetooth_manager"]);
                     Ok(())
                 })
+                .stderr_capture()
                 .stdout_capture()
                 .start()?
                 .wait()?,

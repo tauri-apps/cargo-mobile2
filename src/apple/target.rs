@@ -340,6 +340,7 @@ impl<'a> Target<'a> {
                     .arg("build");
                 Ok(())
             })
+            .dup_stdio()
             .start()?
             .wait()?;
         Ok(())
@@ -359,6 +360,7 @@ impl<'a> Target<'a> {
                     "xcrun",
                     ["agvtool", "new-version", "-all", &build_number.to_string()],
                 )
+                .dup_stdio()
                 .run()
             })
             .map_err(ArchiveError::SetVersionFailed)?;
@@ -389,6 +391,7 @@ impl<'a> Target<'a> {
                     .arg(&archive_path);
                 Ok(())
             })
+            .dup_stdio()
             .start()?
             .wait()?;
 
@@ -424,6 +427,7 @@ impl<'a> Target<'a> {
                     .arg(&export_dir);
                 Ok(())
             })
+            .dup_stdio()
             .start()?
             .wait()?;
 

@@ -39,7 +39,8 @@ pub fn run_and_debug(
                 cmd.arg("--justlaunch");
             }
             Ok(())
-        });
+        })
+        .dup_stdio();
 
     if non_interactive {
         Ok(deploy_cmd.start().map_err(RunAndDebugError::DeployFailed)?)
@@ -51,6 +52,7 @@ pub fn run_and_debug(
             .map_err(RunAndDebugError::DeployFailed)?;
         duct::cmd("idevicesyslog", ["--process", config.app().stylized_name()])
             .vars(env.explicit_env())
+            .dup_stdio()
             .start()
             .map_err(RunAndDebugError::DeployFailed)
     }

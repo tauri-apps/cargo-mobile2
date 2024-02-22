@@ -1,10 +1,11 @@
-use super::adb;
 use crate::{
     android::env::Env,
     util::cli::{Report, Reportable},
 };
 use std::str;
 use thiserror::Error;
+
+use super::adb;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -44,7 +45,9 @@ pub fn get_prop(env: &Env, serial_no: &str, prop: &str) -> Result<String, Error>
             Ok(())
         })
         .stdout_capture()
+        .stderr_capture()
         .start()?;
+
     let output = handle.wait()?;
     super::check_authorized(output).map_err(|source| Error::LookupFailed {
         prop: prop.to_owned(),

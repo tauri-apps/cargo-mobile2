@@ -5,6 +5,8 @@ use crate::util::cli::{Report, Reportable};
 use std::path::PathBuf;
 use thiserror::Error;
 
+use crate::DuctExpressionExt;
+
 #[cfg(not(target_os = "macos"))]
 pub const BUNDLE_TOOL_JAR_INFO: BundletoolJarInfo = BundletoolJarInfo { version: "1.8.0" };
 
@@ -35,10 +37,12 @@ impl BundletoolJarInfo {
 
     fn run_command(&self) -> duct::Expression {
         let installation_path = self.installation_path();
-        duct::cmd("java", ["-jar"]).before_spawn(move |cmd| {
-            cmd.arg(&installation_path);
-            Ok(())
-        })
+        duct::cmd("java", ["-jar"])
+            .dup_stdio()
+            .before_spawn(move |cmd| {
+                cmd.arg(&installation_path);
+                Ok(())
+            })
     }
 }
 
@@ -49,7 +53,7 @@ pub fn command() -> duct::Expression {
     }
     #[cfg(target_os = "macos")]
     {
-        duct::cmd!("bundletool")
+        duct::cmd!("bundletool").dup_stdio()
     }
 }
 

@@ -63,8 +63,7 @@ pub fn run(
 
         duct::cmd("xcrun", ["devicectl", "manage", "pair", "--device", id])
             .vars(env.explicit_env())
-            .stdout_capture()
-            .stderr_capture()
+            .dup_stdio()
             .run()
             .map_err(RunError::DeployFailed)?;
     }
@@ -89,7 +88,8 @@ pub fn run(
             .arg("--json-output")
             .arg(&json_output_path_);
         Ok(())
-    });
+    })
+    .dup_stdio();
 
     cmd.run().map_err(RunError::DeployFailed)?;
 
@@ -115,7 +115,8 @@ pub fn run(
             &app_id,
         ],
     )
-    .vars(env.explicit_env());
+    .vars(env.explicit_env())
+    .dup_stdio();
 
     if non_interactive {
         launcher_cmd.start().map_err(RunError::DeployFailed)
@@ -128,6 +129,7 @@ pub fn run(
 
         duct::cmd("idevicesyslog", ["--process", config.app().stylized_name()])
             .vars(env.explicit_env())
+            .dup_stdio()
             .start()
             .map_err(RunError::DeployFailed)
     }

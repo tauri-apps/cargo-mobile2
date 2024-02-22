@@ -117,6 +117,7 @@ impl<'a> CargoCommand<'a> {
         duct::cmd("cargo", args)
             .vars(env.explicit_env())
             .vars(explicit_cargo_env())
+            .dup_stdio()
     }
 }
 

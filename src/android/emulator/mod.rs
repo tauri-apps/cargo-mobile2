@@ -34,6 +34,7 @@ impl Emulator {
             ["-avd", &self.name],
         )
         .vars(env.explicit_env())
+        .dup_stdio()
     }
 
     pub fn start(&self, env: &Env) -> Result<Handle, std::io::Error> {

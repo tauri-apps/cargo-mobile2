@@ -38,7 +38,8 @@ pub fn run(
         .before_spawn(move |cmd| {
             cmd.arg(&app_dir);
             Ok(())
-        });
+        })
+        .dup_stdio();
 
     let handle = cmd.start().map_err(RunError::DeployFailed)?;
 
@@ -46,8 +47,9 @@ pub fn run(
 
     let app_id = format!("{}.{}", config.app().reverse_domain(), config.app().name());
 
-    let mut launcher_cmd =
-        duct::cmd("xcrun", ["simctl", "launch", id, &app_id]).vars(env.explicit_env());
+    let mut launcher_cmd = duct::cmd("xcrun", ["simctl", "launch", id, &app_id])
+        .vars(env.explicit_env())
+        .dup_stdio();
 
     if non_interactive {
         launcher_cmd = launcher_cmd.before_spawn(|cmd| {
@@ -79,6 +81,7 @@ pub fn run(
             ],
         )
         .vars(env.explicit_env())
+        .dup_stdio()
         .start()
         .map_err(RunError::DeployFailed)
     }

@@ -1,7 +1,10 @@
-use crate::util::{
-    self,
-    cli::{Report, TextWrapper},
-    repo::{self, Repo},
+use crate::{
+    util::{
+        self,
+        cli::{Report, TextWrapper},
+        repo::{self, Repo},
+    },
+    DuctExpressionExt,
 };
 use std::{
     fmt::{self, Display},
@@ -81,6 +84,7 @@ pub fn update(wrapper: &TextWrapper) -> Result<(), Error> {
         println!("Installing updated `cargo-mobile2`...");
         let repo_c = repo.clone();
         duct::cmd("cargo", ["install", "--force", "--path"])
+            .dup_stdio()
             .before_spawn(move |cmd| {
                 cmd.arg(repo_c.path());
                 cmd.args(["--no-default-features", "--features"]);
