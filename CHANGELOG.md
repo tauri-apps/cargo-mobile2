@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.10.1]
+
+- [`b12ef08`](https://github.com/tauri-apps/cargo-mobile2/commit/b12ef081c0dba630e92f924a34d4c768ef1fa522)([#277](https://github.com/tauri-apps/cargo-mobile2/pull/277)) Fix child process spawning on NAPI contexts.
+
 ## \[0.10.0]
 
 - [`d90ccf4`](https://github.com/tauri-apps/cargo-mobile2/commit/d90ccf4c50dc180e082693b310d1f34f67d977e7)([#273](https://github.com/tauri-apps/cargo-mobile2/pull/273)) The development team configuration is now optional so you can develop on a simulator without a signing certificate.
