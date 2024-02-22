@@ -116,6 +116,7 @@ pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListErro
             cmd.arg(&json_output_path);
             Ok(())
         })
+        .stderr_capture()
         .stdout_capture()
         .vars(env.explicit_env())
         .run()

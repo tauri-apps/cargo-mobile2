@@ -98,6 +98,7 @@ impl Outdated {
         }
 
         duct::cmd("brew", ["outdated", "--json=v2"])
+            .stderr_capture()
             .stdout_capture()
             .run()
             .map_err(OutdatedError::CommandFailed)
@@ -112,6 +113,7 @@ impl Outdated {
 
     pub fn load(gem_cache: &mut GemCache) -> Result<Self, OutdatedError> {
         let outdated_strings = duct::cmd("gem", ["outdated"])
+            .stderr_capture()
             .read()
             .map_err(OutdatedError::CommandFailed)?;
         let packages = Self::outdated_brew_deps()?

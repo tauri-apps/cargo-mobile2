@@ -27,6 +27,9 @@ pub static NAME: &str = "mobile";
 trait DuctExpressionExt {
     fn vars(self, vars: impl IntoIterator<Item = (impl AsRef<OsStr>, impl AsRef<OsStr>)>) -> Self;
     fn run_and_detach(self) -> Result<(), std::io::Error>;
+    // Sets the stdin, stdout and stderr to properly
+    // show the command output in a Node.js wrapper (napi-rs).
+    fn dup_stdio(&self) -> Self;
 }
 
 impl DuctExpressionExt for duct::Expression {
@@ -83,5 +86,11 @@ impl DuctExpressionExt for duct::Expression {
         .stderr_null()
         .start()?;
         Ok(())
+    }
+
+    fn dup_stdio(&self) -> Self {
+        self.stdin_file(os_pipe::dup_stdin().unwrap())
+            .stdout_file(os_pipe::dup_stdout().unwrap())
+            .stderr_file(os_pipe::dup_stderr().unwrap())
     }
 }

@@ -6,10 +6,13 @@ use super::{
     device_ctl_available,
     system_profile::{self, DeveloperTools},
 };
-use crate::util::{
-    self,
-    cli::{Report, TextWrapper},
-    prompt,
+use crate::{
+    util::{
+        self,
+        cli::{Report, TextWrapper},
+        prompt,
+    },
+    DuctExpressionExt,
 };
 use once_cell_regex::regex;
 use std::collections::hash_set::HashSet;
@@ -62,6 +65,7 @@ impl GemCache {
     pub fn initialize(&mut self) -> Result<(), Error> {
         if self.set.is_empty() {
             self.set = duct::cmd("gem", ["list"])
+                .stderr_capture()
                 .read()
                 .map_err(Error::GemListFailed)?
                 .lines()
@@ -93,6 +97,7 @@ impl GemCache {
             "sudo gem install"
         };
         duct::cmd(command, [package])
+            .dup_stdio()
             .run()
             .map_err(|source| Error::InstallFailed { package, source })?;
         Ok(())
@@ -100,13 +105,17 @@ impl GemCache {
 }
 
 fn installed_with_brew(package: &str) -> bool {
-    duct::cmd("brew", ["list", package]).run().is_ok()
+    duct::cmd("brew", ["list", package])
+        .dup_stdio()
+        .run()
+        .is_ok()
 }
 
 fn brew_reinstall(package: &'static str) -> Result<(), Error> {
     // reinstall works even if it's not installed yet, and will upgrade
     // if it's already installed!
     duct::cmd("brew", ["reinstall", package])
+        .dup_stdio()
         .run()
         .map_err(|source| Error::InstallFailed { package, source })?;
     Ok(())

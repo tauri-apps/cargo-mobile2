@@ -1,7 +1,10 @@
-use crate::util::{
-    self,
-    cli::{Report, TextWrapper},
-    repo::{self, Repo},
+use crate::{
+    util::{
+        self,
+        cli::{Report, TextWrapper},
+        repo::{self, Repo},
+    },
+    DuctExpressionExt,
 };
 use std::{
     fmt::{self, Display},
@@ -60,6 +63,7 @@ pub fn xcode_user_dir() -> Result<PathBuf, Error> {
 
 pub fn xcode_developer_dir() -> Result<PathBuf, Error> {
     duct::cmd("xcode-select", ["-p"])
+        .stderr_capture()
         .read()
         .map(|output| {
             // This output is expected to end with a newline, but we'll err on
@@ -196,6 +200,7 @@ impl Context {
                 cmd.arg(&info_path).arg("DVTPlugInCompatibilityUUID");
                 Ok(())
             })
+            .stderr_capture()
             .read()
             .map(|s| s.trim().to_owned())
             .map_err(Error::UuidLookupFailed)?;
@@ -230,6 +235,7 @@ impl Context {
                 cmd.arg(&ide_plugin_path).arg(&xcode_plugins_dir);
                 Ok(())
             })
+            .dup_stdio()
             .run()
             .map_err(Error::PluginCopyFailed)?;
         let spec_src = checkout.join("Specifications/Rust.xclangspec");
@@ -241,6 +247,7 @@ impl Context {
                     cmd.arg(&spec_src).arg(&spec_dst);
                     Ok(())
                 })
+                .dup_stdio()
                 .run()
                 .map_err(Error::SpecCopyFailed)?;
         } else {
@@ -253,6 +260,7 @@ impl Context {
                 })?;
             }
             duct::cmd("cp", [&spec_src, &self.spec_dst])
+                .dup_stdio()
                 .run()
                 .map_err(Error::SpecCopyFailed)?;
         }
@@ -264,6 +272,7 @@ impl Context {
                     cmd.arg(&meta_src).arg(&meta_dst);
                     Ok(())
                 })
+                .dup_stdio()
                 .run()
                 .map_err(Error::MetaCopyFailed)?;
         }

@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use crate::DuctExpressionExt;
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[cfg(not(target_os = "macos"))]
@@ -36,6 +38,7 @@ pub fn ensure_present() -> Result<(), Error> {
         }
     }
     duct::cmd("git", ["lfs", "install"])
+        .dup_stdio()
         .run()
         .map_err(Error::InstallFailed)?;
     Ok(())

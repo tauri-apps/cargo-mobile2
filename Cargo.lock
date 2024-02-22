@@ -109,6 +109,7 @@ dependencies = [
  "once-cell-regex",
  "openssl",
  "os_info",
+ "os_pipe",
  "path_abs",
  "rstest",
  "serde",

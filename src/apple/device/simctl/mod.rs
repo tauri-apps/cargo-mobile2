@@ -59,6 +59,7 @@ impl Device {
             ],
         )
         .vars(env.explicit_env())
+        .dup_stdio()
     }
 
     pub fn start(&self, env: &Env) -> std::io::Result<duct::Handle> {

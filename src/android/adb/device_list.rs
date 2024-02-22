@@ -3,10 +3,9 @@ use crate::{
     android::{device::Device, env::Env, target::Target},
     env::ExplicitEnv as _,
     util::cli::{Report, Reportable},
-    DuctExpressionExt,
 };
 use once_cell_regex::regex_multi_line;
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, process::Command};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -41,11 +40,10 @@ impl Reportable for Error {
 const ADB_DEVICE_REGEX: &str = r"^([\S]{6,100})	device\b";
 
 pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, Error> {
-    let cmd = duct::cmd(env.platform_tools_path().join("adb"), ["devices"])
-        .vars(env.explicit_env())
-        .stdout_capture();
+    let mut cmd = Command::new(env.platform_tools_path().join("adb"));
+    cmd.arg("devices").envs(env.explicit_env());
 
-    super::check_authorized(&cmd.run()?)
+    super::check_authorized(&cmd.output()?)
         .map(|raw_list| {
             regex_multi_line!(ADB_DEVICE_REGEX)
                 .captures_iter(&raw_list)

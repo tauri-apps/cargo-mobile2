@@ -298,6 +298,7 @@ impl Env {
                         cmd.arg(&elf_path);
                         Ok(())
                     })
+                    .stderr_capture()
                     .read()?
                     .as_str(),
             )

@@ -187,10 +187,14 @@ impl<'a> Device<'a> {
 
     fn wait_device_boot(&self, env: &Env) {
         loop {
-            let cmd = self.adb(env).stdout_capture().before_spawn(move |cmd| {
-                cmd.args(["shell", "getprop", "init.svc.bootanim"]);
-                Ok(())
-            });
+            let cmd = self
+                .adb(env)
+                .stderr_capture()
+                .stdout_capture()
+                .before_spawn(move |cmd| {
+                    cmd.args(["shell", "getprop", "init.svc.bootanim"]);
+                    Ok(())
+                });
             let handle = cmd.start();
             if let Ok(handle) = handle {
                 if let Ok(output) = handle.wait() {
@@ -237,8 +241,10 @@ impl<'a> Device<'a> {
                 cmd.arg(&apk_path);
                 Ok(())
             })
+            .dup_stdio()
             .start()?
             .wait()?;
+
         Ok(())
     }
 
@@ -315,6 +321,7 @@ impl<'a> Device<'a> {
                 cmd.args(["shell", "input", "keyevent", "KEYCODE_WAKEUP"]);
                 Ok(())
             })
+            .dup_stdio()
             .start()?
             .wait()?;
         Ok(())
@@ -363,8 +370,10 @@ impl<'a> Device<'a> {
                 cmd.args(["shell", "am", "start", "-n", &activity]);
                 Ok(())
             })
+            .dup_stdio()
             .start()?
             .wait()?;
+
         let _ = self.wake_screen(env);
 
         let filter = format!(
@@ -394,6 +403,7 @@ impl<'a> Device<'a> {
                 ],
             )
             .vars(env.explicit_env())
+            .stderr_capture()
             .stdout_capture();
             let handle = cmd.start()?;
             if let Ok(out) = handle.wait() {
@@ -408,7 +418,8 @@ impl<'a> Device<'a> {
             env.platform_tools_path().join("adb"),
             ["logcat", "-v", "color", "-s", &filter],
         )
-        .vars(env.explicit_env());
+        .vars(env.explicit_env())
+        .dup_stdio();
 
         let logcat_filter_specs = config.logcat_filter_specs().to_vec();
         logcat = logcat.before_spawn(move |cmd| {
@@ -431,19 +442,22 @@ impl<'a> Device<'a> {
             .unprefix_path(jnilibs::path(config, *self.target))
             .expect("developer error: jnilibs subdir not prefixed");
         // -d = print and exit
-        let logcat_command = adb::adb(env, &self.serial_no).before_spawn(move |cmd| {
-            cmd.args(["logcat", "-d"]);
-            cmd.arg("-sym");
-            cmd.arg(&jnilib_path);
-            Ok(())
-        });
+        let logcat_command = adb::adb(env, &self.serial_no)
+            .before_spawn(move |cmd| {
+                cmd.args(["logcat", "-d"]);
+                cmd.arg("-sym");
+                cmd.arg(&jnilib_path);
+                Ok(())
+            })
+            .dup_stdio();
         let stack_command =
             duct::cmd::<PathBuf, [String; 0]>(env.ndk.home().join(consts::NDK_STACK), [])
                 .vars(env.explicit_env())
                 .env(
                     "PATH",
                     util::prepend_to_path(env.ndk.home().display(), env.path().to_string_lossy()),
-                );
+                )
+                .dup_stdio();
 
         if logcat_command.pipe(stack_command).start()?.wait().is_err() {
             println!("  -- no stacktrace --");

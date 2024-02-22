@@ -5,6 +5,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::DuctExpressionExt;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LinkType {
     Hard,
@@ -198,6 +200,7 @@ impl<'a> Call<'a> {
         args.push(&source);
         args.push(&target_override);
         duct::cmd("ln", args)
+            .dup_stdio()
             .run()
             .map_err(|err| self.make_error(ErrorCause::CommandFailed(err)))?;
         Ok(())

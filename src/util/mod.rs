@@ -53,6 +53,7 @@ pub fn reverse_domain(domain: &str) -> String {
 
 pub fn rustup_add(triple: &str) -> Result<ExitStatus, std::io::Error> {
     duct::cmd("rustup", ["target", "add", triple])
+        .dup_stdio()
         .run()
         .map(|o| o.status)
 }
@@ -676,15 +677,19 @@ pub fn gradlew(
             [OsStr::new("--project-dir"), project_dir.as_ref()],
         )
         .vars(env.explicit_env())
+        .dup_stdio()
     } else if duct::cmd(gradlew, ["-v"])
+        .dup_stdio()
         .run()
         .map(|o| o.status.success())
         .unwrap_or(false)
     {
         duct::cmd(gradlew, [OsStr::new("--project-dir"), project_dir.as_ref()])
             .vars(env.explicit_env())
+            .dup_stdio()
     } else {
         duct::cmd(gradle, [OsStr::new("--project-dir"), project_dir.as_ref()])
             .vars(env.explicit_env())
+            .dup_stdio()
     }
 }

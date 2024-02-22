@@ -15,6 +15,7 @@ pub fn avd_list(env: &Env) -> Result<BTreeSet<Emulator>, Error> {
         ["-list-avds"],
     )
     .vars(env.explicit_env())
+    .stderr_capture()
     .read()
     .map(|raw_list| {
         raw_list

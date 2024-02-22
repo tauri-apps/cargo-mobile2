@@ -2,6 +2,7 @@ use super::{Item, Section};
 use crate::{
     apple::{deps::xcode_plugin, system_profile::DeveloperTools, teams},
     util::prompt,
+    DuctExpressionExt,
 };
 use std::path::Path;
 
@@ -33,6 +34,7 @@ fn validate_developer_dir() -> Result<String, String> {
             };
             if answer {
                 duct::cmd("xcode-select", ["-s", SUGGESTED])
+                    .dup_stdio()
                     .run()
                     .map_err(|err| format!("Failed to update Xcode developer dir: {}", err))?;
                 Path::new(SUGGESTED)
@@ -112,12 +114,14 @@ pub fn check() -> Section {
         .with_item(validate_developer_dir())
         .with_item(
             duct::cmd("ios-deploy", ["--version"])
+                .stderr_capture()
                 .read()
                 .map(|version| format!("ios-deploy v{}", version.trim()))
                 .map_err(|err| format!("Failed to check ios-deploy version: {}", err)),
         )
         .with_item(
             duct::cmd("xcodegen", ["--version"])
+                .stderr_capture()
                 .read()
                 .map(|version| version.trim().replace("Version: ", "XcodeGen v"))
                 .map_err(|err| format!("Failed to check ios-deploy version: {}", err)),

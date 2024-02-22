@@ -12,6 +12,7 @@ use crate::{
         cli::{Report, Reportable, TextWrapper},
         ln,
     },
+    DuctExpressionExt,
 };
 use std::path::{Path, PathBuf};
 
@@ -198,6 +199,7 @@ pub fn gen(
             cmd.arg(&project_yml_path);
             Ok(())
         })
+        .dup_stdio()
         .run()
         .map_err(Error::XcodegenFailed)?;
 
@@ -209,6 +211,7 @@ pub fn gen(
                 &format!("--project-directory={}", dest.display()),
             ],
         )
+        .dup_stdio()
         .run()
         .map_err(Error::PodInstallFailed)?;
     }
