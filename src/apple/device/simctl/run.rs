@@ -77,7 +77,7 @@ pub fn run(
                 "--level",
                 "debug",
                 "--predicate",
-                &format!("subsystem == \"{app_id}\""),
+                &format!("process == \"{}\"", config.app().stylized_name()),
             ],
         )
         .vars(env.explicit_env())
