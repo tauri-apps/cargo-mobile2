@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.10.3]
+
+- [`92eda19`](https://github.com/tauri-apps/cargo-mobile2/commit/92eda19af2a10b80470a96ade3d3dbd2a4d2af6f)([#279](https://github.com/tauri-apps/cargo-mobile2/pull/279)) Fixes log output on iOS simulators.
+
 ## \[0.10.2]
 
 - [\`\`](https://github.com/tauri-apps/cargo-mobile2/commit/undefined) Fix adb usage for NAPI context following v0.10.1 fix.
