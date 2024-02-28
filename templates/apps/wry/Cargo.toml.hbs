@@ -33,13 +33,14 @@ WRY_ANDROID_KOTLIN_FILES_OUT_DIR = "<android-project-dir>/app/src/main/kotlin/{{
 frameworks = [ "WebKit" ]
 
 [dependencies]
-anyhow = "1.0.56"
-log = "0.4.11"
-wry = "0.28.0"
+anyhow = "1.0"
+log = "0.4"
+wry = "0.37"
+tao = "0.26"
 
 [target.'cfg(target_os = "android")'.dependencies]
-android_logger = "0.9.0"
-jni = "0.19.0"
+android_logger = "0.13"
+jni = "0.21.0"
 paste = "1.0"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
