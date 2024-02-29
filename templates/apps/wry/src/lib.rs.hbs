@@ -1,21 +1,15 @@
-use anyhow::Result;
-#[cfg(target_os = "android")]
-use wry::android_binding;
-use wry::{
-    application::{
-        event::{Event, StartCause, WindowEvent},
-        event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
-        window::WindowBuilder,
-    },
-    http::Response,
-    webview::{WebView, WebViewBuilder},
+use tao::{
+    event::{Event, StartCause, WindowEvent},
+    event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
+    window::WindowBuilder,
 };
+use wry::{http, WebView, WebViewBuilder};
 
 #[cfg(target_os = "android")]
 fn init_logging() {
     android_logger::init_once(
         android_logger::Config::default()
-            .with_min_level(log::Level::Trace)
+            .with_max_level(log::LevelFilter::Trace)
             .with_tag("{{app.name}}"),
     );
 }
@@ -38,7 +32,7 @@ fn stop_unwind<F: FnOnce() -> T, T>(f: F) -> T {
 
 #[cfg(any(target_os = "android", target_os = "ios"))]
 fn _start_app() {
-    stop_unwind(|| main().unwrap());
+    stop_unwind(|| main());
 }
 
 #[no_mangle]
@@ -46,12 +40,22 @@ fn _start_app() {
 #[cfg(any(target_os = "android", target_os = "ios"))]
 pub extern "C" fn start_app() {
     #[cfg(target_os = "android")]
-    android_binding!({{reverse-domain-snake-case app.domain}}, {{snake-case app.name}}, _start_app);
+    {
+        tao::android_binding!(
+            {{reverse-domain-snake-case app.domain}},
+            {{snake-case app.name}},
+            WryActivity,
+            wry::android_setup, // pass the wry::android_setup function to tao which will invoke when the event loop is created
+            _start_app
+        );
+        wry::android_binding!(com_example, {{snake-case app.name}});
+    }
+
     #[cfg(target_os = "ios")]
     _start_app()
 }
 
-pub fn main() -> Result<()> {
+pub fn main() {
     init_logging();
     let event_loop = EventLoop::new();
 
@@ -75,64 +79,78 @@ pub fn main() -> Result<()> {
     });
 }
 
-fn build_webview(event_loop: &EventLoopWindowTarget<()>) -> Result<WebView> {
+fn build_webview(event_loop: &EventLoopWindowTarget<()>) -> anyhow::Result<WebView> {
     let window = WindowBuilder::new()
         .with_title("A fantastic window!")
         .build(&event_loop)?;
-    let webview = WebViewBuilder::new(window)?
-        .with_url("https://tauri.app")?
+    let webview = WebViewBuilder::new(&window)
+        .with_url("https://tauri.app")
         // If you want to use custom protocol, set url like this and add files like index.html to assets directory.
         // .with_url("wry://assets/index.html")?
         .with_devtools(true)
         .with_initialization_script("console.log('hello world from init script');")
-        .with_ipc_handler(|_, s| {
+        .with_ipc_handler(|s| {
             dbg!(s);
         })
-        .with_custom_protocol("wry".into(), move |_request| {
-            #[cfg(not(target_os = "android"))]
-            {
-                use std::fs::{canonicalize, read};
-                use wry::http::header::CONTENT_TYPE;
-
-                // Remove url scheme
-                let path = _request.uri().path();
-
-                #[cfg(not(target_os = "ios"))]
-                let content = read(canonicalize(&path[1..])?)?;
-
-                #[cfg(target_os = "ios")]
-                let content = {
-                    let path = core_foundation::bundle::CFBundle::main_bundle()
-                        .resources_path()
-                        .unwrap()
-                        .join(&path);
-                    read(canonicalize(&path)?)?
-                };
-
-                // Return asset contents and mime types based on file extentions
-                // If you don't want to do this manually, there are some crates for you.
-                // Such as `infer` and `mime_guess`.
-                let (data, meta) = if path.ends_with(".html") {
-                    (content, "text/html")
-                } else if path.ends_with(".js") {
-                    (content, "text/javascript")
-                } else if path.ends_with(".png") {
-                    (content, "image/png")
-                } else {
-                    unimplemented!();
-                };
-
-                Ok(Response::builder()
-                    .header(CONTENT_TYPE, meta)
-                    .body(data.into())?)
-            }
-
-            #[cfg(target_os = "android")]
-            {
-                Ok(Response::builder().body(Vec::new().into())?)
+        .with_custom_protocol("wry".into(), move |request| {
+            match process_custom_protcol(request) {
+                Ok(r) => r.map(Into::into),
+                Err(e) => http::Response::builder()
+                    .header(http::header::CONTENT_TYPE, "text/plain")
+                    .status(500)
+                    .body(e.to_string().as_bytes().to_vec())
+                    .unwrap()
+                    .map(Into::into),
             }
         })
         .build()?;
 
-        Ok(webview)
- }
+    Ok(webview)
+}
+
+fn process_custom_protcol(
+    _request: http::Request<Vec<u8>>,
+) -> anyhow::Result<http::Response<Vec<u8>>> {
+    #[cfg(not(target_os = "android"))]
+    {
+        use std::fs::{canonicalize, read};
+        use wry::http::header::CONTENT_TYPE;
+
+        // Remove url scheme
+        let path = _request.uri().path();
+
+        #[cfg(not(target_os = "ios"))]
+        let content = read(canonicalize(&path[1..])?)?;
+
+        #[cfg(target_os = "ios")]
+        let content = {
+            let path = core_foundation::bundle::CFBundle::main_bundle()
+                .resources_path()
+                .unwrap()
+                .join(&path);
+            read(canonicalize(&path)?)?
+        };
+
+        // Return asset contents and mime types based on file extentions
+        // If you don't want to do this manually, there are some crates for you.
+        // Such as `infer` and `mime_guess`.
+        let (data, meta) = if path.ends_with(".html") {
+            (content, "text/html")
+        } else if path.ends_with(".js") {
+            (content, "text/javascript")
+        } else if path.ends_with(".png") {
+            (content, "image/png")
+        } else {
+            unimplemented!();
+        };
+
+        Ok(http::Response::builder()
+            .header(CONTENT_TYPE, meta)
+            .body(data.into())?)
+    }
+
+    #[cfg(target_os = "android")]
+    {
+        Ok(http::Response::builder().body(Vec::new().into())?)
+    }
+}

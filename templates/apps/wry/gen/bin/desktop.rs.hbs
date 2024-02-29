@@ -1,5 +1,5 @@
 
 fn main() {
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
-    {{snake-case app.name}}::main().unwrap();
+    {{snake-case app.name}}::main();
 }
