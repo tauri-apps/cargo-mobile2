@@ -237,7 +237,7 @@ impl<'a> Device<'a> {
 
         self.adb(env)
             .before_spawn(move |cmd| {
-                cmd.arg("install");
+                cmd.args(["install", "-r"]);
                 cmd.arg(&apk_path);
                 Ok(())
             })
