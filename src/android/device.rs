@@ -237,11 +237,8 @@ impl<'a> Device<'a> {
 
         self.adb(env)
             .before_spawn(move |cmd| {
-                cmd.args([
-                    "install",
-                    "-r",
-                    apk_path.to_str().unwrap()
-                ]);
+                cmd.args(["install", "-r"]);
+                cmd.arg(&apk_path);
                 Ok(())
             })
             .dup_stdio()
