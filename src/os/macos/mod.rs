@@ -102,7 +102,7 @@ pub fn open_file_with(
 
 #[cfg(target_os = "macos")]
 pub fn command_path(name: &str) -> std::io::Result<std::process::Output> {
-    duct::cmd("command", ["-v", name]).run()
+    duct::cmd("command", ["-v", name]).dup_stdio().run()
 }
 
 pub fn code_command() -> duct::Expression {
