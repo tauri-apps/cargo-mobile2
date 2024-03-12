@@ -53,7 +53,7 @@ deunicode = "1.4"
 dunce = "1.0"
 english-numbers = "0.3"
 env_logger = { version = "0.10", optional = true }
-heck = "0.4"
+heck = "0.5"
 home = "0.5"
 ignore = "0.4"
 java-properties = "2.0"
