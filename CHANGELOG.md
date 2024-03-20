@@ -1,5 +1,11 @@
 # Changelog
 
+## \[0.11.0]
+
+- [`b370b38`](https://github.com/tauri-apps/cargo-mobile2/commit/b370b38acc8975d3f84c012354732a28edbb9e34)([#285](https://github.com/tauri-apps/cargo-mobile2/pull/285)) Fix a bug in checking for package presence when initiating an ios project
+- [`0c91351`](https://github.com/tauri-apps/cargo-mobile2/commit/0c91351ef6452a8f9bad58469bca42704d8a9a1e)([#292](https://github.com/tauri-apps/cargo-mobile2/pull/292)) Remove `openssl` and use `x509-certificate` instead.
+- [`1567a7a`](https://github.com/tauri-apps/cargo-mobile2/commit/1567a7a16772a2fe904e95409b74c02846de4b33)([#288](https://github.com/tauri-apps/cargo-mobile2/pull/288)) Update `windows` crate to `0.54`
+
 ## \[0.10.4]
 
 - [`7a1066c`](https://github.com/tauri-apps/cargo-mobile2/commit/7a1066cd93d0e4cf158ccfa6a41652f2934758da)([#283](https://github.com/tauri-apps/cargo-mobile2/pull/283)) Use `adb install -r` to try replacing the android application while installing it on the device. This elimnates the need to uninstall the application from a previous run when using a real device.
