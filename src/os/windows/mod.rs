@@ -180,6 +180,7 @@ fn open_file_with_android_studio(path: impl AsRef<OsStr>, env: &Env) -> Result<(
                 &mut buffer,
                 0,
             )
+            .ok()
             .map_err(|e| OpenFileError::IOError(e.into()))?
         };
         let len = NullTerminatedWTF16Iterator(buffer.as_ptr()).count();
