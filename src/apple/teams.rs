@@ -1,11 +1,8 @@
 use once_cell_regex::regex;
-use openssl::{
-    error::ErrorStack as OpenSslError,
-    nid::Nid,
-    x509::{X509NameRef, X509},
-};
+
 use std::collections::BTreeSet;
 use thiserror::Error;
+use x509_certificate::{certificate::X509Certificate, X509CertificateError};
 
 pub fn get_pem_list(name_substr: &str) -> std::io::Result<std::process::Output> {
     duct::cmd(
@@ -30,17 +27,17 @@ pub enum Error {
     #[error("Failed to call `security` command: {0}")]
     SecurityCommandFailed(#[from] std::io::Error),
     #[error("Failed to parse X509 cert: {0}")]
-    X509ParseFailed(#[source] OpenSslError),
+    X509ParseFailed(#[source] X509CertificateError),
 }
 
 #[derive(Debug, Error)]
 pub enum X509FieldError {
-    #[error("Missing X509 field {name:?} ({id:?})")]
-    FieldMissing { name: &'static str, id: Nid },
+    //#[error("Missing X509 field {name:?} ({id:?})")]
+    //FieldMissing { name: &'static str, id: Nid },
     #[error("Field contained invalid UTF-8: {0}")]
-    FieldNotValidUtf8(#[source] OpenSslError),
+    FieldNotValidUtf8(#[source] X509CertificateError),
 }
-
+/*
 pub fn get_x509_field(
     subject_name: &X509NameRef,
     field_name: &'static str,
@@ -58,16 +55,14 @@ pub fn get_x509_field(
         .map_err(X509FieldError::FieldNotValidUtf8)
         .map(|s| s.to_string())
 }
+*/
 
 #[derive(Debug, Error)]
 pub enum FromX509Error {
-    #[error("skipping cert: {0}")]
-    CommonNameMissing(#[source] X509FieldError),
-    #[error("skipping cert {common_name:?}: {source}")]
-    OrganizationalUnitMissing {
-        common_name: String,
-        source: X509FieldError,
-    },
+    #[error("skipping cert, missing common name")]
+    CommonNameMissing,
+    #[error("skipping cert {common_name}: missing Organization Unit")]
+    OrganizationalUnitMissing { common_name: String },
 }
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -77,12 +72,18 @@ pub struct Team {
 }
 
 impl Team {
-    pub fn from_x509(cert: X509) -> Result<Self, FromX509Error> {
-        let subj = cert.subject_name();
-        let common_name = get_x509_field(subj, "Common Name", Nid::COMMONNAME)
-            .map_err(FromX509Error::CommonNameMissing)?;
-        let organization = get_x509_field(subj, "Organization", Nid::ORGANIZATIONNAME);
-        let name = if let Ok(organization) = organization {
+    pub fn from_x509(cert: X509Certificate) -> Result<Self, FromX509Error> {
+        let common_name = cert
+            .subject_common_name()
+            .ok_or(FromX509Error::CommonNameMissing)?;
+
+        let organization = cert
+            .subject_name()
+            .iter_organization()
+            .next()
+            .and_then(|v| v.to_string().ok());
+
+        let name = if let Some(organization) = organization {
             log::debug!(
                 "found cert {:?} with organization {:?}",
                 common_name,
@@ -102,12 +103,14 @@ impl Team {
                     common_name.clone()
                 })
         };
-        let id = get_x509_field(subj, "Organizational Unit", Nid::ORGANIZATIONALUNITNAME).map_err(
-            |source| FromX509Error::OrganizationalUnitMissing {
-                common_name,
-                source,
-            },
-        )?;
+
+        let id = cert
+            .subject_name()
+            .iter_organizational_unit()
+            .next()
+            .and_then(|v| v.to_string().ok())
+            .ok_or(FromX509Error::OrganizationalUnitMissing { common_name })?;
+
         Ok(Self { name, id })
     }
 }
@@ -115,9 +118,12 @@ impl Team {
 pub fn find_development_teams() -> Result<Vec<Team>, Error> {
     let certs = {
         let new = get_pem_list_new_name_scheme().map_err(Error::SecurityCommandFailed)?;
-        let mut certs = X509::stack_from_pem(&new.stdout).map_err(Error::X509ParseFailed)?;
+        let mut certs =
+            X509Certificate::from_pem_multiple(new.stdout).map_err(Error::X509ParseFailed)?;
         let old = get_pem_list_old_name_scheme().map_err(Error::SecurityCommandFailed)?;
-        certs.append(&mut X509::stack_from_pem(&old.stdout).map_err(Error::X509ParseFailed)?);
+        certs.append(
+            &mut X509Certificate::from_pem_multiple(old.stdout).map_err(Error::X509ParseFailed)?,
+        );
         certs
     };
     Ok(certs
