@@ -83,7 +83,27 @@ fn build_webview(event_loop: &EventLoopWindowTarget<()>) -> anyhow::Result<WebVi
     let window = WindowBuilder::new()
         .with_title("A fantastic window!")
         .build(&event_loop)?;
-    let webview = WebViewBuilder::new(&window)
+
+    #[cfg(any(
+        target_os = "windows",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "android"
+    ))]
+    let builder =  WebViewBuilder::new(&window);
+    #[cfg(not(any(
+        target_os = "windows",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "android"
+    )))]
+    let builder = {
+        use tao::platform::unix::WindowExtUnix;
+        use wry::WebViewBuilderExtUnix;
+        let vbox = window.default_vbox().unwrap();
+        WebViewBuilder::new_gtk(vbox)
+    };
+    let webview = builder
         .with_url("https://tauri.app")
         // If you want to use custom protocol, set url like this and add files like index.html to assets directory.
         // .with_url("wry://assets/index.html")?
