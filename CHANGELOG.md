@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.11.2]
+
+- [`adb2846`](https://github.com/tauri-apps/cargo-mobile2/commit/adb2846ab60642b3cc0a950e60c8c0f9c05f6cb5)([#297](https://github.com/tauri-apps/cargo-mobile2/pull/297)) Fix creating a new `bevy` project.
+
 ## \[0.11.1]
 
 - [`cb4ed53`](https://github.com/tauri-apps/cargo-mobile2/commit/cb4ed53069f404a0eed9988b7a0dd0e29509572e)([#300](https://github.com/tauri-apps/cargo-mobile2/pull/300)) Fix `.gitignore` generated with wrong formatting.
