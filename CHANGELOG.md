@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.11.1]
+
+- [`cb4ed53`](https://github.com/tauri-apps/cargo-mobile2/commit/cb4ed53069f404a0eed9988b7a0dd0e29509572e)([#300](https://github.com/tauri-apps/cargo-mobile2/pull/300)) Fix `.gitignore` generated with wrong formatting.
+- [`ad41fe2`](https://github.com/tauri-apps/cargo-mobile2/commit/ad41fe2328da9cb3c485f37d8081f99688463b48)([#296](https://github.com/tauri-apps/cargo-mobile2/pull/296)) Generate `.cargo/config.toml` with paths wrapped in quote.
+
 ## \[0.11.0]
 
 - [`b370b38`](https://github.com/tauri-apps/cargo-mobile2/commit/b370b38acc8975d3f84c012354732a28edbb9e34)([#285](https://github.com/tauri-apps/cargo-mobile2/pull/285)) Fix a bug in checking for package presence when initiating an ios project
