@@ -45,7 +45,7 @@ native-tls = [ "ureq/native-tls" ]
 default = [ "cli", "ureq/native-tls" ]
 
 [dependencies]
-handlebars = "4.4"
+handlebars = "4.5"
 serde_json = "1.0"
 colored = "2.1"
 deunicode = "1.4"
@@ -107,7 +107,7 @@ embed-resource = "2.4"
 [build-dependencies]
 home = { version = "0.5", optional = true }
 dunce = { version = "1.0", optional = true }
-handlebars = { version = "4.4", optional = true }
+handlebars = { version = "4.5", optional = true }
 log = { version = "0.4", optional = true }
 serde = { version = "1.0", optional = true }
 serde_json = { version = "1.0", optional = true }
