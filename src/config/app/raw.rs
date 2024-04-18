@@ -15,7 +15,7 @@ use std::{
 
 #[derive(Debug)]
 enum DefaultDomainError {
-    FailedToGetGitEmailAddr(std::io::Error),
+    FailedToGetGitEmailAddr(#[allow(unused)] std::io::Error),
     FailedToParseEmailAddr,
 }
 
