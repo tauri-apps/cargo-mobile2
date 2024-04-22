@@ -1,8 +1,8 @@
+use handlebars::RenderErrorReason;
+
 use crate::{
     bicycle::{
-        handlebars::{
-            self, Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderError,
-        },
+        handlebars::{self, Context, Handlebars, Helper, HelperResult, Output, RenderContext},
         Bicycle, EscapeFn, HelperDef, JsonMap,
     },
     config::{app, Config},
@@ -45,7 +45,7 @@ fn join(
 ) -> HelperResult {
     out.write(
         &get_str_array(helper, |s| s.to_string())
-            .ok_or_else(|| RenderError::new("`join` helper wasn't given an array"))?
+            .ok_or_else(|| RenderErrorReason::Other("`join` helper wasn't given an array".into()))?
             .join(", "),
     )
     .map_err(Into::into)
@@ -60,7 +60,9 @@ fn quote_and_join(
 ) -> HelperResult {
     out.write(
         &get_str_array(helper, |s| format!("{:?}", s))
-            .ok_or_else(|| RenderError::new("`quote-and-join` helper wasn't given an array"))?
+            .ok_or_else(|| {
+                RenderErrorReason::Other("`quote-and-join` helper wasn't given an array".into())
+            })?
             .join(", "),
     )
     .map_err(Into::into)
@@ -76,7 +78,9 @@ fn quote_and_join_colon_prefix(
     out.write(
         &get_str_array(helper, |s| format!("{:?}", format!(":{}", s)))
             .ok_or_else(|| {
-                RenderError::new("`quote-and-join-colon-prefix` helper wasn't given an array")
+                RenderErrorReason::Other(
+                    "`quote-and-join-colon-prefix` helper wasn't given an array".into(),
+                )
             })?
             .join(", "),
     )
@@ -118,16 +122,18 @@ fn reverse_domain_snake_case(
         .map_err(Into::into)
 }
 
-fn app_root(ctx: &Context) -> Result<&str, RenderError> {
+fn app_root(ctx: &Context) -> Result<&str, RenderErrorReason> {
     let app_root = ctx
         .data()
         .get(app::KEY)
-        .ok_or_else(|| RenderError::new("`app` missing from template data."))?
+        .ok_or_else(|| RenderErrorReason::Other("`app` missing from template data.".into()))?
         .get("root-dir")
-        .ok_or_else(|| RenderError::new("`app.root-dir` missing from template data."))?;
-    app_root
-        .as_str()
-        .ok_or_else(|| RenderError::new("`app.root-dir` contained invalid UTF-8."))
+        .ok_or_else(|| {
+            RenderErrorReason::Other("`app.root-dir` missing from template data.".into())
+        })?;
+    app_root.as_str().ok_or_else(|| {
+        RenderErrorReason::Other("`app.root-dir` contained invalid UTF-8..into()".into())
+    })
 }
 
 fn prefix_path(
@@ -141,8 +147,9 @@ fn prefix_path(
         util::prefix_path(app_root(ctx)?, get_str(helper))
             .to_str()
             .ok_or_else(|| {
-                RenderError::new(
-                    "Either the `app.root-dir` or the specified path contained invalid UTF-8.",
+                RenderErrorReason::Other(
+                    "Either the `app.root-dir` or the specified path contained invalid UTF-8."
+                        .into(),
                 )
             })?,
     )
@@ -159,12 +166,15 @@ fn unprefix_path(
     out.write(
         util::unprefix_path(app_root(ctx)?, get_str(helper))
             .map_err(|_| {
-                RenderError::new("Attempted to unprefix a path that wasn't in the app root dir.")
+                RenderErrorReason::Other(
+                    "Attempted to unprefix a path that wasn't in the app root dir.".into(),
+                )
             })?
             .to_str()
             .ok_or_else(|| {
-                RenderError::new(
-                    "Either the `app.root-dir` or the specified path contained invalid UTF-8.",
+                RenderErrorReason::Other(
+                    "Either the `app.root-dir` or the specified path contained invalid UTF-8."
+                        .into(),
                 )
             })?,
     )
