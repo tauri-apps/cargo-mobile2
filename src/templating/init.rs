@@ -6,6 +6,7 @@ use crate::{
         Bicycle, EscapeFn, HelperDef, JsonMap,
     },
     config::{app, Config},
+    reserved_names::KOTLIN_ONLY_KEYWORDS,
     util::{self, Git},
 };
 use std::collections::HashMap;
@@ -122,44 +123,26 @@ fn reverse_domain_snake_case(
         .map_err(Into::into)
 }
 
-fn reverse_domain_escape_kotlin_keyword(
+fn escape_kotlin_keyword(
     helper: &Helper,
     _: &Handlebars,
     _: &Context,
     _: &mut RenderContext,
     out: &mut dyn Output,
 ) -> HelperResult {
-    let rev_domain = util::reverse_domain(get_str(helper));
-    dbg!(&rev_domain);
-    let result = rev_domain
+    let escaped_result = get_str(helper)
         .split('.')
         .map(|s| {
-            let should_escaped_words: &[&str] = &[
-                "as",
-                "false",
-                "fun",
-                "in",
-                "is",
-                "null",
-                "object",
-                "true",
-                "typealias",
-                "typeof",
-                "val",
-                "var",
-                "when",
-            ];
-            if should_escaped_words.contains(&s) {
-                dbg!("escaped", &s);
+            if KOTLIN_ONLY_KEYWORDS.contains(&s) {
                 format!("`{}`", s)
             } else {
-                dbg!("not escaped", &s);
                 s.to_string()
             }
         })
         .collect::<Vec<_>>()
         .join(".");
-    out.write(&result).map_err(Into::into)
+
+    out.write(&escaped_result).map_err(Into::into)
 }
 
 fn app_root(ctx: &Context) -> Result<&str, RenderErrorReason> {
@@ -259,10 +242,7 @@ pub fn init(config: Option<&Config>) -> Bicycle {
                 "reverse-domain-snake-case",
                 Box::new(reverse_domain_snake_case),
             );
-            helpers.insert(
-                "reverse-domain-escape-kotlin-keyword",
-                Box::new(reverse_domain_escape_kotlin_keyword),
-            );
+            helpers.insert("escape-kotlin-keyword", Box::new(escape_kotlin_keyword));
             helpers.insert("dot-to-slash", Box::new(dot_to_slash));
             if config.is_some() {
                 // don't mix these up or very bad things will happen to all of us

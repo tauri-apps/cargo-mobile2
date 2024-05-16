@@ -19,6 +19,22 @@ pub static WINDOWS: &[&str] = &[
 
 pub static ARTIFACTS: &[&str] = &["deps", "examples", "build", "incremental"];
 
+pub static KOTLIN_ONLY_KEYWORDS: &[&str] = &[
+    "as",
+    "false",
+    "fun",
+    "in",
+    "is",
+    "null",
+    "object",
+    "true",
+    "typealias",
+    "typeof",
+    "val",
+    "var",
+    "when",
+];
+
 pub fn in_keywords(s: impl AsRef<str>) -> bool {
     KEYWORDS.contains(&s.as_ref())
 }
