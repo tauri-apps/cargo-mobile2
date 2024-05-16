@@ -3,9 +3,8 @@ use std::error::Error;
 use std::fmt;
 
 static RESERVED_PACKAGE_NAMES: [&str; 2] = ["kotlin", "java"];
-static RESERVED_KEYWORDS: [&str; 63] = [
+static RESERVED_JAVA_KEYWORDS: [&str; 50] = [
     "abstract",
-    "as",
     "assert",
     "boolean",
     "break",
@@ -22,26 +21,20 @@ static RESERVED_KEYWORDS: [&str; 63] = [
     "else",
     "enum",
     "extends",
-    "false",
     "final",
     "finally",
     "float",
     "for",
-    "fun",
     "goto",
     "if",
     "implements",
     "import",
     "instanceof",
-    "in",
     "int",
     "interface",
-    "is",
     "long",
     "native",
     "new",
-    "null",
-    "object",
     "package",
     "private",
     "protected",
@@ -57,15 +50,9 @@ static RESERVED_KEYWORDS: [&str; 63] = [
     "throw",
     "throws",
     "transient",
-    "true",
     "try",
-    "typealias",
-    "typeof",
-    "val",
-    "var",
     "void",
     "volatile",
-    "when",
     "while",
 ];
 
@@ -129,7 +116,7 @@ pub fn check_domain_syntax(domain_name: &str) -> Result<(), DomainError> {
         if label.is_empty() {
             return Err(DomainError::EmptyLabel);
         }
-        if RESERVED_KEYWORDS.contains(&label) {
+        if RESERVED_JAVA_KEYWORDS.contains(&label) {
             return Err(DomainError::ReservedKeyword {
                 keyword: label.to_owned(),
             });
