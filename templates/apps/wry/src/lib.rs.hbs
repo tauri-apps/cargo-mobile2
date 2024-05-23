@@ -43,7 +43,6 @@ pub extern "C" fn start_app() {
     {
         tao::android_binding!(
             {{reverse-domain-snake-case app.domain}},
-            {{snake-case app.name}},
             WryActivity,
             wry::android_setup, // pass the wry::android_setup function to tao which will invoke when the event loop is created
             _start_app
