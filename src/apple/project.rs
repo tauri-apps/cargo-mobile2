@@ -194,7 +194,7 @@ pub fn gen(
     // often necessary.
     println!("Generating Xcode project...");
     let project_yml_path = dest.join("project.yml");
-    duct::cmd("xcodegen", ["generate", "--spec"])
+    duct::cmd("xcodegen", ["generate", "--no-env", "--spec"])
         .before_spawn(move |cmd| {
             cmd.arg(&project_yml_path);
             Ok(())
