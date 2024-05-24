@@ -2,4 +2,8 @@
 "cargo-mobile2": minor
 ---
 
-**BREAKING CHANGE:** Take `config.domain` as package name in Android and bundle ID in iOS instead of combining it with the libname in Cargo.toml.
+Use `config.identifier` as the package name in Android and bundle ID in iOS.
+
+**BREAKING CHANGE:**
+  - In `Config`, renamed field `domain` to `identifier`.
+  - In `App`, renamed method `reverse_domain` to `reverse_identifier`.

@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace="{{reverse-domain app.domain}}.{{snake-case app.name}}"{{#if has-asset-packs}}
+    namespace="{{reverse-domain app.identifier}}"{{#if has-asset-packs}}
     assetPacks += mutableSetOf({{quote-and-join-colon-prefix asset-packs}}){{/if}}
     compileSdk = 33
     defaultConfig {
-        applicationId = "{{reverse-domain app.domain}}.{{snake-case app.name}}"
+        applicationId = "{{reverse-domain app.identifier}}"
         minSdk = {{android.min-sdk-version}}
         targetSdk = 33
         versionCode = 1
