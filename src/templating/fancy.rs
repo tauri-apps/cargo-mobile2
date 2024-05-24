@@ -68,7 +68,7 @@ impl FancyPack {
             .map(|p| p.join(&raw.path))
             .unwrap_or(raw.path.clone());
 
-        let real_path = util::expand_home(&raw_path).map_err(FancyPackParseError::NoHomeDir)?;
+        let real_path = util::expand_home(raw_path).map_err(FancyPackParseError::NoHomeDir)?;
         let this = Self {
             path: real_path,
             base: raw

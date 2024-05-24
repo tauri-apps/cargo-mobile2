@@ -1,5 +1,5 @@
 mod common_email_providers;
-pub mod domain;
+pub mod identifier;
 pub mod lib_name;
 pub mod name;
 mod raw;
@@ -35,10 +35,10 @@ pub enum Error {
     NameInvalid(name::Invalid),
     #[error("app.lib_name invalid: {0}")]
     LibNameInvalid(lib_name::Invalid),
-    #[error("`app.domain` {domain} isn't valid: {cause}")]
-    DomainInvalid {
-        domain: String,
-        cause: domain::DomainError,
+    #[error("`app.identifier` {identifier} isn't valid: {cause}")]
+    IdentifierInvalid {
+        identifier: String,
+        cause: identifier::IdentifierError,
     },
     #[error("`app.asset-dir` {asset_dir} couldn't be normalized: {cause}")]
     AssetDirNormalizationFailed {
@@ -67,7 +67,7 @@ pub struct App {
     name: String,
     lib_name: Option<String>,
     stylized_name: String,
-    domain: String,
+    identifier: String,
     asset_dir: PathBuf,
     #[serde(skip)]
     template_pack: Pack,
@@ -82,7 +82,7 @@ impl Debug for App {
             .field("root_dir", &self.root_dir)
             .field("name", &self.name)
             .field("stylized_name", &self.stylized_name)
-            .field("domain", &self.domain)
+            .field("identifier", &self.identifier)
             .field("asset_dir", &self.asset_dir)
             .field("template_pack", &self.template_pack)
             .finish()
@@ -102,14 +102,14 @@ impl App {
 
         let stylized_name = raw.stylized_name.unwrap_or_else(|| name.clone());
 
-        let domain = {
-            let domain = raw.domain;
-            domain::check_domain_syntax(&domain)
-                .map_err(|cause| Error::DomainInvalid {
-                    domain: domain.clone(),
+        let identifier = {
+            let identifier = raw.identifier;
+            identifier::check_identifier_syntax(&identifier)
+                .map_err(|cause| Error::IdentifierInvalid {
+                    identifier: identifier.clone(),
                     cause,
                 })
-                .map(|()| domain)
+                .map(|()| identifier)
         }?;
 
         if raw.asset_dir.as_deref() == Some(DEFAULT_ASSET_DIR) {
@@ -156,7 +156,7 @@ impl App {
             name,
             lib_name,
             stylized_name,
-            domain,
+            identifier,
             asset_dir,
             template_pack,
             target_dir_resolver: None,
@@ -213,8 +213,8 @@ impl App {
         &self.stylized_name
     }
 
-    pub fn reverse_domain(&self) -> String {
-        self.domain
+    pub fn reverse_identifier(&self) -> String {
+        self.identifier
             .clone()
             .split('.')
             .rev()
