@@ -1,4 +1,4 @@
-use super::{common_email_providers::COMMON_EMAIL_PROVIDERS, domain, name};
+use super::{common_email_providers::COMMON_EMAIL_PROVIDERS, identifier, name};
 use crate::{
     templating,
     util::{cli::TextWrapper, prompt, Git},
@@ -30,7 +30,7 @@ fn default_identifier(_wrapper: &TextWrapper) -> Result<Option<String>, DefaultI
         .ok_or(DefaultIdentifierError::FailedToParseEmailAddr)?;
     Ok(
         if !COMMON_EMAIL_PROVIDERS.contains(&identifier)
-            && domain::check_domain_syntax(identifier).is_ok()
+            && identifier::check_identifier_syntax(identifier).is_ok()
         {
             #[cfg(not(feature = "brainium"))]
             if identifier == "brainiumstudios.com" {
@@ -241,7 +241,7 @@ impl Raw {
         Ok(loop {
             let response = prompt::default("Identifier", Some(&defaults.identifier), None)
                 .map_err(PromptError::IdentifierPromptFailed)?;
-            match domain::check_domain_syntax(response.as_str()) {
+            match identifier::check_identifier_syntax(response.as_str()) {
                 Ok(_) => break response,
                 Err(err) => {
                     println!(

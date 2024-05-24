@@ -1,5 +1,5 @@
 mod common_email_providers;
-pub mod domain;
+pub mod identifier;
 pub mod lib_name;
 pub mod name;
 mod raw;
@@ -38,7 +38,7 @@ pub enum Error {
     #[error("`app.identifier` {identifier} isn't valid: {cause}")]
     IdentifierInvalid {
         identifier: String,
-        cause: domain::DomainError,
+        cause: identifier::IdentifierError,
     },
     #[error("`app.asset-dir` {asset_dir} couldn't be normalized: {cause}")]
     AssetDirNormalizationFailed {
@@ -104,7 +104,7 @@ impl App {
 
         let identifier = {
             let identifier = raw.identifier;
-            domain::check_domain_syntax(&identifier)
+            identifier::check_identifier_syntax(&identifier)
                 .map_err(|cause| Error::IdentifierInvalid {
                     identifier: identifier.clone(),
                     cause,
