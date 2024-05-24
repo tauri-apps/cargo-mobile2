@@ -9,8 +9,8 @@ pub fn minimal(msg: impl Display) -> io::Result<String> {
     print!("{}: ", msg);
     io::stdout().flush()?;
     io::stdin().read_line(&mut input)?;
-    input = input.trim().to_owned();
-    Ok(input)
+
+    Ok(input.trim().to_owned())
 }
 
 pub fn default(
