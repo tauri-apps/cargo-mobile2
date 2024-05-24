@@ -359,12 +359,7 @@ impl<'a> Device<'a> {
             self.install_apk(config, env, profile)
                 .map_err(RunError::ApkInstallFailed)?;
         }
-        let activity = format!(
-            "{}.{}/{}",
-            config.app().reverse_domain(),
-            config.app().name_snake(),
-            activity
-        );
+        let activity = format!("{}/{}", config.app().reverse_identifier(), activity);
         self.adb(env)
             .before_spawn(move |cmd| {
                 cmd.args(["shell", "am", "start", "-n", &activity]);
@@ -391,16 +386,7 @@ impl<'a> Device<'a> {
         let stdout = loop {
             let cmd = duct::cmd(
                 env.platform_tools_path().join("adb"),
-                [
-                    "shell",
-                    "pidof",
-                    "-s",
-                    &format!(
-                        "{}.{}",
-                        config.app().reverse_domain(),
-                        config.app().name_snake(),
-                    ),
-                ],
+                ["shell", "pidof", "-s", &config.app().reverse_identifier()],
             )
             .vars(env.explicit_env())
             .stderr_capture()

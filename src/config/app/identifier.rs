@@ -57,7 +57,7 @@ static RESERVED_JAVA_KEYWORDS: [&str; 50] = [
 ];
 
 #[derive(Debug)]
-pub enum DomainError {
+pub enum IdentifierError {
     Empty,
     NotAsciiAlphanumeric { bad_chars: Vec<char> },
     StartsWithDigit { label: String },
@@ -67,15 +67,15 @@ pub enum DomainError {
     EmptyLabel,
 }
 
-impl Error for DomainError {}
+impl Error for IdentifierError {}
 
-impl fmt::Display for DomainError {
+impl fmt::Display for IdentifierError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Empty => write!(f, "Domain can't be empty."),
+            Self::Empty => write!(f, "Identifier can't be empty."),
             Self::NotAsciiAlphanumeric { bad_chars } => write!(
                 f,
-                "{} characters were used in domain, but only ASCII letters and numbers are allowed.",
+                "{} characters were used in identifier, but only ASCII letters and numbers are allowed.",
                 list_display(
                     &bad_chars
                         .iter()
@@ -85,7 +85,7 @@ impl fmt::Display for DomainError {
             ),
             Self::ReservedPackageName { package_name } => write!(
                 f,
-                "\"{}\" is a reserved package name in this project and can't be used as a top-level domain.",
+                "\"{}\" is a reserved package name in this project and can't be used as a top-level identifier.",
                 package_name
             ),
             Self::ReservedKeyword { keyword } => write!(
@@ -98,31 +98,31 @@ impl fmt::Display for DomainError {
                 "\"{}\" label starts with a digit, which is not allowed in java/kotlin packages.",
                 label
             ),
-            Self::StartsOrEndsWithADot => write!(f, "Domain can't start or end with a dot."),
+            Self::StartsOrEndsWithADot => write!(f, "Identifier can't start or end with a dot."),
             Self::EmptyLabel => write!(f, "Labels can't be empty."),
         }
     }
 }
 
-pub fn check_domain_syntax(domain_name: &str) -> Result<(), DomainError> {
-    if domain_name.is_empty() {
-        return Err(DomainError::Empty);
+pub fn check_identifier_syntax(identifier_name: &str) -> Result<(), IdentifierError> {
+    if identifier_name.is_empty() {
+        return Err(IdentifierError::Empty);
     }
-    if domain_name.starts_with('.') || domain_name.ends_with('.') {
-        return Err(DomainError::StartsOrEndsWithADot);
+    if identifier_name.starts_with('.') || identifier_name.ends_with('.') {
+        return Err(IdentifierError::StartsOrEndsWithADot);
     }
-    let labels = domain_name.split('.');
+    let labels = identifier_name.split('.');
     for label in labels {
         if label.is_empty() {
-            return Err(DomainError::EmptyLabel);
+            return Err(IdentifierError::EmptyLabel);
         }
         if RESERVED_JAVA_KEYWORDS.contains(&label) {
-            return Err(DomainError::ReservedKeyword {
+            return Err(IdentifierError::ReservedKeyword {
                 keyword: label.to_owned(),
             });
         }
         if label.chars().next().unwrap().is_ascii_digit() {
-            return Err(DomainError::StartsWithDigit {
+            return Err(IdentifierError::StartsWithDigit {
                 label: label.to_owned(),
             });
         }
@@ -133,12 +133,12 @@ pub fn check_domain_syntax(domain_name: &str) -> Result<(), DomainError> {
             }
         }
         if !bad_chars.is_empty() {
-            return Err(DomainError::NotAsciiAlphanumeric { bad_chars });
+            return Err(IdentifierError::NotAsciiAlphanumeric { bad_chars });
         }
     }
     for pkg_name in RESERVED_PACKAGE_NAMES.iter() {
-        if domain_name.ends_with(pkg_name) {
-            return Err(DomainError::ReservedPackageName {
+        if identifier_name.ends_with(pkg_name) {
+            return Err(IdentifierError::ReservedPackageName {
                 package_name: pkg_name.to_string(),
             });
         }
@@ -159,22 +159,22 @@ mod test {
         case("java.test"),
         case("synchronized2.com")
     )]
-    fn test_check_domain_syntax_correct(input: &str) {
-        check_domain_syntax(input).unwrap();
+    fn test_check_identifier_syntax_correct(input: &str) {
+        check_identifier_syntax(input).unwrap();
     }
 
     #[rstest(input, error,
-        case("ラスト.テスト", DomainError::NotAsciiAlphanumeric { bad_chars: vec!['ラ', 'ス', 'ト'] }),
-        case("test.digits.87", DomainError::StartsWithDigit { label: String::from("87") }),
-        case("", DomainError::Empty {}),
-        case(".bad.dot.syntax", DomainError::StartsOrEndsWithADot {}),
-        case("com.kotlin", DomainError::ReservedPackageName { package_name: String::from("kotlin") }),
-        case("some.domain.catch.com", DomainError::ReservedKeyword { keyword: String::from("catch") }),
-        case("com..empty.label", DomainError::EmptyLabel)
+        case("ラスト.テスト", IdentifierError::NotAsciiAlphanumeric { bad_chars: vec!['ラ', 'ス', 'ト'] }),
+        case("test.digits.87", IdentifierError::StartsWithDigit { label: String::from("87") }),
+        case("", IdentifierError::Empty {}),
+        case(".bad.dot.syntax", IdentifierError::StartsOrEndsWithADot {}),
+        case("com.kotlin", IdentifierError::ReservedPackageName { package_name: String::from("kotlin") }),
+        case("some.identifier.catch.com", IdentifierError::ReservedKeyword { keyword: String::from("catch") }),
+        case("com..empty.label", IdentifierError::EmptyLabel)
     )]
-    fn test_check_domain_syntax_error(input: &str, error: DomainError) {
+    fn test_check_identifier_syntax_error(input: &str, error: IdentifierError) {
         assert_eq!(
-            check_domain_syntax(input).unwrap_err().to_string(),
+            check_identifier_syntax(input).unwrap_err().to_string(),
             error.to_string()
         )
     }
