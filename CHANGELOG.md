@@ -1,5 +1,17 @@
 # Changelog
 
+## \[0.12.0]
+
+- [`adb2846`](https://github.com/tauri-apps/cargo-mobile2/commit/adb2846ab60642b3cc0a950e60c8c0f9c05f6cb5)([#297](https://github.com/tauri-apps/cargo-mobile2/pull/297)) Fix creating a new `bevy` project.
+- [`29921ff`](https://github.com/tauri-apps/cargo-mobile2/commit/29921ff025ebed31546e33dc82696dc0c8fce2e0)([#330](https://github.com/tauri-apps/cargo-mobile2/pull/330)) Use `config.identifier` as the package name in Android and bundle ID in iOS.
+
+  **BREAKING CHANGE:**
+
+  - In `Config`, renamed field `domain` to `identifier`.
+  - In `App`, renamed method `reverse_domain` to `reverse_identifier`.
+- [`525d51f`](https://github.com/tauri-apps/cargo-mobile2/commit/525d51fc61e9461bd5468124554fc12d7382333f)([#305](https://github.com/tauri-apps/cargo-mobile2/pull/305)) Update `windows` crate to `0.56`
+- [`2beb485`](https://github.com/tauri-apps/cargo-mobile2/commit/2beb485387e67fc14cc2b714cb457726e4cd1d77)([#298](https://github.com/tauri-apps/cargo-mobile2/pull/298)) Fix `wry` template crashing on Linux.
+
 ## \[0.11.1]
 
 - [`cb4ed53`](https://github.com/tauri-apps/cargo-mobile2/commit/cb4ed53069f404a0eed9988b7a0dd0e29509572e)([#300](https://github.com/tauri-apps/cargo-mobile2/pull/300)) Fix `.gitignore` generated with wrong formatting.
