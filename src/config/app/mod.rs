@@ -223,8 +223,7 @@ impl App {
     }
 
     pub fn android_identifier_escape_kotlin_keyword(&self) -> String {
-        let identifier = self.reverse_identifier();
-        identifier
+        self.reverse_identifier()
             .split('.')
             .map(|s| {
                 if crate::reserved_names::KOTLIN_ONLY_KEYWORDS.contains(&s) {
