@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.12.1]
+
+- [`7d260ba`](https://github.com/tauri-apps/cargo-mobile2/commit/7d260ba290beb39c57863eaa8a8a523ede20093b)([#328](https://github.com/tauri-apps/cargo-mobile2/pull/328)) On Android, allows using Kotlin keywords as identifiers and escape them in templates.
+
 ## \[0.12.0]
 
 - [`adb2846`](https://github.com/tauri-apps/cargo-mobile2/commit/adb2846ab60642b3cc0a950e60c8c0f9c05f6cb5)([#297](https://github.com/tauri-apps/cargo-mobile2/pull/297)) Fix creating a new `bevy` project.
