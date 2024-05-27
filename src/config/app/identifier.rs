@@ -3,7 +3,8 @@ use std::error::Error;
 use std::fmt;
 
 static RESERVED_PACKAGE_NAMES: [&str; 2] = ["kotlin", "java"];
-static RESERVED_JAVA_KEYWORDS: [&str; 50] = [
+// https://docs.oracle.com/javase/tutorial/java/nutsandbolts/_keywords.html
+static RESERVED_JAVA_KEYWORDS: [&str; 53] = [
     "abstract",
     "assert",
     "boolean",
@@ -21,6 +22,7 @@ static RESERVED_JAVA_KEYWORDS: [&str; 50] = [
     "else",
     "enum",
     "extends",
+    "false",
     "final",
     "finally",
     "float",
@@ -35,6 +37,7 @@ static RESERVED_JAVA_KEYWORDS: [&str; 50] = [
     "long",
     "native",
     "new",
+    "null",
     "package",
     "private",
     "protected",
@@ -50,6 +53,7 @@ static RESERVED_JAVA_KEYWORDS: [&str; 50] = [
     "throw",
     "throws",
     "transient",
+    "true",
     "try",
     "void",
     "volatile",

@@ -21,13 +21,10 @@ pub static ARTIFACTS: &[&str] = &["deps", "examples", "build", "incremental"];
 
 pub static KOTLIN_ONLY_KEYWORDS: &[&str] = &[
     "as",
-    "false",
     "fun",
     "in",
     "is",
-    "null",
     "object",
-    "true",
     "typealias",
     "typeof",
     "val",
