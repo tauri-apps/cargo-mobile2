@@ -222,6 +222,20 @@ impl App {
             .join(".")
     }
 
+    pub fn android_identifier_escape_kotlin_keyword(&self) -> String {
+        self.reverse_identifier()
+            .split('.')
+            .map(|s| {
+                if crate::reserved_names::KOTLIN_ONLY_KEYWORDS.contains(&s) {
+                    format!("`{}`", s)
+                } else {
+                    s.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(".")
+    }
+
     pub fn manifest_path(&self) -> PathBuf {
         self.root_dir().join("Cargo.toml")
     }

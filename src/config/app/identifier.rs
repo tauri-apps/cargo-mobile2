@@ -3,9 +3,9 @@ use std::error::Error;
 use std::fmt;
 
 static RESERVED_PACKAGE_NAMES: [&str; 2] = ["kotlin", "java"];
-static RESERVED_KEYWORDS: [&str; 63] = [
+// https://docs.oracle.com/javase/tutorial/java/nutsandbolts/_keywords.html
+static RESERVED_JAVA_KEYWORDS: [&str; 53] = [
     "abstract",
-    "as",
     "assert",
     "boolean",
     "break",
@@ -27,21 +27,17 @@ static RESERVED_KEYWORDS: [&str; 63] = [
     "finally",
     "float",
     "for",
-    "fun",
     "goto",
     "if",
     "implements",
     "import",
     "instanceof",
-    "in",
     "int",
     "interface",
-    "is",
     "long",
     "native",
     "new",
     "null",
-    "object",
     "package",
     "private",
     "protected",
@@ -59,13 +55,8 @@ static RESERVED_KEYWORDS: [&str; 63] = [
     "transient",
     "true",
     "try",
-    "typealias",
-    "typeof",
-    "val",
-    "var",
     "void",
     "volatile",
-    "when",
     "while",
 ];
 
@@ -129,7 +120,7 @@ pub fn check_identifier_syntax(identifier_name: &str) -> Result<(), IdentifierEr
         if label.is_empty() {
             return Err(IdentifierError::EmptyLabel);
         }
-        if RESERVED_KEYWORDS.contains(&label) {
+        if RESERVED_JAVA_KEYWORDS.contains(&label) {
             return Err(IdentifierError::ReservedKeyword {
                 keyword: label.to_owned(),
             });

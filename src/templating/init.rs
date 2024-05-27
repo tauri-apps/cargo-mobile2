@@ -6,6 +6,7 @@ use crate::{
         Bicycle, EscapeFn, HelperDef, JsonMap,
     },
     config::{app, Config},
+    reserved_names::KOTLIN_ONLY_KEYWORDS,
     util::{self, Git},
 };
 use std::collections::HashMap;
@@ -122,6 +123,28 @@ fn reverse_domain_snake_case(
         .map_err(Into::into)
 }
 
+fn escape_kotlin_keyword(
+    helper: &Helper,
+    _: &Handlebars,
+    _: &Context,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    let escaped_result = get_str(helper)
+        .split('.')
+        .map(|s| {
+            if KOTLIN_ONLY_KEYWORDS.contains(&s) {
+                format!("`{}`", s)
+            } else {
+                s.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(".");
+
+    out.write(&escaped_result).map_err(Into::into)
+}
+
 fn app_root(ctx: &Context) -> Result<&str, RenderErrorReason> {
     let app_root = ctx
         .data()
@@ -219,6 +242,7 @@ pub fn init(config: Option<&Config>) -> Bicycle {
                 "reverse-domain-snake-case",
                 Box::new(reverse_domain_snake_case),
             );
+            helpers.insert("escape-kotlin-keyword", Box::new(escape_kotlin_keyword));
             helpers.insert("dot-to-slash", Box::new(dot_to_slash));
             if config.is_some() {
                 // don't mix these up or very bad things will happen to all of us

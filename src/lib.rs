@@ -13,7 +13,7 @@ pub mod init;
 pub mod opts;
 pub mod os;
 mod project;
-mod reserved_names;
+pub mod reserved_names;
 pub mod target;
 mod templating;
 pub mod update;
