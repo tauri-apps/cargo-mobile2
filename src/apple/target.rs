@@ -155,7 +155,7 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                     triple: "aarch64-apple-ios",
                     arch: "arm64",
                     sdk: "iphoneos",
-                    alias: Some("arm64e"),
+                    alias: Some("arm64e-ios"),
                     min_xcode_version: None,
                 },
             );
@@ -180,7 +180,27 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                     triple: "aarch64-apple-ios-sim",
                     arch: "arm64-sim",
                     sdk: "iphonesimulator",
-                    alias: Some("arm64e-sim"),
+                    alias: Some("arm64e-ios-sim"),
+                    min_xcode_version: None,
+                },
+            );
+            targets.insert(
+                "aarch64-apple-visionos",
+                Target {
+                    triple: "aarch64-apple-visionos",
+                    arch: "arm64",
+                    sdk: "xros",
+                    alias: Some("arm64e-xros"),
+                    min_xcode_version: None,
+                },
+            );
+            targets.insert(
+                "aarch64-apple-visionos-sim",
+                Target {
+                    triple: "aarch64-apple-visionos-sim",
+                    arch: "arm64-sim",
+                    sdk: "xrsimulator",
+                    alias: Some("arm64e-xros-sim"),
                     min_xcode_version: None,
                 },
             );
