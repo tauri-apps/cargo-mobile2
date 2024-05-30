@@ -143,14 +143,14 @@ pub struct Target<'a> {
 }
 
 impl<'a> TargetTrait<'a> for Target<'a> {
-    const DEFAULT_KEY: &'static str = "aarch64";
+    const DEFAULT_KEY: &'static str = "aarch64-apple-ios";
 
     fn all() -> &'a BTreeMap<&'a str, Self> {
         static TARGETS: OnceCell<BTreeMap<&'static str, Target<'static>>> = OnceCell::new();
         TARGETS.get_or_init(|| {
             let mut targets = BTreeMap::new();
             targets.insert(
-                "aarch64",
+                "aarch64-apple-ios",
                 Target {
                     triple: "aarch64-apple-ios",
                     arch: "arm64",
@@ -160,7 +160,7 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                 },
             );
             targets.insert(
-                "x86_64",
+                "x86_64-apple-ios",
                 Target {
                     triple: "x86_64-apple-ios",
                     arch: "x86_64",
@@ -175,7 +175,7 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                 },
             );
             targets.insert(
-                "aarch64-sim",
+                "aarch64-apple-ios-sim",
                 Target {
                     triple: "aarch64-apple-ios-sim",
                     arch: "arm64-sim",
