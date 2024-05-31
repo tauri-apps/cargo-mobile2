@@ -221,6 +221,13 @@ impl<'a> TargetTrait<'a> for Target<'a> {
     }
 }
 
+enum TargetPlatform {
+    MacOS,
+    #[allow(non_camel_case_types)]
+    iOS,
+    VisionOS
+}
+
 impl<'a> Target<'a> {
     // TODO: Make this cleaner
     pub fn macos() -> Self {
@@ -233,8 +240,30 @@ impl<'a> Target<'a> {
         }
     }
 
+    pub fn get_platform(&self) -> TargetPlatform{
+        let platform = if self.is_macos() {
+            TargetPlatform::MacOS
+        } else if self.is_ios() {
+            TargetPlatform::iOS
+        } else if self.is_visionos() {
+            TargetPlatform::VisionOS
+        } else {
+            TargetPlatform::MacOS
+        };
+
+        platform
+    }
+
     pub fn is_macos(&self) -> bool {
         *self == Self::macos()
+    }
+    
+    pub fn is_ios(&self) -> bool {
+        self.triple.contains("apple-ios")
+    }
+    
+    pub fn is_visionos(&self) -> bool {
+        self.triple.contains("apple-visionos")
     }
 
     pub fn for_arch(arch: &str) -> Option<&'a Self> {
@@ -273,10 +302,10 @@ impl<'a> Target<'a> {
         metadata: &'a Metadata,
         subcommand: &'a str,
     ) -> Result<CargoCommand<'a>, VersionCheckError> {
-        let metadata = if self.is_macos() {
-            metadata.macos()
-        } else {
-            metadata.ios()
+        let metadata = match self.get_platform() {
+            TargetPlatform::MacOS => metadata.macos(),
+            TargetPlatform::iOS => metadata.ios(),
+            TargetPlatform::VisionOS => metadata.visionos()
         };
         self.min_xcode_version_satisfied().map(|()| {
             CargoCommand::new(subcommand)

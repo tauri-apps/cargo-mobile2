@@ -152,6 +152,8 @@ pub struct Metadata {
     #[serde(default)]
     pub ios: Platform,
     #[serde(default)]
+    pub visionos: Platform,
+    #[serde(default)]
     pub macos: Platform,
 }
 
@@ -160,6 +162,7 @@ impl Default for Metadata {
         Self {
             supported: true,
             ios: Default::default(),
+            visionos: Default::default(),
             macos: Default::default(),
         }
     }
@@ -172,6 +175,10 @@ impl Metadata {
 
     pub fn ios(&self) -> &Platform {
         &self.ios
+    }
+    
+    pub fn visionos(&self) -> &Platform {
+        &self.visionos
     }
 
     pub fn macos(&self) -> &Platform {
