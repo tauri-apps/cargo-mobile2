@@ -221,7 +221,7 @@ impl<'a> TargetTrait<'a> for Target<'a> {
     }
 }
 
-enum TargetPlatform {
+pub enum TargetPlatform {
     MacOS,
     #[allow(non_camel_case_types)]
     iOS,
