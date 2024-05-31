@@ -21,6 +21,7 @@ use thiserror::Error;
 static DEFAULT_PROJECT_DIR: &str = "gen/apple";
 const DEFAULT_BUNDLE_VERSION: VersionNumber = VersionNumber::new(VersionTriple::new(1, 0, 0), None);
 const DEFAULT_IOS_VERSION: VersionDouble = VersionDouble::new(13, 0);
+const DEFAULT_VISIONOS_VERSION: VersionDouble = VersionDouble::new(1, 0);
 const DEFAULT_MACOS_VERSION: VersionDouble = VersionDouble::new(11, 0);
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -286,6 +287,7 @@ pub struct Config {
     bundle_version: VersionNumber,
     bundle_version_short: VersionTriple,
     ios_version: VersionDouble,
+    visionos_version: VersionDouble,
     macos_version: VersionDouble,
     use_legacy_build_system: bool,
     plist_pairs: Vec<PListPair>,
@@ -353,6 +355,12 @@ impl Config {
                 .transpose()
                 .map_err(Error::IosVersionInvalid)?
                 .unwrap_or(DEFAULT_IOS_VERSION),
+            visionos_version: raw
+                .visionos_version
+                .map(|str| VersionDouble::from_str(&str))
+                .transpose()
+                .map_err(Error::IosVersionInvalid)?
+                .unwrap_or(DEFAULT_VISIONOS_VERSION),
             macos_version: raw
                 .macos_version
                 .map(|str| VersionDouble::from_str(&str))
