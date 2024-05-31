@@ -242,6 +242,12 @@ impl<'a> Target<'a> {
             .values()
             .find(|target| target.arch == arch || target.alias == Some(arch))
     }
+    
+    pub fn for_triple(triple: &str) -> Option<&'a Self> {
+        Self::all()
+            .values()
+            .find(|target| target.triple == triple || target.alias == Some(triple))
+    }
 
     fn min_xcode_version_satisfied(&self) -> Result<(), VersionCheckError> {
         self.min_xcode_version
