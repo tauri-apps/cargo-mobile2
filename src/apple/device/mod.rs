@@ -58,6 +58,7 @@ impl Reportable for RunError {
 pub enum DeviceKind {
     Simulator,
     IosDeployDevice,
+    VisionOsDeployDevice,
     DeviceCtlDevice,
 }
 
@@ -133,7 +134,7 @@ impl<'a> Device<'a> {
         match self.kind {
             DeviceKind::Simulator => simctl::run(config, env, non_interactive, &self.id)
                 .map_err(|e| RunError::DeployFailed(e.to_string())),
-            DeviceKind::IosDeployDevice | DeviceKind::DeviceCtlDevice => {
+            DeviceKind::IosDeployDevice | DeviceKind::VisionOsDeployDevice | DeviceKind::DeviceCtlDevice => {
                 println!("Exporting app...");
                 self.target
                     .export(config, env, noise_level)
