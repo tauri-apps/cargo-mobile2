@@ -176,7 +176,7 @@ impl Metadata {
     pub fn ios(&self) -> &Platform {
         &self.ios
     }
-    
+
     pub fn visionos(&self) -> &Platform {
         &self.visionos
     }

@@ -32,10 +32,9 @@ impl<'a> From<Device> for AppleDevice<'a> {
         let target = Target::for_triple(if cfg!(target_arch = "aarch64") {
             match is_visionos {
                 true => "aarch64-apple-visionos",
-                _ => "aarch64-apple-ios"
-                // TODO: figure out how to check for sim here, or probably do this elsewhere, and just add -sim to the triple
-                // true => "aarch64-apple-visionos-sim",
-                // _ => "aarch64-apple-ios-sim
+                _ => "aarch64-apple-ios", // TODO: figure out how to check for sim here, or probably do this elsewhere, and just add -sim to the triple
+                                          // true => "aarch64-apple-visionos-sim",
+                                          // _ => "aarch64-apple-ios-sim
             }
         } else {
             "x86_64-apple-ios"
@@ -45,8 +44,7 @@ impl<'a> From<Device> for AppleDevice<'a> {
             device.udid,
             device.name,
             "".into(),
-            target
-            .unwrap(),
+            target.unwrap(),
             DeviceKind::Simulator,
         )
     }
