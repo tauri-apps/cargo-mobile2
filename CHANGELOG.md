@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.12.2]
+
+- [`52c2905`](https://github.com/tauri-apps/cargo-mobile2/commit/52c290526debb0a26b0128cc587c542db50bc847) ([#343](https://github.com/tauri-apps/cargo-mobile2/pull/343)) Update `windows` crate to `0.57`
+
 ## \[0.12.1]
 
 - [`7d260ba`](https://github.com/tauri-apps/cargo-mobile2/commit/7d260ba290beb39c57863eaa8a8a523ede20093b)([#328](https://github.com/tauri-apps/cargo-mobile2/pull/328)) On Android, allows using Kotlin keywords as identifiers and escape them in templates.
