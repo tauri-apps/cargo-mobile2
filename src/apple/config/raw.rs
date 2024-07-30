@@ -127,6 +127,7 @@ pub struct Raw {
     pub use_legacy_build_system: Option<bool>,
     pub plist_pairs: Option<Vec<PListPair>>,
     pub enable_bitcode: Option<bool>,
+    pub use_project_archs: Option<bool>,
 }
 
 impl Raw {
@@ -149,6 +150,7 @@ impl Raw {
             use_legacy_build_system: None,
             plist_pairs: None,
             enable_bitcode: None,
+            use_project_archs: None,
         })
     }
 
@@ -231,6 +233,7 @@ impl Raw {
             use_legacy_build_system: None,
             plist_pairs: None,
             enable_bitcode: None,
+            use_project_archs: None,
         })
     }
 }

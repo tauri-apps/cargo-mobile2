@@ -290,6 +290,7 @@ pub struct Config {
     use_legacy_build_system: bool,
     plist_pairs: Vec<PListPair>,
     enable_bitcode: bool,
+    use_project_archs: bool,
 }
 
 impl Config {
@@ -362,6 +363,7 @@ impl Config {
             use_legacy_build_system: raw.use_legacy_build_system.unwrap_or(true),
             plist_pairs: raw.plist_pairs.unwrap_or_default(),
             enable_bitcode: raw.enable_bitcode.unwrap_or(false),
+            use_project_archs: raw.use_project_archs.unwrap_or(false),
         })
     }
 
@@ -426,5 +428,9 @@ impl Config {
 
     pub fn bundle_version(&self) -> &VersionNumber {
         &self.bundle_version
+    }
+
+    pub fn use_project_archs(&self) -> bool {
+        self.use_project_archs.clone()
     }
 }
