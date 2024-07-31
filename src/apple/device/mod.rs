@@ -54,7 +54,7 @@ impl Reportable for RunError {
     }
 }
 
-#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
 pub enum DeviceKind {
     Simulator,
     IosDeployDevice,
@@ -110,6 +110,10 @@ impl<'a> Device<'a> {
 
     pub fn model(&self) -> &str {
         &self.model
+    }
+
+    pub fn kind(&self) -> DeviceKind {
+        self.kind
     }
 
     pub fn run(
