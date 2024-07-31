@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.13.0]
+
+- [`aad5655`](https://github.com/tauri-apps/cargo-mobile2/commit/aad5655bfeb9c14c72e30e218792a0b586709594) ([#354](https://github.com/tauri-apps/cargo-mobile2/pull/354) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Expose `apple::Device::kind`.
+- [`aad5655`](https://github.com/tauri-apps/cargo-mobile2/commit/aad5655bfeb9c14c72e30e218792a0b586709594) ([#354](https://github.com/tauri-apps/cargo-mobile2/pull/354) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Changed the `android::adb::adb` function to be generic.
+
 ## \[0.12.2]
 
 - [`52c2905`](https://github.com/tauri-apps/cargo-mobile2/commit/52c290526debb0a26b0128cc587c542db50bc847) ([#343](https://github.com/tauri-apps/cargo-mobile2/pull/343)) Update `windows` crate to `0.57`
