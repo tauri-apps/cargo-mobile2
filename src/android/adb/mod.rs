@@ -6,11 +6,15 @@ pub use self::{device_list::device_list, device_name::device_name, get_prop::get
 
 use super::env::Env;
 use crate::{env::ExplicitEnv as _, util::cli::Report, DuctExpressionExt};
-use std::{str, string::FromUtf8Error};
+use std::{ffi::OsString, str, string::FromUtf8Error};
 use thiserror::Error;
 
-pub fn adb(env: &Env, serial_no: &str) -> duct::Expression {
-    duct::cmd(env.platform_tools_path().join("adb"), ["-s", serial_no]).vars(env.explicit_env())
+pub fn adb<U>(env: &Env, args: U) -> duct::Expression
+where
+    U: IntoIterator,
+    U::Item: Into<OsString>,
+{
+    duct::cmd(env.platform_tools_path().join("adb"), args).vars(env.explicit_env())
 }
 
 #[derive(Debug, Error)]

@@ -39,7 +39,7 @@ impl Reportable for Error {
 
 pub fn get_prop(env: &Env, serial_no: &str, prop: &str) -> Result<String, Error> {
     let prop_ = prop.to_string();
-    let handle = adb(env, serial_no)
+    let handle = adb(env, ["-s", serial_no])
         .before_spawn(move |cmd| {
             cmd.args(["shell", "getprop", &prop_]);
             Ok(())
