@@ -35,7 +35,7 @@ impl Reportable for Error {
 pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
     if serial_no.starts_with("emulator") {
         super::check_authorized(
-            adb(env, serial_no)
+            adb(env, ["-s", serial_no])
                 .before_spawn(move |cmd| {
                     cmd.args(["emu", "avd", "name"]);
                     Ok(())
@@ -49,7 +49,7 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
         .map_err(Error::EmuFailed)
     } else {
         super::check_authorized(
-            adb(env, serial_no)
+            adb(env, ["-s", serial_no])
                 .before_spawn(move |cmd| {
                     cmd.args(["shell", "dumpsys", "bluetooth_manager"]);
                     Ok(())

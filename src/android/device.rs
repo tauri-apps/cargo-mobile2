@@ -162,7 +162,7 @@ impl<'a> Device<'a> {
     }
 
     fn adb(&self, env: &Env) -> duct::Expression {
-        adb::adb(env, &self.serial_no)
+        adb::adb(env, ["-s", &self.serial_no])
     }
 
     pub fn all_apks_paths(config: &Config, profile: Profile, flavor: &str) -> Vec<PathBuf> {
@@ -428,7 +428,7 @@ impl<'a> Device<'a> {
             .unprefix_path(jnilibs::path(config, *self.target))
             .expect("developer error: jnilibs subdir not prefixed");
         // -d = print and exit
-        let logcat_command = adb::adb(env, &self.serial_no)
+        let logcat_command = adb::adb(env, ["-s", &self.serial_no])
             .before_spawn(move |cmd| {
                 cmd.args(["logcat", "-d"]);
                 cmd.arg("-sym");
