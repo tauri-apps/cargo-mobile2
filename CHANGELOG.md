@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.13.1]
+
+- [`71d648f`](https://github.com/tauri-apps/cargo-mobile2/commit/71d648f16478e0fe867375ec933c4deb97406124) Update handlebars to v6.
+
 ## \[0.13.0]
 
 - [`aad5655`](https://github.com/tauri-apps/cargo-mobile2/commit/aad5655bfeb9c14c72e30e218792a0b586709594) ([#354](https://github.com/tauri-apps/cargo-mobile2/pull/354) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Expose `apple::Device::kind`.
