@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.13.2]
+
+- [`48c7f8e`](https://github.com/tauri-apps/cargo-mobile2/commit/48c7f8ec7b60feae5b04c45cb630a945696126f6) Added `android::Device::serial_no` getter.
+
 ## \[0.13.1]
 
 - [`71d648f`](https://github.com/tauri-apps/cargo-mobile2/commit/71d648f16478e0fe867375ec933c4deb97406124) Update handlebars to v6.
