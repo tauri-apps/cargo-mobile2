@@ -1,0 +1,51 @@
+[package]
+name = "{{app.name}}"
+version = "0.1.0"
+authors = ["{{author}}"]
+edition = "2018"
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "{{app.name}}-desktop"
+path = "gen/bin/desktop.rs"
+
+[package.metadata.cargo-android]
+app-activity-name = "{{reverse-domain app.identifier}}.MainActivity"
+app-dependencies = [
+    "androidx.webkit:webkit:1.6.1",
+    "androidx.appcompat:appcompat:1.6.1",
+    "com.google.android.material:material:1.8.0",
+]
+project-dependencies = [ "org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.21" ]
+app-plugins = [ "org.jetbrains.kotlin.android" ]
+app-permissions = [ "android.permission.INTERNET" ]
+app-theme-parent = "Theme.MaterialComponents.DayNight.DarkActionBar"
+vulkan-validation = false
+
+[package.metadata.cargo-android.env-vars]
+WRY_ANDROID_PACKAGE = "{{reverse-domain app.identifier}}"
+WRY_ANDROID_LIBRARY = "{{snake-case app.name}}"
+WRY_ANDROID_KOTLIN_FILES_OUT_DIR = "<android-project-dir>/app/src/main/kotlin/{{dot-to-slash (reverse-domain app.identifier)}}"
+
+[package.metadata.cargo-apple.ios]
+frameworks = [ "WebKit" ]
+
+[dependencies]
+anyhow = "1.0"
+log = "0.4"
+wry = "0.37"
+tao = "0.26"
+dioxus = { version = "0.6.0-alpha.2", features = ["mobile"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.13"
+jni = "0.21.0"
+paste = "1.0"
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+env_logger = "0.9.0"
+
+[target.'cfg(target_os = "ios")'.dependencies]
+core-foundation = "0.9.3"
