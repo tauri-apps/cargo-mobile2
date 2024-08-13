@@ -161,6 +161,10 @@ impl<'a> Device<'a> {
         &self.model
     }
 
+    pub fn serial_no(&self) -> &str {
+        &self.serial_no
+    }
+
     fn adb(&self, env: &Env) -> duct::Expression {
         adb::adb(env, ["-s", &self.serial_no])
     }
