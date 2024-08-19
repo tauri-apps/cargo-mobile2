@@ -13,7 +13,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
-    path::PathBuf,
+    path::{Path, PathBuf},
     str::FromStr,
 };
 use thiserror::Error;
@@ -290,6 +290,7 @@ pub struct Config {
     use_legacy_build_system: bool,
     plist_pairs: Vec<PListPair>,
     enable_bitcode: bool,
+    export_options_plist_path: PathBuf,
 }
 
 impl Config {
@@ -341,6 +342,11 @@ impl Config {
                 (bundle_version, bundle_version_short)
             })?;
 
+        let export_options_plist_path = raw
+            .export_options_plist_path
+            .map(PathBuf::from)
+            .unwrap_or_else(|| "ExportOptions.plist".into());
+
         Ok(Self {
             app,
             development_team: raw.development_team,
@@ -362,7 +368,12 @@ impl Config {
             use_legacy_build_system: raw.use_legacy_build_system.unwrap_or(true),
             plist_pairs: raw.plist_pairs.unwrap_or_default(),
             enable_bitcode: raw.enable_bitcode.unwrap_or(false),
+            export_options_plist_path,
         })
+    }
+
+    pub fn set_export_options_plist_path<P: AsRef<Path>>(&mut self, path: P) {
+        self.export_options_plist_path = path.as_ref().to_path_buf();
     }
 
     pub fn app(&self) -> &App {
@@ -400,7 +411,7 @@ impl Config {
     }
 
     pub fn export_plist_path(&self) -> PathBuf {
-        self.project_dir().join("ExportOptions.plist")
+        self.project_dir().join(&self.export_options_plist_path)
     }
 
     pub fn ipa_path(&self) -> Result<PathBuf, (PathBuf, PathBuf)> {
