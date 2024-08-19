@@ -321,7 +321,11 @@ impl<'a> Target<'a> {
         let scheme = config.scheme();
         let workspace_path = config.workspace_path();
         let sdk = self.sdk.to_string();
-        let arch = self.arch.to_string();
+        let arch = if self.is_macos() {
+            Some(self.arch.to_string())
+        } else {
+            None
+        };
         let args: Vec<OsString> = vec![];
         duct::cmd("xcodebuild", args)
             .full_env(env.explicit_env())
@@ -330,12 +334,14 @@ impl<'a> Target<'a> {
                 if let Some(v) = verbosity(noise_level) {
                     cmd.arg(v);
                 }
+                if let Some(a) = &arch {
+                    cmd.args(["-arch", a]);
+                }
                 cmd.args(["-scheme", &scheme])
                     .arg("-workspace")
                     .arg(&workspace_path)
                     .args(["-sdk", &sdk])
                     .args(["-configuration", configuration])
-                    .args(["-arch", &arch])
                     .arg("-allowProvisioningUpdates")
                     .arg("build");
                 Ok(())
@@ -371,7 +377,11 @@ impl<'a> Target<'a> {
         let scheme = config.scheme();
         let workspace_path = config.workspace_path();
         let sdk = self.sdk.to_string();
-        let arch = self.arch.to_string();
+        let arch = if self.is_macos() {
+            Some(self.arch.to_string())
+        } else {
+            None
+        };
         let args: Vec<OsString> = vec![];
         duct::cmd("xcodebuild", args)
             .full_env(env.explicit_env())
@@ -379,12 +389,14 @@ impl<'a> Target<'a> {
                 if let Some(v) = verbosity(noise_level) {
                     cmd.arg(v);
                 }
+                if let Some(a) = &arch {
+                    cmd.args(["-arch", a]);
+                }
                 cmd.args(["-scheme", &scheme])
                     .arg("-workspace")
                     .arg(&workspace_path)
                     .args(["-sdk", &sdk])
                     .args(["-configuration", configuration])
-                    .args(["-arch", &arch])
                     .arg("-allowProvisioningUpdates")
                     .arg("archive")
                     .arg("-archivePath")
