@@ -111,7 +111,7 @@ fn delete_symlink(filename: &Path) -> Result<(), core::Error> {
             None,
             OPEN_EXISTING,
             FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_DELETE_ON_CLOSE,
-            HANDLE(0),
+            HANDLE(std::ptr::null_mut()),
         )
     } {
         unsafe { CloseHandle(handle)? };
