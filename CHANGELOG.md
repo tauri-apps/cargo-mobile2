@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.13.4]
+
+- [`f5548f7`](https://github.com/tauri-apps/cargo-mobile2/commit/f5548f7a522325820662d041b518eb361766358b) ([#362](https://github.com/tauri-apps/cargo-mobile2/pull/362) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added `Config::set_export_options_plist_path` to define a custom ExportOptions.plist to use.
+- [`b1e407c`](https://github.com/tauri-apps/cargo-mobile2/commit/b1e407cf21f90dfc664436703e73ec1f819d6438) ([#359](https://github.com/tauri-apps/cargo-mobile2/pull/359) by [@amrbashir](https://github.com/tauri-apps/cargo-mobile2/../../amrbashir)) Update `windows` crate to `0.58`
+
 ## \[0.13.3]
 
 - [`b1c2313`](https://github.com/tauri-apps/cargo-mobile2/commit/b1c2313a2ab31e7e8e166b8068dce94b8b28000f) ([#353](https://github.com/tauri-apps/cargo-mobile2/pull/353) by [@mrguiman](https://github.com/tauri-apps/cargo-mobile2/../../mrguiman)) Do not include the target arch when building and archiving the iOS application.
