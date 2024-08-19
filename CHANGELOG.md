@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.13.3]
+
+- [`b1c2313`](https://github.com/tauri-apps/cargo-mobile2/commit/b1c2313a2ab31e7e8e166b8068dce94b8b28000f) ([#353](https://github.com/tauri-apps/cargo-mobile2/pull/353) by [@mrguiman](https://github.com/tauri-apps/cargo-mobile2/../../mrguiman)) Do not include the target arch when building and archiving the iOS application.
+
 ## \[0.13.2]
 
 - [`48c7f8e`](https://github.com/tauri-apps/cargo-mobile2/commit/48c7f8ec7b60feae5b04c45cb630a945696126f6) Added `android::Device::serial_no` getter.
