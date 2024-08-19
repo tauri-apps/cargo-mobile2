@@ -15,7 +15,7 @@ pub const kLSRolesNone: LSRolesMask = 0x00000001;
 pub const kLSRolesViewer: LSRolesMask = 0x00000002;
 pub const kLSRolesEditor: LSRolesMask = 0x00000004;
 pub const kLSRolesShell: LSRolesMask = 0x00000008;
-pub const kLSRolesAll: LSRolesMask = LSRolesMask::max_value();
+pub const kLSRolesAll: LSRolesMask = LSRolesMask::MAX;
 
 // https://developer.apple.com/documentation/coreservices/lslaunchflags?language=objc
 pub type LSLaunchFlags = OptionBits;

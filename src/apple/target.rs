@@ -321,10 +321,10 @@ impl<'a> Target<'a> {
         let scheme = config.scheme();
         let workspace_path = config.workspace_path();
         let sdk = self.sdk.to_string();
-        let arch = if config.use_project_archs() {
-            None
-        } else {
+        let arch = if self.is_macos() {
             Some(self.arch.to_string())
+        } else {
+            None
         };
         let args: Vec<OsString> = vec![];
         duct::cmd("xcodebuild", args)
@@ -377,10 +377,10 @@ impl<'a> Target<'a> {
         let scheme = config.scheme();
         let workspace_path = config.workspace_path();
         let sdk = self.sdk.to_string();
-        let arch = if config.use_project_archs() {
-            None
-        } else {
+        let arch = if self.is_macos() {
             Some(self.arch.to_string())
+        } else {
+            None
         };
         let args: Vec<OsString> = vec![];
         duct::cmd("xcodebuild", args)
