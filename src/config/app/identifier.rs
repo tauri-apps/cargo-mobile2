@@ -132,7 +132,7 @@ pub fn check_identifier_syntax(identifier_name: &str) -> Result<(), IdentifierEr
         }
         let mut bad_chars = Vec::new();
         for c in label.chars() {
-            if !(c.is_ascii_alphanumeric() || c == '_' || c == '-') && !bad_chars.contains(&c) {
+            if !(c.is_ascii_alphanumeric() || c == '_' || c == '-' || bad_chars.contains(&c)) {
                 bad_chars.push(c);
             }
         }
