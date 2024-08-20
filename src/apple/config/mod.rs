@@ -230,6 +230,8 @@ pub enum Error {
     IosVersionNumberMismatch,
     #[error("`apple.app-version` `bundle-version-short` cannot be specified without also specifying `bundle-version`")]
     InvalidVersionConfiguration,
+    #[error("Identifier cannot contain underscores on iOS")]
+    IdentifierCannotContainUnderscores,
 }
 
 impl Error {
@@ -295,6 +297,10 @@ pub struct Config {
 
 impl Config {
     pub fn from_raw(app: App, raw: Option<Raw>) -> Result<Self, Error> {
+        if app.reverse_identifier().contains('_') {
+            return Err(Error::IdentifierCannotContainUnderscores);
+        }
+
         let raw = raw.ok_or_else(|| Error::DevelopmentTeamMissing)?;
 
         if raw
