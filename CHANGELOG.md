@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.13.5]
+
+- [`f09a6da`](https://github.com/tauri-apps/cargo-mobile2/commit/f09a6dad8c27116f1cba123038a603bdb2cd8abc) Allow hyphens on iOS identifiers and underscores on Android identifiers.
+
 ## \[0.13.4]
 
 - [`f5548f7`](https://github.com/tauri-apps/cargo-mobile2/commit/f5548f7a522325820662d041b518eb361766358b) ([#362](https://github.com/tauri-apps/cargo-mobile2/pull/362) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added `Config::set_export_options_plist_path` to define a custom ExportOptions.plist to use.
