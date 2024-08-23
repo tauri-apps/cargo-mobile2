@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.14.0]
+
+- [`d0e9e58`](https://github.com/tauri-apps/cargo-mobile2/commit/d0e9e587a085d3b08a2e082dea562dbc252ad191) ([#371](https://github.com/tauri-apps/cargo-mobile2/pull/371) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added a `ExportConfig` argument to the `Target::export` iOS method to allow provisioning updates.
+
 ## \[0.13.5]
 
 - [`f09a6da`](https://github.com/tauri-apps/cargo-mobile2/commit/f09a6dad8c27116f1cba123038a603bdb2cd8abc) Allow hyphens on iOS identifiers and underscores on Android identifiers.
