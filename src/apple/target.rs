@@ -18,6 +18,7 @@ use once_cell_regex::exports::once_cell::sync::OnceCell;
 use std::{
     collections::{BTreeMap, HashMap},
     ffi::{OsStr, OsString},
+    path::PathBuf,
 };
 use thiserror::Error;
 
@@ -131,6 +132,34 @@ impl Reportable for ExportError {
     fn report(&self) -> Report {
         Report::error("Failed to export archive via `xcodebuild`", &self.0)
     }
+}
+
+#[derive(Default)]
+pub struct ExportConfig {
+    allow_provisioning_updates: bool,
+    authentication_credentials: Option<AuthCredentials>,
+}
+
+impl ExportConfig {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn allow_provisioning_updates(mut self) -> Self {
+        self.allow_provisioning_updates = true;
+        self
+    }
+
+    pub fn authentication_credentials(mut self, credentials: AuthCredentials) -> Self {
+        self.authentication_credentials.replace(credentials);
+        self
+    }
+}
+
+pub struct AuthCredentials {
+    pub key_path: PathBuf,
+    pub key_id: String,
+    pub key_issuer_id: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -415,6 +444,7 @@ impl<'a> Target<'a> {
         config: &Config,
         env: &Env,
         noise_level: opts::NoiseLevel,
+        export_config: ExportConfig,
     ) -> Result<(), ExportError> {
         // Super fun discrepancy in expectation of `-archivePath` value
         let archive_path = config
@@ -437,6 +467,17 @@ impl<'a> Target<'a> {
                     .arg(&export_plist_path)
                     .arg("-exportPath")
                     .arg(&export_dir);
+
+                if export_config.allow_provisioning_updates {
+                    cmd.arg("-allowProvisioningUpdates");
+                }
+                if let Some(credentials) = &export_config.authentication_credentials {
+                    cmd.args(["-authenticationKeyID", &credentials.key_id])
+                        .arg("-authenticationKeyPath")
+                        .arg(&credentials.key_path)
+                        .args(["-authenticationKeyIssuerID", &credentials.key_issuer_id]);
+                }
+
                 Ok(())
             })
             .dup_stdio()

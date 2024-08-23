@@ -4,6 +4,7 @@ use super::{
     target::{ArchiveError, BuildError, ExportError, Target},
 };
 use crate::{
+    apple::target::ExportConfig,
     env::{Env, ExplicitEnv as _},
     opts,
     util::cli::{Report, Reportable},
@@ -140,7 +141,7 @@ impl<'a> Device<'a> {
             DeviceKind::IosDeployDevice | DeviceKind::DeviceCtlDevice => {
                 println!("Exporting app...");
                 self.target
-                    .export(config, env, noise_level)
+                    .export(config, env, noise_level, ExportConfig::default())
                     .map_err(RunError::ExportFailed)?;
                 println!("Extracting IPA...");
 
