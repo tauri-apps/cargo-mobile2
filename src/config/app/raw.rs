@@ -19,27 +19,32 @@ enum DefaultIdentifierError {
     FailedToParseEmailAddr,
 }
 
-fn default_identifier(_wrapper: &TextWrapper) -> Result<Option<String>, DefaultIdentifierError> {
+fn default_identifier(
+    _wrapper: &TextWrapper,
+    name: &str,
+) -> Result<Option<String>, DefaultIdentifierError> {
     let email = Git::new(".".as_ref())
         .user_email()
         .map_err(DefaultIdentifierError::FailedToGetGitEmailAddr)?;
-    let identifier = email
+    let domain = email
         .trim()
         .split('@')
         .last()
         .ok_or(DefaultIdentifierError::FailedToParseEmailAddr)?;
     Ok(
-        if !COMMON_EMAIL_PROVIDERS.contains(&identifier)
-            && identifier::check_identifier_syntax(identifier).is_ok()
+        if !COMMON_EMAIL_PROVIDERS.contains(&domain)
+            && identifier::check_identifier_syntax(domain).is_ok()
         {
             #[cfg(not(feature = "brainium"))]
-            if identifier == "brainiumstudios.com" {
+            if domain == "brainiumstudios.com" {
                 crate::util::cli::Report::action_request(
                     "You have a Brainium email address, but you're using a non-Brainium installation of cargo-mobile2!",
                     "If that's not intentional, run `cargo install --force --git https://github.com/tauri-apps/cargo-mobile2 --features brainium`",
                 ).print(_wrapper);
             }
-            Some(identifier.to_owned())
+
+            let reverse_domain = domain.split('.').rev().collect::<Vec<_>>().join(".");
+            Some(format!("{reverse_domain}{name}"))
         } else {
             None
         },
@@ -87,13 +92,15 @@ impl Defaults {
         let dir_name = dir_name
             .to_str()
             .ok_or_else(|| DefaultsError::CurrentDirInvalidUtf8(cwd.clone()))?;
+        let name = name::transliterate(&dir_name.to_kebab_case());
+        let dot_name = name.as_ref().map(|n| format!(".{n}")).unwrap_or_default();
         Ok(Self {
-            name: name::transliterate(&dir_name.to_kebab_case()),
-            stylized_name: dir_name.to_title_case(),
-            identifier: default_identifier(wrapper)
+            identifier: default_identifier(wrapper, &dot_name)
                 .ok()
                 .flatten()
-                .unwrap_or_else(|| "example.com".to_owned()),
+                .unwrap_or_else(|| format!("com.example{dot_name}")),
+            name,
+            stylized_name: dir_name.to_title_case(),
         })
     }
 }

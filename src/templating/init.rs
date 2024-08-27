@@ -100,27 +100,27 @@ fn snake_case(
         .map_err(Into::into)
 }
 
-fn reverse_domain(
+fn ident_last_part(
     helper: &Helper,
     _: &Handlebars,
     _: &Context,
     _: &mut RenderContext,
     out: &mut dyn Output,
 ) -> HelperResult {
-    out.write(&util::reverse_domain(get_str(helper)))
-        .map_err(Into::into)
+    let last = get_str(helper).split('.').rev().next().unwrap_or_default();
+    out.write(&last).map_err(Into::into)
 }
 
-fn reverse_domain_snake_case(
+fn ident_no_last_part(
     helper: &Helper,
     _: &Handlebars,
     _: &Context,
     _: &mut RenderContext,
     out: &mut dyn Output,
 ) -> HelperResult {
-    use heck::ToSnekCase as _;
-    out.write(&util::reverse_domain(get_str(helper)).to_snek_case())
-        .map_err(Into::into)
+    let components = get_str(helper).split('.').collect::<Vec<_>>();
+    let ident_no_last = components[..components.len() - 1].join(".");
+    out.write(&ident_no_last).map_err(Into::into)
 }
 
 fn escape_kotlin_keyword(
@@ -237,11 +237,8 @@ pub fn init(config: Option<&Config>) -> Bicycle {
                 Box::new(quote_and_join_colon_prefix),
             );
             helpers.insert("snake-case", Box::new(snake_case));
-            helpers.insert("reverse-domain", Box::new(reverse_domain));
-            helpers.insert(
-                "reverse-domain-snake-case",
-                Box::new(reverse_domain_snake_case),
-            );
+            helpers.insert("ident-no-last-part", Box::new(ident_no_last_part));
+            helpers.insert("ident-last-part", Box::new(ident_last_part));
             helpers.insert("escape-kotlin-keyword", Box::new(escape_kotlin_keyword));
             helpers.insert("dot-to-slash", Box::new(dot_to_slash));
             if config.is_some() {

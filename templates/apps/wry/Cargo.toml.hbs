@@ -12,7 +12,7 @@ name = "{{app.name}}-desktop"
 path = "gen/bin/desktop.rs"
 
 [package.metadata.cargo-android]
-app-activity-name = "{{reverse-domain app.identifier}}.MainActivity"
+app-activity-name = "{{app.identifier}}.MainActivity"
 app-dependencies = [
     "androidx.webkit:webkit:1.6.1",
     "androidx.appcompat:appcompat:1.6.1",
@@ -25,9 +25,9 @@ app-theme-parent = "Theme.MaterialComponents.DayNight.DarkActionBar"
 vulkan-validation = false
 
 [package.metadata.cargo-android.env-vars]
-WRY_ANDROID_PACKAGE = "{{reverse-domain app.identifier}}"
+WRY_ANDROID_PACKAGE = "{{app.identifier}}"
 WRY_ANDROID_LIBRARY = "{{snake-case app.name}}"
-WRY_ANDROID_KOTLIN_FILES_OUT_DIR = "<android-project-dir>/app/src/main/kotlin/{{dot-to-slash (reverse-domain app.identifier)}}"
+WRY_ANDROID_KOTLIN_FILES_OUT_DIR = "<android-project-dir>/app/src/main/kotlin/{{dot-to-slash app.identifier}}"
 
 [package.metadata.cargo-apple.ios]
 frameworks = [ "WebKit" ]
