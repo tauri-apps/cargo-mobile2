@@ -168,6 +168,8 @@ impl Display for ProjectDirInvalid {
 pub enum Error {
     #[error("android.project-dir invalid: {0}")]
     ProjectDirInvalid(ProjectDirInvalid),
+    #[error("Identifier cannot contain hyphens on Android")]
+    IdentifierCannotContainHyphens,
 }
 
 impl Error {
@@ -200,6 +202,10 @@ pub struct Config {
 impl Config {
     pub fn from_raw(app: App, raw: Option<Raw>) -> Result<Self, Error> {
         let raw = raw.unwrap_or_default();
+
+        if app.reverse_identifier().contains('-') {
+            return Err(Error::IdentifierCannotContainHyphens);
+        }
 
         let min_sdk_version = raw.min_sdk_version.unwrap_or(DEFAULT_MIN_SDK_VERSION);
 

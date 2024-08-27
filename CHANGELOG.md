@@ -1,5 +1,22 @@
 # Changelog
 
+## \[0.14.0]
+
+- [`d0e9e58`](https://github.com/tauri-apps/cargo-mobile2/commit/d0e9e587a085d3b08a2e082dea562dbc252ad191) ([#371](https://github.com/tauri-apps/cargo-mobile2/pull/371) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added a `ExportConfig` argument to the `Target::export` iOS method to allow provisioning updates.
+
+## \[0.13.5]
+
+- [`f09a6da`](https://github.com/tauri-apps/cargo-mobile2/commit/f09a6dad8c27116f1cba123038a603bdb2cd8abc) Allow hyphens on iOS identifiers and underscores on Android identifiers.
+
+## \[0.13.4]
+
+- [`f5548f7`](https://github.com/tauri-apps/cargo-mobile2/commit/f5548f7a522325820662d041b518eb361766358b) ([#362](https://github.com/tauri-apps/cargo-mobile2/pull/362) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added `Config::set_export_options_plist_path` to define a custom ExportOptions.plist to use.
+- [`b1e407c`](https://github.com/tauri-apps/cargo-mobile2/commit/b1e407cf21f90dfc664436703e73ec1f819d6438) ([#359](https://github.com/tauri-apps/cargo-mobile2/pull/359) by [@amrbashir](https://github.com/tauri-apps/cargo-mobile2/../../amrbashir)) Update `windows` crate to `0.58`
+
+## \[0.13.3]
+
+- [`b1c2313`](https://github.com/tauri-apps/cargo-mobile2/commit/b1c2313a2ab31e7e8e166b8068dce94b8b28000f) ([#353](https://github.com/tauri-apps/cargo-mobile2/pull/353) by [@mrguiman](https://github.com/tauri-apps/cargo-mobile2/../../mrguiman)) Do not include the target arch when building and archiving the iOS application.
+
 ## \[0.13.2]
 
 - [`48c7f8e`](https://github.com/tauri-apps/cargo-mobile2/commit/48c7f8ec7b60feae5b04c45cb630a945696126f6) Added `android::Device::serial_no` getter.

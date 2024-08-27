@@ -132,7 +132,7 @@ pub fn check_identifier_syntax(identifier_name: &str) -> Result<(), IdentifierEr
         }
         let mut bad_chars = Vec::new();
         for c in label.chars() {
-            if !c.is_ascii_alphanumeric() && !bad_chars.contains(&c) {
+            if !(c.is_ascii_alphanumeric() || c == '_' || c == '-' || bad_chars.contains(&c)) {
                 bad_chars.push(c);
             }
         }
@@ -161,7 +161,9 @@ mod test {
         case("t2900.e1.s709.t1000"),
         case("kotlin.com"),
         case("java.test"),
-        case("synchronized2.com")
+        case("synchronized2.com"),
+        case("com.tauri-apps.dev"),
+        case("com-tauri.apps_demo.core")
     )]
     fn test_check_identifier_syntax_correct(input: &str) {
         check_identifier_syntax(input).unwrap();
