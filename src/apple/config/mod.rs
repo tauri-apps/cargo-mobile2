@@ -444,4 +444,8 @@ impl Config {
     pub fn bundle_version(&self) -> &VersionNumber {
         &self.bundle_version
     }
+
+    pub fn development_team(&self) -> Option<&str> {
+        self.development_team.as_deref()
+    }
 }
