@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.15.0]
+
+- [`da40535`](https://github.com/tauri-apps/cargo-mobile2/commit/da40535856cc6ca3b372e3e95b3bd59a2a391a47) ([#375](https://github.com/tauri-apps/cargo-mobile2/pull/375) by [@amrbashir](https://github.com/tauri-apps/cargo-mobile2/../../amrbashir)) The app identifier must now be provided in reverse order (e.g. `dev.tauri.app` instead of `app.tauri.dev`). Removed `App::reverse_identifier` and Added `App::identifier`.
+
 ## \[0.14.0]
 
 - [`d0e9e58`](https://github.com/tauri-apps/cargo-mobile2/commit/d0e9e587a085d3b08a2e082dea562dbc252ad191) ([#371](https://github.com/tauri-apps/cargo-mobile2/pull/371) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added a `ExportConfig` argument to the `Target::export` iOS method to allow provisioning updates.
