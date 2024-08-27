@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.15.1]
+
+- [`c92d72f`](https://github.com/tauri-apps/cargo-mobile2/commit/c92d72f4a09166d54a4653d8ce9ac44296fc00c4) ([#377](https://github.com/tauri-apps/cargo-mobile2/pull/377) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added `apple::Config::development_team` getter.
+
 ## \[0.15.0]
 
 - [`da40535`](https://github.com/tauri-apps/cargo-mobile2/commit/da40535856cc6ca3b372e3e95b3bd59a2a391a47) ([#375](https://github.com/tauri-apps/cargo-mobile2/pull/375) by [@amrbashir](https://github.com/tauri-apps/cargo-mobile2/../../amrbashir)) The app identifier must now be provided in reverse order (e.g. `dev.tauri.app` instead of `app.tauri.dev`). Removed `App::reverse_identifier` and Added `App::identifier`.
