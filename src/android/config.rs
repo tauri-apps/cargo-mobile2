@@ -203,7 +203,7 @@ impl Config {
     pub fn from_raw(app: App, raw: Option<Raw>) -> Result<Self, Error> {
         let raw = raw.unwrap_or_default();
 
-        if app.reverse_identifier().contains('-') {
+        if app.identifier().contains('-') {
             return Err(Error::IdentifierCannotContainHyphens);
         }
 

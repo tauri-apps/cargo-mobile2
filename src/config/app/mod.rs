@@ -213,17 +213,12 @@ impl App {
         &self.stylized_name
     }
 
-    pub fn reverse_identifier(&self) -> String {
-        self.identifier
-            .clone()
-            .split('.')
-            .rev()
-            .collect::<Vec<_>>()
-            .join(".")
+    pub fn identifier(&self) -> &str {
+        &self.identifier
     }
 
     pub fn android_identifier_escape_kotlin_keyword(&self) -> String {
-        self.reverse_identifier()
+        self.identifier
             .split('.')
             .map(|s| {
                 if crate::reserved_names::KOTLIN_ONLY_KEYWORDS.contains(&s) {
