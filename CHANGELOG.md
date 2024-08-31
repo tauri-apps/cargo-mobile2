@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.16.0]
+
+- [`e289dd9`](https://github.com/tauri-apps/cargo-mobile2/commit/e289dd95a435ad069e8252519a2e1232f9376d98) ([#381](https://github.com/tauri-apps/cargo-mobile2/pull/381) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added a `BuildConfig` argument to the `Target::build` iOS method to allow provisioning updates.
+- [`e289dd9`](https://github.com/tauri-apps/cargo-mobile2/commit/e289dd95a435ad069e8252519a2e1232f9376d98) ([#381](https://github.com/tauri-apps/cargo-mobile2/pull/381) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Move `AuthCredentials` to `cargo_mobile2::apple`.
+
 ## \[0.15.1]
 
 - [`c92d72f`](https://github.com/tauri-apps/cargo-mobile2/commit/c92d72f4a09166d54a4653d8ce9ac44296fc00c4) ([#377](https://github.com/tauri-apps/cargo-mobile2/pull/377) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added `apple::Config::development_team` getter.
