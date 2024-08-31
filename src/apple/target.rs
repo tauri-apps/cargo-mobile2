@@ -2,6 +2,7 @@ use super::{
     config::{Config, Metadata},
     system_profile::{self, DeveloperTools},
     version_number::VersionNumber,
+    AuthCredentials,
 };
 use crate::{
     env::{Env, ExplicitEnv as _},
@@ -18,7 +19,6 @@ use once_cell_regex::exports::once_cell::sync::OnceCell;
 use std::{
     collections::{BTreeMap, HashMap},
     ffi::{OsStr, OsString},
-    path::PathBuf,
 };
 use thiserror::Error;
 
@@ -156,10 +156,26 @@ impl ExportConfig {
     }
 }
 
-pub struct AuthCredentials {
-    pub key_path: PathBuf,
-    pub key_id: String,
-    pub key_issuer_id: String,
+#[derive(Default)]
+pub struct BuildConfig {
+    allow_provisioning_updates: bool,
+    authentication_credentials: Option<AuthCredentials>,
+}
+
+impl BuildConfig {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn allow_provisioning_updates(mut self) -> Self {
+        self.allow_provisioning_updates = true;
+        self
+    }
+
+    pub fn authentication_credentials(mut self, credentials: AuthCredentials) -> Self {
+        self.authentication_credentials.replace(credentials);
+        self
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -345,6 +361,7 @@ impl<'a> Target<'a> {
         env: &Env,
         noise_level: opts::NoiseLevel,
         profile: opts::Profile,
+        build_config: BuildConfig,
     ) -> Result<(), BuildError> {
         let configuration = profile.as_str();
         let scheme = config.scheme();
@@ -366,12 +383,22 @@ impl<'a> Target<'a> {
                 if let Some(a) = &arch {
                     cmd.args(["-arch", a]);
                 }
+
+                if build_config.allow_provisioning_updates {
+                    cmd.arg("-allowProvisioningUpdates");
+                }
+                if let Some(credentials) = &build_config.authentication_credentials {
+                    cmd.args(["-authenticationKeyID", &credentials.key_id])
+                        .arg("-authenticationKeyPath")
+                        .arg(&credentials.key_path)
+                        .args(["-authenticationKeyIssuerID", &credentials.key_issuer_id]);
+                }
+
                 cmd.args(["-scheme", &scheme])
                     .arg("-workspace")
                     .arg(&workspace_path)
                     .args(["-sdk", &sdk])
                     .args(["-configuration", configuration])
-                    .arg("-allowProvisioningUpdates")
                     .arg("build");
                 Ok(())
             })

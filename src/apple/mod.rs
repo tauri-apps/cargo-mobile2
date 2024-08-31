@@ -9,12 +9,21 @@ pub mod target;
 pub mod teams;
 mod version_number;
 
+use std::path::PathBuf;
+
 use crate::util::{
     self,
     cli::{Report, TextWrapper},
 };
 
 pub static NAME: &str = "apple";
+
+#[derive(Clone)]
+pub struct AuthCredentials {
+    pub key_path: PathBuf,
+    pub key_id: String,
+    pub key_issuer_id: String,
+}
 
 pub fn rust_version_check(wrapper: &TextWrapper) -> Result<(), util::RustVersionError> {
     util::RustVersion::check().map(|version| if !version.valid() {
