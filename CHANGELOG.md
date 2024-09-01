@@ -1,5 +1,12 @@
 # Changelog
 
+## \[0.17.0]
+
+- [`64d3e6f`](https://github.com/tauri-apps/cargo-mobile2/commit/64d3e6f04f2a6613b23caf0038812beab9554acb) ([#383](https://github.com/tauri-apps/cargo-mobile2/pull/383) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added an `ArchiveConfig` parameter to `apple::Target::archive`.
+- [`64d3e6f`](https://github.com/tauri-apps/cargo-mobile2/commit/64d3e6f04f2a6613b23caf0038812beab9554acb) ([#383](https://github.com/tauri-apps/cargo-mobile2/pull/383) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Allow skipping code signing on `Apple::Target` `build` and `archive` methods,
+  which fixes an issue in CI where automatic signing only works on the first execution,
+  and following runs errors with `Revoke certificate: Your account already has a signing certificate for this machine but it is not present in your keychain`.
+
 ## \[0.16.0]
 
 - [`e289dd9`](https://github.com/tauri-apps/cargo-mobile2/commit/e289dd95a435ad069e8252519a2e1232f9376d98) ([#381](https://github.com/tauri-apps/cargo-mobile2/pull/381) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added a `BuildConfig` argument to the `Target::build` iOS method to allow provisioning updates.
