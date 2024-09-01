@@ -4,7 +4,7 @@ use super::{
     target::{ArchiveError, BuildError, ExportError, Target},
 };
 use crate::{
-    apple::target::{BuildConfig, ExportConfig},
+    apple::target::{ArchiveConfig, BuildConfig, ExportConfig},
     env::{Env, ExplicitEnv as _},
     opts,
     util::cli::{Report, Reportable},
@@ -138,7 +138,14 @@ impl<'a> Device<'a> {
             .map_err(RunError::BuildFailed)?;
         println!("Archiving app...");
         self.target
-            .archive(config, env, noise_level, profile, None)
+            .archive(
+                config,
+                env,
+                noise_level,
+                profile,
+                None,
+                ArchiveConfig::new(),
+            )
             .map_err(RunError::ArchiveFailed)?;
 
         match self.kind {
