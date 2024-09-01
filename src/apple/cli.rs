@@ -4,7 +4,8 @@ use crate::{
         device::{self, Device, RunError},
         rust_version_check,
         target::{
-            ArchiveError, BuildConfig, BuildError, CheckError, CompileLibError, ExportError, Target,
+            ArchiveConfig, ArchiveError, BuildConfig, BuildError, CheckError, CompileLibError,
+            ExportError, Target,
         },
         NAME,
     },
@@ -355,7 +356,14 @@ impl Exec for Input {
                             )
                             .map_err(Error::BuildFailed)?;
                         target
-                            .archive(config, &env, noise_level, profile, Some(app_version))
+                            .archive(
+                                config,
+                                &env,
+                                noise_level,
+                                profile,
+                                Some(app_version),
+                                ArchiveConfig::new().allow_provisioning_updates(),
+                            )
                             .map_err(Error::ArchiveFailed)
                     },
                 )
