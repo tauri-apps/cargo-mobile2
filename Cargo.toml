@@ -1,6 +1,6 @@
 [package]
 name = "cargo-mobile2"
-version = "0.17.0"
+version = "0.17.1"
 authors = [
   "Tauri Programme within The Commons Conservancy",
   "Brainium Studios LLC",
