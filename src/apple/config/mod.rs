@@ -21,6 +21,7 @@ use thiserror::Error;
 static DEFAULT_PROJECT_DIR: &str = "gen/apple";
 const DEFAULT_BUNDLE_VERSION: VersionNumber = VersionNumber::new(VersionTriple::new(1, 0, 0), None);
 const DEFAULT_IOS_VERSION: VersionDouble = VersionDouble::new(13, 0);
+const DEFAULT_VISIONOS_VERSION: VersionDouble = VersionDouble::new(1, 0);
 const DEFAULT_MACOS_VERSION: VersionDouble = VersionDouble::new(11, 0);
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -151,6 +152,8 @@ pub struct Metadata {
     #[serde(default)]
     pub ios: Platform,
     #[serde(default)]
+    pub visionos: Platform,
+    #[serde(default)]
     pub macos: Platform,
 }
 
@@ -159,6 +162,7 @@ impl Default for Metadata {
         Self {
             supported: true,
             ios: Default::default(),
+            visionos: Default::default(),
             macos: Default::default(),
         }
     }
@@ -171,6 +175,10 @@ impl Metadata {
 
     pub fn ios(&self) -> &Platform {
         &self.ios
+    }
+
+    pub fn visionos(&self) -> &Platform {
+        &self.visionos
     }
 
     pub fn macos(&self) -> &Platform {
@@ -288,6 +296,7 @@ pub struct Config {
     bundle_version: VersionNumber,
     bundle_version_short: VersionTriple,
     ios_version: VersionDouble,
+    visionos_version: VersionDouble,
     macos_version: VersionDouble,
     use_legacy_build_system: bool,
     plist_pairs: Vec<PListPair>,
@@ -365,6 +374,12 @@ impl Config {
                 .transpose()
                 .map_err(Error::IosVersionInvalid)?
                 .unwrap_or(DEFAULT_IOS_VERSION),
+            visionos_version: raw
+                .visionos_version
+                .map(|str| VersionDouble::from_str(&str))
+                .transpose()
+                .map_err(Error::IosVersionInvalid)?
+                .unwrap_or(DEFAULT_VISIONOS_VERSION),
             macos_version: raw
                 .macos_version
                 .map(|str| VersionDouble::from_str(&str))

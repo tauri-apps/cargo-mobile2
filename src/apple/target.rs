@@ -255,24 +255,24 @@ pub struct Target<'a> {
 }
 
 impl<'a> TargetTrait<'a> for Target<'a> {
-    const DEFAULT_KEY: &'static str = "aarch64";
+    const DEFAULT_KEY: &'static str = "aarch64-apple-ios";
 
     fn all() -> &'a BTreeMap<&'a str, Self> {
         static TARGETS: OnceCell<BTreeMap<&'static str, Target<'static>>> = OnceCell::new();
         TARGETS.get_or_init(|| {
             let mut targets = BTreeMap::new();
             targets.insert(
-                "aarch64",
+                "aarch64-apple-ios",
                 Target {
                     triple: "aarch64-apple-ios",
                     arch: "arm64",
                     sdk: "iphoneos",
-                    alias: Some("arm64e"),
+                    alias: Some("arm64e-ios"),
                     min_xcode_version: None,
                 },
             );
             targets.insert(
-                "x86_64",
+                "x86_64-apple-ios",
                 Target {
                     triple: "x86_64-apple-ios",
                     arch: "x86_64",
@@ -287,12 +287,32 @@ impl<'a> TargetTrait<'a> for Target<'a> {
                 },
             );
             targets.insert(
-                "aarch64-sim",
+                "aarch64-apple-ios-sim",
                 Target {
                     triple: "aarch64-apple-ios-sim",
                     arch: "arm64-sim",
                     sdk: "iphonesimulator",
-                    alias: Some("arm64e-sim"),
+                    alias: Some("arm64e-ios-sim"),
+                    min_xcode_version: None,
+                },
+            );
+            targets.insert(
+                "aarch64-apple-visionos",
+                Target {
+                    triple: "aarch64-apple-visionos",
+                    arch: "arm64",
+                    sdk: "xros",
+                    alias: Some("arm64e-xros"),
+                    min_xcode_version: None,
+                },
+            );
+            targets.insert(
+                "aarch64-apple-visionos-sim",
+                Target {
+                    triple: "aarch64-apple-visionos-sim",
+                    arch: "arm64-sim",
+                    sdk: "xrsimulator",
+                    alias: Some("arm64e-xros-sim"),
                     min_xcode_version: None,
                 },
             );
@@ -313,6 +333,13 @@ impl<'a> TargetTrait<'a> for Target<'a> {
     }
 }
 
+pub enum TargetPlatform {
+    MacOS,
+    #[allow(non_camel_case_types)]
+    iOS,
+    VisionOS,
+}
+
 impl<'a> Target<'a> {
     // TODO: Make this cleaner
     pub fn macos() -> Self {
@@ -325,14 +352,42 @@ impl<'a> Target<'a> {
         }
     }
 
+    pub fn get_platform(&self) -> TargetPlatform {
+        let platform = if self.is_macos() {
+            TargetPlatform::MacOS
+        } else if self.is_ios() {
+            TargetPlatform::iOS
+        } else if self.is_visionos() {
+            TargetPlatform::VisionOS
+        } else {
+            TargetPlatform::MacOS
+        };
+
+        platform
+    }
+
     pub fn is_macos(&self) -> bool {
         *self == Self::macos()
+    }
+
+    pub fn is_ios(&self) -> bool {
+        self.triple.contains("apple-ios")
+    }
+
+    pub fn is_visionos(&self) -> bool {
+        self.triple.contains("apple-visionos")
     }
 
     pub fn for_arch(arch: &str) -> Option<&'a Self> {
         Self::all()
             .values()
             .find(|target| target.arch == arch || target.alias == Some(arch))
+    }
+
+    pub fn for_triple(triple: &str) -> Option<&'a Self> {
+        Self::all()
+            .values()
+            .find(|target| target.triple == triple || target.alias == Some(triple))
     }
 
     fn min_xcode_version_satisfied(&self) -> Result<(), VersionCheckError> {
@@ -359,10 +414,10 @@ impl<'a> Target<'a> {
         metadata: &'a Metadata,
         subcommand: &'a str,
     ) -> Result<CargoCommand<'a>, VersionCheckError> {
-        let metadata = if self.is_macos() {
-            metadata.macos()
-        } else {
-            metadata.ios()
+        let metadata = match self.get_platform() {
+            TargetPlatform::MacOS => metadata.macos(),
+            TargetPlatform::iOS => metadata.ios(),
+            TargetPlatform::VisionOS => metadata.visionos(),
         };
         self.min_xcode_version_satisfied().map(|()| {
             CargoCommand::new(subcommand)
