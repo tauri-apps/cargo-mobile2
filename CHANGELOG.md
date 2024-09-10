@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.17.1]
+
+- [`ce80447`](https://github.com/tauri-apps/cargo-mobile2/commit/ce804479427435cba770ffa941e27ce32b271533) ([#380](https://github.com/tauri-apps/cargo-mobile2/pull/380) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) The Rust flags for Android builds no longer need to search the .cargo folder for libraries.
+
 ## \[0.17.0]
 
 - [`64d3e6f`](https://github.com/tauri-apps/cargo-mobile2/commit/64d3e6f04f2a6613b23caf0038812beab9554acb) ([#383](https://github.com/tauri-apps/cargo-mobile2/pull/383) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added an `ArchiveConfig` parameter to `apple::Target::archive`.
