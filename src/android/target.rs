@@ -212,7 +212,6 @@ impl<'a> Target<'a> {
         Ok(DotCargoTarget {
             linker: Some(linker),
             rustflags: vec![
-                "-L".to_owned(),
                 "-Clink-arg=-landroid".to_owned(),
                 "-Clink-arg=-llog".to_owned(),
                 "-Clink-arg=-lOpenSLES".to_owned(),
