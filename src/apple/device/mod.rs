@@ -149,8 +149,10 @@ impl<'a> Device<'a> {
             .map_err(RunError::ArchiveFailed)?;
 
         match self.kind {
-            DeviceKind::Simulator => simctl::run(config, env, non_interactive, &self.id)
-                .map_err(|e| RunError::DeployFailed(e.to_string())),
+            DeviceKind::Simulator => {
+                simctl::run(config, env, non_interactive, noise_level, &self.id)
+                    .map_err(|e| RunError::DeployFailed(e.to_string()))
+            }
             DeviceKind::IosDeployDevice | DeviceKind::DeviceCtlDevice => {
                 println!("Exporting app...");
                 self.target
@@ -181,11 +183,18 @@ impl<'a> Device<'a> {
                 cmd.run().map_err(RunError::UnzipFailed)?;
 
                 if self.kind == DeviceKind::IosDeployDevice {
-                    ios_deploy::run_and_debug(config, env, non_interactive, &self.id)
+                    ios_deploy::run_and_debug(config, env, non_interactive, &self.id, noise_level)
                         .map_err(|e| RunError::DeployFailed(e.to_string()))
                 } else {
-                    devicectl::run(config, env, non_interactive, &self.id, self.paired)
-                        .map_err(|e| RunError::DeployFailed(e.to_string()))
+                    devicectl::run(
+                        config,
+                        env,
+                        non_interactive,
+                        &self.id,
+                        self.paired,
+                        noise_level,
+                    )
+                    .map_err(|e| RunError::DeployFailed(e.to_string()))
                 }
             }
         }

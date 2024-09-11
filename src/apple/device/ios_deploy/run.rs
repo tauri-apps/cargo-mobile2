@@ -1,6 +1,7 @@
 use crate::{
     apple::config::Config,
     env::{Env, ExplicitEnv as _},
+    opts::NoiseLevel,
     util::cli::{Report, Reportable},
     DuctExpressionExt,
 };
@@ -25,6 +26,7 @@ pub fn run_and_debug(
     env: &Env,
     non_interactive: bool,
     id: &str,
+    noise_level: NoiseLevel,
 ) -> Result<duct::Handle, RunAndDebugError> {
     println!("Deploying app to device...");
 
@@ -50,7 +52,18 @@ pub fn run_and_debug(
             .map_err(RunAndDebugError::DeployFailed)?
             .wait()
             .map_err(RunAndDebugError::DeployFailed)?;
-        duct::cmd("idevicesyslog", ["--process", config.app().stylized_name()])
+
+        let app_name = config.app().stylized_name().to_string();
+
+        duct::cmd("idevicesyslog", ["--process", &app_name])
+            .before_spawn(move |cmd| {
+                if !noise_level.pedantic() {
+                    // when not in pedantic log mode, filter out logs that are not from the actual app
+                    // e.g. `App Name(UIKitCore)[processID]: message` vs `App Name[processID]: message`
+                    cmd.arg("--match").arg(format!("{app_name}["));
+                }
+                Ok(())
+            })
             .vars(env.explicit_env())
             .dup_stdio()
             .start()
