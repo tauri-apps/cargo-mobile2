@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.17.2]
+
+- [`cdb6ed3`](https://github.com/tauri-apps/cargo-mobile2/commit/cdb6ed362e33ffd21ebb3b6a2f1441040b7e45d1) ([#388](https://github.com/tauri-apps/cargo-mobile2/pull/388) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Only display logs from the actual iOS application unless pedantic verbosity is requested.
+- [`cdb6ed3`](https://github.com/tauri-apps/cargo-mobile2/commit/cdb6ed362e33ffd21ebb3b6a2f1441040b7e45d1) ([#388](https://github.com/tauri-apps/cargo-mobile2/pull/388) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Always use verbose logging when building the app on iOS (`Target::build`) to display cargo build output.
+
 ## \[0.17.1]
 
 - [`ce80447`](https://github.com/tauri-apps/cargo-mobile2/commit/ce804479427435cba770ffa941e27ce32b271533) ([#380](https://github.com/tauri-apps/cargo-mobile2/pull/380) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) The Rust flags for Android builds no longer need to search the .cargo folder for libraries.
