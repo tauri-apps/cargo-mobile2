@@ -426,7 +426,7 @@ impl<'a> Target<'a> {
         &self,
         config: &Config,
         env: &Env,
-        noise_level: opts::NoiseLevel,
+        _noise_level: opts::NoiseLevel,
         profile: opts::Profile,
         build_config: BuildConfig,
     ) -> Result<(), BuildError> {
@@ -446,9 +446,6 @@ impl<'a> Target<'a> {
             .before_spawn(move |cmd| {
                 build_config.xcodebuild_options.args_for(cmd);
 
-                if let Some(v) = verbosity(noise_level) {
-                    cmd.arg(v);
-                }
                 if let Some(a) = &arch {
                     cmd.args(["-arch", a]);
                 }

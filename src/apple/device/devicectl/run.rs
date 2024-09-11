@@ -3,6 +3,7 @@ use std::{env::temp_dir, fs::read_to_string};
 use crate::{
     apple::config::Config,
     env::{Env, ExplicitEnv as _},
+    opts::NoiseLevel,
     util::cli::{Report, Reportable},
     DuctExpressionExt,
 };
@@ -57,6 +58,7 @@ pub fn run(
     non_interactive: bool,
     id: &str,
     paired: bool,
+    noise_level: NoiseLevel,
 ) -> Result<duct::Handle, RunError> {
     if !paired {
         println!("Pairing with device...");
@@ -127,7 +129,17 @@ pub fn run(
             .wait()
             .map_err(RunError::DeployFailed)?;
 
-        duct::cmd("idevicesyslog", ["--process", config.app().stylized_name()])
+        let app_name = config.app().stylized_name().to_string();
+
+        duct::cmd("idevicesyslog", ["--process", &app_name])
+            .before_spawn(move |cmd| {
+                if !noise_level.pedantic() {
+                    // when not in pedantic log mode, filter out logs that are not from the actual app
+                    // e.g. `App Name(UIKitCore)[processID]: message` vs `App Name[processID]: message`
+                    cmd.arg("--match").arg(format!("{app_name}["));
+                }
+                Ok(())
+            })
             .vars(env.explicit_env())
             .dup_stdio()
             .start()

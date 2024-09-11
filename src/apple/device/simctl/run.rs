@@ -1,6 +1,7 @@
 use crate::{
     apple::config::Config,
     env::{Env, ExplicitEnv as _},
+    opts::NoiseLevel,
     util::cli::{Report, Reportable},
     DuctExpressionExt,
 };
@@ -24,6 +25,7 @@ pub fn run(
     config: &Config,
     env: &Env,
     non_interactive: bool,
+    noise_level: NoiseLevel,
     id: &str,
 ) -> Result<duct::Handle, RunError> {
     println!("Deploying app to device...");
@@ -76,7 +78,11 @@ pub fn run(
                 "--level",
                 "debug",
                 "--predicate",
-                &format!("process == \"{}\"", config.app().stylized_name()),
+                &if noise_level.pedantic() {
+                    format!("process == \"{}\"", config.app().stylized_name())
+                } else {
+                    format!("subsystem = \"{}\"", config.app().identifier())
+                },
             ],
         )
         .vars(env.explicit_env())
