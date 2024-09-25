@@ -2,7 +2,6 @@ use crate::{
     apple::{
         config::{Config, Metadata},
         device::{self, Device, RunError},
-        rust_version_check,
         target::{
             ArchiveConfig, ArchiveError, BuildConfig, BuildError, CheckError, CompileLibError,
             ExportError, Target,
@@ -154,7 +153,6 @@ pub enum Command {
 #[derive(Debug)]
 pub enum Error {
     EnvInitFailed(EnvError),
-    RustVersionCheckFailed(util::RustVersionError),
     DevicePromptFailed(PromptError<String>),
     TargetInvalid(TargetInvalid),
     ConfigFailed(LoadOrGenError),
@@ -184,7 +182,6 @@ impl Reportable for Error {
     fn report(&self) -> Report {
         match self {
             Self::EnvInitFailed(err) => err.report(),
-            Self::RustVersionCheckFailed(err) => err.report(),
             Self::DevicePromptFailed(err) => err.report(),
             Self::TargetInvalid(err) => Report::error("Specified target was invalid", err),
             Self::ConfigFailed(err) => err.report(),
@@ -270,8 +267,6 @@ impl Exec for Input {
             os::open_in_xcode(config.project_dir()).map_err(Error::OpenFailed)
         }
 
-        let version_check = || rust_version_check(wrapper).map_err(Error::RustVersionCheckFailed);
-
         let Self {
             flags:
                 GlobalFlags {
@@ -282,15 +277,11 @@ impl Exec for Input {
         } = self;
         let env = Env::new().map_err(Error::EnvInitFailed)?;
         match command {
-            Command::Open => {
-                version_check()?;
-                with_config(non_interactive, wrapper, |config, _| {
-                    ensure_init(config)?;
-                    open_in_xcode(config)
-                })
-            }
+            Command::Open => with_config(non_interactive, wrapper, |config, _| {
+                ensure_init(config)?;
+                open_in_xcode(config)
+            }),
             Command::Check { targets } => {
-                version_check()?;
                 with_config(non_interactive, wrapper, |config, metadata| {
                     call_for_targets_with_fallback(
                         targets.iter(),
@@ -309,7 +300,6 @@ impl Exec for Input {
                 targets,
                 profile: cli::Profile { profile },
             } => with_config(non_interactive, wrapper, |config, _| {
-                version_check()?;
                 ensure_init(config)?;
                 call_for_targets_with_fallback(
                     targets.iter(),
@@ -334,7 +324,6 @@ impl Exec for Input {
                 build_number,
                 profile: cli::Profile { profile },
             } => with_config(non_interactive, wrapper, |config, _| {
-                version_check()?;
                 ensure_init(config)?;
                 call_for_targets_with_fallback(
                     targets.iter(),
@@ -372,7 +361,6 @@ impl Exec for Input {
             Command::Run {
                 profile: cli::Profile { profile },
             } => with_config(non_interactive, wrapper, |config, _| {
-                version_check()?;
                 ensure_init(config)?;
                 device_prompt(&env)
                     .map_err(Error::DevicePromptFailed)?

@@ -11,22 +11,6 @@ fn check_os() -> Result<String, String> {
         .map_err(|err| format!("Failed to get OS info: {}", err))
 }
 
-fn check_rust() -> Result<String, String> {
-    util::RustVersion::check()
-        .map_err(|err| err.to_string())
-        .and_then(|version| {
-            version
-                .valid()
-                .then(|| format!("rustc v{}", version))
-                .ok_or_else(|| {
-                    format!(
-                        "iOS linking is broken on rustc v{}; please update to 1.49.0 or later",
-                        version
-                    )
-                })
-        })
-}
-
 pub fn check() -> Result<Section, Unrecoverable> {
     let section = Section::new(format!("cargo-mobile {}", VERSION_SHORT));
     Ok(match util::install_dir() {
@@ -48,6 +32,5 @@ pub fn check() -> Result<Section, Unrecoverable> {
             }),
         Err(err) => section.with_failure(err),
     }
-    .with_item(check_os())
-    .with_item(check_rust()))
+    .with_item(check_os()))
 }

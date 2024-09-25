@@ -1,6 +1,6 @@
 use super::{
     config::{Config, Metadata},
-    deps, rust_version_check,
+    deps,
     target::Target,
 };
 use crate::{
@@ -21,7 +21,6 @@ pub static TEMPLATE_PACK: &str = "xcode";
 #[derive(Debug)]
 pub enum Error {
     RustupFailed(std::io::Error),
-    RustVersionCheckFailed(util::RustVersionError),
     DepsInstallFailed(deps::Error),
     MissingPack(templating::LookupError),
     TemplateProcessingFailed(bicycle::ProcessingError),
@@ -38,7 +37,6 @@ impl Reportable for Error {
     fn report(&self) -> Report {
         match self {
             Self::RustupFailed(err) => Report::error("Failed to `rustup` Apple toolchains", err),
-            Self::RustVersionCheckFailed(err) => err.report(),
             Self::DepsInstallFailed(err) => {
                 Report::error("Failed to install Apple dependencies", err)
             }
@@ -78,7 +76,6 @@ pub fn gen(
         println!("Installing iOS toolchains...");
         Target::install_all().map_err(Error::RustupFailed)?;
     }
-    rust_version_check(wrapper).map_err(Error::RustVersionCheckFailed)?;
 
     deps::install_all(wrapper, non_interactive, skip_dev_tools, reinstall_deps)
         .map_err(Error::DepsInstallFailed)?;
