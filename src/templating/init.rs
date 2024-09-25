@@ -107,8 +107,8 @@ fn ident_last_part(
     _: &mut RenderContext,
     out: &mut dyn Output,
 ) -> HelperResult {
-    let last = get_str(helper).split('.').rev().next().unwrap_or_default();
-    out.write(&last).map_err(Into::into)
+    let last = get_str(helper).split('.').next_back().unwrap_or_default();
+    out.write(last).map_err(Into::into)
 }
 
 fn ident_no_last_part(
