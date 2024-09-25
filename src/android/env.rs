@@ -7,11 +7,7 @@ use crate::{
     os::Env as CoreEnv,
     util::cli::{Report, Reportable},
 };
-use std::{
-    collections::HashMap,
-    ffi::OsString,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, ffi::OsString, path::PathBuf};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -110,7 +106,7 @@ impl Env {
     }
 
     pub fn sdk_version(&self) -> Result<source_props::Revision, source_props::Error> {
-        SourceProps::from_path(Path::new(self.android_home()).join("tools/source.properties"))
+        SourceProps::from_path(self.platform_tools_path().join("source.properties"))
             .map(|props| props.pkg.revision)
     }
 }
