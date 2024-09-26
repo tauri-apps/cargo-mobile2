@@ -64,12 +64,17 @@ impl DotCargoBuild {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct DotCargoTarget {
     pub linker: Option<String>,
-    pub rustflags: Vec<String>,
+    pub rustflags: Option<Vec<String>>,
 }
 
 impl DotCargoTarget {
     pub fn is_empty(&self) -> bool {
-        self.linker.is_none() && self.rustflags.is_empty()
+        self.linker.is_none()
+            && self
+                .rustflags
+                .as_ref()
+                .map(|f| f.is_empty())
+                .unwrap_or(true)
     }
 }
 
