@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.17.3]
+
+- [`1ec0ca5`](https://github.com/tauri-apps/cargo-mobile2/commit/1ec0ca542db074d8bd8351b094759011f6b712a2) ([#395](https://github.com/tauri-apps/cargo-mobile2/pull/395) by [@amrbashir](https://github.com/tauri-apps/cargo-mobile2/../../amrbashir)) Fix deserializing targets from `.cargo/config.toml` if the target's `rustflags` field is not specified
+- [`e66010f`](https://github.com/tauri-apps/cargo-mobile2/commit/e66010f867f6ad4f4830fdb20a846a0ef474c1b7) ([#398](https://github.com/tauri-apps/cargo-mobile2/pull/398) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Removed name and lib name validation as they are not used as the package identifier anymore.
+
 ## \[0.17.2]
 
 - [`cdb6ed3`](https://github.com/tauri-apps/cargo-mobile2/commit/cdb6ed362e33ffd21ebb3b6a2f1441040b7e45d1) ([#388](https://github.com/tauri-apps/cargo-mobile2/pull/388) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Only display logs from the actual iOS application unless pedantic verbosity is requested.
