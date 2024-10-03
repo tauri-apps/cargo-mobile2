@@ -64,6 +64,7 @@ impl DotCargoBuild {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct DotCargoTarget {
     pub linker: Option<String>,
+    #[serde(default)]
     pub rustflags: Vec<String>,
 }
 
