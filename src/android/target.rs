@@ -211,11 +211,11 @@ impl<'a> Target<'a> {
             .to_string();
         Ok(DotCargoTarget {
             linker: Some(linker),
-            rustflags: Some(vec![
+            rustflags: vec![
                 "-Clink-arg=-landroid".to_owned(),
                 "-Clink-arg=-llog".to_owned(),
                 "-Clink-arg=-lOpenSLES".to_owned(),
-            ]),
+            ],
         })
     }
 
