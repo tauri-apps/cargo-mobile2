@@ -176,7 +176,7 @@ impl Raw {
 
     pub fn prompt(wrapper: &TextWrapper) -> Result<Self, PromptError> {
         let defaults = Defaults::new(wrapper).map_err(PromptError::DefaultsFailed)?;
-        let (name, default_stylized) = Self::prompt_name(wrapper, &defaults)?;
+        let (name, default_stylized) = Self::prompt_name(&defaults)?;
         let stylized_name = Self::prompt_stylized_name(&name, default_stylized)?;
         let identifier = Self::prompt_identifier(wrapper, &defaults)?;
         let template_pack = Some(Self::prompt_template_pack(wrapper)?)
@@ -193,41 +193,11 @@ impl Raw {
 }
 
 impl Raw {
-    fn prompt_name(
-        wrapper: &TextWrapper,
-        defaults: &Defaults,
-    ) -> Result<(String, Option<String>), PromptError> {
-        let mut default_name = defaults.name.clone();
-        let mut rejected = None;
-        let mut default_stylized = None;
-        let name = loop {
-            let response = prompt::default("Project name", default_name.as_deref(), None)
-                .map_err(PromptError::NamePromptFailed)?;
-            match name::validate(response.clone()) {
-                Ok(response) => {
-                    if default_name == Some(response.clone()) {
-                        if rejected.is_some() {
-                            default_stylized = rejected.take();
-                        } else {
-                            default_stylized = Some(defaults.stylized_name.clone());
-                        }
-                    }
-                    break response;
-                }
-                Err(err) => {
-                    rejected = Some(response);
-                    println!(
-                        "{}",
-                        wrapper
-                            .fill(&format!("Gosh, that's not a valid project name! {}", err))
-                            .bright_magenta()
-                    );
-                    if let Some(suggested) = err.suggested() {
-                        default_name = Some(suggested.to_owned());
-                    }
-                }
-            }
-        };
+    fn prompt_name(defaults: &Defaults) -> Result<(String, Option<String>), PromptError> {
+        let default_name = defaults.name.clone();
+        let name = prompt::default("Project name", default_name.as_deref(), None)
+            .map_err(PromptError::NamePromptFailed)?;
+        let default_stylized = Some(defaults.stylized_name.clone());
         Ok((name, default_stylized))
     }
 

@@ -390,7 +390,7 @@ impl<'a> Device<'a> {
         let stdout = loop {
             let cmd = duct::cmd(
                 env.platform_tools_path().join("adb"),
-                ["shell", "pidof", "-s", &config.app().identifier()],
+                ["shell", "pidof", "-s", config.app().identifier()],
             )
             .vars(env.explicit_env())
             .stderr_capture()

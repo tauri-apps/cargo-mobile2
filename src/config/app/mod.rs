@@ -93,12 +93,9 @@ impl App {
     pub fn from_raw(root_dir: PathBuf, raw: Raw) -> Result<Self, Error> {
         assert!(root_dir.is_absolute(), "root must be absolute");
 
-        let name = name::validate(raw.name).map_err(Error::NameInvalid)?;
+        let name = raw.name;
 
-        let lib_name = raw
-            .lib_name
-            .map(|n| lib_name::validate(n).map_err(Error::LibNameInvalid))
-            .transpose()?;
+        let lib_name = raw.lib_name;
 
         let stylized_name = raw.stylized_name.unwrap_or_else(|| name.clone());
 
