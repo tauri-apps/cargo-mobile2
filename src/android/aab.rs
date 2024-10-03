@@ -79,11 +79,10 @@ pub fn build(
             Ok(())
         })
         .start()
-        .map_err(|err| {
+        .inspect_err(|err| {
             if err.kind() == std::io::ErrorKind::NotFound {
                log::error!("`gradlew` not found. Make sure you have the Android SDK installed and added to your PATH");
             }
-            err
         })?
         .wait()?;
 

@@ -48,7 +48,7 @@ pub fn run(
     handle.wait().map_err(RunError::DeployFailed)?;
 
     let app_id = config.app().identifier();
-    let mut launcher_cmd = duct::cmd("xcrun", ["simctl", "launch", id, &app_id])
+    let mut launcher_cmd = duct::cmd("xcrun", ["simctl", "launch", id, app_id])
         .vars(env.explicit_env())
         .dup_stdio();
 
