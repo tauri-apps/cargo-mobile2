@@ -7,11 +7,11 @@ plugins {
 android {
     namespace="{{app.identifier}}"{{#if has-asset-packs}}
     assetPacks += mutableSetOf({{quote-and-join-colon-prefix asset-packs}}){{/if}}
-    compileSdk = 33
+    compileSdk = 34
     defaultConfig {
         applicationId = "{{app.identifier}}"
         minSdk = {{android.min-sdk-version}}
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
     }{{#if android-vulkan-validation}}
@@ -37,9 +37,6 @@ android {
                     .toList().toTypedArray()
             )
         }
-    }
-    kotlinOptions {
-        jvmTarget = "1.8"
     }
 }
 
