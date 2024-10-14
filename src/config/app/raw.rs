@@ -93,7 +93,11 @@ impl Defaults {
             .to_str()
             .ok_or_else(|| DefaultsError::CurrentDirInvalidUtf8(cwd.clone()))?;
         let name = name::transliterate(&dir_name.to_kebab_case());
-        let dot_name = name.as_ref().map(|n| format!(".{n}")).unwrap_or_default();
+        let dot_name = name
+            .as_ref()
+            .map(|n| format!(".{n}"))
+            .unwrap_or_default()
+            .replace("-", "_");
         Ok(Self {
             identifier: default_identifier(wrapper, &dot_name)
                 .ok()
