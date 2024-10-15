@@ -15,11 +15,48 @@ name = "{{app.name}}-desktop"
 path = "gen/bin/desktop.rs"
 
 [dependencies]
-mobile-entry-point = "0.1.1"
-bevy = "0.3.0"
+bevy = { version = "0.14", default-features = false, features = [
+    "animation",
+    "bevy_asset",
+    "bevy_audio",
+    "bevy_state",
+    "bevy_color",
+    "bevy_gilrs",
+    "bevy_scene",
+    "bevy_winit",
+    "bevy_core_pipeline",
+    "bevy_pbr",
+    "bevy_gltf",
+    "bevy_render",
+    "bevy_sprite",
+    "bevy_text",
+    "bevy_ui",
+    "multi_threaded",
+    "png",
+    "hdr",
+    "x11",
+    "vorbis",
+    "bevy_gizmos",
+    "tonemapping_luts",
+    "smaa_luts",
+    "default_font",
+    "webgl2",
+    "sysinfo_plugin",
+] }
+# bevy_audio = { version = "0.14.2", features = ["cpal"] }
+image = { version = "0.25", default-features = false }
+log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
+
 
 [target.'cfg(target_os = "android")'.dependencies]
-ndk-glue = "0.2.1"
+winit = { version = "0.30", default-features = false, features = [ "android-native-activity" ]}
+android-activity = "0.6"
+android_logger = "0.13"
+paste = "1.0"
 
-[patch.crates-io]
-cpal = { git = "https://github.com/francesca64/cpal", branch = "fran-ios" }
+[target.'cfg(not(target_os = "android"))'.dependencies]
+env_logger = "0.11.5"
+winit = { version = "0.30", default-features = false }
+
+[build-dependencies]
+embed-resource = "1.4"
