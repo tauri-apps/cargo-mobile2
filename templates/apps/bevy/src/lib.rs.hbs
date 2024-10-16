@@ -22,6 +22,6 @@ fn setup(
     asset_server: Res<AssetServer>,
 ) {
     let texture_handle = asset_server.load("branding/icon.png");
-    commands.spawn(Camera2dBundle::default())
+    commands.spawn(Camera2dBundle::default());
     commands.spawn(SpriteBundle {texture: texture_handle, ..Default::default()});
 }
