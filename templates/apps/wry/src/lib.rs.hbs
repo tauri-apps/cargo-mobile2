@@ -95,7 +95,7 @@ fn build_webview(event_loop: &EventLoopWindowTarget<()>) -> anyhow::Result<WebVi
         })
         .with_custom_protocol("wry".into(), move |_, _request| {
             http::Response::builder()
-                .header(CONTENT_TYPE, "text/html")
+                .header(http::header::CONTENT_TYPE, "text/html")
                 .body(
                     r#"<html>
                 <body>
