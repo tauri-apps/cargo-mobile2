@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.17.4]
+
+- [`b4d615f`](https://github.com/tauri-apps/cargo-mobile2/commit/b4d615f7798afcb7c15aca02883bb931c5fa3431) ([#404](https://github.com/tauri-apps/cargo-mobile2/pull/404) by [@jmetz](https://github.com/tauri-apps/cargo-mobile2/../../jmetz)) Remove deprecated options from gradle file in the generated android template.
+
 ## \[0.17.3]
 
 - [`1ec0ca5`](https://github.com/tauri-apps/cargo-mobile2/commit/1ec0ca542db074d8bd8351b094759011f6b712a2) ([#395](https://github.com/tauri-apps/cargo-mobile2/pull/395) by [@amrbashir](https://github.com/tauri-apps/cargo-mobile2/../../amrbashir)) Fix deserializing targets from `.cargo/config.toml` if the target's `rustflags` field is not specified
