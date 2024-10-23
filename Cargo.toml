@@ -15,6 +15,17 @@ keywords = [ "cargo", "mobile", "ios", "android", "tauri" ]
 categories = [ "development-tools::cargo-plugins" ]
 license = "Apache-2.0 OR MIT"
 
+
+[package.metadata.docs.rs]
+no-default-features = true
+features = ["native-tls"]
+default-target = "x86_64-unknown-linux-gnu"
+targets = [
+  "x86_64-pc-windows-msvc",
+  "x86_64-unknown-linux-gnu",
+  "x86_64-apple-darwin",
+]
+
 [[bin]]
 name = "cargo-mobile"
 required-features = [ "cli" ]
@@ -42,7 +53,7 @@ cli = [
 brainium = [ ]
 rustls = [ "ureq/tls" ]
 native-tls = [ "ureq/native-tls" ]
-default = [ "cli", "ureq/native-tls" ]
+default = [ "cli", "native-tls" ]
 
 [dependencies]
 handlebars = "6.0"
