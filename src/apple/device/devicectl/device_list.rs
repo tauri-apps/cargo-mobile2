@@ -19,19 +19,19 @@ pub enum DeviceListError {
     InvalidDeviceList(#[from] serde_json::Error),
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceProperties {
-    name: String,
+    name: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CpuType {
     name: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HardwareProperties {
     udid: String,
@@ -40,11 +40,28 @@ pub struct HardwareProperties {
     cpu_type: CpuType,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum MaybeHardwareProperties {
+    // order matters, if we can deserialize to HardwareProperties we get Self::KnownProperties, fallback to Self::Invalid
+    KnownProperties(HardwareProperties),
+    #[allow(dead_code)]
+    Invalid(serde_json::Value),
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConnectionProperties {
     pairing_state: String,
     tunnel_state: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MaybeDeviceListDevice {
+    connection_properties: ConnectionProperties,
+    device_properties: DeviceProperties,
+    hardware_properties: MaybeHardwareProperties,
 }
 
 #[derive(Deserialize)]
@@ -57,7 +74,7 @@ pub struct DeviceListDevice {
 
 #[derive(Deserialize)]
 struct DeviceListResult {
-    devices: Vec<DeviceListDevice>,
+    devices: Vec<MaybeDeviceListDevice>,
 }
 
 #[derive(Deserialize)]
@@ -76,15 +93,34 @@ fn parse_device_list<'a>(json: String) -> Result<BTreeSet<Device<'a>>, DeviceLis
         .result
         .devices
         .into_iter()
-        .filter(|device| {
-            device.connection_properties.tunnel_state != "unavailable"
-                && (device.hardware_properties.platform.contains("iOS")
-                    || device.hardware_properties.platform.contains("xrOS"))
+        // early filter to not log devices with missing hardwareProperties unless they are actually in a weird/unknown state
+        .filter(|device| device.connection_properties.tunnel_state != "unavailable")
+        .filter_map(|device| {
+            if let MaybeHardwareProperties::KnownProperties(hardware_properties) =
+                device.hardware_properties
+            {
+                Some(DeviceListDevice {
+                    connection_properties: device.connection_properties,
+                    device_properties: device.device_properties,
+                    hardware_properties,
+                })
+            } else {
+                log::warn!("skipping device {:?}, unknown hardwareProperties", device);
+                None
+            }
         })
+        .filter(|device| {
+            device.hardware_properties.platform.contains("iOS")
+                || device.hardware_properties.platform.contains("xrOS")
+        })
+        .filter(|device| device.device_properties.name.is_some())
         .map(|device| {
             Device::new(
                 device.hardware_properties.udid,
-                device.device_properties.name,
+                device
+                    .device_properties
+                    .name
+                    .expect("empty device name was filtered"),
                 device.hardware_properties.product_type,
                 if device
                     .hardware_properties
@@ -124,4 +160,139 @@ pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListErro
 
     let contents = read_to_string(json_output_path_)?;
     parse_device_list(contents)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn can_deserialize_device_list() {
+        let json = serde_json::json!({
+            "result" : {
+                "devices" : [
+                    {
+                        "capabilities" : [
+                        {
+                            "featureIdentifier" : "com.apple.coredevice.feature.tags",
+                            "name" : "Modify Tags"
+                        }
+                        ],
+                        "connectionProperties" : {
+                        "isMobileDeviceOnly" : false,
+                        "pairingState" : "unpaired",
+                        "potentialHostnames" : [
+
+                        ],
+                        "tunnelState" : "connected"
+                        },
+                        "deviceProperties" : {
+                            "name": "Tauri iPhone",
+                            "bootState" : "booted",
+                            "ddiServicesAvailable" : false
+                        },
+                        "hardwareProperties" : {
+                            "udid": "781BF0DD-XXXXXXXXXXXXXXX",
+                            "platform": "iOS",
+                            "productType": "iOS",
+                            "cpuType": {
+                                "name": "arm64"
+                            },
+                        },
+                        "identifier" : "781BF0DD-XXXXXXXXXXXXXXX",
+                        "tags" : [],
+                    "visibilityClass" : "default"
+                    }
+                ]
+            },
+        });
+
+        let list = super::parse_device_list(serde_json::to_string(&json).unwrap())
+            .expect("can deserialize");
+        assert_eq!(list.len(), 1);
+    }
+
+    #[test]
+    fn can_deserialize_empty_hardware_properties() {
+        let json = serde_json::json!({
+            "result" : {
+                "devices" : [
+                    {
+                        "capabilities" : [
+                        {
+                            "featureIdentifier" : "com.apple.coredevice.feature.tags",
+                            "name" : "Modify Tags"
+                        }
+                        ],
+                        "connectionProperties" : {
+                        "isMobileDeviceOnly" : false,
+                        "pairingState" : "unpaired",
+                        "potentialHostnames" : [
+
+                        ],
+                        "tunnelState" : "connected"
+                        },
+                        "deviceProperties" : {
+                            "name": "Tauri iPhone",
+                            "bootState" : "booted",
+                            "ddiServicesAvailable" : false
+                        },
+                        "hardwareProperties" : {
+
+                        },
+                        "identifier" : "781BF0DD-XXXXXXXXXXXXXXX",
+                        "tags" : [],
+                    "visibilityClass" : "default"
+                    }
+                ]
+            },
+        });
+
+        let list = super::parse_device_list(serde_json::to_string(&json).unwrap())
+            .expect("can deserialize");
+        assert!(list.is_empty());
+    }
+
+    #[test]
+    fn filters_empty_device_name() {
+        let json = serde_json::json!({
+            "result" : {
+                "devices" : [
+                    {
+                        "capabilities" : [
+                        {
+                            "featureIdentifier" : "com.apple.coredevice.feature.tags",
+                            "name" : "Modify Tags"
+                        }
+                        ],
+                        "connectionProperties" : {
+                        "isMobileDeviceOnly" : false,
+                        "pairingState" : "unpaired",
+                        "potentialHostnames" : [
+
+                        ],
+                        "tunnelState" : "connected"
+                        },
+                        "deviceProperties" : {
+                            "bootState" : "booted",
+                            "ddiServicesAvailable" : false
+                        },
+                        "hardwareProperties" : {
+                            "udid": "781BF0DD-XXXXXXXXXXXXXXX",
+                            "platform": "iOS",
+                            "productType": "iOS",
+                            "cpuType": {
+                                "name": "arm64"
+                            },
+                        },
+                        "identifier" : "781BF0DD-XXXXXXXXXXXXXXX",
+                        "tags" : [],
+                    "visibilityClass" : "default"
+                    }
+                ]
+            },
+        });
+
+        let list = super::parse_device_list(serde_json::to_string(&json).unwrap())
+            .expect("can deserialize");
+        assert!(list.is_empty());
+    }
 }
