@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.17.6]
+
+- [`9c83da3`](https://github.com/tauri-apps/cargo-mobile2/commit/9c83da330b28642c6576381b945c36fd251dbe47) ([#443](https://github.com/tauri-apps/cargo-mobile2/pull/443) by [@jfahrenkrug](https://github.com/tauri-apps/cargo-mobile2/../../jfahrenkrug)) Fix devicectl device list parsing when device's tunnelState is "unavailable".
+
 ## \[0.17.5]
 
 - [`c6e6474`](https://github.com/tauri-apps/cargo-mobile2/commit/c6e6474e78bb35edc6bc719c28586d61e5e37705) ([#435](https://github.com/tauri-apps/cargo-mobile2/pull/435) by [@FabianLars](https://github.com/tauri-apps/cargo-mobile2/../../FabianLars)) Add `rust-version` field in Cargo.toml. The actual MSRV remains unchanged (`1.76`).
