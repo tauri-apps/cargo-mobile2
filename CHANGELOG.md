@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.18.1]
+
+- [`44a5dd6`](https://github.com/tauri-apps/cargo-mobile2/commit/44a5dd6f902dc432f901c92a72f5aa89b95e9a09) ([#448](https://github.com/tauri-apps/cargo-mobile2/pull/448) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fix regression on development on macOS with Intel chip.
+
 ## \[0.18.0]
 
 - [`0ee7015`](https://github.com/tauri-apps/cargo-mobile2/commit/0ee701554044061c986698c40e8423ef077751e2) ([#445](https://github.com/tauri-apps/cargo-mobile2/pull/445) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Remove `arm64-sim` architecture which can no longer work on Xcode 16.3
