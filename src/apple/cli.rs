@@ -464,18 +464,18 @@ impl Exec for Input {
 
                 let isysroot = format!("-isysroot {}", sdk_root.display());
 
+                let simulator = arches.contains(&"Simulator".to_string());
+                let arches = if simulator {
+                    // when compiling for the simulator, we don't need to build other targets
+                    vec!["arm64".to_string()]
+                } else {
+                    arches
+                };
                 for arch in arches {
-                    // FIXME Build the rust crate for iOS Simulator target too.
-                    if arch == "Simulator" {
-                        continue;
-                    }
-
                     // Set target-specific flags
                     let (triple, rust_triple) = match arch.as_str() {
-                        "arm64" => ("aarch64_apple_ios", "aarch64-apple-ios"),
-                        // FIXME triple for cflags seems incorrect and we don't actually need to
-                        // set it when cross compile simulator target.
-                        // "arm64-sim" => ("aarch64_apple_ios", "aarch64-apple-ios"),
+                        "arm64" if !simulator => ("aarch64_apple_ios", "aarch64-apple-ios"),
+                        "arm64" if simulator => ("aarch64_apple_ios_sim", "aarch64-apple-ios-sim"),
                         "x86_64" => ("x86_64_apple_ios", "x86_64-apple-ios"),
                         _ => return Err(Error::ArchInvalid { arch }),
                     };
@@ -493,7 +493,12 @@ impl Exec for Input {
                         target_env.insert("LIBRARY_PATH", library_path.as_ref());
                         &macos_target
                     } else {
-                        Target::for_arch(&arch).ok_or_else(|| Error::ArchInvalid {
+                        Target::for_arch(if arch == "arm64" && simulator {
+                            "arm64-sim"
+                        } else {
+                            &arch
+                        })
+                        .ok_or_else(|| Error::ArchInvalid {
                             arch: arch.to_owned(),
                         })?
                     };
