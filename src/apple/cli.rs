@@ -467,7 +467,12 @@ impl Exec for Input {
                 let simulator = arches.contains(&"Simulator".to_string());
                 let arches = if simulator {
                     // when compiling for the simulator, we don't need to build other targets
-                    vec!["arm64".to_string()]
+                    vec![if cfg!(target_arch = "aarch64") {
+                        "arm64"
+                    } else {
+                        "x86_64"
+                    }
+                    .to_string()]
                 } else {
                     arches
                 };
