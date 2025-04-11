@@ -71,8 +71,37 @@ impl Reportable for DeviceListError {
     }
 }
 
+fn filter_invalid_devices(json_value: &mut serde_json::Value) {
+    if let Some(result) = json_value.get_mut("result") {
+        if let Some(devices) = result.get_mut("devices") {
+            if let Some(devices_array) = devices.as_array_mut() {
+                devices_array.retain(|device| {
+                    if let Some(hardware_props) = device.get("hardwareProperties") {
+                        !hardware_props.is_object() || !hardware_props.as_object().unwrap().is_empty()
+                    } else {
+                        false // Remove devices without hardwareProperties
+                    }
+                });
+            }
+        }
+    }
+}
+
 fn parse_device_list<'a>(json: String) -> Result<BTreeSet<Device<'a>>, DeviceListError> {
-    let devices = serde_json::from_str::<DeviceListOutput>(&json)?
+    // First parse the JSON as a generic Value to filter out invalid devices
+    let mut json_value: serde_json::Value = serde_json::from_str(&json)
+        .map_err(|e| {
+            eprintln!("Error parsing initial JSON: {}", e);
+            DeviceListError::InvalidDeviceList(e)
+        })?;
+
+    // Filter out devices with empty hardwareProperties
+    filter_invalid_devices(&mut json_value);
+
+    // Now parse the filtered JSON in a typed way
+    let output = serde_json::from_value::<DeviceListOutput>(json_value)?;
+
+    let devices = output
         .result
         .devices
         .into_iter()
