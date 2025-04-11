@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.18.0]
+
+- [`0ee7015`](https://github.com/tauri-apps/cargo-mobile2/commit/0ee701554044061c986698c40e8423ef077751e2) ([#445](https://github.com/tauri-apps/cargo-mobile2/pull/445) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Remove `arm64-sim` architecture which can no longer work on Xcode 16.3
+
 ## \[0.17.6]
 
 - [`9c83da3`](https://github.com/tauri-apps/cargo-mobile2/commit/9c83da330b28642c6576381b945c36fd251dbe47) ([#443](https://github.com/tauri-apps/cargo-mobile2/pull/443) by [@jfahrenkrug](https://github.com/tauri-apps/cargo-mobile2/../../jfahrenkrug)) Fix devicectl device list parsing when device's tunnelState is "unavailable".
