@@ -173,7 +173,7 @@ checksum = "325918d6fe32f23b19878fe4b34794ae41fc19ddbe53b10571a4874d44ffd39b"
 
 [[package]]
 name = "cargo-mobile2"
-version = "0.18.1"
+version = "0.19.0"
 dependencies = [
  "colored",
  "core-foundation 0.10.0",
