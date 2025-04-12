@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.19.0]
+
+- [`bbbbdf7`](https://github.com/tauri-apps/cargo-mobile2/commit/bbbbdf71c69748d18e7daa543f613f3cf5301b47) ([#450](https://github.com/tauri-apps/cargo-mobile2/pull/450) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fixed apple bundle version string validation. Removed the `VersionNumber` type.
+
 ## \[0.18.1]
 
 - [`44a5dd6`](https://github.com/tauri-apps/cargo-mobile2/commit/44a5dd6f902dc432f901c92a72f5aa89b95e9a09) ([#448](https://github.com/tauri-apps/cargo-mobile2/pull/448) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fix regression on development on macOS with Intel chip.
