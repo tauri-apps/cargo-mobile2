@@ -412,6 +412,10 @@ impl Config {
         &self.bundle_version
     }
 
+    pub fn bundle_version_short(&self) -> &str {
+        &self.bundle_version_short
+    }
+
     pub fn development_team(&self) -> Option<&str> {
         self.development_team.as_deref()
     }
