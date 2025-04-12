@@ -7,7 +7,6 @@ pub mod project;
 pub(crate) mod system_profile;
 pub mod target;
 pub mod teams;
-mod version_number;
 
 use std::path::PathBuf;
 

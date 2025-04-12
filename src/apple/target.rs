@@ -1,7 +1,6 @@
 use super::{
     config::{Config, Metadata},
     system_profile::{self, DeveloperTools},
-    version_number::VersionNumber,
     AuthCredentials,
 };
 use crate::{
@@ -470,14 +469,14 @@ impl<'a> Target<'a> {
         env: &Env,
         noise_level: opts::NoiseLevel,
         profile: opts::Profile,
-        build_number: Option<VersionNumber>,
+        new_version: Option<String>,
         archive_config: ArchiveConfig,
     ) -> Result<(), ArchiveError> {
-        if let Some(build_number) = build_number {
+        if let Some(version) = new_version {
             util::with_working_dir(config.project_dir(), || {
                 duct::cmd(
                     "xcrun",
-                    ["agvtool", "new-version", "-all", &build_number.to_string()],
+                    ["agvtool", "new-version", "-all", &version.to_string()],
                 )
                 .dup_stdio()
                 .run()

@@ -2,7 +2,6 @@ mod raw;
 
 pub use self::raw::*;
 
-use super::version_number::{VersionNumber, VersionNumberError};
 use crate::{
     config::app::App,
     util::{
@@ -19,9 +18,9 @@ use std::{
 use thiserror::Error;
 
 static DEFAULT_PROJECT_DIR: &str = "gen/apple";
-const DEFAULT_BUNDLE_VERSION: VersionNumber = VersionNumber::new(VersionTriple::new(1, 0, 0), None);
-const DEFAULT_IOS_VERSION: VersionDouble = VersionDouble::new(13, 0);
-const DEFAULT_MACOS_VERSION: VersionDouble = VersionDouble::new(11, 0);
+const DEFAULT_BUNDLE_VERSION: &str = "1.0.0";
+const DEFAULT_IOS_VERSION: &str = "13.0";
+const DEFAULT_MACOS_VERSION: &str = "11.0";
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -218,18 +217,14 @@ pub enum Error {
     DevelopmentTeamEmpty,
     #[error("`apple.project-dir` invalid: {0}")]
     ProjectDirInvalid(ProjectDirInvalid),
-    #[error("`apple.app-version` invalid: {0}")]
-    BundleVersionInvalid(VersionTripleError),
+    #[error("`apple.bundle-version` can only contain numbers, separated by `.`")]
+    BundleVersionInvalid,
+    #[error("`apple.bundle-version-short` invalid: {0}")]
+    BundleVersionShortInvalid(VersionTripleError),
     #[error("`apple.ios-version` invalid: {0}")]
     IosVersionInvalid(VersionDoubleError),
     #[error("`apple.macos-version` invalid: {0}")]
     MacOsVersionInvalid(VersionDoubleError),
-    #[error("`apple.app-version` short and long version number don't match: {0}")]
-    IosVersionNumberInvalid(VersionNumberError),
-    #[error("`apple.app-version` short and long version number don't match")]
-    IosVersionNumberMismatch,
-    #[error("`apple.app-version` `bundle-version-short` cannot be specified without also specifying `bundle-version`")]
-    InvalidVersionConfiguration,
     #[error("Identifier cannot contain underscores on iOS")]
     IdentifierCannotContainUnderscores,
 }
@@ -240,44 +235,6 @@ impl Error {
     }
 }
 
-#[derive(Debug)]
-pub(crate) struct VersionInfo {
-    pub version_number: Option<VersionNumber>,
-    pub short_version_number: Option<VersionTriple>,
-}
-
-impl VersionInfo {
-    pub(crate) fn from_raw(
-        version_string: &Option<String>,
-        short_version_string: &Option<String>,
-    ) -> Result<Self, Error> {
-        let version_number = version_string
-            .as_deref()
-            .map(VersionNumber::from_str)
-            .transpose()
-            .map_err(Error::IosVersionNumberInvalid)?;
-        let short_version_number = short_version_string
-            .as_deref()
-            .map(VersionTriple::from_str)
-            .transpose()
-            .map_err(Error::BundleVersionInvalid)?;
-        if short_version_number.is_some() && version_number.is_none() {
-            return Err(Error::InvalidVersionConfiguration);
-        }
-        if let Some((version_number, short_version_number)) =
-            version_number.as_ref().zip(short_version_number)
-        {
-            if version_number.triple != short_version_number {
-                return Err(Error::IosVersionNumberMismatch);
-            }
-        }
-        Ok(Self {
-            version_number,
-            short_version_number,
-        })
-    }
-}
-
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
@@ -285,10 +242,10 @@ pub struct Config {
     app: App,
     development_team: Option<String>,
     project_dir: String,
-    bundle_version: VersionNumber,
-    bundle_version_short: VersionTriple,
-    ios_version: VersionDouble,
-    macos_version: VersionDouble,
+    bundle_version: String,
+    bundle_version_short: String,
+    ios_version: String,
+    macos_version: String,
     use_legacy_build_system: bool,
     plist_pairs: Vec<PListPair>,
     enable_bitcode: bool,
@@ -335,18 +292,26 @@ impl Config {
                 Ok(DEFAULT_PROJECT_DIR.to_owned())
             })?;
 
-        let (bundle_version, bundle_version_short) =
-            VersionInfo::from_raw(&raw.bundle_version, &raw.bundle_version_short).map(|info| {
-                let bundle_version = info
-                    .version_number
-                    .clone()
-                    .unwrap_or(DEFAULT_BUNDLE_VERSION);
+        let bundle_version = raw
+            .bundle_version
+            .unwrap_or_else(|| DEFAULT_BUNDLE_VERSION.to_string());
+        if bundle_version
+            .split('.')
+            .any(|part| part.parse::<usize>().is_err())
+        {
+            return Err(Error::BundleVersionInvalid);
+        }
 
-                let bundle_version_short =
-                    info.short_version_number.unwrap_or(bundle_version.triple);
-
-                (bundle_version, bundle_version_short)
-            })?;
+        let bundle_version_short = raw.bundle_version_short.unwrap_or_else(|| {
+            bundle_version
+                .split('.')
+                .take(3)
+                .collect::<Vec<_>>()
+                .join(".")
+        });
+        if let Err(e) = VersionTriple::from_str(&bundle_version_short) {
+            return Err(Error::BundleVersionShortInvalid(e));
+        }
 
         let export_options_plist_path = raw
             .export_options_plist_path
@@ -364,13 +329,15 @@ impl Config {
                 .map(|str| VersionDouble::from_str(&str))
                 .transpose()
                 .map_err(Error::IosVersionInvalid)?
-                .unwrap_or(DEFAULT_IOS_VERSION),
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| DEFAULT_IOS_VERSION.to_string()),
             macos_version: raw
                 .macos_version
                 .map(|str| VersionDouble::from_str(&str))
                 .transpose()
-                .map_err(Error::IosVersionInvalid)?
-                .unwrap_or(DEFAULT_MACOS_VERSION),
+                .map_err(Error::MacOsVersionInvalid)?
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| DEFAULT_MACOS_VERSION.to_string()),
             use_legacy_build_system: raw.use_legacy_build_system.unwrap_or(true),
             plist_pairs: raw.plist_pairs.unwrap_or_default(),
             enable_bitcode: raw.enable_bitcode.unwrap_or(false),
@@ -441,7 +408,7 @@ impl Config {
         format!("{}_iOS", self.app.name())
     }
 
-    pub fn bundle_version(&self) -> &VersionNumber {
+    pub fn bundle_version(&self) -> &str {
         &self.bundle_version
     }
 
