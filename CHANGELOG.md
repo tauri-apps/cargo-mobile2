@@ -1,5 +1,11 @@
 # Changelog
 
+## \[0.20.0]
+
+- [`fcd6fcf`](https://github.com/tauri-apps/cargo-mobile2/commit/fcd6fcf81f79ae1645f9b67412c969c9446e645e) ([#453](https://github.com/tauri-apps/cargo-mobile2/pull/453) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Check if iOS Simulator SDK is installed before building for Simulator.
+- [`fcd6fcf`](https://github.com/tauri-apps/cargo-mobile2/commit/fcd6fcf81f79ae1645f9b67412c969c9446e645e) ([#453](https://github.com/tauri-apps/cargo-mobile2/pull/453) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Add OS version to iOS Simulator prompt.
+- [`fcd6fcf`](https://github.com/tauri-apps/cargo-mobile2/commit/fcd6fcf81f79ae1645f9b67412c969c9446e645e) ([#453](https://github.com/tauri-apps/cargo-mobile2/pull/453) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added the target device parameter to `Target::build` so it can properly build for Simulator with older OS versions.
+
 ## \[0.19.0]
 
 - [`bbbbdf7`](https://github.com/tauri-apps/cargo-mobile2/commit/bbbbdf71c69748d18e7daa543f613f3cf5301b47) ([#450](https://github.com/tauri-apps/cargo-mobile2/pull/450) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fixed apple bundle version string validation. Removed the `VersionNumber` type.
