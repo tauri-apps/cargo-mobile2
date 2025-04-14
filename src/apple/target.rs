@@ -1,5 +1,7 @@
 use super::{
     config::{Config, Metadata},
+    deps::xcode_plugin::xcode_developer_dir,
+    device::Device,
     system_profile::{self, DeveloperTools},
     AuthCredentials,
 };
@@ -15,9 +17,11 @@ use crate::{
     DuctExpressionExt,
 };
 use once_cell_regex::exports::once_cell::sync::OnceCell;
+use serde::Deserialize;
 use std::{
     collections::{BTreeMap, HashMap},
     ffi::{OsStr, OsString},
+    io::Cursor,
     process::Command,
 };
 use thiserror::Error;
@@ -98,12 +102,38 @@ impl Reportable for CompileLibError {
 }
 
 #[derive(Debug, Error)]
-#[error(transparent)]
-pub struct BuildError(#[from] std::io::Error);
+pub enum SdkError {
+    #[error("failed to find xcode path: {0}")]
+    XcodePath(String),
+    #[error("failed to parse Xcode SDKSettings.plist: {0}")]
+    ParseSdkSettings(plist::Error),
+    #[error("SDKSettings.plist missing Version")]
+    MissingSdkVersion,
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+    #[error("failed to parse installed runtimes: {0}")]
+    ParseRuntimes(serde_json::Error),
+    #[error("Xcode Simulator SDK {version} is not installed, please open Xcode")]
+    SdkNotInstalled { version: String },
+}
+
+impl Reportable for SdkError {
+    fn report(&self) -> Report {
+        Report::error("Failed to validate SDK installation", self.to_string())
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum BuildError {
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+    #[error(transparent)]
+    Sdk(#[from] SdkError),
+}
 
 impl Reportable for BuildError {
     fn report(&self) -> Report {
-        Report::error("Failed to build via `xcodebuild`", &self.0)
+        Report::error("Failed to build via `xcodebuild`", self.to_string())
     }
 }
 
@@ -113,6 +143,8 @@ pub enum ArchiveError {
     SetVersionFailed(WithWorkingDirError<std::io::Error>),
     #[error("Failed to archive via `xcodebuild`: {0}")]
     ArchiveFailed(#[from] std::io::Error),
+    #[error(transparent)]
+    Sdk(#[from] SdkError),
 }
 
 impl Reportable for ArchiveError {
@@ -120,6 +152,7 @@ impl Reportable for ArchiveError {
         match self {
             Self::SetVersionFailed(err) => Report::error("Failed to set app version number", err),
             Self::ArchiveFailed(err) => Report::error("Failed to archive via `xcodebuild`", err),
+            Self::Sdk(err) => Report::error("SDK validation failed", err.to_string()),
         }
     }
 }
@@ -318,7 +351,7 @@ impl<'a> Target<'a> {
         Self {
             triple: "x86_64-apple-darwin",
             arch: "x86_64",
-            sdk: "iphoneos",
+            sdk: "macos",
             alias: None,
             min_xcode_version: None,
         }
@@ -421,14 +454,68 @@ impl<'a> Target<'a> {
         Ok(())
     }
 
+    fn validate_sdk(&self) -> Result<(), SdkError> {
+        if self.sdk == "iphonesimulator" {
+            let xcode_developer_path =
+                xcode_developer_dir().map_err(|e| SdkError::XcodePath(e.to_string()))?;
+            let sdk_settings_path = xcode_developer_path.join(
+                "Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/SDKSettings.plist",
+            );
+            // get Xcode's default SDK version
+            let sdk_settings: plist::Value =
+                plist::from_file(&sdk_settings_path).map_err(SdkError::ParseSdkSettings)?;
+            let Some(version) = sdk_settings
+                .as_dictionary()
+                .and_then(|settings| settings.get("Version").and_then(|v| v.as_string()))
+            else {
+                return Err(SdkError::MissingSdkVersion);
+            };
+
+            // list installed runtimes
+            let available_runtimes_output =
+                duct::cmd("xcrun", ["simctl", "list", "runtimes", "--json"])
+                    .stdout_capture()
+                    .stderr_capture()
+                    .run()?;
+            let available_runtimes = serde_json::from_reader::<_, SimctlRuntimeList>(Cursor::new(
+                available_runtimes_output.stdout,
+            ))
+            .map_err(SdkError::ParseRuntimes)?;
+
+            // default SDK must be installed
+            if !available_runtimes
+                .runtimes
+                .iter()
+                .any(|runtime| runtime.version == version && runtime.is_available)
+            {
+                log::debug!(
+                    "installed runtimes: {}",
+                    available_runtimes
+                        .runtimes
+                        .into_iter()
+                        .filter_map(|runtime| runtime.is_available.then_some(runtime.version))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
+                return Err(SdkError::SdkNotInstalled {
+                    version: version.to_string(),
+                });
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn build(
         &self,
+        target_device: Option<&Device>,
         config: &Config,
         env: &Env,
         _noise_level: opts::NoiseLevel,
         profile: opts::Profile,
         build_config: BuildConfig,
     ) -> Result<(), BuildError> {
+        self.validate_sdk()?;
         let configuration = profile.as_str();
         let scheme = config.scheme();
         let workspace_path = config.workspace_path();
@@ -438,6 +525,9 @@ impl<'a> Target<'a> {
         } else {
             None
         };
+
+        let destination = target_device.map(|device| format!("id={}", device.id()));
+
         let args: Vec<OsString> = vec![];
         duct::cmd("xcodebuild", args)
             .full_env(env.explicit_env())
@@ -447,6 +537,10 @@ impl<'a> Target<'a> {
 
                 if let Some(a) = &arch {
                     cmd.args(["-arch", a]);
+                }
+
+                if let Some(destination) = &destination {
+                    cmd.args(["-destination", destination]);
                 }
 
                 cmd.args(["-scheme", &scheme])
@@ -472,6 +566,8 @@ impl<'a> Target<'a> {
         new_version: Option<String>,
         archive_config: ArchiveConfig,
     ) -> Result<(), ArchiveError> {
+        self.validate_sdk()?;
+
         if let Some(version) = new_version {
             util::with_working_dir(config.project_dir(), || {
                 duct::cmd(
@@ -563,4 +659,16 @@ impl<'a> Target<'a> {
 
         Ok(())
     }
+}
+
+#[derive(Deserialize)]
+struct SimctlRuntimeList {
+    runtimes: Vec<SimctlRuntime>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SimctlRuntime {
+    is_available: bool,
+    version: String,
 }

@@ -64,7 +64,7 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
             regex!(r"\bname: (?P<name>.*)")
                 .captures(&stdout)
                 .map(|caps| caps["name"].to_owned())
-                .ok_or_else(|| Error::NotMatched)
+                .ok_or(Error::NotMatched)
         })
     }
 }

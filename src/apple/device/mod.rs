@@ -72,7 +72,7 @@ pub struct Device<'a> {
     paired: bool,
 }
 
-impl<'a> Display for Device<'a> {
+impl Display for Device<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} ({})", self.name, self.model)
     }
@@ -113,6 +113,10 @@ impl<'a> Device<'a> {
         &self.model
     }
 
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
     pub fn kind(&self) -> DeviceKind {
         self.kind
     }
@@ -129,6 +133,7 @@ impl<'a> Device<'a> {
         println!("Building app...");
         self.target
             .build(
+                Some(self),
                 config,
                 env,
                 noise_level,

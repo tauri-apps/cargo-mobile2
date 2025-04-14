@@ -124,7 +124,7 @@ pub struct Device<'a> {
     target: &'a Target<'a>,
 }
 
-impl<'a> Display for Device<'a> {
+impl Display for Device<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)?;
         if self.model != self.name {

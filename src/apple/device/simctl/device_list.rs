@@ -1,4 +1,4 @@
-use super::Device;
+use super::{Device, Platform};
 use crate::{
     env::{Env, ExplicitEnv as _},
     util::cli::{Report, Reportable},
@@ -17,8 +17,14 @@ pub enum DeviceListError {
 }
 
 #[derive(Deserialize)]
+pub struct OutputDevice {
+    name: String,
+    udid: String,
+}
+
+#[derive(Deserialize)]
 struct DeviceListOutput {
-    devices: HashMap<String, Vec<Device>>,
+    devices: HashMap<String, Vec<OutputDevice>>,
 }
 
 impl Reportable for DeviceListError {
@@ -33,8 +39,26 @@ fn parse_device_list(output: &std::process::Output) -> Result<BTreeSet<Device>, 
     let devices = serde_json::from_str::<DeviceListOutput>(&stdout)?
         .devices
         .into_iter()
-        .filter(|(k, _)| k.contains("iOS") || k.contains("xrOS"))
-        .flat_map(|(_, v)| v)
+        .filter_map(|(k, devices)| {
+            k.split_once("iOS-")
+                .map(|(_, version)| (Platform::Ios, version.replace('-', ".")))
+                .or_else(|| {
+                    k.split_once("xrOS-")
+                        .map(|(_, version)| (Platform::Xros, version.replace('-', ".")))
+                })
+                .map(|(platform, version)| {
+                    devices
+                        .into_iter()
+                        .map(|device| Device {
+                            name: device.name,
+                            udid: device.udid,
+                            platform,
+                            os_version: version.clone(),
+                        })
+                        .collect::<Vec<_>>()
+                })
+        })
+        .flatten()
         .collect();
 
     Ok(devices)
