@@ -318,6 +318,7 @@ impl Exec for Input {
                     |target: &Target| {
                         target
                             .build(
+                                None,
                                 config,
                                 &env,
                                 noise_level,
@@ -349,6 +350,7 @@ impl Exec for Input {
 
                         target
                             .build(
+                                None,
                                 config,
                                 &env,
                                 noise_level,

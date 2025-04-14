@@ -29,7 +29,7 @@ fn default_identifier(
     let domain = email
         .trim()
         .split('@')
-        .last()
+        .next_back()
         .ok_or(DefaultIdentifierError::FailedToParseEmailAddr)?;
     Ok(
         if !COMMON_EMAIL_PROVIDERS.contains(&domain)
@@ -168,7 +168,7 @@ impl Raw {
     pub fn detect(wrapper: &TextWrapper) -> Result<Self, DetectError> {
         let defaults = Defaults::new(wrapper).map_err(DetectError::DefaultsFailed)?;
         Ok(Self {
-            name: defaults.name.ok_or_else(|| DetectError::NameNotDetected)?,
+            name: defaults.name.ok_or(DetectError::NameNotDetected)?,
             lib_name: None,
             stylized_name: Some(defaults.stylized_name),
             identifier: defaults.identifier,

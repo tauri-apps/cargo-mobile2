@@ -469,9 +469,7 @@ pub fn prepend_to_path(path: impl Display, base_path: impl Display) -> String {
 }
 
 pub fn command_present(name: &str) -> Result<bool, std::io::Error> {
-    command_path(name)
-        .map(|_path| true)
-        .or_else(|_err| Ok(false))
+    command_path(name).map(|_path| true).or(Ok(false))
 }
 
 #[derive(Debug)]

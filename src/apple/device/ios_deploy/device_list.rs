@@ -49,7 +49,7 @@ fn parse_device_list<'a>(
                             DeviceKind::IosDeployDevice,
                         )
                     })
-                    .ok_or_else(|| DeviceListError::ArchInvalid(model_arch))
+                    .ok_or(DeviceListError::ArchInvalid(model_arch))
             },
         )
         .collect::<Result<_, _>>()

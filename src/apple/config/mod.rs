@@ -258,7 +258,7 @@ impl Config {
             return Err(Error::IdentifierCannotContainUnderscores);
         }
 
-        let raw = raw.ok_or_else(|| Error::DevelopmentTeamMissing)?;
+        let raw = raw.ok_or(Error::DevelopmentTeamMissing)?;
 
         if raw
             .development_team

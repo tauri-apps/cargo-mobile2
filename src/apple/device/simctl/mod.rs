@@ -13,15 +13,32 @@ mod run;
 pub use device_list::device_list;
 pub use run::run;
 
+#[derive(Debug, Copy, Clone, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Platform {
+    Ios,
+    Xros,
+}
+
+impl Display for Platform {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Ios => write!(f, "iOS"),
+            Self::Xros => write!(f, "xrOS"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Device {
     name: String,
     udid: String,
+    platform: Platform,
+    os_version: String,
 }
 
 impl Display for Device {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "{} ({} {})", self.name, self.platform, self.os_version)
     }
 }
 
@@ -45,6 +62,10 @@ impl<'a> From<Device> for AppleDevice<'a> {
 impl Device {
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn os_version(&self) -> &str {
+        &self.os_version
     }
 
     fn command(&self, env: &Env) -> duct::Expression {
