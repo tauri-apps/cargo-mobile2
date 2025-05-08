@@ -75,7 +75,7 @@ structopt = { version = "0.3", optional = true }
 textwrap = { version = "0.16", features = ["terminal_size"] }
 thiserror = "2.0"
 toml = { version = "0.8", features = ["preserve_order"] }
-duct = "0.13"
+duct = "1.0"
 which = "7"
 os_pipe = "1"
 
