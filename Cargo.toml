@@ -80,7 +80,7 @@ which = "7"
 os_pipe = "1"
 
 [dev-dependencies]
-rstest = "0.24"
+rstest = "0.25"
 
 [target."cfg(target_os = \"macos\")".dependencies]
 core-foundation = "0.10"
