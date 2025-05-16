@@ -1,10 +1,22 @@
 # cargo-mobile2
 
+## Maintenance Status
+
+This fork was created for use as a base for mobile support in [Tauri](https://github.com/tauri-apps/tauri). Due to very limited resources we can only provide maintenance for that single use-case.
+
+**We currently cannot offer support or fix issues for uses outside of Tauri.**
+
+If you face issues with Tauri, please open an issue in Tauri's [issue tracker](https://github.com/tauri-apps/tauri/issues/new/choose) even if you tracked down the issue to cargo-mobile2.
+
+That said, contributions are still very welcome and if you're interested in helping us maintain this crate, please reach out to us in the `#contributing` channel on the [Tauri Discord](https://discord.com/invite/tauri).
+
+## Introduction
+
 > _The answer to "how do I use Rust on iOS and Android?"_
 >
 > cargo-mobile takes care of generating Xcode and Android Studio project files, building and running on device, generating project boilerplate, and a few other things!
 
-This project is a fork of [cargo-mobile](https://github.com/BrainiumLLC/cargo-mobile/). Tauri uses it as a library dependency instead of using its CLI directly. For more information, please visit Tauri's [prerequisites](https://v2.tauri.app/start/prerequisites/#configure-for-mobile-targets) and [development](https://v2.tauri.app/develop/#developing-your-mobile-application) guides..
+This project is a fork of [cargo-mobile](https://github.com/BrainiumLLC/cargo-mobile/). Tauri uses it as a library dependency instead of using its CLI directly. For more information, please visit Tauri's [prerequisites](https://v2.tauri.app/start/prerequisites/#configure-for-mobile-targets) and [development](https://v2.tauri.app/develop/#developing-your-mobile-application) guides.
 
 In the meantime, cargo-mobile2 contains the template of wry, please follow [wry's instruction](https://github.com/tauri-apps/wry#android--ios) if you want to use with it.
 
