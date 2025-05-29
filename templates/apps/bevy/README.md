@@ -1,5 +1,7 @@
 # bevy
 
-This is just the [Bevy sprite example](https://github.com/bevyengine/bevy/blob/master/examples/2d/sprite.rs), with a `#[bevy_main]` attribute on `main`.
+A minimal bevy application rendering the projects logo.
 
-To run this on desktop, just do `cargo run` like normal! For mobile, use `cargo android run` and `cargo apple run` respectively (or use `cargo android open` and `cargo apple open` to open in Android Studio and Xcode respectively).
+To run this on desktop, do `cargo run`.
+To run on a connected mobile device, use `cargo android run` or `cargo apple run`.
+Open the mobile projects in Android Studio or Xcode with `cargo android open` or `cargo apple open` respectively.

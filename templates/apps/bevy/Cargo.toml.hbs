@@ -47,10 +47,3 @@ bevy = { version = "0.16", default-features = false, features = [
     "x11",
     "zstd",
 ] }
-log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
-
-[target.'cfg(target_os = "android")'.dependencies]
-android_logger = "0.13"
-
-[target.'cfg(not(target_os = "android"))'.dependencies]
-env_logger = "0.11.5"
