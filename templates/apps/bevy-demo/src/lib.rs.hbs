@@ -1,11 +1,26 @@
-use bevy::window::{WindowMode, MonitorSelection};
-use bevy::{color::palettes::css::PURPLE, prelude::*};
-use winit::event_loop::EventLoop;
+use bevy::audio::PlaybackMode;
+use bevy::prelude::*;
+use bevy::window::{MonitorSelection, WindowMode};
 
-#[cfg(target_os = "android")]
-use android_activity::AndroidApp;
-#[cfg(target_os = "android")]
-use winit::platform::android::EventLoopBuilderExtAndroid;
+#[bevy_main]
+pub fn main() {
+    init_logging();
+
+    App::new()
+        .add_plugins((DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                name: Some("{{app.stylized-name}}".to_string()),
+                resizable: false,
+                mode: WindowMode::BorderlessFullscreen(MonitorSelection::Primary),
+                ..default()
+            }),
+            ..default()
+        }),))
+        .init_resource::<Actions>()
+        .add_systems(Startup, (setup, setup_audio, setup_player))
+        .add_systems(Update, (handle_touch, move_player))
+        .run();
+}
 
 #[cfg(target_os = "android")]
 fn init_logging() {
@@ -21,48 +36,35 @@ fn init_logging() {
     env_logger::init();
 }
 
-#[bevy_main]
-pub fn main() {
-    init_logging();
-
-    App::new()
-        .insert_resource(ClearColor(Color::srgb(0.5, 0.5, 0.9)))
-        // .init_asset::<bevy::prelude::AudioSource>()
-        .add_plugins((DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                name: Some("{{app.stylized-name}}".to_string()),
-                resizable: false,
-                mode: WindowMode::BorderlessFullscreen(MonitorSelection::Primary),
-                ..default()
-            }),
-            ..default()
-        }),))
-        .init_resource::<Actions>()
-        .add_systems(Startup, (setup, setup_audio, setup_player))
-        .add_systems(Update, (update, handle_touch, move_player))
-        .run();
-}
-
-pub fn start_app(){
-    // If needed, can differentiate App and Desktop version by editing this
+#[unsafe(no_mangle)]
+#[inline(never)]
+#[cfg(target_os = "ios")]
+pub extern "C" fn start_app() {
     main();
 }
-
 
 #[derive(Component)]
 pub struct Player;
 
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d::default());
 }
 
-#[derive(Resource, Deref)]
-struct MoveSound(Handle<AudioSource>);
+#[derive(Component)]
+struct MoveSound;
 
 fn setup_audio(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Create sound resource
     let sound = asset_server.load("audio/flying.ogg");
-    commands.insert_resource(MoveSound(sound));
+    commands.spawn((
+        AudioPlayer::new(sound),
+        MoveSound,
+        PlaybackSettings {
+            mode: PlaybackMode::Loop,
+            paused: true,
+            ..default()
+        },
+    ));
 }
 
 fn setup_player(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -109,11 +111,7 @@ impl GameControl {
 }
 
 pub fn get_movement(control: GameControl, input: &Res<ButtonInput<KeyCode>>) -> f32 {
-    if control.pressed(input) {
-        1.0
-    } else {
-        0.0
-    }
+    if control.pressed(input) { 1.0 } else { 0.0 }
 }
 
 pub const FOLLOW_EPSILON: f32 = 5.;
@@ -124,7 +122,7 @@ pub fn handle_touch(
     touch_input: Res<Touches>,
     player: Query<&Transform, With<Player>>,
     camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
-) {
+) -> Result {
     let mut player_movement = Vec2::new(
         get_movement(GameControl::Right, &keyboard_input)
             - get_movement(GameControl::Left, &keyboard_input),
@@ -133,10 +131,12 @@ pub fn handle_touch(
     );
 
     if let Some(touch_position) = touch_input.first_pressed_position() {
-        let (camera, camera_transform) = camera.single();
-        if let Some(touch_position) = camera.viewport_to_world_2d(camera_transform, touch_position).ok()
+        let (camera, camera_transform) = camera.single()?;
+        if let Some(touch_position) = camera
+            .viewport_to_world_2d(camera_transform, touch_position)
+            .ok()
         {
-            let diff = touch_position - player.single().translation.xy();
+            let diff = touch_position - player.single()?.translation.xy();
             if diff.length() > FOLLOW_EPSILON {
                 player_movement = diff.normalize();
             }
@@ -148,17 +148,22 @@ pub fn handle_touch(
     } else {
         actions.player_movement = None;
     }
+
+    Ok(())
 }
 
 fn move_player(
-    mut commands: Commands,
     time: Res<Time>,
     actions: Res<Actions>,
     mut player_query: Query<&mut Transform, With<Player>>,
-    audio: Res<MoveSound>,
-    audio_control: Query<&AudioSink>,
+    audio_control: Query<&AudioSink, With<MoveSound>>,
 ) {
     if actions.player_movement.is_none() {
+        if let Ok(audio_control) = audio_control.single() {
+            if !audio_control.is_paused() {
+                audio_control.pause();
+            }
+        }
         return;
     }
     let speed = 150.;
@@ -170,24 +175,9 @@ fn move_player(
     for mut player_transform in &mut player_query {
         player_transform.translation += movement;
     }
-    // commands.spawn(AudioBundle {
-    //     source: audio.clone(),
-    //     // auto-despawn the entity when playback finishes
-    //     settings: PlaybackSettings::DESPAWN,
-    // });
-    match audio_control.get_single() {
-        // Already playing move sound
-        Ok(_) => {}
-        Err(_) => {
-            commands.spawn((AudioBundle {
-                source: bevy::prelude::AudioPlayer(audio.clone()),
-                settings: PlaybackSettings::DESPAWN,
-                ..default()
-            },));
+    if let Ok(audio_control) = audio_control.single() {
+        if audio_control.is_paused() {
+            audio_control.play();
         }
     }
 }
-
-// PLACEHOLDER: Do other scene updates here
-fn update(mut commands: Commands) {}
-

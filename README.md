@@ -48,16 +48,17 @@ cargo mobile init
 
 After some straightforward prompts, you'll be asked to select a template pack. Template packs are used to generate project boilerplate, i.e. using the `wry` template pack gives you a [wry](https://github.com/tauri-apps/wry) project that runs out-of-the-box on desktop and mobile.
 
-| name | info                                                                                                                |
-| ---- | ------------------------------------------------------------------------------------------------------------------- |
-| wry  | Minimal wry project                                                                                                 |
-| egui | Full egui + winit + wgpu example based on [agdk-egui example](https://github.com/rust-mobile/rust-android-examples) |
+| name      | info                                                                                                                |
+| --------- | ------------------------------------------------------------------------------------------------------------------- |
+| bevy      | Minimal Bevy application rendering a static sprite                                                                  |
+| bevy-demo | Minimal 2d Bevy application with a controlable sprite and some audio                                                |
+| dioxus    | Hello world Dioxus example                                                                                          |
+| egui      | Full egui + winit + wgpu example based on [agdk-egui example](https://github.com/rust-mobile/rust-android-examples) |
+| wgpu      | `wgpu-rs` triangle example                                                                                          |
+| winit     | `winit` window example                                                                                              |
+| wry       | Minimal wry project                                                                                                 |
 
 **Template pack contribution is welcomed**
-
-> **Note**
->
-> For all the templates available now, currently `bevy` templates do not work and will encounter compile error if you try to build the project.
 
 Once you've generated your project, you can run `cargo run` as usual to run your app on desktop. However, now you can also do `cargo apple run` and `cargo android run` to run on connected iOS and Android devices respectively!
 
