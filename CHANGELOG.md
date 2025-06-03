@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.20.1]
+
+- [`fa0c2ac`](https://github.com/tauri-apps/cargo-mobile2/commit/fa0c2acd349091b942c4b8329d04de71fb4f94c1) ([#463](https://github.com/tauri-apps/cargo-mobile2/pull/463) by [@NiklasEi](https://github.com/tauri-apps/cargo-mobile2/../../NiklasEi)) Fixed and updated Bevy templates to use `bevy` version `0.16`.
+- [`1a6b8ac`](https://github.com/tauri-apps/cargo-mobile2/commit/1a6b8acfc0246812459b5e9ad5524afbedc8c65f) ([#438](https://github.com/tauri-apps/cargo-mobile2/pull/438) by [@renovate](https://github.com/tauri-apps/cargo-mobile2/../../renovate)) Updated `windows` crate to version `0.61`.
+
 ## \[0.20.0]
 
 - [`fcd6fcf`](https://github.com/tauri-apps/cargo-mobile2/commit/fcd6fcf81f79ae1645f9b67412c969c9446e645e) ([#453](https://github.com/tauri-apps/cargo-mobile2/pull/453) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Check if iOS Simulator SDK is installed before building for Simulator.
