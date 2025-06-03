@@ -36,7 +36,7 @@ fn init_logging() {
     env_logger::init();
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[inline(never)]
 #[cfg(target_os = "ios")]
 pub extern "C" fn start_app() {
