@@ -12,7 +12,7 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum RunError {
-    #[error("Failed to deploy app to simulator: {0}")]
+    #[error("Failed to deploy app to device: {0}")]
     DeployFailed(std::io::Error),
     #[error("`devicectl` returned an invalid JSON: {0}")]
     InvalidDevicectlJson(#[from] serde_json::Error),
