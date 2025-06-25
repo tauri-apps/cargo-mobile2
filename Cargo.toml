@@ -76,7 +76,7 @@ textwrap = { version = "0.16", features = ["terminal_size"] }
 thiserror = "2.0"
 toml = { version = "0.8", features = ["preserve_order"] }
 duct = "1"
-which = "7"
+which = "8"
 os_pipe = "1"
 
 [dev-dependencies]
