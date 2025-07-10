@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.20.2]
+
+- [`5fc06d1`](https://github.com/tauri-apps/cargo-mobile2/commit/5fc06d171059098ca575aacf20222f6d97376ddc) ([#468](https://github.com/tauri-apps/cargo-mobile2/pull/468) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Ensure iOS dependencies ios-deploy and libimobiledevice are installed before running the app.
+
 ## \[0.20.1]
 
 - [`fa0c2ac`](https://github.com/tauri-apps/cargo-mobile2/commit/fa0c2acd349091b942c4b8329d04de71fb4f94c1) ([#463](https://github.com/tauri-apps/cargo-mobile2/pull/463) by [@NiklasEi](https://github.com/tauri-apps/cargo-mobile2/../../NiklasEi)) Fixed and updated Bevy templates to use `bevy` version `0.16`.
