@@ -1,10 +1,13 @@
 use super::{
     config::Config,
-    deps::{GemCache, PackageSpec},
+    deps::GemCache,
     target::{ArchiveError, BuildError, ExportError, Target},
 };
 use crate::{
-    apple::target::{ArchiveConfig, BuildConfig, ExportConfig},
+    apple::{
+        deps::IOS_DEPLOY_PACKAGE,
+        target::{ArchiveConfig, BuildConfig, ExportConfig},
+    },
     env::{Env, ExplicitEnv as _},
     opts,
     util::cli::{Report, Reportable},
@@ -222,7 +225,7 @@ pub fn list_devices<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, String> {
 
     // if we could not find a device with devicectl, let's use ios-deploy
     if devices.is_empty() {
-        PackageSpec::brew("ios-deploy")
+        IOS_DEPLOY_PACKAGE
             .install(false, &mut GemCache::new())
             .map_err(|e| e.to_string())?;
         return ios_deploy::device_list(env).map_err(|e| e.to_string());
