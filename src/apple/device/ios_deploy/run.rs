@@ -1,5 +1,8 @@
 use crate::{
-    apple::config::Config,
+    apple::{
+        config::Config,
+        deps::{GemCache, IOS_DEPLOY_PACKAGE, LIBIMOBILE_DEVICE_PACKAGE},
+    },
     env::{Env, ExplicitEnv as _},
     opts::NoiseLevel,
     util::cli::{Report, Reportable},
@@ -30,6 +33,10 @@ pub fn run_and_debug(
 ) -> Result<duct::Handle, RunAndDebugError> {
     println!("Deploying app to device...");
 
+    IOS_DEPLOY_PACKAGE
+        .install(false, &mut GemCache::new())
+        .map_err(|e| RunAndDebugError::DeployFailed(std::io::Error::other(e.to_string())))?;
+
     let app_path = config.app_path();
     let deploy_cmd = duct::cmd("ios-deploy", ["--debug", "--id", id, "--no-wifi"])
         .vars(env.explicit_env())
@@ -54,6 +61,10 @@ pub fn run_and_debug(
             .map_err(RunAndDebugError::DeployFailed)?;
 
         let app_name = config.app().stylized_name().to_string();
+
+        LIBIMOBILE_DEVICE_PACKAGE
+            .install(false, &mut GemCache::new())
+            .map_err(|e| RunAndDebugError::DeployFailed(std::io::Error::other(e.to_string())))?;
 
         duct::cmd("idevicesyslog", ["--process", &app_name])
             .before_spawn(move |cmd| {

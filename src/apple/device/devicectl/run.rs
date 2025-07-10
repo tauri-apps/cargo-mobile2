@@ -1,7 +1,10 @@
 use std::{env::temp_dir, fs::read_to_string};
 
 use crate::{
-    apple::config::Config,
+    apple::{
+        config::Config,
+        deps::{GemCache, LIBIMOBILE_DEVICE_PACKAGE},
+    },
     env::{Env, ExplicitEnv as _},
     opts::NoiseLevel,
     util::cli::{Report, Reportable},
@@ -130,6 +133,10 @@ pub fn run(
             .map_err(RunError::DeployFailed)?;
 
         let app_name = config.app().stylized_name().to_string();
+
+        LIBIMOBILE_DEVICE_PACKAGE
+            .install(false, &mut GemCache::new())
+            .map_err(|e| RunError::DeployFailed(std::io::Error::other(e.to_string())))?;
 
         duct::cmd("idevicesyslog", ["--process", &app_name])
             .before_spawn(move |cmd| {

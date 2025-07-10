@@ -18,9 +18,13 @@ use once_cell_regex::regex;
 use std::collections::hash_set::HashSet;
 use thiserror::Error;
 
+pub static IOS_DEPLOY_PACKAGE: PackageSpec = PackageSpec::brew("ios-deploy");
+pub static LIBIMOBILE_DEVICE_PACKAGE: PackageSpec =
+    PackageSpec::brew("libimobiledevice").with_bin_name("idevicesyslog");
+
 static PACKAGES: &[PackageSpec] = &[
     PackageSpec::brew("xcodegen"),
-    PackageSpec::brew("libimobiledevice").with_bin_name("idevicesyslog"),
+    LIBIMOBILE_DEVICE_PACKAGE,
     PackageSpec::brew_or_gem("cocoapods").with_bin_name("pod"),
 ];
 
@@ -130,13 +134,13 @@ fn update_package(package: &'static str, gem_cache: &mut GemCache) -> Result<(),
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum PackageSource {
     Brew,
     BrewOrGem,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct PackageSpec {
     pub pkg_name: &'static str,
     pub bin_name: &'static str,
@@ -200,7 +204,7 @@ pub fn install_all(
         package.install(reinstall_deps, &mut gem_cache)?;
     }
     if !device_ctl_available() {
-        PackageSpec::brew("ios-deploy").install(reinstall_deps, &mut gem_cache)?;
+        IOS_DEPLOY_PACKAGE.install(reinstall_deps, &mut gem_cache)?;
     }
     gem_cache.initialize()?;
     let outdated = Outdated::load(&mut gem_cache)?;
