@@ -110,12 +110,8 @@ pub enum Command {
         setting = AppSettings::Hidden
     )]
     XcodeScript {
-        #[structopt(
-            long = "platform",
-            help = "Value of `PLATFORM_DISPLAY_NAME` env var",
-            parse(from_str = macos_from_platform),
-        )]
-        macos: bool,
+        #[structopt(long = "platform", help = "Value of `PLATFORM_DISPLAY_NAME` env var")]
+        platform: String,
         #[structopt(long = "sdk-root", help = "Value of `SDKROOT` env var")]
         sdk_root: PathBuf,
         #[structopt(
@@ -405,7 +401,7 @@ impl Exec for Input {
                 Ok(())
             }),
             Command::XcodeScript {
-                macos,
+                platform,
                 sdk_root,
                 framework_search_paths,
                 gcc_preprocessor_definitions,
@@ -467,7 +463,8 @@ impl Exec for Input {
 
                 let isysroot = format!("-isysroot {}", sdk_root.display());
 
-                let simulator = arches.contains(&"Simulator".to_string());
+                let simulator = platform.contains(&"Simulator".to_string())
+                    || arches.contains(&"Simulator".to_string());
                 let arches = if simulator {
                     // when compiling for the simulator, we don't need to build other targets
                     vec![if cfg!(target_arch = "aarch64") {
@@ -495,7 +492,7 @@ impl Exec for Input {
                     target_env.insert(cxxflags.as_ref(), isysroot.as_ref());
                     target_env.insert(objc_include_path.as_ref(), include_dir.as_ref());
 
-                    let target = if macos {
+                    let target = if macos_from_platform(platform.as_str()) {
                         // Prevents linker errors in build scripts and proc macros:
                         // https://github.com/signalapp/libsignal-client/commit/02899cac643a14b2ced7c058cc15a836a2165b6d
                         target_env.insert("LIBRARY_PATH", library_path.as_ref());
@@ -535,7 +532,7 @@ impl Exec for Input {
                     }
 
                     // Copy static lib .a to Xcode Project
-                    if rust_triple == "aarch64-apple-ios" {
+                    if rust_triple.starts_with(&"aarch64-apple-ios") {
                         std::fs::create_dir_all(format!(
                             "Sources/{rust_triple}/{}",
                             profile.as_str()
