@@ -124,6 +124,10 @@ impl<'a> Device<'a> {
         self.kind
     }
 
+    pub fn is_paired(&self) -> bool {
+        self.paired
+    }
+
     pub fn run(
         &self,
         config: &Config,
