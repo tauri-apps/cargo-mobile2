@@ -483,11 +483,9 @@ impl<'a> Target<'a> {
             .map_err(SdkError::ParseRuntimes)?;
 
             // default SDK must be installed
-            if !available_runtimes
-                .runtimes
-                .iter()
-                .any(|runtime| runtime.version == version && runtime.is_available)
-            {
+            if !available_runtimes.runtimes.iter().any(|runtime| {
+                (runtime.version == version || *runtime.version >= *version) && runtime.is_available
+            }) {
                 log::debug!(
                     "installed runtimes: {}",
                     available_runtimes
