@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.20.3]
+
+- [`a5febb9`](https://github.com/tauri-apps/cargo-mobile2/commit/a5febb9e87b315f22b4e62ecfc7558dda2b614d8) Added `apple::device::Device::is_paired`.
+
 ## \[0.20.2]
 
 - [`5fc06d1`](https://github.com/tauri-apps/cargo-mobile2/commit/5fc06d171059098ca575aacf20222f6d97376ddc) ([#468](https://github.com/tauri-apps/cargo-mobile2/pull/468) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Ensure iOS dependencies ios-deploy and libimobiledevice are installed before running the app.
