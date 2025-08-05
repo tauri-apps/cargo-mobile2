@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.20.4]
+
+- [`c942e7d`](https://github.com/tauri-apps/cargo-mobile2/commit/c942e7d1951f5c3768f9163aec22f2553cf41b69) ([#474](https://github.com/tauri-apps/cargo-mobile2/pull/474) by [@FabianLars](https://github.com/tauri-apps/cargo-mobile2/../../FabianLars)) Allow running on simulators that have a higher version than the XCode SDK. This fixes compatiblity issues with Apple's recent `"iOS 18.5 + iOS 18.6 Simulator"` platform support component.
+
 ## \[0.20.3]
 
 - [`a5febb9`](https://github.com/tauri-apps/cargo-mobile2/commit/a5febb9e87b315f22b4e62ecfc7558dda2b614d8) Added `apple::device::Device::is_paired`.
