@@ -1,6 +1,9 @@
 mod hvd_list;
 
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    path::{Path, PathBuf},
+};
 
 use duct::Handle;
 pub use hvd_list::hvd_list;
@@ -13,9 +16,7 @@ use crate::{env::ExplicitEnv, DuctExpressionExt};
 pub struct Emulator {
     name: String,
     abi: String,
-    path: String,
-    #[serde(rename = "harmonyos.sdk.path")]
-    image_root: String,
+    path: PathBuf,
 }
 
 impl Display for Emulator {
@@ -30,20 +31,19 @@ impl Emulator {
     }
 
     fn command(&self, env: &Env) -> duct::Expression {
+        let image_root = Path::new(env.ohos_home()).parent().unwrap().to_owned();
+        let path = self.path.parent().unwrap().to_owned();
         let emulator_path = "/Applications/DevEco-Studio.app/Contents/tools/emulator/Emulator";
-        duct::cmd(
-            emulator_path,
-            [
-                "-hvd",
-                &self.name,
-                "-path",
-                &self.path,
-                "-imageRoot",
-                &self.image_root,
-            ],
-        )
-        .vars(env.explicit_env())
-        .dup_stdio()
+        duct::cmd(emulator_path, ["-hvd", &self.name])
+            .before_spawn(move |cmd| {
+                cmd.arg("-path")
+                    .arg(&path)
+                    .arg("-imageRoot")
+                    .arg(&image_root);
+                Ok(())
+            })
+            .vars(env.explicit_env())
+            .dup_stdio()
     }
 
     pub fn start(&self, env: &Env) -> Result<Handle, std::io::Error> {
