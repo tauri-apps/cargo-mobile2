@@ -31,8 +31,13 @@ impl Emulator {
     }
 
     fn command(&self, env: &Env) -> duct::Expression {
-        let image_root = Path::new(env.ohos_home()).parent().unwrap().to_owned();
         let path = self.path.parent().unwrap().to_owned();
+        // this is NOT the same as env.ohos_home()
+        let image_root = dirs::home_dir()
+            .unwrap()
+            .join("Library")
+            .join("Huawei")
+            .join("Sdk");
         let emulator_path = "/Applications/DevEco-Studio.app/Contents/tools/emulator/Emulator";
         duct::cmd(emulator_path, ["-hvd", &self.name])
             .before_spawn(move |cmd| {
