@@ -196,9 +196,11 @@ impl<'a> Target<'a> {
             cargo_args.push("--no-default-features".into());
         }
 
+        let dist = config.project_dir().join("entry").join("libs");
+
         duct::cmd("ohrs", ["build", "--arch", self.arch])
             .before_spawn(move |cmd| {
-                cmd.arg("--").args(&cargo_args);
+                cmd.arg("--dist").arg(&dist).arg("--").args(&cargo_args);
                 Ok(())
             })
             .vars(env.explicit_env())
