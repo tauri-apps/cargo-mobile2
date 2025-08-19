@@ -78,6 +78,7 @@ toml = { version = "0.9", features = ["preserve_order"] }
 duct = "1"
 which = "8"
 os_pipe = "1"
+dirs = "6"
 
 [dev-dependencies]
 rstest = "0.26"

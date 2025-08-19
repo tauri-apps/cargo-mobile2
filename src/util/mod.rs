@@ -691,3 +691,28 @@ pub fn gradlew(
             .dup_stdio()
     }
 }
+
+pub fn hvigorw(
+    config: &crate::open_harmony::config::Config,
+    env: &crate::open_harmony::env::Env,
+) -> duct::Expression {
+    let project_dir = config.project_dir();
+    #[cfg(windows)]
+    let hvigorw = "hvigorw.bat";
+    #[cfg(not(windows))]
+    let hvigorw = "hvigorw";
+
+    let project_dir = dunce::simplified(&project_dir);
+    let hvigorw_p = project_dir.join(hvigorw);
+    if hvigorw_p.exists() {
+        duct::cmd::<PathBuf, [String; 0]>(hvigorw_p, [])
+            .vars(env.explicit_env())
+            .dir(project_dir)
+            .dup_stdio()
+    } else {
+        duct::cmd::<&str, [String; 0]>(hvigorw, [])
+            .dir(project_dir)
+            .vars(env.explicit_env())
+            .dup_stdio()
+    }
+}

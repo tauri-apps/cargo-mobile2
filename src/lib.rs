@@ -10,6 +10,7 @@ pub mod doctor;
 pub mod dot_cargo;
 pub mod env;
 pub mod init;
+pub mod open_harmony;
 pub mod opts;
 pub mod os;
 mod project;
