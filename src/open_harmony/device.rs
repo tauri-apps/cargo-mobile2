@@ -223,7 +223,7 @@ impl<'a> Device<'a> {
 
                 retries += 1;
                 if retries >= MAX_ATTEMPTS {
-                    eprintln!(
+                    log::error!(
                         "Could not setup port forwarding for devtools. Make sure you are running setWebDebuggingAccess(true). See https://developer.huawei.com/consumer/en/doc/harmonyos-guides/web-debugging-with-devtools for more information."
                     );
                     return;
