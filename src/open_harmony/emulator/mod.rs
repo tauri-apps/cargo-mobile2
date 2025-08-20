@@ -1,9 +1,6 @@
 mod hvd_list;
 
-use std::{
-    fmt::Display,
-    path::PathBuf,
-};
+use std::{fmt::Display, path::PathBuf};
 
 use duct::Handle;
 pub use hvd_list::hvd_list;

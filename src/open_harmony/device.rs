@@ -193,6 +193,59 @@ impl<'a> Device<'a> {
         Ok(())
     }
 
+    // see https://developer.huawei.com/consumer/en/doc/harmonyos-guides/web-debugging-with-devtools
+    fn setup_devtools_port_forwarding_async(&self, env: &Env, pid: &str) {
+        let explicit_env = env.explicit_env();
+        let hdc_path = env.toolchains_path().join("hdc");
+        let pid = pid.to_string();
+
+        std::thread::spawn(move || {
+            const MAX_ATTEMPTS: usize = 10;
+            let mut retries = 0;
+
+            // wait for the remote devtools socket to be opened
+            let expected_open_socket_content = format!("@webview_devtools_remote_{pid}");
+            loop {
+                std::thread::sleep(std::time::Duration::from_secs(1));
+                let Ok(opened_sockets_output) =
+                    duct::cmd(&hdc_path, ["shell", "cat", "/proc/net/unix"])
+                        .vars(explicit_env.clone())
+                        .dup_stdio()
+                        .start()
+                        .and_then(|c| c.wait().cloned())
+                else {
+                    break;
+                };
+                let opened_sockets = String::from_utf8_lossy(&opened_sockets_output.stdout);
+                if opened_sockets.contains(&expected_open_socket_content) {
+                    break;
+                }
+
+                retries += 1;
+                if retries >= MAX_ATTEMPTS {
+                    eprintln!(
+                        "Could not setup port forwarding for devtools. Make sure you are running setWebDebuggingAccess(true). See https://developer.huawei.com/consumer/en/doc/harmonyos-guides/web-debugging-with-devtools for more information."
+                    );
+                    return;
+                }
+            }
+
+            // forward the remote devtools socket to the local port 9222
+            // so Chrome can connect to it
+            let _ = duct::cmd(
+                &hdc_path,
+                [
+                    "fport",
+                    "tcp:9222",
+                    &format!("localabstract:webview_devtools_remote_{pid}"),
+                ],
+            )
+            .vars(explicit_env)
+            .dup_stdio()
+            .start();
+        });
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn run(
         &self,
@@ -245,6 +298,9 @@ impl<'a> Device<'a> {
             std::thread::sleep(std::time::Duration::from_secs(2));
         };
         let pid = stdout.trim().to_string();
+
+        self.setup_devtools_port_forwarding_async(env, &pid);
+
         let mut logcat = duct::cmd(env.toolchains_path().join("hdc"), ["hilog", "-v", "color"])
             .vars(env.explicit_env())
             .dup_stdio();
