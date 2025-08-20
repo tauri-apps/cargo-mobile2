@@ -117,8 +117,11 @@ pub fn gen(
             map.insert(
                 "root-dir-rel",
                 Path::new(&replace_path_separator(
-                    util::relativize_path(config.app().root_dir(), config.project_dir())
-                        .into_os_string(),
+                    util::relativize_path(
+                        config.app().root_dir(),
+                        config.project_dir().join("entry"),
+                    )
+                    .into_os_string(),
                 )),
             );
             map.insert("root-dir", config.app().root_dir());
