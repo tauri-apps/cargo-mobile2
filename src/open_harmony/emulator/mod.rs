@@ -2,7 +2,7 @@ mod hvd_list;
 
 use std::{
     fmt::Display,
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 use duct::Handle;

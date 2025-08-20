@@ -1,11 +1,9 @@
 use super::{config::Config, env::Env, target::Target};
 use crate::{
+    env::ExplicitEnv,
     open_harmony::{hap, hdc},
     opts::{NoiseLevel, Profile},
-    util::{
-        cli::{Report, Reportable},
-        last_modified,
-    },
+    util::cli::{Report, Reportable},
     DuctExpressionExt,
 };
 use std::fmt::{self, Display};
@@ -142,7 +140,7 @@ impl<'a> Device<'a> {
                 .stderr_capture()
                 .stdout_capture()
                 .before_spawn(move |cmd| {
-                    cmd.args(["shell", "getprop", "ohos.boot.time.init"]);
+                    cmd.args(["shell", "param", "get", "ohos.boot.time.init"]);
                     Ok(())
                 });
             let handle = cmd.start();
@@ -169,32 +167,29 @@ impl<'a> Device<'a> {
         noise_level: NoiseLevel,
         profile: Profile,
     ) -> Result<(), hap::HapError> {
-        hap::build(config, env, noise_level, profile, vec![self.target()], true)?;
+        hap::build(config, env, noise_level, profile)?;
         Ok(())
     }
 
-    fn install_hap(
-        &self,
-        config: &Config,
-        env: &Env,
-        profile: Profile,
-    ) -> Result<(), std::io::Error> {
-        let flavor = self.target.arch;
-        let apk_path = hap::haps_paths(config, profile, flavor)
-            .into_iter()
-            .reduce(last_modified)
-            .unwrap();
+    fn install_hap(&self, config: &Config, env: &Env) -> Result<(), std::io::Error> {
+        let hap_path = hap::haps_path(config);
 
         self.hdc(env)
             .before_spawn(move |cmd| {
                 cmd.args(["install", "-r"]);
-                cmd.arg(&apk_path);
+                cmd.arg(&hap_path);
                 Ok(())
             })
             .dup_stdio()
             .start()?
             .wait()?;
 
+        Ok(())
+    }
+
+    fn wake_screen(&self, _env: &Env) -> std::io::Result<()> {
+        // TODO: seems like there's no equivalent to `adb shell input keyevent KEYCODE_WAKEUP`
+        // in hdc (a keyevent can be sent with `hdc shell uitest uiInput keyEvent Power`)
         Ok(())
     }
 
@@ -211,9 +206,58 @@ impl<'a> Device<'a> {
         if self.model.starts_with("emulator") {
             self.wait_device_boot(env);
         }
-        self.install_hap(config, env, profile)
-            .map_err(RunError::Io)?;
-        todo!()
+        self.install_hap(config, env).map_err(RunError::Io)?;
+
+        let identifier = config.app().identifier().to_string();
+        self.hdc(env)
+            .before_spawn(move |cmd| {
+                cmd.args([
+                    "shell",
+                    "aa",
+                    "start",
+                    "-b",
+                    &identifier,
+                    "-a",
+                    "EntryAbility",
+                ]);
+                Ok(())
+            })
+            .dup_stdio()
+            .start()?
+            .wait()?;
+
+        let _ = self.wake_screen(env);
+
+        let stdout = loop {
+            let cmd = duct::cmd(
+                env.toolchains_path().join("hdc"),
+                ["shell", "pidof", "-s", config.app().identifier()],
+            )
+            .vars(env.explicit_env())
+            .stderr_capture()
+            .stdout_capture();
+            let handle = cmd.start()?;
+            if let Ok(out) = handle.wait() {
+                if out.status.success() {
+                    break String::from_utf8_lossy(&out.stdout).into_owned();
+                }
+            }
+            std::thread::sleep(std::time::Duration::from_secs(2));
+        };
+        let pid = stdout.trim().to_string();
+        let mut logcat = duct::cmd(env.toolchains_path().join("hdc"), ["hilog", "-v", "color"])
+            .vars(env.explicit_env())
+            .dup_stdio();
+
+        let logcat_filter_specs = config.logcat_filter_specs().to_vec();
+        logcat = logcat.before_spawn(move |cmd| {
+            if !pid.is_empty() {
+                cmd.args(["--pid", &pid]);
+            }
+            cmd.args(&logcat_filter_specs);
+            Ok(())
+        });
+        logcat.start().map_err(Into::into)
     }
 
     pub fn stacktrace(&self, config: &Config, env: &Env) -> Result<(), StacktraceError> {

@@ -82,13 +82,8 @@ pub enum Command {
 pub enum HapSubcommand {
     #[structopt(about = "build HAP (Harmony Ability Package)")]
     Build {
-        #[structopt(name = "targets", possible_values = &Target::name_list())]
-        /// Which targets to build (all by default).
-        targets: Vec<String>,
         #[structopt(flatten)]
         profile: cli::Profile,
-        #[structopt(long = "split-per-abi", help = "Whether to split the HAPs per ABIs.")]
-        split_per_abi: bool,
     },
 }
 
@@ -202,24 +197,6 @@ impl Exec for Input {
                 .map_err(Error::OpenFailed)
         }
 
-        fn get_targets_or_all<'a>(targets: Vec<String>) -> Result<Vec<&'a Target<'a>>, Error> {
-            if targets.is_empty() {
-                Ok(Target::all().iter().map(|t| t.1).collect())
-            } else {
-                let mut outs = Vec::new();
-                for t in targets {
-                    let target = Target::for_name(&t)
-                        .ok_or_else(|| TargetInvalid {
-                            name: t,
-                            possible: Target::all().keys().map(|key| key.to_string()).collect(),
-                        })
-                        .map_err(Error::TargetInvalid)?;
-                    outs.push(target);
-                }
-                Ok(outs)
-            }
-        }
-
         let Self {
             flags:
                 GlobalFlags {
@@ -293,21 +270,11 @@ impl Exec for Input {
             }),
             Command::Hap { cmd } => match cmd {
                 HapSubcommand::Build {
-                    targets,
                     profile: cli::Profile { profile },
-                    split_per_abi,
                 } => with_config(non_interactive, wrapper, |config, _, env| {
                     ensure_init(config)?;
 
-                    hap::cli::build(
-                        config,
-                        env,
-                        noise_level,
-                        profile,
-                        get_targets_or_all(targets)?,
-                        split_per_abi,
-                    )
-                    .map_err(Error::HapError)
+                    hap::cli::build(config, env, noise_level, profile).map_err(Error::HapError)
                 }),
             },
         }
