@@ -207,16 +207,12 @@ impl<'a> Device<'a> {
             let expected_open_socket_content = format!("@webview_devtools_remote_{pid}");
             loop {
                 std::thread::sleep(std::time::Duration::from_secs(1));
-                let Ok(opened_sockets_output) =
-                    duct::cmd(&hdc_path, ["shell", "cat", "/proc/net/unix"])
-                        .vars(explicit_env.clone())
-                        .dup_stdio()
-                        .start()
-                        .and_then(|c| c.wait().cloned())
+                let Ok(opened_sockets) = duct::cmd(&hdc_path, ["shell", "cat", "/proc/net/unix"])
+                    .vars(explicit_env.clone())
+                    .read()
                 else {
                     break;
                 };
-                let opened_sockets = String::from_utf8_lossy(&opened_sockets_output.stdout);
                 if opened_sockets.contains(&expected_open_socket_content) {
                     break;
                 }
