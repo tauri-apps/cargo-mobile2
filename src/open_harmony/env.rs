@@ -45,12 +45,20 @@ impl Env {
         let ohos_home = std::env::var("OHOS_HOME")
             .map(PathBuf::from)
             .unwrap_or_else(|_| {
-                PathBuf::from(if cfg!(target_os = "macos") {
-                    "/Applications/DevEco-Studio.app/Contents/sdk/default/openharmony"
+                if cfg!(target_os = "macos") {
+                    PathBuf::from(
+                        "/Applications/DevEco-Studio.app/Contents/sdk/default/openharmony",
+                    )
                 } else {
-                    // TODO: windows paths
-                    "C:\\Users\\<username>\\AppData\\Local\\Huawei\\Sdk\\default\\openharmony"
-                })
+                    std::env::var("DEV_ECO_STUDIO_INSTALL_PATH")
+                        .map(PathBuf::from)
+                        .unwrap_or_else(|_| {
+                            PathBuf::from("C:\\Program Files\\Huawei\\DevEco Studio")
+                        })
+                        .join("sdk")
+                        .join("default")
+                        .join("openharmony")
+                }
             });
 
         if ohos_home.is_dir() {

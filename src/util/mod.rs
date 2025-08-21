@@ -714,16 +714,20 @@ pub fn hvigorw(
     } else {
         let (node_path, hvigorw_script_path, deveco_sdk_home) = if cfg!(target_os = "macos") {
             (
-                "/Applications/DevEco-Studio.app/Contents/tools/node/bin/node",
-                "/Applications/DevEco-Studio.app/Contents/tools/hvigor/bin/hvigorw.js",
-                "/Applications/DevEco-Studio.app/Contents/sdk",
+                PathBuf::from("/Applications/DevEco-Studio.app/Contents/tools/node/bin/node"),
+                PathBuf::from(
+                    "/Applications/DevEco-Studio.app/Contents/tools/hvigor/bin/hvigorw.js",
+                ),
+                PathBuf::from("/Applications/DevEco-Studio.app/Contents/sdk"),
             )
         } else {
-            // TODO: windows paths
+            let dev_eco_studio_install_path = std::env::var("DEV_ECO_STUDIO_INSTALL_PATH")
+                .map(PathBuf::from)
+                .unwrap_or_else(|_| PathBuf::from("C:\\Program Files\\Huawei\\DevEco Studio"));
             (
-                "node",
-                "hvigorw.js",
-                "C:\\Users\\<username>\\AppData\\Local\\Huawei\\Sdk",
+                dev_eco_studio_install_path.join("tools/node/bin/node.exe"),
+                dev_eco_studio_install_path.join("tools/hvigor/bin/hvigorw.js"),
+                dev_eco_studio_install_path.join("sdk"),
             )
         };
         duct::cmd(node_path, [hvigorw_script_path])
