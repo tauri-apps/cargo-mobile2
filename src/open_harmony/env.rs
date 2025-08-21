@@ -11,8 +11,6 @@ pub enum Error {
     #[error(transparent)]
     CoreEnvError(#[from] CoreError),
     // TODO: we should be nice and provide a platform-specific suggestion
-    #[error("Have you installed the OpenHarmony SDK? The `OHOS_HOME` environment variable isn't set, and is required: {0}")]
-    OhosHomeNotSet(#[from] std::env::VarError),
     #[error("Have you installed the OpenHarmony SDK? The `OHOS_HOME` environment variable is set, but doesn't point to an existing directory.")]
     OhosHomeNotADir,
 }
@@ -45,16 +43,21 @@ impl Env {
 
     pub fn from_env(base: CoreEnv) -> Result<Self, Error> {
         let ohos_home = std::env::var("OHOS_HOME")
-            .map_err(Error::OhosHomeNotSet)
             .map(PathBuf::from)
-            .and_then(|ohos_home| {
-                if ohos_home.is_dir() {
-                    Ok(ohos_home)
+            .unwrap_or_else(|_| {
+                PathBuf::from(if cfg!(target_os = "macos") {
+                    "/Applications/DevEco-Studio.app/Contents/sdk/default/openharmony"
                 } else {
-                    Err(Error::OhosHomeNotADir)
-                }
-            })?;
-        Ok(Self { base, ohos_home })
+                    // TODO: windows paths
+                    "C:\\Users\\<username>\\AppData\\Local\\Huawei\\Sdk\\default\\openharmony"
+                })
+            });
+
+        if ohos_home.is_dir() {
+            Ok(Self { base, ohos_home })
+        } else {
+            Err(Error::OhosHomeNotADir)
+        }
     }
 
     pub fn path(&self) -> &OsString {
