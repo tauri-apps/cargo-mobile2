@@ -702,17 +702,34 @@ pub fn hvigorw(
     #[cfg(not(windows))]
     let hvigorw = "hvigorw";
 
+    let hvigorw_exists = which::which(hvigorw).is_ok();
+
     let project_dir = dunce::simplified(&project_dir);
-    let hvigorw_p = project_dir.join(hvigorw);
-    if hvigorw_p.exists() {
-        duct::cmd::<PathBuf, [String; 0]>(hvigorw_p, [])
-            .vars(env.explicit_env())
-            .dir(project_dir)
-            .dup_stdio()
-    } else {
+    // note: DevEco Studio is not supported on Linux yet, so we rely on hvigorw
+    if !hvigorw_exists || cfg!(target_os = "linux") {
         duct::cmd::<&str, [String; 0]>(hvigorw, [])
             .dir(project_dir)
             .vars(env.explicit_env())
+            .dup_stdio()
+    } else {
+        let (node_path, hvigorw_script_path, deveco_sdk_home) = if cfg!(target_os = "macos") {
+            (
+                "/Applications/DevEco-Studio.app/Contents/tools/node/bin/node",
+                "/Applications/DevEco-Studio.app/Contents/tools/hvigor/bin/hvigorw.js",
+                "/Applications/DevEco-Studio.app/Contents/sdk",
+            )
+        } else {
+            // TODO: windows paths
+            (
+                "node",
+                "hvigorw.js",
+                "C:\\Users\\<username>\\AppData\\Local\\Huawei\\Sdk",
+            )
+        };
+        duct::cmd(node_path, [hvigorw_script_path])
+            .dir(project_dir)
+            .vars(env.explicit_env())
+            .env("DEVECO_SDK_HOME", deveco_sdk_home)
             .dup_stdio()
     }
 }

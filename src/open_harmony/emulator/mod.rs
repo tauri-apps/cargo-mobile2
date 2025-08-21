@@ -35,7 +35,12 @@ impl Emulator {
             .join("Library")
             .join("Huawei")
             .join("Sdk");
-        let emulator_path = "/Applications/DevEco-Studio.app/Contents/tools/emulator/Emulator";
+        let emulator_path = if cfg!(target_os = "macos") {
+            "/Applications/DevEco-Studio.app/Contents/tools/emulator/Emulator"
+        } else {
+            // TODO: windows paths
+            "emulator.exe"
+        };
         duct::cmd(emulator_path, ["-hvd", &self.name])
             .before_spawn(move |cmd| {
                 cmd.arg("-path")
