@@ -706,7 +706,7 @@ pub fn hvigorw(
 
     let project_dir = dunce::simplified(&project_dir);
     // note: DevEco Studio is not supported on Linux yet, so we rely on hvigorw
-    if !hvigorw_exists || cfg!(target_os = "linux") {
+    if hvigorw_exists || cfg!(target_os = "linux") {
         duct::cmd::<&str, [String; 0]>(hvigorw, [])
             .dir(project_dir)
             .vars(env.explicit_env())
