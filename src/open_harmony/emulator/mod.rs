@@ -30,6 +30,9 @@ impl Emulator {
     fn command(&self, env: &Env) -> duct::Expression {
         let path = self.path.parent().unwrap().to_owned();
         // this is NOT the same as env.ohos_home()
+        #[cfg(windows)]
+        let image_root = dirs::data_local_dir().unwrap().join("Huawei").join("Sdk");
+        #[cfg(not(windows))]
         let image_root = dirs::home_dir()
             .unwrap()
             .join("Library")
