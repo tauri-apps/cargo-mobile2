@@ -152,7 +152,7 @@ pub fn open_file_with(
     env: &Env,
 ) -> Result<(), OpenFileError> {
     // In windows, there is no standerd way to find application by name.
-    match dbg!(application.as_ref().to_str()) {
+    match application.as_ref().to_str() {
         Some("Android Studio") => open_file_with_android_studio(path, env),
         Some("DevEco-Studio") => open_file_with_deveco_studio(path, env),
         _ => {
