@@ -193,7 +193,7 @@ impl Exec for Input {
         }
 
         fn open_in_dev_eco_studio(config: &Config, env: &Env) -> Result<(), Error> {
-            os::open_file_with("DevEco Studio", config.project_dir(), &env.base)
+            os::open_file_with("DevEco-Studio", config.project_dir(), &env.base)
                 .map_err(Error::OpenFailed)
         }
 
