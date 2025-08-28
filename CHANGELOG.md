@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.20.5]
+
+- [`60cf1ea`](https://github.com/tauri-apps/cargo-mobile2/commit/60cf1eae5cbc1c815da3685559c59f06b3be6286) ([#479](https://github.com/tauri-apps/cargo-mobile2/pull/479) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fix build and archive not working on Apple Intel systems when targeting the simulator.
+
 ## \[0.20.4]
 
 - [`c942e7d`](https://github.com/tauri-apps/cargo-mobile2/commit/c942e7d1951f5c3768f9163aec22f2553cf41b69) ([#474](https://github.com/tauri-apps/cargo-mobile2/pull/474) by [@FabianLars](https://github.com/tauri-apps/cargo-mobile2/../../FabianLars)) Allow running on simulators that have a higher version than the XCode SDK. This fixes compatiblity issues with Apple's recent `"iOS 18.5 + iOS 18.6 Simulator"` platform support component.
