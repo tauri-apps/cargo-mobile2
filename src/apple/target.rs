@@ -530,8 +530,8 @@ impl<'a> Target<'a> {
                 if cfg!(target_arch = "x86_64") && self.sdk == "iphonesimulator" {
                     // on Intel we must force the destination when targeting the simulator
                     // otherwise xcodebuild tries to build arm64
-                    // iPhone 8 seems like a good default target, old enough for every Xcode out there to have it?
-                    Some("platform=iOS Simulator,name=iPhone 8".to_string())
+                    // iPhone 13 seems like a good default target, old enough for every Xcode out there to have it?
+                    Some("platform=iOS Simulator,name=iPhone 13".to_string())
                 } else {
                     None
                 }
@@ -622,8 +622,8 @@ impl<'a> Target<'a> {
                 if cfg!(target_arch = "x86_64") && sdk == "iphonesimulator" {
                     // on Intel we must force the ARCHS and destination when targeting the simulator
                     // otherwise xcodebuild tries to build arm64
-                    // iPhone 8 seems like a good default target, old enough for every Xcode out there to have it?
-                    cmd.args(["-destination", "platform=iOS Simulator,name=iPhone 8"])
+                    // iPhone 13 seems like a good default target, old enough for every Xcode out there to have it?
+                    cmd.args(["-destination", "platform=iOS Simulator,name=iPhone 13"])
                         .arg("ARCHS=x86_64");
                 }
 
