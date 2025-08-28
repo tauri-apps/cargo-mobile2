@@ -520,11 +520,26 @@ impl<'a> Target<'a> {
         let sdk = self.sdk.to_string();
         let arch = if self.is_macos() {
             Some(self.arch.to_string())
+        } else if cfg!(target_arch = "x86_64") && sdk == "iphonesimulator" {
+            // on Intel we must force the arch when targeting the simulator
+            // otherwise xcodebuild tries to build arm64
+            Some("x86_64".to_string())
         } else {
             None
         };
 
-        let destination = target_device.map(|device| format!("id={}", device.id()));
+        let destination = target_device
+            .map(|device| format!("id={}", device.id()))
+            .or_else(|| {
+                if cfg!(target_arch = "x86_64") && self.sdk == "iphonesimulator" {
+                    // on Intel we must force the destination when targeting the simulator
+                    // otherwise xcodebuild tries to build arm64
+                    // iPhone 8 seems like a good default target, old enough for every Xcode out there to have it?
+                    Some("platform=iOS Simulator,name=iPhone 8".to_string())
+                } else {
+                    None
+                }
+            });
 
         let args: Vec<OsString> = vec![];
         duct::cmd("xcodebuild", args)
@@ -585,9 +600,14 @@ impl<'a> Target<'a> {
         let sdk = self.sdk.to_string();
         let arch = if self.is_macos() {
             Some(self.arch.to_string())
+        } else if cfg!(target_arch = "x86_64") && sdk == "iphonesimulator" {
+            // on Intel we must force the arch when targeting the simulator
+            // otherwise xcodebuild tries to build arm64
+            Some("x86_64".to_string())
         } else {
             None
         };
+
         let args: Vec<OsString> = vec![];
         duct::cmd("xcodebuild", args)
             .full_env(env.explicit_env())
@@ -600,6 +620,14 @@ impl<'a> Target<'a> {
                 if let Some(a) = &arch {
                     cmd.args(["-arch", a]);
                 }
+
+                if cfg!(target_arch = "x86_64") && sdk == "iphonesimulator" {
+                    // on Intel we must force the destination when targeting the simulator
+                    // otherwise xcodebuild tries to build arm64
+                    // iPhone 8 seems like a good default target, old enough for every Xcode out there to have it?
+                    cmd.args(["-destination", "platform=iOS Simulator,name=iPhone 8"]);
+                }
+
                 cmd.args(["-scheme", &scheme])
                     .arg("-workspace")
                     .arg(&workspace_path)
