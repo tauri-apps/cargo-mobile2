@@ -30,27 +30,25 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NoHomeDir(err) => write!(f, "{}", err),
-            Self::XcodeSelectFailed(err) => write!(f, "Failed to get path to Xcode.app: {}", err),
-            Self::StatusFailed(err) => write!(f, "{}", err),
-            Self::UpdateFailed(err) => write!(f, "{}", err),
-            Self::UuidLookupFailed(err) => write!(f, "Failed to lookup Xcode UUID: {}", err),
+            Self::NoHomeDir(err) => write!(f, "{err}"),
+            Self::XcodeSelectFailed(err) => write!(f, "Failed to get path to Xcode.app: {err}"),
+            Self::StatusFailed(err) => write!(f, "{err}"),
+            Self::UpdateFailed(err) => write!(f, "{err}"),
+            Self::UuidLookupFailed(err) => write!(f, "Failed to lookup Xcode UUID: {err}"),
             Self::PlistReadFailed { path, cause } => {
-                write!(f, "Failed to read plist at {:?}: {}", path, cause)
+                write!(f, "Failed to read plist at {path:?}: {cause}")
             }
             Self::PluginsDirCreationFailed { path, cause } => write!(
                 f,
-                "Failed to create Xcode plugins directory {:?}: {}",
-                path, cause
+                "Failed to create Xcode plugins directory {path:?}: {cause}"
             ),
-            Self::PluginCopyFailed(err) => write!(f, "Failed to copy Xcode plugin: {}", err),
+            Self::PluginCopyFailed(err) => write!(f, "Failed to copy Xcode plugin: {err}"),
             Self::SpecDirCreationFailed { path, cause } => write!(
                 f,
-                "Failed to create Xcode language spec directory {:?}: {}",
-                path, cause
+                "Failed to create Xcode language spec directory {path:?}: {cause}"
             ),
-            Self::SpecCopyFailed(err) => write!(f, "Failed to copy language spec: {}", err),
-            Self::MetaCopyFailed(err) => write!(f, "Failed to copy language metadata: {}", err),
+            Self::SpecCopyFailed(err) => write!(f, "Failed to copy language spec: {err}"),
+            Self::MetaCopyFailed(err) => write!(f, "Failed to copy language metadata: {err}"),
         }
     }
 }

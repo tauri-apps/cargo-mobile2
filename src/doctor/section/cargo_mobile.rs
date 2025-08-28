@@ -8,7 +8,7 @@ use crate::{
 fn check_os() -> Result<String, String> {
     os::Info::check()
         .map(|info| format!("{} v{}", info.name, info.version))
-        .map_err(|err| format!("Failed to get OS info: {}", err))
+        .map_err(|err| format!("Failed to get OS info: {err}"))
 }
 
 fn check_rust() -> Result<String, String> {
@@ -17,18 +17,17 @@ fn check_rust() -> Result<String, String> {
         .and_then(|version| {
             version
                 .valid()
-                .then(|| format!("rustc v{}", version))
+                .then(|| format!("rustc v{version}"))
                 .ok_or_else(|| {
                     format!(
-                        "iOS linking is broken on rustc v{}; please update to 1.49.0 or later",
-                        version
+                        "iOS linking is broken on rustc v{version}; please update to 1.49.0 or later"
                     )
                 })
         })
 }
 
 pub fn check() -> Result<Section, Unrecoverable> {
-    let section = Section::new(format!("cargo-mobile {}", VERSION_SHORT));
+    let section = Section::new(format!("cargo-mobile {VERSION_SHORT}"));
     Ok(match util::install_dir() {
         Ok(install_dir) => section
             .with_item(util::installed_commit_msg().map(|msg| {
@@ -42,8 +41,7 @@ pub fn check() -> Result<Section, Unrecoverable> {
                 ))
             } else {
                 Err(format!(
-                    "The cargo-mobile2 installation directory is missing! Checked at {:?}",
-                    install_dir,
+                    "The cargo-mobile2 installation directory is missing! Checked at {install_dir:?}",
                 ))
             }),
         Err(err) => section.with_failure(err),

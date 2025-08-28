@@ -15,7 +15,7 @@ impl Display for DetectError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::DeveloperTeamLookupFailed(err) => {
-                write!(f, "Failed to find Apple developer teams: {}", err)
+                write!(f, "Failed to find Apple developer teams: {err}")
             }
         }
     }
@@ -31,10 +31,10 @@ impl Display for PromptError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::DeveloperTeamLookupFailed(err) => {
-                write!(f, "Failed to find Apple developer teams: {}", err)
+                write!(f, "Failed to find Apple developer teams: {err}")
             }
             Self::DeveloperTeamPromptFailed(err) => {
-                write!(f, "Failed to prompt for Apple developer team: {}", err)
+                write!(f, "Failed to prompt for Apple developer team: {err}")
             }
         }
     }
@@ -50,7 +50,7 @@ fn value_to_string(value: &PlistValue) -> String {
                 .map(value_to_string)
                 .collect::<Vec<_>>()
                 .join(",");
-            format!("[{}]", string)
+            format!("[{string}]")
         }
         PlistValue::Dictionary(dict) => dictionary_to_string(dict),
     }
@@ -67,7 +67,7 @@ fn dictionary_to_string(dict: &PlistDictionary) -> String {
         .map(|pair| pair_to_string(&pair.0.key, &pair.0.value))
         .collect::<Vec<_>>()
         .join(",");
-    format!("{{{}}}", joint)
+    format!("{{{joint}}}")
 }
 
 #[derive(Clone, Debug, Deserialize)]

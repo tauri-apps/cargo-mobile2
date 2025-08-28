@@ -75,8 +75,8 @@ impl Report {
     pub fn new(label: Label, msg: impl Display, details: impl Display) -> Self {
         Self {
             label,
-            msg: format!("{}", msg),
-            details: format!("{}", details),
+            msg: format!("{msg}"),
+            details: format!("{details}"),
         }
     }
 
@@ -122,9 +122,9 @@ impl Report {
     pub fn print(&self, wrapper: &TextWrapper) {
         let s = self.format(wrapper);
         if matches!(self.label, Label::Error) {
-            eprint!("{}", s)
+            eprint!("{s}")
         } else {
-            print!("{}", s)
+            print!("{s}")
         }
     }
 }
@@ -158,7 +158,7 @@ mod interface {
     pub static SETTINGS: &[AppSettings] = &[AppSettings::SubcommandRequiredElseHelp];
 
     pub fn bin_name(name: &str) -> String {
-        format!("cargo {}", name)
+        format!("cargo {name}")
     }
 
     pub static VERSION_LONG: Lazy<String> = Lazy::new(|| match util::installed_commit_msg() {

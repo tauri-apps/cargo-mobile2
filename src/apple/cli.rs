@@ -188,7 +188,7 @@ impl Reportable for Error {
             Self::Unsupported => Report::error("iOS is marked as unsupported in your Cargo.toml metadata", "If your project should support Android, modify your Cargo.toml, then run `cargo mobile init` and try again."),
             Self::ProjectDirAbsent { project_dir } => Report::action_request(
                 "Please run `cargo mobile init` and try again!",
-                format!("Xcode project directory {:?} doesn't exist.", project_dir),
+                format!("Xcode project directory {project_dir:?} doesn't exist."),
             ),
             Self::OpenFailed(err) => Report::error("Failed to open project in Xcode", err),
             Self::CheckFailed(err) => err.report(),
@@ -201,19 +201,19 @@ impl Reportable for Error {
             Self::CargoEnvFailed(err) => Report::error("Failed to load cargo env profile", err),
             Self::SdkRootInvalid { sdk_root } => Report::error(
                 "SDK root provided by Xcode was invalid",
-                format!("{:?} doesn't exist or isn't a directory", sdk_root),
+                format!("{sdk_root:?} doesn't exist or isn't a directory"),
             ),
             Self::IncludeDirInvalid { include_dir } => Report::error(
                 "Include dir was invalid",
-                format!("{:?} doesn't exist or isn't a directory", include_dir),
+                format!("{include_dir:?} doesn't exist or isn't a directory"),
             ),
             Self::MacosSdkRootInvalid { macos_sdk_root } => Report::error(
                 "macOS SDK root was invalid",
-                format!("{:?} doesn't exist or isn't a directory", macos_sdk_root),
+                format!("{macos_sdk_root:?} doesn't exist or isn't a directory"),
             ),
             Self::ArchInvalid { arch } => Report::error(
                 "Arch specified by Xcode was invalid",
-                format!("{:?} isn't a known arch", arch),
+                format!("{arch:?} isn't a known arch"),
             ),
             Self::CompileLibFailed(err) => err.report(),
             Self::PodCommandFailed(err) => Report::error("pod command failed", err),
@@ -484,9 +484,9 @@ impl Exec for Input {
                         "x86_64" => ("x86_64_apple_ios", "x86_64-apple-ios"),
                         _ => return Err(Error::ArchInvalid { arch }),
                     };
-                    let cflags = format!("CFLAGS_{}", triple);
-                    let cxxflags = format!("CFLAGS_{}", triple);
-                    let objc_include_path = format!("OBJC_INCLUDE_PATH_{}", triple);
+                    let cflags = format!("CFLAGS_{triple}");
+                    let cxxflags = format!("CFLAGS_{triple}");
+                    let objc_include_path = format!("OBJC_INCLUDE_PATH_{triple}");
                     let mut target_env = host_env.clone();
                     target_env.insert(cflags.as_ref(), isysroot.as_ref());
                     target_env.insert(cxxflags.as_ref(), isysroot.as_ref());
@@ -532,7 +532,7 @@ impl Exec for Input {
                     }
 
                     // Copy static lib .a to Xcode Project
-                    if rust_triple.starts_with(&"aarch64-apple-ios") {
+                    if rust_triple.starts_with("aarch64-apple-ios") {
                         std::fs::create_dir_all(format!(
                             "Sources/{rust_triple}/{}",
                             profile.as_str()

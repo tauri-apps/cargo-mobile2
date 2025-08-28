@@ -50,7 +50,7 @@ impl Reportable for Error {
                 Report::error("Asset dir couldn't be symlinked into Xcode project", err)
             }
             Self::DirectoryCreationFailed { path, cause } => Report::error(
-                format!("Failed to create iOS assets directory at {:?}", path),
+                format!("Failed to create iOS assets directory at {path:?}"),
                 cause,
             ),
             Self::XcodegenFailed(err) => Report::error("Failed to run `xcodegen`", err),

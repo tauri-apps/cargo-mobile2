@@ -33,17 +33,16 @@ impl Reportable for RemoveBrokenLinksError {
     fn report(&self) -> Report {
         match self {
             Self::ReadDir { dir, source } => Report::error(
-                format!("Failed to list contents of jniLibs directory {:?}", dir),
+                format!("Failed to list contents of jniLibs directory {dir:?}"),
                 source,
             ),
             Self::Entry { dir, source } => Report::error(
-                format!("Failed to get entry in jniLibs directory {:?}", dir),
+                format!("Failed to get entry in jniLibs directory {dir:?}"),
                 source,
             ),
-            Self::Remove { path, source } => Report::error(
-                format!("Failed to remove broken symlink {:?}", path),
-                source,
-            ),
+            Self::Remove { path, source } => {
+                Report::error(format!("Failed to remove broken symlink {path:?}"), source)
+            }
         }
     }
 }

@@ -62,7 +62,7 @@ impl Pack {
         let path = {
             let dir = dir.as_ref();
             let name = name.as_ref();
-            let toml_path = dir.join(format!("{}.toml", name));
+            let toml_path = dir.join(format!("{name}.toml"));
             let path = dir.join(name);
             check_path(name, &toml_path)
                 .or_else(|| check_path(name, &path))
@@ -137,12 +137,12 @@ pub enum ListError {
 impl Display for ListError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NoHomeDir(err) => write!(f, "{}", err),
+            Self::NoHomeDir(err) => write!(f, "{err}"),
             Self::DirReadFailed { dir, cause } => {
-                write!(f, "Failed to read directory {:?}: {}", dir, cause)
+                write!(f, "Failed to read directory {dir:?}: {cause}")
             }
             Self::DirEntryReadFailed { dir, cause } => {
-                write!(f, "Failed to read entry in directory {:?}: {}", dir, cause)
+                write!(f, "Failed to read entry in directory {dir:?}: {cause}")
             }
         }
     }

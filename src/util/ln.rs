@@ -68,8 +68,8 @@ impl Display for ErrorCause {
             Self::MissingFileName => {
                 write!(f, "Neither the source nor target contained a file name.",)
             }
-            Self::CommandFailed(err) => write!(f, "`ln` command failed: {}", err),
-            Self::IOError(err) => write!(f, "IO error: {}", err),
+            Self::CommandFailed(err) => write!(f, "`ln` command failed: {err}"),
+            Self::IOError(err) => write!(f, "IO error: {err}"),
             Self::SymlinkNotAllowed => {
                 write!(
                     f,

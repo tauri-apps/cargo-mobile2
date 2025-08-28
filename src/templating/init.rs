@@ -60,7 +60,7 @@ fn quote_and_join(
     out: &mut dyn Output,
 ) -> HelperResult {
     out.write(
-        &get_str_array(helper, |s| format!("{:?}", s))
+        &get_str_array(helper, |s| format!("{s:?}"))
             .ok_or_else(|| {
                 RenderErrorReason::Other("`quote-and-join` helper wasn't given an array".into())
             })?
@@ -134,7 +134,7 @@ fn escape_kotlin_keyword(
         .split('.')
         .map(|s| {
             if KOTLIN_ONLY_KEYWORDS.contains(&s) {
-                format!("`{}`", s)
+                format!("`{s}`")
             } else {
                 s.to_string()
             }

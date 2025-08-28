@@ -97,7 +97,7 @@ impl GemCache {
         let command = if self.contains(package)? {
             "gem update"
         } else {
-            println!("`sudo` is required to install {} using gem", package);
+            println!("`sudo` is required to install {package} using gem");
             "sudo gem install"
         };
         duct::cmd(command, [package])

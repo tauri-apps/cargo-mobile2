@@ -22,19 +22,19 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NoHomeDir(err) => write!(f, "{}", err),
-            Self::FetchFailed(err) => write!(f, "Failed to fetch repo: {}", err),
-            Self::RevParseLocalFailed(err) => write!(f, "Failed to get checkout revision: {}", err),
+            Self::NoHomeDir(err) => write!(f, "{err}"),
+            Self::FetchFailed(err) => write!(f, "Failed to fetch repo: {err}"),
+            Self::RevParseLocalFailed(err) => write!(f, "Failed to get checkout revision: {err}"),
             Self::RevParseRemoteFailed(err) => {
-                write!(f, "Failed to get upstream revision: {}", err)
+                write!(f, "Failed to get upstream revision: {err}")
             }
-            Self::LogFailed(err) => write!(f, "Failed to get commit log: {}", err),
+            Self::LogFailed(err) => write!(f, "Failed to get commit log: {err}"),
             Self::ParentDirCreationFailed { path, cause } => {
-                write!(f, "Failed to create parent directory {:?}: {}", path, cause)
+                write!(f, "Failed to create parent directory {path:?}: {cause}")
             }
-            Self::CloneFailed(err) => write!(f, "Failed to clone repo: {}", err),
-            Self::ResetFailed(err) => write!(f, "Failed to reset repo: {}", err),
-            Self::CleanFailed(err) => write!(f, "Failed to clean repo: {}", err),
+            Self::CloneFailed(err) => write!(f, "Failed to clone repo: {err}"),
+            Self::ResetFailed(err) => write!(f, "Failed to reset repo: {err}"),
+            Self::CleanFailed(err) => write!(f, "Failed to clean repo: {err}"),
         }
     }
 }

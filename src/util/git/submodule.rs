@@ -113,7 +113,7 @@ impl Submodule {
     fn in_index(&self, git: Git<'_>, name: &str) -> io::Result<bool> {
         git.modules().map(|modules| {
             modules
-                .filter(|modules| modules.contains(&format!("[submodule {:?}]", name)))
+                .filter(|modules| modules.contains(&format!("[submodule {name:?}]")))
                 .is_some()
         })
     }
@@ -121,7 +121,7 @@ impl Submodule {
     fn initialized(&self, git: Git<'_>, name: &str) -> io::Result<bool> {
         git.config().map(|config| {
             config
-                .filter(|config| config.contains(&format!("[submodule {:?}]", name)))
+                .filter(|config| config.contains(&format!("[submodule {name:?}]")))
                 .is_some()
         })
     }

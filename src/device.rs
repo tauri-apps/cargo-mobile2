@@ -24,7 +24,7 @@ pub struct PromptError<T: Display> {
 impl<T: Display> Display for PromptError<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.cause {
-            PromptErrorCause::DetectionFailed(err) => write!(f, "{}", err),
+            PromptErrorCause::DetectionFailed(err) => write!(f, "{err}"),
             PromptErrorCause::PromptFailed(err) => {
                 write!(f, "Failed to prompt for {} device: {}", self.name, err)
             }

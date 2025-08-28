@@ -10,24 +10,20 @@ fn validate_developer_dir() -> Result<String, String> {
     static FORBIDDEN: &str = "/Library/Developer/CommandLineTools";
     static SUGGESTED: &str = "/Applications/Xcode.app/Contents/Developer";
     let xcode_developer_dir = xcode_plugin::xcode_developer_dir()
-        .map_err(|err| format!("Failed to get active Xcode developer dir: {}", err))?;
+        .map_err(|err| format!("Failed to get active Xcode developer dir: {err}"))?;
     let xcode_developer_dir = {
         if xcode_developer_dir == Path::new(FORBIDDEN) {
             println!(
-                "Your active toolchain appears to be the Apple command-line tools: {:?}",
-                xcode_developer_dir
+                "Your active toolchain appears to be the Apple command-line tools: {xcode_developer_dir:?}"
             );
             println!("Changing your active toolchain to Xcode may be necessary for everything to work correctly.");
             let answer = loop {
                 if let Some(answer) = prompt::yes_no(
-                    format!("Would you like us to change it to {:?} for you?", SUGGESTED),
+                    format!("Would you like us to change it to {SUGGESTED:?} for you?"),
                     Some(true),
                 )
                 .map_err(|err| {
-                    format!(
-                        "Failed to prompt for changing the Xcode developer dir: {}",
-                        err
-                    )
+                    format!("Failed to prompt for changing the Xcode developer dir: {err}")
                 })? {
                     break answer;
                 }
@@ -36,7 +32,7 @@ fn validate_developer_dir() -> Result<String, String> {
                 duct::cmd("xcode-select", ["-s", SUGGESTED])
                     .dup_stdio()
                     .run()
-                    .map_err(|err| format!("Failed to update Xcode developer dir: {}", err))?;
+                    .map_err(|err| format!("Failed to update Xcode developer dir: {err}"))?;
                 Path::new(SUGGESTED)
             } else {
                 &xcode_developer_dir
@@ -45,7 +41,7 @@ fn validate_developer_dir() -> Result<String, String> {
             &xcode_developer_dir
         }
     };
-    Ok(format!("Active developer dir: {:?}", xcode_developer_dir))
+    Ok(format!("Active developer dir: {xcode_developer_dir:?}"))
 }
 
 fn validate_xcode_plugin(xcode_version: (u32, u32), section: Section) -> Section {
@@ -73,8 +69,7 @@ fn validate_xcode_plugin(xcode_version: (u32, u32), section: Section) -> Section
                     Item::warning("xcode-rust-plugin is outdated")
                 }),
             Err(err) => section.with_failure(format!(
-                "Failed to check xcode-rust-plugin installation status: {}",
-                err
+                "Failed to check xcode-rust-plugin installation status: {err}"
             )),
         }
         .with_item(match ctx.check_uuid() {
@@ -92,13 +87,10 @@ fn validate_xcode_plugin(xcode_version: (u32, u32), section: Section) -> Section
                 }
             }
             Err(err) => Item::failure(format!(
-                "Failed to check xcode-rust-plugin UUID status: {}",
-                err
+                "Failed to check xcode-rust-plugin UUID status: {err}"
             )),
         }),
-        Err(err) => {
-            section.with_failure(format!("Failed to get xcode-rust-plugin context: {}", err))
-        }
+        Err(err) => section.with_failure(format!("Failed to get xcode-rust-plugin context: {err}")),
     }
 }
 
@@ -108,8 +100,8 @@ pub fn check() -> Section {
         .with_item(
             xcode_version
                 .as_ref()
-                .map(|(major, minor)| format!("Xcode v{}.{}", major, minor))
-                .map_err(|err| format!("Failed to check Xcode version: {}", err)),
+                .map(|(major, minor)| format!("Xcode v{major}.{minor}"))
+                .map_err(|err| format!("Failed to check Xcode version: {err}")),
         )
         .with_item(validate_developer_dir())
         .with_item(
@@ -117,14 +109,14 @@ pub fn check() -> Section {
                 .stderr_capture()
                 .read()
                 .map(|version| format!("ios-deploy v{}", version.trim()))
-                .map_err(|err| format!("Failed to check ios-deploy version: {}", err)),
+                .map_err(|err| format!("Failed to check ios-deploy version: {err}")),
         )
         .with_item(
             duct::cmd("xcodegen", ["--version"])
                 .stderr_capture()
                 .read()
                 .map(|version| version.trim().replace("Version: ", "XcodeGen v"))
-                .map_err(|err| format!("Failed to check ios-deploy version: {}", err)),
+                .map_err(|err| format!("Failed to check ios-deploy version: {err}")),
         );
     let section = if let Ok(version) = xcode_version {
         validate_xcode_plugin(version, section)
@@ -139,6 +131,6 @@ pub fn check() -> Section {
                 format!("Development team: {} ({})", team.name, team.id)
             }))
         }
-        Err(err) => section.with_failure(format!("Failed to find development teams: {}", err)),
+        Err(err) => section.with_failure(format!("Failed to find development teams: {err}")),
     }
 }
