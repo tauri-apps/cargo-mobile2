@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.20.6]
+
+- [`2da2b57`](https://github.com/tauri-apps/cargo-mobile2/commit/2da2b57e7f49e1f4b8b85fb1c0807721f768d660) ([#481](https://github.com/tauri-apps/cargo-mobile2/pull/481) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fix empty `Device::name` when using an Android emulator.
+
 ## \[0.20.5]
 
 - [`60cf1ea`](https://github.com/tauri-apps/cargo-mobile2/commit/60cf1eae5cbc1c815da3685559c59f06b3be6286) ([#479](https://github.com/tauri-apps/cargo-mobile2/pull/479) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fix build and archive not working on Apple Intel systems when targeting the simulator.
