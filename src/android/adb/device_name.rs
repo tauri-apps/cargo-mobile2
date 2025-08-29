@@ -34,7 +34,7 @@ impl Reportable for Error {
 
 pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
     if serial_no.starts_with("emulator") {
-        super::check_authorized(
+        let name = super::check_authorized(
             adb(env, ["-s", serial_no])
                 .before_spawn(move |cmd| {
                     cmd.args(["emu", "avd", "name"]);
@@ -45,8 +45,18 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
                 .start()?
                 .wait()?,
         )
-        .map(|stdout| stdout.split('\n').next().unwrap().trim().into())
-        .map_err(Error::EmuFailed)
+        .map(|stdout| stdout.split('\n').next().unwrap().trim().to_string())
+        .map_err(Error::EmuFailed)?;
+        if name.is_empty() {
+            super::get_prop::get_prop(env, serial_no, "ro.boot.qemu.avd_name").map_err(|e| {
+                Error::EmuFailed(super::RunCheckedError::CommandFailed(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    e,
+                )))
+            })
+        } else {
+            Ok(name)
+        }
     } else {
         super::check_authorized(
             adb(env, ["-s", serial_no])
