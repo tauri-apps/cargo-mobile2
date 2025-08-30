@@ -116,6 +116,8 @@ fn installed_with_brew(package: &str) -> bool {
 }
 
 fn brew_reinstall(package: &'static str) -> Result<(), Error> {
+    log::info!("Installing `{}` with brew...", package);
+
     // reinstall works even if it's not installed yet, and will upgrade
     // if it's already installed!
     duct::cmd("brew", ["reinstall", package])
@@ -129,6 +131,7 @@ fn update_package(package: &'static str, gem_cache: &mut GemCache) -> Result<(),
     if installed_with_brew(package) {
         brew_reinstall(package)?;
     } else {
+        log::info!("Installing `{}` with gem...", package);
         gem_cache.reinstall(package)?;
     }
     Ok(())
@@ -175,13 +178,14 @@ impl PackageSpec {
                 package: self.pkg_name,
                 source,
             })?;
-        log::info!("package `{}` present: {}", self.pkg_name, found);
+        if !found {
+            log::info!("package `{}` not found", self.pkg_name);
+        }
         Ok(found)
     }
 
     pub fn install(&self, reinstall_deps: bool, gem_cache: &mut GemCache) -> Result<bool, Error> {
         if !self.found()? || reinstall_deps {
-            println!("Installing `{}`...", self.pkg_name);
             match self.package_source {
                 PackageSource::Brew => brew_reinstall(self.pkg_name)?,
                 PackageSource::BrewOrGem => update_package(self.pkg_name, gem_cache)?,
@@ -207,23 +211,30 @@ pub fn install_all(
         IOS_DEPLOY_PACKAGE.install(reinstall_deps, &mut gem_cache)?;
     }
     gem_cache.initialize()?;
-    let outdated = Outdated::load(&mut gem_cache)?;
-    outdated.print_notice();
-    if !outdated.is_empty() && !non_interactive {
-        let answer = loop {
-            if let Some(answer) = prompt::yes_no(
-                "Would you like these outdated dependencies to be updated for you?",
-                Some(true),
-            )? {
-                break answer;
-            }
-        };
-        if answer {
-            for package in outdated.iter() {
-                update_package(package, &mut gem_cache)?;
+    match Outdated::load(&mut gem_cache) {
+        Ok(outdated) => {
+            outdated.print_notice();
+            if !outdated.is_empty() && !non_interactive {
+                let answer = loop {
+                    if let Some(answer) = prompt::yes_no(
+                        "Would you like these outdated dependencies to be updated for you?",
+                        Some(true),
+                    )? {
+                        break answer;
+                    }
+                };
+                if answer {
+                    for package in outdated.iter() {
+                        update_package(package, &mut gem_cache)?;
+                    }
+                }
             }
         }
+        Err(e) => {
+            log::warn!("Failed to check for outdated dependencies: {}", e);
+        }
     }
+
     // we definitely don't want to install this on CI...
     if !skip_dev_tools {
         let tool_info = DeveloperTools::new()?;
