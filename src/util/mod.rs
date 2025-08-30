@@ -472,31 +472,13 @@ pub fn command_present(name: &str) -> Result<bool, std::io::Error> {
     command_path(name).map(|_path| true).or(Ok(false))
 }
 
-#[derive(Debug)]
-pub enum PipeError {
-    TxCommandFailed(std::io::Error),
-    RxCommandFailed(std::io::Error),
-    PipeFailed(io::Error),
-    WaitFailed(std::io::Error),
-}
-
-impl Display for PipeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::TxCommandFailed(err) => write!(f, "Failed to run sending command: {err}"),
-            Self::RxCommandFailed(err) => write!(f, "Failed to run receiving command: {err}"),
-            Self::PipeFailed(err) => write!(f, "Failed to pipe output: {err}"),
-            Self::WaitFailed(err) => {
-                write!(f, "Failed to wait for receiving command to exit: {err}")
-            }
-        }
-    }
-}
-
 #[derive(Debug, Error)]
 pub enum RunAndSearchError {
-    #[error(transparent)]
-    CommandFailed(#[from] std::io::Error),
+    #[error("failed to run command {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
     #[error("{command:?} output failed to match regex: {output:?}")]
     SearchFailed { command: String, output: String },
 }
@@ -512,12 +494,15 @@ pub fn run_and_search<T>(
         .map(|output| {
             re.captures(&output)
                 .ok_or_else(|| RunAndSearchError::SearchFailed {
-                    command: command_string,
+                    command: command_string.clone(),
                     output: output.to_owned(),
                 })
                 .map(|caps| f(&output, caps))
         })
-        .map_err(RunAndSearchError::from)?
+        .map_err(|error| RunAndSearchError::CommandFailed {
+            command: command_string,
+            error,
+        })?
 }
 
 #[derive(Debug, Error)]

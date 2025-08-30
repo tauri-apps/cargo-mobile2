@@ -55,7 +55,9 @@ pub enum Error {
 impl Reportable for Error {
     fn report(&self) -> Report {
         match self {
-            Self::RustupFailed(err) => Report::error("Failed to `rustup` Android toolchains", err),
+            Self::RustupFailed(err) => {
+                Report::error("Failed to install Android toolchains with rustup", err)
+            }
             Self::MissingPack(err) => Report::error("Failed to locate Android template pack", err),
             Self::TemplateProcessingFailed(err) => {
                 Report::error("Android template processing failed", err)

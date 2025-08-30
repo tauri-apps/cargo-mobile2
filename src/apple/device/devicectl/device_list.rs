@@ -8,15 +8,28 @@ use crate::{
     DuctExpressionExt,
 };
 use serde::Deserialize;
-use std::{collections::BTreeSet, env::temp_dir, fs::read_to_string};
+use std::{collections::BTreeSet, env::temp_dir, fs::read_to_string, path::PathBuf};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum DeviceListError {
-    #[error("Failed to request device list from `devicectl`: {0}")]
-    DetectionFailed(#[from] std::io::Error),
+    #[error("Failed to request device list from `{command}`: {error}")]
+    DetectionFailed {
+        command: String,
+        error: std::io::Error,
+    },
     #[error("`simctl list` returned an invalid JSON: {0}")]
     InvalidDeviceList(#[from] serde_json::Error),
+    #[error("Failed to read file {path:?}: {error}")]
+    ReadFile {
+        path: PathBuf,
+        error: std::io::Error,
+    },
+    #[error("Failed to write file {path:?}: {error}")]
+    WriteFile {
+        path: PathBuf,
+        error: std::io::Error,
+    },
 }
 
 #[derive(Debug, Deserialize)]
@@ -145,20 +158,29 @@ fn parse_device_list<'a>(json: String) -> Result<BTreeSet<Device<'a>>, DeviceLis
 pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListError> {
     let json_output_path = temp_dir().join("devicelist.json");
     let json_output_path_ = json_output_path.clone();
-    std::fs::write(&json_output_path, "")?;
+    std::fs::write(&json_output_path, "").map_err(|err| DeviceListError::WriteFile {
+        path: json_output_path.clone(),
+        error: err,
+    })?;
 
-    duct::cmd("xcrun", ["devicectl", "list", "devices", "--json-output"])
+    let cmd = duct::cmd("xcrun", ["devicectl", "list", "devices", "--json-output"])
         .before_spawn(move |cmd| {
             cmd.arg(&json_output_path);
             Ok(())
         })
         .stderr_capture()
         .stdout_capture()
-        .vars(env.explicit_env())
-        .run()
-        .map_err(DeviceListError::DetectionFailed)?;
+        .vars(env.explicit_env());
 
-    let contents = read_to_string(json_output_path_)?;
+    cmd.run().map_err(|err| DeviceListError::DetectionFailed {
+        command: format!("{cmd:?}"),
+        error: err,
+    })?;
+
+    let contents = read_to_string(&json_output_path_).map_err(|err| DeviceListError::ReadFile {
+        path: json_output_path_,
+        error: err,
+    })?;
     parse_device_list(contents)
 }
 

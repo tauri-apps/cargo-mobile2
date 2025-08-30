@@ -37,7 +37,9 @@ pub enum Error {
 impl Reportable for Error {
     fn report(&self) -> Report {
         match self {
-            Self::RustupFailed(err) => Report::error("Failed to `rustup` Apple toolchains", err),
+            Self::RustupFailed(err) => {
+                Report::error("Failed to install Apple toolchains with rustup", err)
+            }
             Self::RustVersionCheckFailed(err) => err.report(),
             Self::DepsInstallFailed(err) => {
                 Report::error("Failed to install Apple dependencies", err)

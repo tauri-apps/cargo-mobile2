@@ -23,8 +23,6 @@ pub enum RunCheckedError {
     InvalidUtf8(#[from] FromUtf8Error),
     #[error("This device doesn't yet trust this computer. On the device, you should see a prompt like \"Allow USB debugging?\". Pressing \"Allow\" should fix this.")]
     Unauthorized,
-    #[error(transparent)]
-    CommandFailed(std::io::Error),
 }
 
 impl RunCheckedError {
@@ -32,7 +30,6 @@ impl RunCheckedError {
         match self {
             Self::InvalidUtf8(err) => Report::error(msg, err),
             Self::Unauthorized => Report::action_request(msg, self),
-            Self::CommandFailed(err) => Report::error(msg, err),
         }
     }
 }

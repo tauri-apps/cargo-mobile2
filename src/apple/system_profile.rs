@@ -33,7 +33,12 @@ impl DeveloperTools {
         // XML sucks, we'll be lazy for now.
         let command = duct::cmd("system_profiler", ["SPDeveloperToolsDataType"]).stderr_capture();
         let command_string = format!("{command:?}");
-        let output = command.read().map_err(util::RunAndSearchError::from)?;
+        let output = command
+            .read()
+            .map_err(|error| util::RunAndSearchError::CommandFailed {
+                command: command_string.clone(),
+                error,
+            })?;
         if output.is_empty() {
             Err(Error::XcodeNotInstalled)
         } else {

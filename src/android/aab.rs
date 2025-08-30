@@ -15,14 +15,19 @@ use crate::{
 
 #[derive(Debug, Error)]
 pub enum AabError {
-    #[error("Failed to build AAB: {0}")]
-    BuildFailed(#[from] std::io::Error),
+    #[error("Failed to run {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
 }
 
 impl Reportable for AabError {
     fn report(&self) -> Report {
         match self {
-            Self::BuildFailed(err) => Report::error("Failed to build AAB", err),
+            Self::CommandFailed { command, error } => {
+                Report::error(format!("Failed to run {command}"), error)
+            }
         }
     }
 }
@@ -69,22 +74,30 @@ pub fn build(
 
         args
     };
-    gradlew(config, env)
-        .before_spawn(move |cmd| {
-            cmd.args(&gradle_args).arg(match noise_level {
-                NoiseLevel::Polite => "--warn",
-                NoiseLevel::LoudAndProud => "--info",
-                NoiseLevel::FranklyQuitePedantic => "--debug",
-            });
-            Ok(())
-        })
+    let cmd = gradlew(config, env).before_spawn(move |cmd| {
+        cmd.args(&gradle_args).arg(match noise_level {
+            NoiseLevel::Polite => "--warn",
+            NoiseLevel::LoudAndProud => "--info",
+            NoiseLevel::FranklyQuitePedantic => "--debug",
+        });
+        Ok(())
+    });
+    cmd
         .start()
         .inspect_err(|err| {
             if err.kind() == std::io::ErrorKind::NotFound {
                log::error!("`gradlew` not found. Make sure you have the Android SDK installed and added to your PATH");
             }
+        })
+        .map_err(|error| AabError::CommandFailed {
+            command: format!("{cmd:?}"),
+            error,
         })?
-        .wait()?;
+        .wait()
+        .map_err(|error| AabError::CommandFailed {
+            command: format!("{cmd:?}"),
+            error,
+        })?;
 
     let mut outputs = Vec::new();
     if split_per_abi {

@@ -18,11 +18,23 @@ pub enum Error {
     XcodeSelectFailed(std::io::Error),
     StatusFailed(repo::Error),
     UpdateFailed(repo::Error),
-    UuidLookupFailed(std::io::Error),
-    PlistReadFailed { path: PathBuf, cause: io::Error },
-    PluginsDirCreationFailed { path: PathBuf, cause: io::Error },
+    UuidLookupFailed {
+        command: String,
+        error: std::io::Error,
+    },
+    PlistReadFailed {
+        path: PathBuf,
+        cause: io::Error,
+    },
+    PluginsDirCreationFailed {
+        path: PathBuf,
+        cause: io::Error,
+    },
     PluginCopyFailed(std::io::Error),
-    SpecDirCreationFailed { path: PathBuf, cause: io::Error },
+    SpecDirCreationFailed {
+        path: PathBuf,
+        cause: io::Error,
+    },
     SpecCopyFailed(std::io::Error),
     MetaCopyFailed(std::io::Error),
 }
@@ -31,10 +43,15 @@ impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NoHomeDir(err) => write!(f, "{err}"),
-            Self::XcodeSelectFailed(err) => write!(f, "Failed to get path to Xcode.app: {err}"),
+            Self::XcodeSelectFailed(err) => write!(
+                f,
+                "Failed to get path to Xcode.app with `xcode-select -p`: {err}"
+            ),
             Self::StatusFailed(err) => write!(f, "{err}"),
             Self::UpdateFailed(err) => write!(f, "{err}"),
-            Self::UuidLookupFailed(err) => write!(f, "Failed to lookup Xcode UUID: {err}"),
+            Self::UuidLookupFailed { command, error } => {
+                write!(f, "Failed to lookup Xcode UUID with {command}: {error}")
+            }
             Self::PlistReadFailed { path, cause } => {
                 write!(f, "Failed to read plist at {path:?}: {cause}")
             }
@@ -193,15 +210,19 @@ impl Context {
     // Step 3: check if uuid is supported, and prompt user to open issue if not
     pub fn check_uuid(&self) -> Result<UuidStatus, Error> {
         let info_path = self.xcode_app_dir.join("Info");
-        let uuid = duct::cmd("defaults", ["read"])
+        let cmd = duct::cmd("defaults", ["read"])
             .before_spawn(move |cmd| {
                 cmd.arg(&info_path).arg("DVTPlugInCompatibilityUUID");
                 Ok(())
             })
-            .stderr_capture()
-            .read()
-            .map(|s| s.trim().to_owned())
-            .map_err(Error::UuidLookupFailed)?;
+            .stderr_capture();
+        let uuid =
+            cmd.read()
+                .map(|s| s.trim().to_owned())
+                .map_err(|error| Error::UuidLookupFailed {
+                    command: format!("{cmd:?}"),
+                    error,
+                })?;
         let plist_path = self
             .repo
             .path()
