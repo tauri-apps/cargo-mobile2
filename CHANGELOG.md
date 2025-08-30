@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.20.7]
+
+- [`68771b0`](https://github.com/tauri-apps/cargo-mobile2/commit/68771b035524d3f61e7cbf9f6d6950e9fdd3805e) ([#483](https://github.com/tauri-apps/cargo-mobile2/pull/483) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Ignore errors when checking outdated dependencies with `gem` and `brew`.
+
 ## \[0.20.6]
 
 - [`2da2b57`](https://github.com/tauri-apps/cargo-mobile2/commit/2da2b57e7f49e1f4b8b85fb1c0807721f768d660) ([#481](https://github.com/tauri-apps/cargo-mobile2/pull/481) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fix empty `Device::name` when using an Android emulator.
