@@ -480,18 +480,18 @@ impl<'a> Target<'a> {
             };
 
             // list installed runtimes
-            let available_runtimes_output = duct::cmd(
-                "xcrun",
-                ["simctl", "list", "runtimes", "--json"],
-            )
-            .stdout_capture()
-            .stderr_capture()
-            .run()
-            .map_err(|error| SdkError::Io {
+            let available_runtimes_output =
+                duct::cmd("xcrun", ["simctl", "list", "runtimes", "--json"])
+                    .stdout_capture()
+                    .stderr_capture()
+                    .run()
+                    .map_err(|error| {
+                        SdkError::Io {
                 context:
                     "failed to list installed runtimes with `xcrun simctl list runtimes --json`",
                 error,
-            })?;
+            }
+                    })?;
             let available_runtimes = serde_json::from_reader::<_, SimctlRuntimeList>(Cursor::new(
                 available_runtimes_output.stdout,
             ))
