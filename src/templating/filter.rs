@@ -19,8 +19,7 @@ impl Display for FilterError {
         match self {
             Self::ReadDirFailed { path, cause } => write!(
                 f,
-                "App root directory {:?} couldn't be checked for emptiness: {}",
-                path, cause
+                "App root directory {path:?} couldn't be checked for emptiness: {cause}"
             ),
         }
     }

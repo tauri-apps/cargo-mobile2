@@ -151,8 +151,7 @@ impl Reportable for Error {
             Self::ProjectDirAbsent { project_dir } => Report::action_request(
                 "Please run `cargo mobile init` and try again!",
                 format!(
-                    "Android Studio project directory {:?} doesn't exist.",
-                    project_dir
+                    "Android Studio project directory {project_dir:?} doesn't exist."
                 ),
             ),
             Self::OpenFailed(err) => Report::error("Failed to open project in Android Studio", err),

@@ -83,24 +83,21 @@ impl fmt::Display for IdentifierError {
                 list_display(
                     &bad_chars
                         .iter()
-                        .map(|c| format!("'{}'", c))
+                        .map(|c| format!("'{c}'"))
                         .collect::<Vec<_>>()
                 ),
             ),
             Self::ReservedPackageName { package_name } => write!(
                 f,
-                "\"{}\" is a reserved package name in this project and can't be used as a top-level identifier.",
-                package_name
+                "\"{package_name}\" is a reserved package name in this project and can't be used as a top-level identifier."
             ),
             Self::ReservedKeyword { keyword } => write!(
                 f,
-                "\"{}\" is a reserved keyword in java/kotlin and can't be used. For more info, please visit https://kotlinlang.org/docs/reference/keyword-reference.html and https://docs.oracle.com/javase/tutorial/java/nutsandbolts/_keywords.html",
-                keyword
+                "\"{keyword}\" is a reserved keyword in java/kotlin and can't be used. For more info, please visit https://kotlinlang.org/docs/reference/keyword-reference.html and https://docs.oracle.com/javase/tutorial/java/nutsandbolts/_keywords.html"
             ),
             Self::StartsWithDigit { label } => write!(
                 f,
-                "\"{}\" label starts with a digit, which is not allowed in java/kotlin packages.",
-                label
+                "\"{label}\" label starts with a digit, which is not allowed in java/kotlin packages."
             ),
             Self::StartsOrEndsWithADot => write!(f, "Identifier can't start or end with a dot."),
             Self::EmptyLabel => write!(f, "Labels can't be empty."),

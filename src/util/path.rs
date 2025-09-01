@@ -178,16 +178,12 @@ pub enum NormalizationError {
 impl Display for NormalizationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::CanonicalizationFailed { path, cause } => write!(
-                f,
-                "Failed to canonicalize existing path {:?}: {}",
-                path, cause
-            ),
-            Self::PathAbsFailed { path, cause } => write!(
-                f,
-                "Failed to normalize non-existent path {:?}: {}",
-                path, cause
-            ),
+            Self::CanonicalizationFailed { path, cause } => {
+                write!(f, "Failed to canonicalize existing path {path:?}: {cause}")
+            }
+            Self::PathAbsFailed { path, cause } => {
+                write!(f, "Failed to normalize non-existent path {path:?}: {cause}")
+            }
         }
     }
 }

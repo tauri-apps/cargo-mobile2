@@ -27,8 +27,7 @@ impl Reportable for Error {
             Self::TemplatePackResolve(err) => Report::error("Failed to resolve template pack", err),
             Self::Processing { src, dest, cause } => Report::error(
                 format!(
-                    "Base project template processing from src {:?} to dest {:?} failed",
-                    src, dest,
+                    "Base project template processing from src {src:?} to dest {dest:?} failed",
                 ),
                 cause,
             ),

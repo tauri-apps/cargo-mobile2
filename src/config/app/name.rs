@@ -41,36 +41,32 @@ impl Display for Invalid {
             Self::Empty => write!(f, "The app name can't be empty.")?,
             Self::NotAscii { app_name, .. } => write!(
                 f,
-                "\"{}\" isn't valid ASCII.",
-                app_name,
+                "\"{app_name}\" isn't valid ASCII.",
             )?,
-            Self::StartsWithDigit { app_name, .. } => write!(f, "\"{}\" starts with a digit.", app_name)?,
+            Self::StartsWithDigit { app_name, .. } => write!(f, "\"{app_name}\" starts with a digit.")?,
             Self::ReservedKeyword { app_name } => write!(
                 f,
-                "\"{}\" is a reserved keyword: https://doc.rust-lang.org/reference/keywords.html",
-                app_name,
+                "\"{app_name}\" is a reserved keyword: https://doc.rust-lang.org/reference/keywords.html",
             )?,
             Self::ReservedWindows { app_name } => write!(
                 f,
-                "\"{}\" is a reserved name on Windows.",
-                app_name,
+                "\"{app_name}\" is a reserved name on Windows.",
             )?,
             Self::ReservedArtifacts { app_name } => write!(
                 f,
-                "\"{}\" is reserved by Cargo.",
-                app_name,
+                "\"{app_name}\" is reserved by Cargo.",
             )?,
             Self::NotAlphanumericHyphenOrUnderscore { app_name, naughty_chars, .. } => write!(
                 f,
                 "\"{}\" contains {}, but only lowercase letters, numbers, hyphens, and underscores are allowed.",
                 app_name,
                 util::list_display(
-                    &naughty_chars.iter().map(|c| format!("'{}'", c)).collect::<Vec<_>>()
+                    &naughty_chars.iter().map(|c| format!("'{c}'")).collect::<Vec<_>>()
                 ),
             )?,
         }
         if let Some(suggested) = self.suggested() {
-            write!(f, " \"{}\" would work, if you'd like!", suggested)?;
+            write!(f, " \"{suggested}\" would work, if you'd like!")?;
         }
         Ok(())
     }
@@ -139,7 +135,7 @@ fn transliterate_initial_number(s: &str) -> String {
             ..english_numbers::Formatting::none()
         },
     );
-    normalize_case(&format!("{}-{}", transliterated, tail))
+    normalize_case(&format!("{transliterated}-{tail}"))
 }
 
 fn char_allowed(c: char) -> bool {

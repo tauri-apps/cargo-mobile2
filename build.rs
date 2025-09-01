@@ -33,16 +33,10 @@ fn main() {
         Ok(output) => {
             let msg = String::from_utf8_lossy(&output.stdout).to_string();
             if let Err(err) = std::fs::write(install_dir.join("commit"), msg) {
-                println!(
-                    "cargo:warning=failed to write current commit message: {}",
-                    err
-                )
+                println!("cargo:warning=failed to write current commit message: {err}")
             }
         }
-        Err(err) => println!(
-            "cargo:warning=failed to get current commit message: {}",
-            err
-        ),
+        Err(err) => println!("cargo:warning=failed to get current commit message: {err}"),
     }
 
     // Copy templates

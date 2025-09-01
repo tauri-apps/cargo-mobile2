@@ -61,14 +61,14 @@ impl Reportable for Error {
                 Report::error("Android template processing failed", err)
             }
             Self::DirectoryCreationFailed { path, cause } => Report::error(
-                format!("Failed to create Android assets directory at {:?}", path),
+                format!("Failed to create Android assets directory at {path:?}"),
                 cause,
             ),
             Self::DirectoryReadFailed { path, cause } => {
-                Report::error(format!("Failed to read directory at {:?}", path), cause)
+                Report::error(format!("Failed to read directory at {path:?}"), cause)
             }
             Self::DirectoryRemoveFailed { path, cause } => Report::error(
-                format!("Failed to remove directory directory at {:?}", path),
+                format!("Failed to remove directory directory at {path:?}"),
                 cause,
             ),
             Self::AssetDirSymlinkFailed(err) => {
@@ -77,12 +77,11 @@ impl Reportable for Error {
             Self::DotCargoGenFailed(err) => {
                 Report::error("Failed to generate Android cargo config", err)
             }
-            Self::FileCopyFailed { src, dest, cause } => Report::error(
-                format!("Failed to copy file at {:?} to {:?}", src, dest),
-                cause,
-            ),
+            Self::FileCopyFailed { src, dest, cause } => {
+                Report::error(format!("Failed to copy file at {src:?} to {dest:?}"), cause)
+            }
             Self::AssetSourceInvalid(src) => Report::error(
-                format!("Asset source at {:?} invalid", src),
+                format!("Asset source at {src:?} invalid"),
                 "Asset sources must be either a directory or a file",
             ),
         }

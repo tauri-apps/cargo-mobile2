@@ -6,7 +6,7 @@ use std::{
 
 pub fn minimal(msg: impl Display) -> io::Result<String> {
     let mut input = String::new();
-    print!("{}: ", msg);
+    print!("{msg}: ");
     io::stdout().flush()?;
     io::stdin().read_line(&mut input)?;
 
@@ -22,7 +22,7 @@ pub fn default(
         let msg = if let Some(default_color) = default_color {
             format!("{} ({})", msg, default.color(default_color).bold())
         } else {
-            format!("{} ({})", msg, default)
+            format!("{msg} ({default})")
         };
         minimal(msg)
     } else {
@@ -44,7 +44,7 @@ pub fn yes_no(msg: impl Display, default: Option<bool>) -> io::Result<Option<boo
         Some(false) => "[y/N]",
         None => "[y/n]",
     };
-    minimal(format!("{} {}", msg, y_n)).map(|response| {
+    minimal(format!("{msg} {y_n}")).map(|response| {
         if response.eq_ignore_ascii_case("y") {
             Some(true)
         } else if response.eq_ignore_ascii_case("n") {
@@ -75,7 +75,7 @@ pub fn list(
     alternative: Option<&str>,
     msg: impl Display,
 ) -> io::Result<usize> {
-    println!("{}:", header);
+    println!("{header}:");
     let choice_count = choices.len();
     list_display_only(choices, choice_count);
     if let Some(alternative) = alternative {

@@ -351,7 +351,7 @@ impl Bicycle {
                         if let Prefix::Disk(_) = prefix.kind() {
                             return p
                                 .to_str()
-                                .map(|s| format!("\\\\?\\{}", s))
+                                .map(|s| format!("\\\\?\\{s}"))
                                 .map(PathBuf::from)
                                 .unwrap_or_else(|| p);
                         }

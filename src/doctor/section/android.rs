@@ -13,7 +13,7 @@ pub fn check(env: &Env) -> Result<Section, Unrecoverable> {
                     sdk_version,
                     util::contract_home(android_env.android_home())?,
                 )),
-                Err(err) => Err(format!("Failed to get SDK version: {}", err)),
+                Err(err) => Err(format!("Failed to get SDK version: {err}")),
             })
             .with_item(match android_env.ndk.version() {
                 Ok(ndk_version) => Ok(format!(
@@ -21,7 +21,7 @@ pub fn check(env: &Env) -> Result<Section, Unrecoverable> {
                     ndk_version,
                     util::contract_home(android_env.ndk.home())?,
                 )),
-                Err(err) => Err(format!("Failed to get NDK version: {}", err)),
+                Err(err) => Err(format!("Failed to get NDK version: {err}")),
             }),
         Err(err) => section.with_failure(err),
     })

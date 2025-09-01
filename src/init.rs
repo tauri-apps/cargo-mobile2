@@ -73,10 +73,10 @@ impl Reportable for Error {
     fn report(&self) -> Report {
         match self {
             Self::ConfigLoadOrGenFailed(err) => err.report(),
-            Self::DotFirstInitWriteFailed { path, cause } => Report::error(format!("Failed to write first init dot file {:?}", path), cause),
+            Self::DotFirstInitWriteFailed { path, cause } => Report::error(format!("Failed to write first init dot file {path:?}"), cause),
             Self::FilterConfigureFailed(err) => Report::error("Failed to configure template filter", err),
             Self::ProjectInitFailed(err) => err.report(),
-            Self::AssetDirCreationFailed { asset_dir, cause } => Report::error(format!("Failed to create asset dir {:?}", asset_dir), cause),
+            Self::AssetDirCreationFailed { asset_dir, cause } => Report::error(format!("Failed to create asset dir {asset_dir:?}"), cause),
             Self::CodeCommandPresentFailed(err) => Report::error("Failed to check for presence of `code` command", err),
             Self::LldbExtensionInstallFailed(err) => Report::error("Failed to install CodeLLDB extension", err),
             Self::DotCargoLoadFailed(err) => err.report(),
@@ -87,7 +87,7 @@ impl Reportable for Error {
             #[cfg(target_os = "macos")]
             Self::AppleInitFailed(err) => err.report(),
             Self::DotCargoWriteFailed(err) => err.report(),
-            Self::DotFirstInitDeleteFailed { path, cause } => Report::action_request(format!("Failed to delete first init dot file {:?}; the project generated successfully, but `cargo mobile init` will have unexpected results unless you manually delete this file!", path), cause),
+            Self::DotFirstInitDeleteFailed { path, cause } => Report::action_request(format!("Failed to delete first init dot file {path:?}; the project generated successfully, but `cargo mobile init` will have unexpected results unless you manually delete this file!"), cause),
             Self::OpenInEditorFailed(err) => Report::error("Failed to open project in editor (your project generated successfully though, so no worries!)", err),
             Self::OpenHarmonyEnvFailed(err) => err.report(),
             Self::OpenHarmonyInitFailed(err) => err.report(),

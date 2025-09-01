@@ -145,20 +145,15 @@ impl Display for ProjectDirInvalid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NormalizationFailed { project_dir, cause } => {
-                write!(f, "{:?} couldn't be normalized: {}", project_dir, cause)
+                write!(f, "{project_dir:?} couldn't be normalized: {cause}")
             }
             Self::OutsideOfAppRoot {
                 project_dir,
                 root_dir,
-            } => write!(
-                f,
-                "{:?} is outside of the app root {:?}",
-                project_dir, root_dir,
-            ),
+            } => write!(f, "{project_dir:?} is outside of the app root {root_dir:?}",),
             Self::ContainsSpaces { project_dir } => write!(
                 f,
-                "{:?} contains spaces, which the NDK is remarkably intolerant of",
-                project_dir
+                "{project_dir:?} contains spaces, which the NDK is remarkably intolerant of"
             ),
         }
     }

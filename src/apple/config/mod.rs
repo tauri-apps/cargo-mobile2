@@ -194,16 +194,14 @@ impl Display for ProjectDirInvalid {
         match self {
             Self::NormalizationFailed { project_dir, cause } => write!(
                 f,
-                "Xcode project dir {:?} couldn't be normalized: {}",
-                project_dir, cause
+                "Xcode project dir {project_dir:?} couldn't be normalized: {cause}"
             ),
             Self::OutsideOfAppRoot {
                 project_dir,
                 root_dir,
             } => write!(
                 f,
-                "Xcode project dir {:?} is outside of the app root dir {:?}",
-                project_dir, root_dir,
+                "Xcode project dir {project_dir:?} is outside of the app root dir {root_dir:?}",
             ),
         }
     }
@@ -388,7 +386,7 @@ impl Config {
     }
 
     pub fn ipa_path(&self) -> Result<PathBuf, (PathBuf, PathBuf)> {
-        let path = |tail: &str| self.export_dir().join(format!("{}.ipa", tail));
+        let path = |tail: &str| self.export_dir().join(format!("{tail}.ipa"));
         let old = path(&self.scheme());
         // It seems like the format changed recently?
         let new = path(self.app.stylized_name());

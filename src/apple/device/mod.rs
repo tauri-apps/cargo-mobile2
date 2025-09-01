@@ -50,7 +50,7 @@ impl Reportable for RunError {
             Self::ExportFailed(err) => err.report(),
             Self::IpaMissing { old, new } => Report::error(
                 "IPA appears to be missing",
-                format!("Not found at either {:?} or {:?}", old, new),
+                format!("Not found at either {old:?} or {new:?}"),
             ),
             Self::UnzipFailed(err) => Report::error("Failed to unzip archive", err),
             Self::DeployFailed(err) => Report::error("Failed to deploy app", err),

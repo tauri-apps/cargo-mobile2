@@ -32,7 +32,7 @@ impl Display for Revision {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.triple)?;
         if let Some(beta) = self.beta {
-            write!(f, "-beta{}", beta)?;
+            write!(f, "-beta{beta}")?;
         }
         Ok(())
     }

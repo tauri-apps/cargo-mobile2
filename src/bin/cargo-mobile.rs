@@ -119,10 +119,10 @@ impl Reportable for Error {
         match self {
             Self::InitFailed(err) => err.report(),
             Self::DirCreationFailed { path, source } => {
-                Report::error(format!("Failed to create directory {:?}", path), source)
+                Report::error(format!("Failed to create directory {path:?}"), source)
             }
             Self::DirChangeFailed { path, source } => Report::error(
-                format!("Failed to change current directory {:?}", path),
+                format!("Failed to change current directory {path:?}"),
                 source,
             ),
             Self::OpenFailed(err) => {

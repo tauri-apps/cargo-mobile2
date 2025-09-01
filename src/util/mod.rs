@@ -37,9 +37,9 @@ pub fn list_display(list: &[impl Display]) -> String {
         for (idx, item) in list.iter().enumerate() {
             let formatted = if idx + 1 == list.len() {
                 // this is the last item
-                format!("and {}", item)
+                format!("and {item}")
             } else {
-                format!("{}, ", item)
+                format!("{item}, ")
             };
             display.push_str(&formatted);
         }
@@ -385,7 +385,7 @@ impl Display for RustVersion {
         if let Some(flavor) = &self.flavor {
             write!(f, "-{}", flavor.flavor)?;
             if let Some(candidate) = &flavor.candidate {
-                write!(f, ".{}", candidate)?;
+                write!(f, ".{candidate}")?;
             }
         }
         if let Some(details) = &self.details {
@@ -465,7 +465,7 @@ impl RustVersion {
 }
 
 pub fn prepend_to_path(path: impl Display, base_path: impl Display) -> String {
-    format!("{}:{}", path, base_path)
+    format!("{path}:{base_path}")
 }
 
 pub fn command_present(name: &str) -> Result<bool, std::io::Error> {
@@ -483,11 +483,11 @@ pub enum PipeError {
 impl Display for PipeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::TxCommandFailed(err) => write!(f, "Failed to run sending command: {}", err),
-            Self::RxCommandFailed(err) => write!(f, "Failed to run receiving command: {}", err),
-            Self::PipeFailed(err) => write!(f, "Failed to pipe output: {}", err),
+            Self::TxCommandFailed(err) => write!(f, "Failed to run sending command: {err}"),
+            Self::RxCommandFailed(err) => write!(f, "Failed to run receiving command: {err}"),
+            Self::PipeFailed(err) => write!(f, "Failed to pipe output: {err}"),
             Self::WaitFailed(err) => {
-                write!(f, "Failed to wait for receiving command to exit: {}", err)
+                write!(f, "Failed to wait for receiving command to exit: {err}")
             }
         }
     }
@@ -577,7 +577,7 @@ pub fn installed_commit_msg() -> Result<Option<String>, InstalledCommitMsgError>
 }
 
 pub fn format_commit_msg(msg: String) -> String {
-    format!("Contains commits up to {:?}", msg)
+    format!("Contains commits up to {msg:?}")
 }
 
 pub fn unwrap_either<T>(result: Result<T, T>) -> T {
@@ -650,8 +650,8 @@ impl<T: Debug> Serialize for OneOrMany<T> {
         S: Serializer,
     {
         let serialized_str = match self {
-            Self::One(one) => format!("{:?}", one),
-            Self::Many(vec) => format!("{:?}", vec),
+            Self::One(one) => format!("{one:?}"),
+            Self::Many(vec) => format!("{vec:?}"),
         };
         serializer.serialize_str(&serialized_str)
     }

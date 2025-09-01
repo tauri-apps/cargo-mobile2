@@ -62,15 +62,14 @@ impl Display for DefaultsError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::CurrentDirFailed(err) => {
-                write!(f, "Failed to get current working directory: {}", err)
+                write!(f, "Failed to get current working directory: {err}")
             }
             Self::CurrentDirHasNoName(cwd) => {
-                write!(f, "Current working directory has no name: {:?}", cwd)
+                write!(f, "Current working directory has no name: {cwd:?}")
             }
             Self::CurrentDirInvalidUtf8(cwd) => write!(
                 f,
-                "Current working directory contained invalid UTF-8: {:?}",
-                cwd
+                "Current working directory contained invalid UTF-8: {cwd:?}"
             ),
         }
     }
@@ -118,7 +117,7 @@ pub enum DetectError {
 impl Display for DetectError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::DefaultsFailed(err) => write!(f, "Failed to detect default values: {}", err),
+            Self::DefaultsFailed(err) => write!(f, "Failed to detect default values: {err}"),
             Self::NameNotDetected => write!(f, "No app name was detected."),
         }
     }
@@ -137,17 +136,17 @@ pub enum PromptError {
 impl Display for PromptError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::DefaultsFailed(err) => write!(f, "Failed to detect default values: {}", err),
-            Self::NamePromptFailed(err) => write!(f, "Failed to prompt for name: {}", err),
+            Self::DefaultsFailed(err) => write!(f, "Failed to detect default values: {err}"),
+            Self::NamePromptFailed(err) => write!(f, "Failed to prompt for name: {err}"),
             Self::StylizedNamePromptFailed(err) => {
-                write!(f, "Failed to prompt for stylized name: {}", err)
+                write!(f, "Failed to prompt for stylized name: {err}")
             }
             Self::IdentifierPromptFailed(err) => {
-                write!(f, "Failed to prompt for identifier: {}", err)
+                write!(f, "Failed to prompt for identifier: {err}")
             }
-            Self::ListTemplatePacksFailed(err) => write!(f, "{}", err),
+            Self::ListTemplatePacksFailed(err) => write!(f, "{err}"),
             Self::TemplatePackPromptFailed(err) => {
-                write!(f, "Failed to prompt for template pack: {}", err)
+                write!(f, "Failed to prompt for template pack: {err}")
             }
         }
     }
@@ -227,7 +226,7 @@ impl Raw {
                 Err(err) => {
                     println!(
                         "{}",
-                        wrapper.fill(&format!("Sorry! {}", err)).bright_magenta()
+                        wrapper.fill(&format!("Sorry! {err}")).bright_magenta()
                     )
                 }
             }

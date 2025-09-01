@@ -1,5 +1,17 @@
 # Changelog
 
+## \[0.20.7]
+
+- [`68771b0`](https://github.com/tauri-apps/cargo-mobile2/commit/68771b035524d3f61e7cbf9f6d6950e9fdd3805e) ([#483](https://github.com/tauri-apps/cargo-mobile2/pull/483) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Ignore errors when checking outdated dependencies with `gem` and `brew`.
+
+## \[0.20.6]
+
+- [`2da2b57`](https://github.com/tauri-apps/cargo-mobile2/commit/2da2b57e7f49e1f4b8b85fb1c0807721f768d660) ([#481](https://github.com/tauri-apps/cargo-mobile2/pull/481) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fix empty `Device::name` when using an Android emulator.
+
+## \[0.20.5]
+
+- [`60cf1ea`](https://github.com/tauri-apps/cargo-mobile2/commit/60cf1eae5cbc1c815da3685559c59f06b3be6286) ([#479](https://github.com/tauri-apps/cargo-mobile2/pull/479) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fix build and archive not working on Apple Intel systems when targeting the simulator.
+
 ## \[0.20.4]
 
 - [`c942e7d`](https://github.com/tauri-apps/cargo-mobile2/commit/c942e7d1951f5c3768f9163aec22f2553cf41b69) ([#474](https://github.com/tauri-apps/cargo-mobile2/pull/474) by [@FabianLars](https://github.com/tauri-apps/cargo-mobile2/../../FabianLars)) Allow running on simulators that have a higher version than the XCode SDK. This fixes compatiblity issues with Apple's recent `"iOS 18.5 + iOS 18.6 Simulator"` platform support component.

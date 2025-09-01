@@ -219,7 +219,7 @@ impl App {
             .split('.')
             .map(|s| {
                 if crate::reserved_names::KOTLIN_ONLY_KEYWORDS.contains(&s) {
-                    format!("`{}`", s)
+                    format!("`{s}`")
                 } else {
                     s.to_string()
                 }
