@@ -40,6 +40,8 @@ pub fn build(
     noise_level: NoiseLevel,
     profile: Profile,
 ) -> Result<Vec<PathBuf>, HapError> {
+    super::ohpm::install(config, env)?;
+
     let build_mode = profile.as_str().to_lowercase();
 
     let hvigor_args = vec![
@@ -55,9 +57,8 @@ pub fn build(
     hvigorw(config, env)
     .before_spawn(move |cmd| {
         cmd.args(&hvigor_args).arg(match noise_level {
-            NoiseLevel::Polite => "--warn",
-            NoiseLevel::LoudAndProud => "--info",
-            NoiseLevel::FranklyQuitePedantic => "--debug",
+            NoiseLevel::Polite => "--info",
+            NoiseLevel::LoudAndProud | NoiseLevel::FranklyQuitePedantic => "--debug",
         });
         Ok(())
     })
