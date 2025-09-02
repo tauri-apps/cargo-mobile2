@@ -40,8 +40,8 @@ impl CargoMode {
 
 #[derive(Debug, Error)]
 pub enum CompileLibError {
-    #[error("`Failed to run `cargo {mode}`: {cause}")]
-    CargoFailed {
+    #[error("`Failed to run `ohrs {mode}`: {cause}")]
+    OhrsFailed {
         mode: CargoMode,
         cause: std::io::Error,
     },
@@ -205,7 +205,7 @@ impl<'a> Target<'a> {
             })
             .vars(env.explicit_env())
             .run()
-            .map_err(|cause| CompileLibError::CargoFailed { mode, cause })?;
+            .map_err(|cause| CompileLibError::OhrsFailed { mode, cause })?;
 
         Ok(())
     }
