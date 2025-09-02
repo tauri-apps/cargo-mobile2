@@ -52,8 +52,7 @@ pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, Error> {
                         if model.starts_with("emulator") {
                             "ohos.qemu.hvd.name"
                         } else {
-                            // TODO: figure out how to get the device name for real devices
-                            "ro.product.name"
+                            "const.product.name"
                         },
                     )
                     .unwrap_or_else(|_| id.to_owned());
