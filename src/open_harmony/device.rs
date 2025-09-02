@@ -3,7 +3,10 @@ use crate::{
     env::ExplicitEnv,
     open_harmony::{hap, hdc},
     opts::{NoiseLevel, Profile},
-    util::cli::{Report, Reportable},
+    util::{
+        cli::{Report, Reportable},
+        last_modified,
+    },
     DuctExpressionExt,
 };
 use std::fmt::{self, Display};
@@ -172,7 +175,10 @@ impl<'a> Device<'a> {
     }
 
     fn install_hap(&self, config: &Config, env: &Env) -> Result<(), std::io::Error> {
-        let hap_path = hap::haps_path(config);
+        let hap_path = hap::haps_paths(config)
+            .into_iter()
+            .reduce(last_modified)
+            .unwrap();
 
         self.hdc(env)
             .before_spawn(move |cmd| {

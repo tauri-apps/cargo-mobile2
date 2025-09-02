@@ -8,7 +8,7 @@ use crate::{
     opts::{NoiseLevel, Profile},
     util::{
         cli::{Report, Reportable},
-        hvigorw, prefix_path,
+        hvigorw, last_modified, prefix_path,
     },
 };
 
@@ -26,11 +26,12 @@ impl Reportable for HapError {
     }
 }
 
-pub fn haps_path(config: &Config) -> PathBuf {
-    prefix_path(
-        config.project_dir(),
-        "entry/build/default/outputs/default/entry-default-unsigned.hap",
-    )
+pub fn haps_paths(config: &Config) -> Vec<PathBuf> {
+    let output_dir = prefix_path(config.project_dir(), "entry/build/default/outputs/default");
+    vec![
+        output_dir.join("entry-default-signed.hap"),
+        output_dir.join("entry-default-unsigned.hap"),
+    ]
 }
 
 /// Builds HAP(s) and returns the built HAP(s) paths
@@ -72,7 +73,10 @@ pub fn build(
 
     let mut outputs = Vec::new();
 
-    let path = haps_path(config);
+    let path = haps_paths(config)
+        .into_iter()
+        .reduce(last_modified)
+        .unwrap();
     outputs.push(path);
 
     Ok(outputs)
