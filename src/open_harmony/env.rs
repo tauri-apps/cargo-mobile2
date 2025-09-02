@@ -92,6 +92,10 @@ impl ExplicitEnv for Env {
             "OHOS_NDK_HOME".into(),
             self.ohos_home.as_os_str().to_os_string(),
         );
+        envs.insert(
+            "OHOS_BASE_SDK_HOME".into(),
+            self.ohos_home.as_os_str().to_os_string(),
+        );
         envs
     }
 }
