@@ -3,7 +3,11 @@ use crate::{
     os::Env as CoreEnv,
     util::cli::{Report, Reportable},
 };
-use std::{collections::HashMap, ffi::OsString, path::PathBuf};
+use std::{
+    collections::HashMap,
+    ffi::OsString,
+    path::{Path, PathBuf},
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -72,8 +76,8 @@ impl Env {
         self.base.path()
     }
 
-    pub fn ohos_home(&self) -> &str {
-        self.ohos_home.as_path().to_str().unwrap()
+    pub fn ohos_home(&self) -> &Path {
+        &self.ohos_home
     }
 
     pub fn toolchains_path(&self) -> PathBuf {
@@ -94,13 +98,15 @@ impl ExplicitEnv for Env {
         );
         envs.insert(
             "OHOS_BASE_SDK_HOME".into(),
-            self.ohos_home.as_os_str().to_os_string(),
+            self.ohos_home.parent().unwrap().as_os_str().to_os_string(),
         );
         // seems like only Linux requires this, but let's see
-        // OHOS_HOME is /path/to/sdk/default/openharmony, we want /path/to/sdk for DEVECO_SDK_HOME
+        // OHOS_HOME is /path/to/sdk/default/openharmony/18, we want /path/to/sdk for DEVECO_SDK_HOME
         envs.insert(
             "DEVECO_SDK_HOME".into(),
             self.ohos_home
+                .parent()
+                .unwrap()
                 .parent()
                 .unwrap()
                 .parent()
