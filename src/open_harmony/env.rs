@@ -96,6 +96,18 @@ impl ExplicitEnv for Env {
             "OHOS_BASE_SDK_HOME".into(),
             self.ohos_home.as_os_str().to_os_string(),
         );
+        // seems like only Linux requires this, but let's see
+        // OHOS_HOME is /path/to/sdk/default/openharmony, we want /path/to/sdk for DEVECO_SDK_HOME
+        envs.insert(
+            "DEVECO_SDK_HOME".into(),
+            self.ohos_home
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .as_os_str()
+                .to_os_string(),
+        );
         envs
     }
 }
