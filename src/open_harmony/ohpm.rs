@@ -28,8 +28,9 @@ pub fn install(config: &Config, env: &Env) -> std::io::Result<()> {
             .map(PathBuf::from)
             .unwrap_or_else(|_| PathBuf::from("C:\\Program Files\\Huawei\\DevEco Studio"))
             .join("tools")
+            .join("ohpm")
             .join("bin")
-            .join("ohpm.exe")
+            .join("ohpm.bat")
     };
     if !ohpm_path.exists() {
         log::warn!(
