@@ -10,10 +10,8 @@ pub fn install(config: &Config, env: &Env) -> std::io::Result<()> {
     let mut ohpm_path = if cfg!(target_os = "macos") {
         PathBuf::from("/Applications/DevEco-Studio.app/Contents/tools/bin/ohpm")
     } else if cfg!(target_os = "linux") {
-        // OHOS_HOME is /path/to/sdk/default/openharmony/18, we want /path/to/ohpm/bin/ohpm so we must call parent() 4 times
+        // OHOS_HOME is /path/to/sdk/default/openharmony, we want /path/to/ohpm/bin/ohpm so we must call parent() 3 times
         env.ohos_home()
-            .parent()
-            .unwrap()
             .parent()
             .unwrap()
             .parent()
