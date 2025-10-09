@@ -69,7 +69,10 @@ pub enum LoadOrGenError {
     #[error("Failed to load config: {0}")]
     LoadFailed(LoadError),
     #[error("Config file at {path} invalid: {cause}")]
-    FromRawFailed { path: PathBuf, cause: FromRawError },
+    FromRawFailed {
+        path: PathBuf,
+        cause: Box<FromRawError>,
+    },
     #[error(transparent)]
     GenFailed(GenError),
 }
@@ -149,7 +152,7 @@ impl Config {
                 .map(|config| (config, Origin::Loaded))
                 .map_err(|cause| LoadOrGenError::FromRawFailed {
                     path: root_dir,
-                    cause,
+                    cause: Box::new(cause),
                 })
         } else {
             Self::gen(cwd, non_interactive, wrapper)
