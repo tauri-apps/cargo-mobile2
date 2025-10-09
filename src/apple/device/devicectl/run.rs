@@ -1,4 +1,4 @@
-use std::{env::temp_dir, fs::read_to_string};
+use std::{env::temp_dir, fs::read_to_string, path::PathBuf};
 
 use crate::{
     apple::{
@@ -15,8 +15,21 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum RunError {
-    #[error("Failed to deploy app to device: {0}")]
-    DeployFailed(std::io::Error),
+    #[error("failed to run {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
+    #[error("failed to read {path}: {cause}")]
+    ReadFailed {
+        path: PathBuf,
+        cause: std::io::Error,
+    },
+    #[error("failed to write {path}: {cause}")]
+    WriteFailed {
+        path: PathBuf,
+        cause: std::io::Error,
+    },
     #[error("`devicectl` returned an invalid JSON: {0}")]
     InvalidDevicectlJson(#[from] serde_json::Error),
     #[error("`devicectl` did not return the installed application metadata")]
@@ -26,7 +39,15 @@ pub enum RunError {
 impl Reportable for RunError {
     fn report(&self) -> Report {
         match self {
-            Self::DeployFailed(err) => Report::error("Failed to deploy app to simulator", err),
+            Self::CommandFailed { command, error } => {
+                Report::error(format!("Failed to run {command}"), error)
+            }
+            Self::ReadFailed { path, cause } => {
+                Report::error(format!("Failed to read {}", path.display()), cause)
+            }
+            Self::WriteFailed { path, cause } => {
+                Report::error(format!("Failed to write {}", path.display()), cause)
+            }
             Self::InvalidDevicectlJson(err) => {
                 Report::error("Failed to read `devicectl` output", err)
             }
@@ -66,11 +87,13 @@ pub fn run(
     if !paired {
         println!("Pairing with device...");
 
-        duct::cmd("xcrun", ["devicectl", "manage", "pair", "--device", id])
+        let cmd = duct::cmd("xcrun", ["devicectl", "manage", "pair", "--device", id])
             .vars(env.explicit_env())
-            .dup_stdio()
-            .run()
-            .map_err(RunError::DeployFailed)?;
+            .dup_stdio();
+        cmd.run().map_err(|error| RunError::CommandFailed {
+            command: format!("{cmd:?}"),
+            error,
+        })?;
     }
 
     println!("Deploying app to device...");
@@ -82,7 +105,10 @@ pub fn run(
         .join(format!("{}.app", config.app().stylized_name()));
     let json_output_path = temp_dir().join("deviceinstall.json");
     let json_output_path_ = json_output_path.clone();
-    std::fs::write(&json_output_path, "").map_err(RunError::DeployFailed)?;
+    std::fs::write(&json_output_path, "").map_err(|error| RunError::WriteFailed {
+        path: json_output_path.clone(),
+        cause: error,
+    })?;
     let cmd = duct::cmd(
         "xcrun",
         ["devicectl", "device", "install", "app", "--device", id],
@@ -96,9 +122,16 @@ pub fn run(
     })
     .dup_stdio();
 
-    cmd.run().map_err(RunError::DeployFailed)?;
+    cmd.run().map_err(|error| RunError::CommandFailed {
+        command: format!("{cmd:?}"),
+        error,
+    })?;
 
-    let install_output_json = read_to_string(&json_output_path).map_err(RunError::DeployFailed)?;
+    let install_output_json =
+        read_to_string(&json_output_path).map_err(|error| RunError::ReadFailed {
+            path: json_output_path,
+            cause: error,
+        })?;
     let install_output = serde_json::from_str::<InstallOutput>(&install_output_json)?;
     let installed_application = install_output
         .result
@@ -124,21 +157,35 @@ pub fn run(
     .dup_stdio();
 
     if non_interactive {
-        launcher_cmd.start().map_err(RunError::DeployFailed)
+        launcher_cmd
+            .start()
+            .map_err(|error| RunError::CommandFailed {
+                command: format!("{cmd:?}"),
+                error,
+            })
     } else {
         launcher_cmd
             .start()
-            .map_err(RunError::DeployFailed)?
+            .map_err(|error| RunError::CommandFailed {
+                command: format!("{cmd:?}"),
+                error,
+            })?
             .wait()
-            .map_err(RunError::DeployFailed)?;
+            .map_err(|error| RunError::CommandFailed {
+                command: format!("{cmd:?}"),
+                error,
+            })?;
 
         let app_name = config.app().stylized_name().to_string();
 
         LIBIMOBILE_DEVICE_PACKAGE
             .install(false, &mut GemCache::new())
-            .map_err(|e| RunError::DeployFailed(std::io::Error::other(e.to_string())))?;
+            .map_err(|e| RunError::CommandFailed {
+                command: "`brew install libimobiledevice`".to_string(),
+                error: std::io::Error::other(e.to_string()),
+            })?;
 
-        duct::cmd("idevicesyslog", ["--process", &app_name])
+        let cmd = duct::cmd("idevicesyslog", ["--process", &app_name])
             .before_spawn(move |cmd| {
                 if !noise_level.pedantic() {
                     // when not in pedantic log mode, filter out logs that are not from the actual app
@@ -148,8 +195,10 @@ pub fn run(
                 Ok(())
             })
             .vars(env.explicit_env())
-            .dup_stdio()
-            .start()
-            .map_err(RunError::DeployFailed)
+            .dup_stdio();
+        cmd.start().map_err(|error| RunError::CommandFailed {
+            command: format!("{cmd:?}"),
+            error,
+        })
     }
 }

@@ -20,23 +20,7 @@ use std::{
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum AabBuildError {
-    #[error("Failed to build AAB: {0}")]
-    BuildFailed(std::io::Error),
-}
-
-impl Reportable for AabBuildError {
-    fn report(&self) -> Report {
-        match self {
-            Self::BuildFailed(err) => Report::error("Failed to build AAB", err),
-        }
-    }
-}
-
-#[derive(Debug, Error)]
 pub enum ApksBuildError {
-    #[error("Failed to clean old APKS: {0}")]
-    CleanFailed(std::io::Error),
     #[error("Failed to build APKS from AAB: {0}")]
     BuildFromAabFailed(std::io::Error),
 }
@@ -44,7 +28,6 @@ pub enum ApksBuildError {
 impl Reportable for ApksBuildError {
     fn report(&self) -> Report {
         match self {
-            Self::CleanFailed(err) => Report::error("Failed to clean old APKS", err),
             Self::BuildFromAabFailed(err) => Report::error("Failed to build APKS from AAB", err),
         }
     }
@@ -52,17 +35,28 @@ impl Reportable for ApksBuildError {
 
 #[derive(Debug, Error)]
 pub enum ApkInstallError {
-    #[error("Failed to install APK: {0}")]
-    InstallFailed(#[from] std::io::Error),
-    #[error("Failed to install APK from AAB: {0}")]
-    InstallFromAabFailed(std::io::Error),
+    #[error("failed to install APK with {command}: {error}")]
+    InstallFailed {
+        command: String,
+        error: std::io::Error,
+    },
+    #[error("failed to install APK from AAB with {command}: {error}")]
+    InstallFromAabFailed {
+        command: String,
+        error: std::io::Error,
+    },
 }
 
 impl Reportable for ApkInstallError {
     fn report(&self) -> Report {
         match self {
-            Self::InstallFailed(err) => Report::error("Failed to install APK", err),
-            Self::InstallFromAabFailed(err) => Report::error("Failed to install APK from AAB", err),
+            Self::InstallFailed { command, error } => {
+                Report::error(format!("Failed to install APK with {command}"), error)
+            }
+            Self::InstallFromAabFailed { command, error } => Report::error(
+                format!("Failed to install APK from AAB with {command}"),
+                error,
+            ),
         }
     }
 }
@@ -80,11 +74,12 @@ pub enum RunError {
     #[error(transparent)]
     BundletoolInstallFailed(bundletool::InstallError),
     #[error(transparent)]
-    AabBuildFailed(AabBuildError),
-    #[error(transparent)]
     ApksFromAabBuildFailed(ApksBuildError),
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
+    #[error("failed to run {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
 }
 
 impl Reportable for RunError {
@@ -95,23 +90,29 @@ impl Reportable for RunError {
             Self::ApkInstallFailed(err) => err.report(),
             Self::WakeScreenFailed(err) => Report::error("Failed to wake device screen", err),
             Self::BundletoolInstallFailed(err) => err.report(),
-            Self::AabBuildFailed(err) => err.report(),
             Self::ApksFromAabBuildFailed(err) => err.report(),
-            Self::Io(err) => Report::error("IO error", err),
+            Self::CommandFailed { command, error } => {
+                Report::error(format!("Command failed with {command}"), error)
+            }
         }
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum StacktraceError {
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
+    #[error("failed to run {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
 }
 
 impl Reportable for StacktraceError {
     fn report(&self) -> Report {
         match self {
-            Self::Io(err) => Report::error("IO error", err),
+            Self::CommandFailed { command, error } => {
+                Report::error(format!("Failed to run {command}"), error)
+            }
         }
     }
 }
@@ -239,15 +240,24 @@ impl<'a> Device<'a> {
             .reduce(last_modified)
             .unwrap();
 
-        self.adb(env)
+        let cmd = self
+            .adb(env)
             .before_spawn(move |cmd| {
                 cmd.args(["install", "-r"]);
                 cmd.arg(&apk_path);
                 Ok(())
             })
-            .dup_stdio()
-            .start()?
-            .wait()?;
+            .dup_stdio();
+        cmd.start()
+            .map_err(|err| ApkInstallError::InstallFailed {
+                command: format!("{cmd:?}"),
+                error: err,
+            })?
+            .wait()
+            .map_err(|err| ApkInstallError::InstallFailed {
+                command: format!("{cmd:?}"),
+                error: err,
+            })?;
 
         Ok(())
     }
@@ -305,17 +315,24 @@ impl<'a> Device<'a> {
             .into_iter()
             .reduce(last_modified)
             .unwrap();
-        bundletool::command()
-            .before_spawn(move |cmd| {
-                cmd.args([
-                    "install-apks",
-                    &format!("--apks={}", apks_path.to_str().unwrap()),
-                ]);
+        let cmd = bundletool::command();
+        let cmd_str = format!(
+            "{cmd:?} install-apks --apks={}",
+            apks_path.to_str().unwrap()
+        );
+        let cmd = cmd.before_spawn(move |cmd| {
+            cmd.args([
+                "install-apks",
+                &format!("--apks={}", apks_path.to_str().unwrap()),
+            ]);
 
-                Ok(())
-            })
-            .run()
-            .map_err(ApkInstallError::InstallFromAabFailed)?;
+            Ok(())
+        });
+        cmd.run()
+            .map_err(|err| ApkInstallError::InstallFromAabFailed {
+                command: cmd_str,
+                error: err,
+            })?;
         Ok(())
     }
 
@@ -364,14 +381,24 @@ impl<'a> Device<'a> {
                 .map_err(RunError::ApkInstallFailed)?;
         }
         let activity = format!("{}/{}", config.app().identifier(), activity);
-        self.adb(env)
+        let activity_ = activity.clone();
+        let cmd = self
+            .adb(env)
             .before_spawn(move |cmd| {
-                cmd.args(["shell", "am", "start", "-n", &activity]);
+                cmd.args(["shell", "am", "start", "-n", &activity_]);
                 Ok(())
             })
-            .dup_stdio()
-            .start()?
-            .wait()?;
+            .dup_stdio();
+        cmd.start()
+            .map_err(|err| RunError::CommandFailed {
+                command: format!("{cmd:?} shell am start -n {activity}"),
+                error: err,
+            })?
+            .wait()
+            .map_err(|err| RunError::CommandFailed {
+                command: format!("{cmd:?} shell am start -n {activity}"),
+                error: err,
+            })?;
 
         let _ = self.wake_screen(env);
 
@@ -395,7 +422,10 @@ impl<'a> Device<'a> {
             .vars(env.explicit_env())
             .stderr_capture()
             .stdout_capture();
-            let handle = cmd.start()?;
+            let handle = cmd.start().map_err(|err| RunError::CommandFailed {
+                command: format!("{cmd:?}"),
+                error: err,
+            })?;
             if let Ok(out) = handle.wait() {
                 if out.status.success() {
                     break String::from_utf8_lossy(&out.stdout).into_owned();
@@ -419,7 +449,10 @@ impl<'a> Device<'a> {
             cmd.args(&logcat_filter_specs);
             Ok(())
         });
-        logcat.start().map_err(Into::into)
+        logcat.start().map_err(|err| RunError::CommandFailed {
+            command: format!("{logcat:?}"),
+            error: err,
+        })
     }
 
     pub fn stacktrace(&self, config: &Config, env: &Env) -> Result<(), StacktraceError> {
@@ -449,7 +482,16 @@ impl<'a> Device<'a> {
                 )
                 .dup_stdio();
 
-        if logcat_command.pipe(stack_command).start()?.wait().is_err() {
+        if logcat_command
+            .pipe(&stack_command)
+            .start()
+            .map_err(|err| StacktraceError::CommandFailed {
+                command: format!("{logcat_command:?} | {stack_command:?}"),
+                error: err,
+            })?
+            .wait()
+            .is_err()
+        {
             println!("  -- no stacktrace --");
         }
         Ok(())

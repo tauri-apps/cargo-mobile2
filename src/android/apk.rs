@@ -18,15 +18,20 @@ use crate::{
 pub enum ApkError {
     #[error(transparent)]
     LibSymlinkCleaningFailed(jnilibs::RemoveBrokenLinksError),
-    #[error("Failed to assemble APK: {0}")]
-    AssembleFailed(#[from] std::io::Error),
+    #[error("Failed to assemble APK with {command}: {error}")]
+    AssembleFailed {
+        command: String,
+        error: std::io::Error,
+    },
 }
 
 impl Reportable for ApkError {
     fn report(&self) -> Report {
         match self {
             Self::LibSymlinkCleaningFailed(err) => err.report(),
-            Self::AssembleFailed(err) => Report::error("Failed to assemble APK", err),
+            Self::AssembleFailed { command, error } => {
+                Report::error(format!("Failed to assemble APK with {command}"), error)
+            }
         }
     }
 }
@@ -96,22 +101,30 @@ pub fn build(
         args
     };
 
-    gradlew(config, env)
-        .before_spawn(move |cmd| {
-            cmd.args(&gradle_args).arg(match noise_level {
-                NoiseLevel::Polite => "--warn",
-                NoiseLevel::LoudAndProud => "--info",
-                NoiseLevel::FranklyQuitePedantic => "--debug",
-            });
-            Ok(())
-        })
+    let cmd = gradlew(config, env).before_spawn(move |cmd| {
+        cmd.args(&gradle_args).arg(match noise_level {
+            NoiseLevel::Polite => "--warn",
+            NoiseLevel::LoudAndProud => "--info",
+            NoiseLevel::FranklyQuitePedantic => "--debug",
+        });
+        Ok(())
+    });
+    cmd
         .start()
         .inspect_err(|err| {
             if err.kind() == std::io::ErrorKind::NotFound {
                log::error!("`gradlew` not found. Make sure you have the Android SDK installed and added to your PATH");
             }
+        })
+        .map_err(|err| ApkError::AssembleFailed {
+            command: format!("{cmd:?}"),
+            error: err,
         })?
-        .wait()?;
+        .wait()
+        .map_err(|err| ApkError::AssembleFailed {
+            command: format!("{cmd:?}"),
+            error: err,
+        })?;
 
     let mut outputs = Vec::new();
     if split_per_abi {

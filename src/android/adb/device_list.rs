@@ -20,8 +20,11 @@ pub enum Error {
     AbiFailed(get_prop::Error),
     #[error("{0:?} isn't a valid target ABI.")]
     AbiInvalid(String),
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
+    #[error("Failed to run {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
 }
 
 impl Reportable for Error {
@@ -32,7 +35,9 @@ impl Reportable for Error {
             Self::NameFailed(err) => err.report(),
             Self::ModelFailed(err) | Self::AbiFailed(err) => err.report(),
             Self::AbiInvalid(_) => Report::error(msg, self),
-            Self::Io(err) => Report::error(msg, err),
+            Self::CommandFailed { command, error } => {
+                Report::error(format!("Failed to run {command}"), error)
+            }
         }
     }
 }
@@ -43,25 +48,27 @@ pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, Error> {
     let mut cmd = Command::new(env.platform_tools_path().join("adb"));
     cmd.arg("devices").envs(env.explicit_env());
 
-    super::check_authorized(&cmd.output()?)
-        .map(|raw_list| {
-            regex_multi_line!(ADB_DEVICE_REGEX)
-                .captures_iter(&raw_list)
-                .map(|caps| {
-                    assert_eq!(caps.len(), 2);
-                    let serial_no = caps.get(1).unwrap().as_str().to_owned();
-                    let model = get_prop(env, &serial_no, "ro.product.model")
-                        .map_err(Error::ModelFailed)?;
-                    let name = device_name(env, &serial_no).unwrap_or_else(|_| model.clone());
-                    let abi = get_prop(env, &serial_no, "ro.product.cpu.abi")
-                        .map_err(Error::AbiFailed)?;
-                    let target =
-                        Target::for_abi(&abi).ok_or_else(|| Error::AbiInvalid(abi.clone()))?;
-                    Ok(Device::new(serial_no, name, model, target))
-                })
-                .collect()
-        })
-        .map_err(Error::DevicesFailed)?
+    super::check_authorized(&cmd.output().map_err(|error| Error::CommandFailed {
+        command: format!("{} devices", cmd.get_program().to_string_lossy()),
+        error,
+    })?)
+    .map(|raw_list| {
+        regex_multi_line!(ADB_DEVICE_REGEX)
+            .captures_iter(&raw_list)
+            .map(|caps| {
+                assert_eq!(caps.len(), 2);
+                let serial_no = caps.get(1).unwrap().as_str().to_owned();
+                let model =
+                    get_prop(env, &serial_no, "ro.product.model").map_err(Error::ModelFailed)?;
+                let name = device_name(env, &serial_no).unwrap_or_else(|_| model.clone());
+                let abi =
+                    get_prop(env, &serial_no, "ro.product.cpu.abi").map_err(Error::AbiFailed)?;
+                let target = Target::for_abi(&abi).ok_or_else(|| Error::AbiInvalid(abi.clone()))?;
+                Ok(Device::new(serial_no, name, model, target))
+            })
+            .collect()
+    })
+    .map_err(Error::DevicesFailed)?
 }
 
 #[cfg(test)]

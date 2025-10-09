@@ -32,8 +32,11 @@ pub enum DetectEditorError {
 
 #[derive(Debug, Error)]
 pub enum OpenFileError {
-    #[error("Launch failed: {0}")]
-    LaunchFailed(std::io::Error),
+    #[error("Failed to run {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
     #[error("Command parsing failed")]
     CommandParsingFailed,
 }
@@ -105,9 +108,12 @@ impl Application {
             // If command_parts has at least one element this works. If it has a single
             // element, &command_parts[1..] should be an empty slice (&[]) and duct
             // does not add any argument on that case
-            duct::cmd(&command_parts[0], &command_parts[1..])
-                .run_and_detach()
-                .map_err(OpenFileError::LaunchFailed)
+            let cmd = duct::cmd(&command_parts[0], &command_parts[1..]);
+            cmd.run_and_detach()
+                .map_err(|error| OpenFileError::CommandFailed {
+                    command: format!("{cmd:?}"),
+                    error,
+                })
         } else {
             Err(OpenFileError::CommandParsingFailed)
         }
@@ -154,10 +160,12 @@ pub fn open_file_with(
         .unwrap_or_else(|| vec![app_str.to_os_string()]);
 
     // If command_parts has at least one element, this won't panic from Out of Bounds
-    duct::cmd(&command_parts[0], &command_parts[1..])
-        .vars(env.explicit_env())
-        .run_and_detach()
-        .map_err(OpenFileError::LaunchFailed)
+    let cmd = duct::cmd(&command_parts[0], &command_parts[1..]).vars(env.explicit_env());
+    cmd.run_and_detach()
+        .map_err(|error| OpenFileError::CommandFailed {
+            command: format!("{cmd:?}"),
+            error,
+        })
 }
 
 // We use "sh" in order to access "command -v", as that is a bultin command on sh.

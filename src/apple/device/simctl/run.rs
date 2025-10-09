@@ -9,14 +9,19 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum RunError {
-    #[error("Failed to deploy app to simulator: {0}")]
-    DeployFailed(std::io::Error),
+    #[error("Failed to run command {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
 }
 
 impl Reportable for RunError {
     fn report(&self) -> Report {
         match self {
-            Self::DeployFailed(err) => Report::error("Failed to deploy app to simulator", err),
+            Self::CommandFailed { command, error } => {
+                Report::error(format!("Failed to run {command}"), error)
+            }
         }
     }
 }
@@ -43,9 +48,15 @@ pub fn run(
         })
         .dup_stdio();
 
-    let handle = cmd.start().map_err(RunError::DeployFailed)?;
+    let handle = cmd.start().map_err(|error| RunError::CommandFailed {
+        command: format!("{cmd:?}"),
+        error,
+    })?;
 
-    handle.wait().map_err(RunError::DeployFailed)?;
+    handle.wait().map_err(|error| RunError::CommandFailed {
+        command: format!("{cmd:?}"),
+        error,
+    })?;
 
     let app_id = config.app().identifier();
     let mut launcher_cmd = duct::cmd("xcrun", ["simctl", "launch", id, app_id])
@@ -59,15 +70,26 @@ pub fn run(
         });
     }
     if non_interactive {
-        launcher_cmd.start().map_err(RunError::DeployFailed)
+        launcher_cmd
+            .start()
+            .map_err(|error| RunError::CommandFailed {
+                command: format!("{launcher_cmd:?}"),
+                error,
+            })
     } else {
         launcher_cmd
             .start()
-            .map_err(RunError::DeployFailed)?
+            .map_err(|error| RunError::CommandFailed {
+                command: format!("{launcher_cmd:?}"),
+                error,
+            })?
             .wait()
-            .map_err(RunError::DeployFailed)?;
+            .map_err(|error| RunError::CommandFailed {
+                command: format!("{launcher_cmd:?}"),
+                error,
+            })?;
 
-        duct::cmd(
+        let cmd = duct::cmd(
             "xcrun",
             [
                 "simctl",
@@ -86,8 +108,10 @@ pub fn run(
             ],
         )
         .vars(env.explicit_env())
-        .dup_stdio()
-        .start()
-        .map_err(RunError::DeployFailed)
+        .dup_stdio();
+        cmd.start().map_err(|error| RunError::CommandFailed {
+            command: format!("{cmd:?}"),
+            error,
+        })
     }
 }
