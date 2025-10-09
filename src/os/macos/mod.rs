@@ -107,7 +107,7 @@ pub fn open_file_with(
                 application = xcode_app_dir.to_path_buf().into_os_string();
                 log::debug!(
                     "Using Xcode app directory from `xcode-select -p`: {}",
-                    application.display()
+                    application.to_string_lossy()
                 );
             } else {
                 log::debug!(
