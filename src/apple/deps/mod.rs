@@ -42,14 +42,15 @@ pub enum Error {
         package: &'static str,
         source: std::io::Error,
     },
-    #[error("Failed to prompt to install updates: {0}")]
-    PromptFailed(#[from] std::io::Error),
     #[error(transparent)]
     VersionLookupFailed(#[from] system_profile::Error),
     #[error("Failed to update package `{package}`")]
     PackageNotUpdated { package: &'static str },
-    #[error("Failed to list installed gems: {0}")]
-    GemListFailed(std::io::Error),
+    #[error("Failed to run {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
     #[error("Regex match failed for output of `gem list`")]
     RegexMatchFailed,
     #[error(transparent)]
@@ -71,7 +72,10 @@ impl GemCache {
             self.set = duct::cmd("gem", ["list"])
                 .stderr_capture()
                 .read()
-                .map_err(Error::GemListFailed)?
+                .map_err(|error| Error::CommandFailed {
+                    command: "gem list".to_string(),
+                    error,
+                })?
                 .lines()
                 .flat_map(|string| {
                     regex!(r"(?P<name>.+) \(.+\)").captures(string).map(|caps| {
@@ -219,7 +223,9 @@ pub fn install_all(
                     if let Some(answer) = prompt::yes_no(
                         "Would you like these outdated dependencies to be updated for you?",
                         Some(true),
-                    )? {
+                    )
+                    .unwrap_or_default()
+                    {
                         break answer;
                     }
                 };

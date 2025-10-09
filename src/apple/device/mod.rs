@@ -36,7 +36,7 @@ pub enum RunError {
     ExportFailed(ExportError),
     #[error("IPA appears to be missing. Not found at either {old} or {new}")]
     IpaMissing { old: PathBuf, new: PathBuf },
-    #[error("Failed to unzip archive: {0}")]
+    #[error("Failed to unzip IPA archive: {0}")]
     UnzipFailed(std::io::Error),
     #[error("{0}")]
     DeployFailed(String),

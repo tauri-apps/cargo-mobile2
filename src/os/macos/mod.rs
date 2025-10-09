@@ -4,7 +4,7 @@ pub(super) mod info;
 use crate::{apple::deps::xcode_plugin::xcode_developer_dir, env::ExplicitEnv, DuctExpressionExt};
 use core_foundation::{
     array::CFArray,
-    base::{OSStatus, TCFType},
+    base::TCFType,
     error::{CFError, CFErrorRef},
     string::{CFString, CFStringRef},
     url::CFURL,
@@ -31,10 +31,12 @@ pub enum DetectEditorError {
 pub enum OpenFileError {
     #[error("Failed to convert path {path} into a `CFURL`.")]
     PathToUrlFailed { path: PathBuf },
-    #[error("Status code {0}")]
-    LaunchFailed(OSStatus),
-    #[error("Launch failed: {0}")]
-    DuctLaunchFailed(std::io::Error),
+    #[error("Failed to launch {path} with {command}: {error}")]
+    LaunchFailed {
+        path: String,
+        command: &'static str,
+        error: std::io::Error,
+    },
 }
 
 #[derive(Debug)]
@@ -77,7 +79,11 @@ impl Application {
         if status == 0 {
             Ok(())
         } else {
-            Err(OpenFileError::LaunchFailed(status))
+            Err(OpenFileError::LaunchFailed {
+                path: path.to_string_lossy().to_string(),
+                command: "LSOpenFromURLSpec",
+                error: std::io::Error::other(format!("finished with status code {status}")),
+            })
         }
     }
 }
@@ -112,15 +118,20 @@ pub fn open_file_with(
         }
     }
 
+    let application_ = application.clone();
     let path = path.as_ref().to_os_string();
     duct::cmd("open", ["-a"])
         .before_spawn(move |cmd| {
-            cmd.arg(&application).arg(&path);
+            cmd.arg(&application_).arg(&path);
             Ok(())
         })
         .vars(env.explicit_env())
         .run_and_detach()
-        .map_err(OpenFileError::DuctLaunchFailed)?;
+        .map_err(|error| OpenFileError::LaunchFailed {
+            path: application.to_string_lossy().to_string(),
+            command: "open -a",
+            error,
+        })?;
     Ok(())
 }
 
@@ -140,7 +151,11 @@ pub fn replace_path_separator(path: OsString) -> OsString {
 pub fn open_in_xcode(path: impl AsRef<OsStr>) -> Result<(), OpenFileError> {
     duct::cmd("xed", [path.as_ref()])
         .run_and_detach()
-        .map_err(OpenFileError::DuctLaunchFailed)?;
+        .map_err(|error| OpenFileError::LaunchFailed {
+            path: path.as_ref().to_string_lossy().to_string(),
+            command: "xed",
+            error,
+        })?;
     Ok(())
 }
 

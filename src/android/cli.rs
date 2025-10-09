@@ -321,7 +321,12 @@ impl Exec for Input {
                                 .to_string()
                         }),
                     )
-                    .and_then(|h| h.wait().map(|_| ()).map_err(Into::into))
+                    .and_then(|h| {
+                        h.wait().map(|_| ()).map_err(|err| RunError::CommandFailed {
+                            command: format!("{h:?}"),
+                            error: err,
+                        })
+                    })
                     .map_err(Error::RunFailed)
             }),
             Command::Stacktrace => with_config(non_interactive, wrapper, |config, _, env| {

@@ -12,14 +12,19 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum RunAndDebugError {
-    #[error("Failed to deploy app to device: {0}")]
-    DeployFailed(std::io::Error),
+    #[error("Failed to run {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
 }
 
 impl Reportable for RunAndDebugError {
     fn report(&self) -> Report {
         match self {
-            Self::DeployFailed(err) => Report::error("Failed to deploy app to device", err),
+            Self::CommandFailed { command, error } => {
+                Report::error(format!("Failed to run {command}"), error)
+            }
         }
     }
 }
@@ -35,7 +40,10 @@ pub fn run_and_debug(
 
     IOS_DEPLOY_PACKAGE
         .install(false, &mut GemCache::new())
-        .map_err(|e| RunAndDebugError::DeployFailed(std::io::Error::other(e.to_string())))?;
+        .map_err(|e| RunAndDebugError::CommandFailed {
+            command: "`brew install ios-deploy`".to_string(),
+            error: std::io::Error::other(e.to_string()),
+        })?;
 
     let app_path = config.app_path();
     let deploy_cmd = duct::cmd("ios-deploy", ["--debug", "--id", id, "--no-wifi"])
@@ -52,21 +60,35 @@ pub fn run_and_debug(
         .dup_stdio();
 
     if non_interactive {
-        Ok(deploy_cmd.start().map_err(RunAndDebugError::DeployFailed)?)
+        Ok(deploy_cmd
+            .start()
+            .map_err(|error| RunAndDebugError::CommandFailed {
+                command: format!("{deploy_cmd:?}"),
+                error,
+            })?)
     } else {
         deploy_cmd
             .start()
-            .map_err(RunAndDebugError::DeployFailed)?
+            .map_err(|error| RunAndDebugError::CommandFailed {
+                command: format!("{deploy_cmd:?}"),
+                error,
+            })?
             .wait()
-            .map_err(RunAndDebugError::DeployFailed)?;
+            .map_err(|error| RunAndDebugError::CommandFailed {
+                command: format!("{deploy_cmd:?}"),
+                error,
+            })?;
 
         let app_name = config.app().stylized_name().to_string();
 
         LIBIMOBILE_DEVICE_PACKAGE
             .install(false, &mut GemCache::new())
-            .map_err(|e| RunAndDebugError::DeployFailed(std::io::Error::other(e.to_string())))?;
+            .map_err(|e| RunAndDebugError::CommandFailed {
+                command: "`brew install libimobiledevice`".to_string(),
+                error: std::io::Error::other(e.to_string()),
+            })?;
 
-        duct::cmd("idevicesyslog", ["--process", &app_name])
+        let cmd = duct::cmd("idevicesyslog", ["--process", &app_name])
             .before_spawn(move |cmd| {
                 if !noise_level.pedantic() {
                     // when not in pedantic log mode, filter out logs that are not from the actual app
@@ -76,8 +98,11 @@ pub fn run_and_debug(
                 Ok(())
             })
             .vars(env.explicit_env())
-            .dup_stdio()
-            .start()
-            .map_err(RunAndDebugError::DeployFailed)
+            .dup_stdio();
+        cmd.start()
+            .map_err(|error| RunAndDebugError::CommandFailed {
+                command: format!("{cmd:?}"),
+                error,
+            })
     }
 }

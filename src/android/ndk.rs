@@ -154,8 +154,11 @@ impl Reportable for Error {
 pub enum RequiredLibsError {
     #[error(transparent)]
     MissingTool(#[from] MissingToolError),
-    #[error(transparent)]
-    ReadElfFailed(#[from] std::io::Error),
+    #[error("Failed to run {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
     #[error("`readelf` output contained invalid UTF-8: {0}")]
     InvalidUtf8(#[from] std::str::Utf8Error),
 }
@@ -291,15 +294,15 @@ impl Env {
         triple: &str,
     ) -> Result<HashSet<String>, RequiredLibsError> {
         let elf_path = dunce::simplified(elf).to_owned();
+        let cmd =
+            duct::cmd(self.readelf_path(triple)?, [Path::new("-d"), &elf_path]).stderr_capture();
         Ok(regex_multi_line!(r"\(NEEDED\)\s+Shared library: \[(.+)\]")
             .captures_iter(
-                duct::cmd(self.readelf_path(triple)?, ["-d"])
-                    .before_spawn(move |cmd| {
-                        cmd.arg(&elf_path);
-                        Ok(())
-                    })
-                    .stderr_capture()
-                    .read()?
+                cmd.read()
+                    .map_err(|err| RequiredLibsError::CommandFailed {
+                        command: format!("{cmd:?}"),
+                        error: err,
+                    })?
                     .as_str(),
             )
             .map(|caps| {

@@ -109,8 +109,11 @@ pub enum SdkError {
     ParseSdkSettings(plist::Error),
     #[error("SDKSettings.plist missing Version")]
     MissingSdkVersion,
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
+    #[error("{context}: {error}")]
+    Io {
+        context: &'static str,
+        error: std::io::Error,
+    },
     #[error("failed to parse installed runtimes: {0}")]
     ParseRuntimes(serde_json::Error),
     #[error("Xcode Simulator SDK {version} is not installed, please open Xcode")]
@@ -125,8 +128,11 @@ impl Reportable for SdkError {
 
 #[derive(Debug, Error)]
 pub enum BuildError {
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
+    #[error("{context}: {error}")]
+    Io {
+        context: &'static str,
+        error: std::io::Error,
+    },
     #[error(transparent)]
     Sdk(#[from] SdkError),
 }
@@ -141,8 +147,8 @@ impl Reportable for BuildError {
 pub enum ArchiveError {
     #[error("Failed to set app version number: {0}")]
     SetVersionFailed(WithWorkingDirError<std::io::Error>),
-    #[error("Failed to archive via `xcodebuild`: {0}")]
-    ArchiveFailed(#[from] std::io::Error),
+    #[error("Failed to archive via `xcodebuild`: {error}")]
+    ArchiveFailed { error: std::io::Error },
     #[error(transparent)]
     Sdk(#[from] SdkError),
 }
@@ -151,7 +157,9 @@ impl Reportable for ArchiveError {
     fn report(&self) -> Report {
         match self {
             Self::SetVersionFailed(err) => Report::error("Failed to set app version number", err),
-            Self::ArchiveFailed(err) => Report::error("Failed to archive via `xcodebuild`", err),
+            Self::ArchiveFailed { error } => {
+                Report::error("Failed to archive via `xcodebuild`", error)
+            }
             Self::Sdk(err) => Report::error("SDK validation failed", err.to_string()),
         }
     }
@@ -476,7 +484,14 @@ impl<'a> Target<'a> {
                 duct::cmd("xcrun", ["simctl", "list", "runtimes", "--json"])
                     .stdout_capture()
                     .stderr_capture()
-                    .run()?;
+                    .run()
+                    .map_err(|error| {
+                        SdkError::Io {
+                context:
+                    "failed to list installed runtimes with `xcrun simctl list runtimes --json`",
+                error,
+            }
+                    })?;
             let available_runtimes = serde_json::from_reader::<_, SimctlRuntimeList>(Cursor::new(
                 available_runtimes_output.stdout,
             ))
@@ -567,8 +582,16 @@ impl<'a> Target<'a> {
                 Ok(())
             })
             .dup_stdio()
-            .start()?
-            .wait()?;
+            .start()
+            .map_err(|error| BuildError::Io {
+                context: "failed to execute xcodebuild",
+                error,
+            })?
+            .wait()
+            .map_err(|error| BuildError::Io {
+                context: "failed to build with xcodebuild",
+                error,
+            })?;
         Ok(())
     }
 
@@ -639,8 +662,10 @@ impl<'a> Target<'a> {
                 Ok(())
             })
             .dup_stdio()
-            .start()?
-            .wait()?;
+            .start()
+            .map_err(|error| ArchiveError::ArchiveFailed { error })?
+            .wait()
+            .map_err(|error| ArchiveError::ArchiveFailed { error })?;
 
         Ok(())
     }
