@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.21.1]
+
+- [`1f95eba`](https://github.com/tauri-apps/cargo-mobile2/commit/1f95eba0978f142b8971a12ab54f034af52f6d98) ([#491](https://github.com/tauri-apps/cargo-mobile2/pull/491) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fix build with iOS 26 SDK on macOS with Intel chip.
+
 ## \[0.21.0]
 
 - [`3b23d9c`](https://github.com/tauri-apps/cargo-mobile2/commit/3b23d9c653bee97b4d1ac3896c3738a940fbbc4f) ([#485](https://github.com/tauri-apps/cargo-mobile2/pull/485) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Add more context to IO errors.
