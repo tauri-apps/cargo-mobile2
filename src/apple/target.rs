@@ -6,6 +6,7 @@ use super::{
     AuthCredentials,
 };
 use crate::{
+    apple::project::list_destinations,
     env::{Env, ExplicitEnv as _},
     opts::{self, NoiseLevel, Profile},
     target::TargetTrait,
@@ -543,10 +544,19 @@ impl<'a> Target<'a> {
             .map(|device| format!("id={}", device.id()))
             .or_else(|| {
                 if cfg!(target_arch = "x86_64") && self.sdk == "iphonesimulator" {
-                    // on Intel we must force the destination when targeting the simulator
+                    let destinations = list_destinations(&workspace_path, &scheme).unwrap();
+                    let destination = destinations
+                        .iter()
+                        .filter(|d| d.platform == Some("iOS Simulator".to_string()))
+                        .max_by_key(|d| d.os.as_deref().unwrap_or(""));
+                    // on Intel we must force the ARCHS and destination when targeting the simulator
                     // otherwise xcodebuild tries to build arm64
-                    // iPhone 13 seems like a good default target, old enough for every Xcode out there to have it?
-                    Some("platform=iOS Simulator,name=iPhone 13".to_string())
+                    Some(format!(
+                        "platform=iOS Simulator,name={}",
+                        destination
+                            .and_then(|d| d.name.as_deref())
+                            .unwrap_or("iPhone 13")
+                    ))
                 } else {
                     None
                 }
@@ -643,11 +653,23 @@ impl<'a> Target<'a> {
                 }
 
                 if cfg!(target_arch = "x86_64") && sdk == "iphonesimulator" {
+                    let destinations = list_destinations(&workspace_path, &scheme).unwrap();
+                    let destination = destinations
+                        .iter()
+                        .filter(|d| d.platform == Some("iOS Simulator".to_string()))
+                        .max_by_key(|d| d.os.as_deref().unwrap_or(""));
                     // on Intel we must force the ARCHS and destination when targeting the simulator
                     // otherwise xcodebuild tries to build arm64
-                    // iPhone 13 seems like a good default target, old enough for every Xcode out there to have it?
-                    cmd.args(["-destination", "platform=iOS Simulator,name=iPhone 13"])
-                        .arg("ARCHS=x86_64");
+                    cmd.args([
+                        "-destination",
+                        &format!(
+                            "platform=iOS Simulator,name={}",
+                            destination
+                                .and_then(|d| d.name.as_deref())
+                                .unwrap_or("iPhone 13")
+                        ),
+                    ])
+                    .arg("ARCHS=x86_64");
                 }
 
                 cmd.args(["-scheme", &scheme])
