@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use super::adb;
 use crate::{
     android::env::Env,
