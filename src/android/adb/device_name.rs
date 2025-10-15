@@ -1,3 +1,9 @@
+use std::{
+    io::{Read, Write},
+    net::TcpStream,
+    time::Duration,
+};
+
 use super::adb;
 use crate::{
     android::env::Env,
@@ -60,6 +66,14 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
         .map(|stdout| stdout.split('\n').next().unwrap().trim().to_string())
         .map_err(Error::EmuFailed)?;
         if name.is_empty() {
+            if let Some(port) = serial_no
+                .strip_prefix("emulator-")
+                .and_then(|port_str| port_str.parse::<u16>().ok())
+            {
+                if let Some(name) = device_name_from_emulator_console(port) {
+                    return Ok(name);
+                }
+            }
             super::get_prop::get_prop(env, serial_no, "ro.boot.qemu.avd_name")
                 .map_err(Error::GetPropFailed)
         } else {
@@ -91,5 +105,33 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
                 .map(|caps| caps["name"].to_owned())
                 .ok_or(Error::NotMatched)
         })
+    }
+}
+
+fn device_name_from_emulator_console(port: u16) -> Option<String> {
+    let Ok(mut stream) = TcpStream::connect(("127.0.0.1", port)) else {
+        return None;
+    };
+
+    // short timeout so it doesn't hang
+    let _ = stream.set_read_timeout(Some(Duration::from_millis(200)));
+
+    let _ = stream.write_all(b"avd name\n");
+    let mut buf = String::new();
+    let _ = stream.read_to_string(&mut buf);
+
+    // filter out the "OK" and "Android Console" lines
+    let name = buf
+        .lines()
+        .filter(|line| !line.contains("OK") && !line.contains("Android Console"))
+        .collect::<Vec<_>>()
+        .join("")
+        .trim()
+        .to_string();
+
+    if name.is_empty() {
+        None
+    } else {
+        Some(name)
     }
 }

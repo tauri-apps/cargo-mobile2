@@ -117,12 +117,20 @@ impl Reportable for StacktraceError {
     }
 }
 
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+pub enum ConnectionStatus {
+    Connected,
+    Offline,
+    Unauthorized,
+}
+
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Device<'a> {
     serial_no: String,
     name: String,
     model: String,
     target: &'a Target<'a>,
+    status: ConnectionStatus,
 }
 
 impl Display for Device<'_> {
@@ -141,12 +149,14 @@ impl<'a> Device<'a> {
         name: String,
         model: String,
         target: &'a Target<'a>,
+        status: ConnectionStatus,
     ) -> Self {
         Self {
             serial_no,
             name,
             model,
             target,
+            status,
         }
     }
 
@@ -164,6 +174,10 @@ impl<'a> Device<'a> {
 
     pub fn serial_no(&self) -> &str {
         &self.serial_no
+    }
+
+    pub fn status(&self) -> ConnectionStatus {
+        self.status
     }
 
     fn adb(&self, env: &Env) -> duct::Expression {
