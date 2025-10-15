@@ -51,7 +51,13 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
                     command: format!("{cmd:?}"),
                     error,
                 })?
-                .wait()
+                .wait_timeout(Duration::from_secs(3))
+                .and_then(|output| {
+                    output.ok_or(std::io::Error::new(
+                        std::io::ErrorKind::TimedOut,
+                        "adb emu avd name timed out",
+                    ))
+                })
                 .map_err(|error| Error::CommandFailed {
                     command: format!("{cmd:?}"),
                     error,
