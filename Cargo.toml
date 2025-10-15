@@ -84,7 +84,7 @@ rstest = "0.26"
 
 [target."cfg(target_os = \"macos\")".dependencies]
 core-foundation = "0.10"
-x509-certificate = "0.24"
+x509-certificate = "0.25"
 os_info = "3"
 plist = "1"
 
