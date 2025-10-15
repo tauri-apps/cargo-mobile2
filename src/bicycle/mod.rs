@@ -217,17 +217,17 @@ impl Bicycle {
     ///
     /// - [`Action::CreateDirectory`] is executed with the same semantics as `mkdir -p`:
     ///   any missing parent directories are also created, and creation succeeds even if
-    ///   the directory already exists. Failure results in a [`ProcessingError::DirectoryCreationFailed`].
+    ///   the directory already exists. Failure results in a [`ProcessingError::DirectoryCreation`].
     /// - [`Action::CopyFile`] is executed with the same semantics as `cp`:
     ///   if the destination file already exists, it will be overwritted with a copy of
-    ///   the source file. Failure results in a [`ProcessingError::FileCopyFailed`].
+    ///   the source file. Failure results in a [`ProcessingError::FileCopy`].
     /// - [`Action::WriteTemplate`] is executed by reading the source file,
     ///   rendering the contents as a template (using `insert_data` to pass
     ///   any required values to the underlying [`Bicycle::render`] call),
     ///   and then finally writing the result to the destination file. The destination
     ///   file will be overwritten if it already exists. Failure for each step results
-    ///   in [`ProcessingError::TemplateReadFailed`], [`ProcessingError::TemplateRenderFailed`],
-    ///   and [`ProcessingError::TemplateWriteFailed`], respectively.
+    ///   in [`ProcessingError::TemplateRead`], [`ProcessingError::TemplateRender`],
+    ///   and [`ProcessingError::TemplateWrite`], respectively.
     pub fn process_action(
         &self,
         action: &Action,
