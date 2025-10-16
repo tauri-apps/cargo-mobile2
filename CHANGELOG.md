@@ -1,5 +1,11 @@
 # Changelog
 
+## \[0.22.0]
+
+- [`bac9260`](https://github.com/tauri-apps/cargo-mobile2/commit/bac9260debb964aa0c31bcdc0f999077984b70e9) ([#495](https://github.com/tauri-apps/cargo-mobile2/pull/495) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added `android::adb::device_list::Error` variants now include the serial number of the device that caused the error.
+- [`bac9260`](https://github.com/tauri-apps/cargo-mobile2/commit/bac9260debb964aa0c31bcdc0f999077984b70e9) ([#495](https://github.com/tauri-apps/cargo-mobile2/pull/495) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added `android::adb::device_list` now returns disconnected devices. Check with `android::Device::status`.
+- [`bac9260`](https://github.com/tauri-apps/cargo-mobile2/commit/bac9260debb964aa0c31bcdc0f999077984b70e9) ([#495](https://github.com/tauri-apps/cargo-mobile2/pull/495) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added `android::Device::start_detached_with_options`.
+
 ## \[0.21.2]
 
 - [`eba8283`](https://github.com/tauri-apps/cargo-mobile2/commit/eba82833d1d01772b64839a4605676a69dd961c3) ([#493](https://github.com/tauri-apps/cargo-mobile2/pull/493) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Prevent adb device list from getting stuck if any of the available devices are not properly connected.
