@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.21.2]
+
+- [`eba8283`](https://github.com/tauri-apps/cargo-mobile2/commit/eba82833d1d01772b64839a4605676a69dd961c3) ([#493](https://github.com/tauri-apps/cargo-mobile2/pull/493) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Prevent adb device list from getting stuck if any of the available devices are not properly connected.
+
 ## \[0.21.1]
 
 - [`1f95eba`](https://github.com/tauri-apps/cargo-mobile2/commit/1f95eba0978f142b8971a12ab54f034af52f6d98) ([#491](https://github.com/tauri-apps/cargo-mobile2/pull/491) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fix build with iOS 26 SDK on macOS with Intel chip.
