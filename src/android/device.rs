@@ -118,10 +118,12 @@ impl Reportable for StacktraceError {
 }
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+#[non_exhaustive]
 pub enum ConnectionStatus {
     Connected,
     Offline,
     Unauthorized,
+    Authorizing,
 }
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]

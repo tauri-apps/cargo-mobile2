@@ -71,16 +71,16 @@ pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, Error> {
             .map(|caps| {
                 assert_eq!(caps.len(), 3);
                 let serial_no = caps.get(1).unwrap().as_str().to_owned();
-                let status = caps.get(2).unwrap().as_str().to_owned();
-                let status = if status == "device" {
-                    ConnectionStatus::Connected
-                } else if status == "unauthorized" {
-                    ConnectionStatus::Unauthorized
-                } else if status == "offline" {
-                    ConnectionStatus::Offline
-                } else {
-                    log::warn!("Unknown device status {status}");
-                    ConnectionStatus::Offline
+                let status = caps.get(2).unwrap().as_str();
+                let status = match status {
+                    "device" => ConnectionStatus::Connected,
+                    "unauthorized" => ConnectionStatus::Unauthorized,
+                    "offline" => ConnectionStatus::Offline,
+                    "authorizing" => ConnectionStatus::Authorizing,
+                    _ => {
+                        log::warn!("Unknown device status {status}");
+                        ConnectionStatus::Offline
+                    }
                 };
 
                 if status == ConnectionStatus::Connected {
