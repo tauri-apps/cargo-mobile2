@@ -216,7 +216,7 @@ impl<'a> Device<'a> {
                 });
             let handle = cmd.start();
             if let Ok(handle) = handle {
-                if let Ok(output) = handle.wait() {
+                if let Ok(Some(output)) = handle.wait_timeout(Duration::from_secs(3)) {
                     if output.status.success() {
                         let stdout = String::from_utf8_lossy(&output.stdout);
                         if stdout.trim() == "stopped" {
@@ -358,7 +358,13 @@ impl<'a> Device<'a> {
             })
             .dup_stdio()
             .start()?
-            .wait()?;
+            .wait_timeout(Duration::from_secs(3))
+            .and_then(|output| {
+                output.ok_or(std::io::Error::new(
+                    std::io::ErrorKind::TimedOut,
+                    "adb shell input keyevent KEYCODE_WAKEUP timed out",
+                ))
+            })?;
         Ok(())
     }
 
