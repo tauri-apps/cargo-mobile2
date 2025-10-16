@@ -2,7 +2,7 @@ use crate::{
     android::env::Env,
     util::cli::{Report, Reportable},
 };
-use std::str;
+use std::{str, time::Duration};
 use thiserror::Error;
 
 use super::adb;
@@ -54,10 +54,18 @@ pub fn get_prop(env: &Env, serial_no: &str, prop: &str) -> Result<String, Error>
             error,
         })?;
 
-    let output = handle.wait().map_err(|error| Error::CommandFailed {
-        command: format!("{cmd:?}"),
-        error,
-    })?;
+    let output = handle
+        .wait_timeout(Duration::from_secs(3))
+        .and_then(|output| {
+            output.ok_or(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                "adb shell getprop timed out",
+            ))
+        })
+        .map_err(|error| Error::CommandFailed {
+            command: format!("{cmd:?}"),
+            error,
+        })?;
     super::check_authorized(output).map_err(|source| Error::LookupFailed {
         prop: prop.to_owned(),
         source,
