@@ -59,7 +59,7 @@ pub fn get_prop(env: &Env, serial_no: &str, prop: &str) -> Result<String, Error>
         .and_then(|output| {
             output.ok_or(std::io::Error::new(
                 std::io::ErrorKind::TimedOut,
-                "adb shell getprop timed out",
+                "`adb shell getprop` timed out",
             ))
         })
         .map_err(|error| Error::CommandFailed {
