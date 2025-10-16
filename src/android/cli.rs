@@ -2,7 +2,7 @@ use crate::{
     android::{
         aab, adb, apk,
         config::{Config, Metadata},
-        device::{Device, RunError, StacktraceError},
+        device::{ConnectionStatus, Device, RunError, StacktraceError},
         env::{Env, Error as EnvError},
         target::{BuildError, CompileLibError, Target},
         DEFAULT_ACTIVITY, NAME,
@@ -340,7 +340,12 @@ impl Exec for Input {
                 adb::device_list(env)
                     .map_err(Error::ListFailed)
                     .map(|device_list| {
-                        prompt::list_display_only(device_list.iter(), device_list.len());
+                        prompt::list_display_only(
+                            device_list
+                                .iter()
+                                .filter(|d| d.status() == ConnectionStatus::Connected),
+                            device_list.len(),
+                        );
                     })
             }),
             Command::Apk { cmd } => match cmd {
