@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.22.1]
+
+- [`3a85ff8`](https://github.com/tauri-apps/cargo-mobile2/commit/3a85ff806271ca1cf8eceae931fb7f426c7b3aae) Added `android::device::ConnectionStatus::Authorizing` and made the enum non_exhaustive.
+- [`c2e2f6c`](https://github.com/tauri-apps/cargo-mobile2/commit/c2e2f6c62f6f2c8af825f34d573d4ec4487a1906) Add missing timeout on `adb shell` usage.
+
 ## \[0.22.0]
 
 - [`bac9260`](https://github.com/tauri-apps/cargo-mobile2/commit/bac9260debb964aa0c31bcdc0f999077984b70e9) ([#495](https://github.com/tauri-apps/cargo-mobile2/pull/495) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added `android::adb::device_list::Error` variants now include the serial number of the device that caused the error.
