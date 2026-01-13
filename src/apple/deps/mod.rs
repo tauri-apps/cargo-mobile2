@@ -6,6 +6,7 @@ use super::{
     device_ctl_available,
     system_profile::{self, DeveloperTools},
 };
+use crate::regex;
 use crate::{
     util::{
         self,
@@ -14,7 +15,6 @@ use crate::{
     },
     DuctExpressionExt,
 };
-use once_cell_regex::regex;
 use std::collections::hash_set::HashSet;
 use thiserror::Error;
 
