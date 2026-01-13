@@ -142,20 +142,14 @@ impl Submodule {
             cause: Box::new(Cause::IndexCheckFailed(cause)),
         })?;
         let initialized = if !in_index {
-            let path_str = self
-                .path
-                .to_str()
-                .ok_or_else(|| Error {
-                    submodule: self.clone(),
-                    cause: Box::new(Cause::PathInvalidUtf8),
-                })?
-                .to_owned();
+            let path = self.path.to_owned();
             log::info!("adding submodule: {:#?}", self);
             let remote = self.remote.clone();
             let name = name.to_owned();
             git.command()
                 .before_spawn(move |cmd| {
-                    cmd.args(["submodule", "add", "--name", &name, &remote, &path_str]);
+                    cmd.args(["submodule", "add", "--name", &name, &remote])
+                        .arg(&path);
                     Ok(())
                 })
                 .run()

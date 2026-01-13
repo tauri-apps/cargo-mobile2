@@ -7,7 +7,11 @@ use crate::{
     os::Env as CoreEnv,
     util::cli::{Report, Reportable},
 };
-use std::{collections::HashMap, ffi::OsString, path::PathBuf};
+use std::{
+    collections::HashMap,
+    ffi::OsString,
+    path::{Path, PathBuf},
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -63,8 +67,7 @@ impl Env {
                 }
             })
             .or_else(|err| {
-                if let Some(sdk_root) = std::env::var("ANDROID_SDK_ROOT")
-                    .ok()
+                if let Some(sdk_root) = std::env::var_os("ANDROID_SDK_ROOT")
                     .map(PathBuf::from)
                     .filter(|sdk_root| sdk_root.is_dir())
                 {
@@ -75,8 +78,7 @@ impl Env {
                 }
             })
             .or_else(|err| {
-                if let Some(sdk_root) = std::env::var("ANDROID_SDK_ROOT")
-                    .ok()
+                if let Some(sdk_root) = std::env::var_os("ANDROID_SDK_ROOT")
                     .map(PathBuf::from)
                     .filter(|sdk_root| sdk_root.is_dir())
                 {
@@ -102,7 +104,7 @@ impl Env {
     }
 
     pub fn platform_tools_path(&self) -> PathBuf {
-        PathBuf::from(&self.android_home).join("platform-tools")
+        Path::new(&self.android_home).join("platform-tools")
     }
 
     pub fn sdk_version(&self) -> Result<source_props::Revision, source_props::Error> {
