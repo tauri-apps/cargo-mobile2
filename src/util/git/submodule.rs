@@ -1,5 +1,5 @@
 use super::{lfs, Git};
-use once_cell_regex::regex;
+use crate::regex;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},

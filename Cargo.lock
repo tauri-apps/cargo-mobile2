@@ -191,11 +191,12 @@ dependencies = [
  "java-properties",
  "libc",
  "log",
- "once-cell-regex",
+ "once_cell",
  "os_info",
  "os_pipe",
  "path_abs",
  "plist",
+ "regex",
  "rstest",
  "serde",
  "serde_json",
@@ -976,16 +977,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da0df0e5185db44f69b44f26786fe401b6c293d1907744beaa7fa62b2e5a517a"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "once-cell-regex"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3de7e389a5043420c8f2b95ed03f3f104ad6f4c41f7d7e27298f033abc253e8"
-dependencies = [
- "once_cell",
- "regex",
 ]
 
 [[package]]

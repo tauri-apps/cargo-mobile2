@@ -5,11 +5,11 @@ use std::{
 };
 
 use super::adb;
+use crate::regex;
 use crate::{
     android::env::Env,
     util::cli::{Report, Reportable},
 };
-use once_cell_regex::regex;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

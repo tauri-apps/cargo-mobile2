@@ -1,5 +1,6 @@
+use crate::byte_regex;
 use freedesktop_entry_parser::{parse_entry, Entry as FreeDesktopEntry};
-use once_cell_regex::{byte_regex, exports::regex::bytes::Regex};
+use regex::bytes::Regex;
 use std::{
     env,
     ffi::{OsStr, OsString},
@@ -154,8 +155,7 @@ fn parse_unquoted_text(
     // We parse the arguments
     // We only have one file path (not an URL). Any instance of these ones
     // needs to be replaced by the file path in this particular case.
-    let arg_re = byte_regex!(r"%u|%U|%f|%F");
-    let result = replace_on_pattern(text, argument, arg_re);
+    let result = replace_on_pattern(text, argument, byte_regex!(r"%u|%U|%f|%F"));
 
     // Then the other flags
     let icon_replace = icon.unwrap_or_else(|| "".as_ref());

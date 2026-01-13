@@ -8,13 +8,14 @@ pub mod prompt;
 pub use self::{cargo::*, git::*, path::*};
 
 use self::cli::{Report, Reportable};
+use crate::regex;
 use crate::{
     env::ExplicitEnv,
     os::{self, command_path},
     DuctExpressionExt,
 };
-use once_cell_regex::{exports::regex::Captures, exports::regex::Regex, regex};
 use path_abs::PathOps;
+use regex::{Captures, Regex};
 use serde::{ser::Serializer, Deserialize, Serialize};
 use std::{
     error::Error as StdError,
