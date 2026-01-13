@@ -29,10 +29,10 @@ use std::{
 use thiserror::Error;
 
 pub fn list_display(list: &[impl Display]) -> String {
-    if list.len() == 1 {
-        list[0].to_string()
-    } else if list.len() == 2 {
-        format!("{} and {}", list[0], list[1])
+    if let [x0] = list {
+        x0.to_string()
+    } else if let [x0, x1] = list {
+        format!("{x0} and {x1}")
     } else {
         let mut display = String::new();
         for (idx, item) in list.iter().enumerate() {
