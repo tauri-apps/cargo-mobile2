@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.22.2]
+
+- [`a47ecb9`](https://github.com/tauri-apps/cargo-mobile2/commit/a47ecb963f0ecd78105dcd12ce1ae3e59dfb1943) ([#500](https://github.com/tauri-apps/cargo-mobile2/pull/500) by [@sftse](https://github.com/tauri-apps/cargo-mobile2/../../sftse)) Remove unnecessary once-cell-regex dependency.
+
 ## \[0.22.1]
 
 - [`3a85ff8`](https://github.com/tauri-apps/cargo-mobile2/commit/3a85ff806271ca1cf8eceae931fb7f426c7b3aae) Added `android::device::ConnectionStatus::Authorizing` and made the enum non_exhaustive.
