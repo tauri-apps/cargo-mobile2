@@ -2,17 +2,12 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "cli")]
 use structopt::clap::arg_enum;
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum NoiseLevel {
+    #[default]
     Polite,
     LoudAndProud,
     FranklyQuitePedantic,
-}
-
-impl Default for NoiseLevel {
-    fn default() -> Self {
-        Self::Polite
-    }
 }
 
 impl NoiseLevel {

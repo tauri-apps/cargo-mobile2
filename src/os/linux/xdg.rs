@@ -67,8 +67,8 @@ pub fn find_entry_by_app_name(
             if let Ok(parsed) = parse_entry(&entry_path) {
                 if parsed
                     .section("Desktop Entry")
-                    .attr("Name")
-                    .map(str::as_ref)
+                    .and_then(|s| s.attr("Name").first())
+                    .map(|s| s.as_ref())
                     == Some(app_name)
                 {
                     return Some((parsed, entry_path));

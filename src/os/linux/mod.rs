@@ -74,13 +74,13 @@ impl Application {
                                     // We absolutely want the Exec value
                                     exec_command: parsed_entry
                                         .section("Desktop Entry")
-                                        .attr("Exec")
+                                        .and_then(|s| s.attr("Exec").first())
                                         .ok_or(DetectEditorError::ExecFieldMissing)?
                                         .into(),
                                     // The icon is optional, we try getting it because the Exec value may need it
                                     icon: parsed_entry
                                         .section("Desktop Entry")
-                                        .attr("Icon")
+                                        .and_then(|s| s.attr("Icon").first())
                                         .map(Into::into),
                                     xdg_entry_path: entry_filepath,
                                 })
@@ -136,15 +136,14 @@ pub fn open_file_with(
 
             let command_parts = entry
                 .section("Desktop Entry")
-                .attr("Exec")
+                .and_then(|s| s.attr("Exec").first())
                 .map(|str_entry| {
-                    let osstring_entry: OsString = str_entry.into();
                     xdg::parse_command(
-                        &osstring_entry,
+                        str_entry.as_ref(),
                         path_str,
                         entry
                             .section("Desktop Entry")
-                            .attr("Icon")
+                            .and_then(|s| s.attr("Icon").first())
                             .map(|s| s.as_ref()),
                         Some(&entry_path),
                     )
