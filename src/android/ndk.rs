@@ -2,6 +2,7 @@ use super::{
     source_props::{self, SourceProps},
     target::Target,
 };
+use crate::regex_multi_line;
 use crate::{
     os::consts,
     util::{
@@ -9,7 +10,6 @@ use crate::{
         VersionDouble,
     },
 };
-use once_cell_regex::regex_multi_line;
 use std::{
     collections::HashSet,
     fmt::{self, Display},

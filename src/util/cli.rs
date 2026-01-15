@@ -141,7 +141,7 @@ mod interface {
     use std::fmt::Debug;
 
     use crate::{opts, util};
-    use once_cell_regex::exports::once_cell::sync::Lazy;
+    use once_cell::sync::Lazy;
     use structopt::{
         clap::{self, AppSettings},
         StructOpt,

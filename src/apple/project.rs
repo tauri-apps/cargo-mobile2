@@ -1,10 +1,9 @@
-use once_cell_regex::regex;
-
 use super::{
     config::{Config, Metadata},
     deps, rust_version_check,
     target::Target,
 };
+use crate::regex;
 use crate::{
     bicycle,
     target::TargetTrait as _,

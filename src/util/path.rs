@@ -103,9 +103,7 @@ pub fn prefix_path(root: impl AsRef<Path>, path: impl AsRef<Path>) -> PathBuf {
             }
             Component::CurDir => {}
             Component::ParentDir => {
-                if buf.last().is_some() {
-                    buf.pop();
-                }
+                buf.pop();
             }
             _ => buf.push(component),
         };

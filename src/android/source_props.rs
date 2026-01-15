@@ -1,5 +1,5 @@
+use crate::regex;
 use crate::util;
-use once_cell_regex::regex;
 use std::{
     collections::HashMap,
     fmt::Display,

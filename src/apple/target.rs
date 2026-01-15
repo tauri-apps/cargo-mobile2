@@ -17,7 +17,7 @@ use crate::{
     },
     DuctExpressionExt,
 };
-use once_cell_regex::exports::once_cell::sync::OnceCell;
+use once_cell::sync::OnceCell;
 use serde::Deserialize;
 use std::{
     collections::{BTreeMap, HashMap},

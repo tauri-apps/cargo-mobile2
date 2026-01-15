@@ -1,5 +1,5 @@
+use crate::regex;
 use crate::{os::Info, util};
-use once_cell_regex::regex;
 
 pub fn check() -> Result<Info, util::RunAndSearchError> {
     util::run_and_search(

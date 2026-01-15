@@ -1,4 +1,4 @@
-use once_cell_regex::regex;
+use crate::regex;
 
 use std::collections::BTreeSet;
 use thiserror::Error;

@@ -2,7 +2,7 @@ use super::{
     util::{self, CaptureGroupError},
     GemCache, PACKAGES,
 };
-use once_cell_regex::regex;
+use crate::regex;
 use serde::Deserialize;
 use thiserror::Error;
 

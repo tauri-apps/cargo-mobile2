@@ -8,13 +8,14 @@ pub mod prompt;
 pub use self::{cargo::*, git::*, path::*};
 
 use self::cli::{Report, Reportable};
+use crate::regex;
 use crate::{
     env::ExplicitEnv,
     os::{self, command_path},
     DuctExpressionExt,
 };
-use once_cell_regex::{exports::regex::Captures, exports::regex::Regex, regex};
 use path_abs::PathOps;
+use regex::{Captures, Regex};
 use serde::{ser::Serializer, Deserialize, Serialize};
 use std::{
     error::Error as StdError,
@@ -28,10 +29,10 @@ use std::{
 use thiserror::Error;
 
 pub fn list_display(list: &[impl Display]) -> String {
-    if list.len() == 1 {
-        list[0].to_string()
-    } else if list.len() == 2 {
-        format!("{} and {}", list[0], list[1])
+    if let [x0] = list {
+        x0.to_string()
+    } else if let [x0, x1] = list {
+        format!("{x0} and {x1}")
     } else {
         let mut display = String::new();
         for (idx, item) in list.iter().enumerate() {

@@ -1,4 +1,5 @@
 use super::{device_name, get_prop};
+use crate::regex_multi_line;
 use crate::{
     android::{
         device::{ConnectionStatus, Device},
@@ -9,7 +10,6 @@ use crate::{
     target::TargetTrait,
     util::cli::{Report, Reportable},
 };
-use once_cell_regex::regex_multi_line;
 use std::{collections::BTreeSet, process::Command};
 use thiserror::Error;
 
