@@ -560,6 +560,9 @@ impl<'a> Device<'a> {
      * The activity name is the fully qualified class name of the activity to launch.
      * Here are the expected formats for the activity name: of the release and debug variants
      *
+     * Even though the actual logic of this method is very simple, it is kept
+     * separate for clarity and for unit testing.
+     *
      * Release variants have 2 acceptable formats:
      * * `com.example.app/.MainActivity`
      * * `com.example.app/com.example.app.MainActivity`
@@ -572,12 +575,10 @@ impl<'a> Device<'a> {
         application_id_suffix: Option<String>,
         activity: String,
     ) -> String {
-        let identifier: String = match application_id_suffix {
-            Some(suffix) => format!("{}{}", app_identifier, suffix),
-            None => app_identifier,
-        };
-
-        return format!("{}/{}", identifier, activity);
+        return format!(
+            "{app_identifier}{}/{activity}",
+            application_id_suffix.unwrap_or_default()
+        );
     }
 }
 
