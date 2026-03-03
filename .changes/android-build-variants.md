@@ -1,5 +1,5 @@
 ---
-"cargo-mobile2": minor
+"cargo-mobile2": patch
 ---
 
 # Android build variants
