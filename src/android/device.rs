@@ -370,6 +370,12 @@ impl<'a> Device<'a> {
         Ok(())
     }
 
+    /**
+     * This is the legacy function that doesn't support applicationIdSuffix, which
+     * is required for running different build variants (such as debug and release).
+     *
+     * It is kept for backwards compatibility.
+     */
     #[allow(clippy::too_many_arguments)]
     pub fn run(
         &self,
@@ -381,6 +387,32 @@ impl<'a> Device<'a> {
         build_app_bundle: bool,
         reinstall_deps: bool,
         activity: String,
+    ) -> Result<duct::Handle, RunError> {
+        return self.run_with_application_id_suffix(
+            config,
+            env,
+            noise_level,
+            profile,
+            filter_level,
+            build_app_bundle,
+            reinstall_deps,
+            activity,
+            None,
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_with_application_id_suffix(
+        &self,
+        config: &Config,
+        env: &Env,
+        noise_level: NoiseLevel,
+        profile: Profile,
+        filter_level: Option<FilterLevel>,
+        build_app_bundle: bool,
+        reinstall_deps: bool,
+        activity: String,
+        application_id_suffix: Option<String>,
     ) -> Result<duct::Handle, RunError> {
         if build_app_bundle {
             bundletool::install(reinstall_deps).map_err(RunError::BundletoolInstallFailed)?;
@@ -402,7 +434,12 @@ impl<'a> Device<'a> {
             self.install_apk(config, env, profile)
                 .map_err(RunError::ApkInstallFailed)?;
         }
-        let activity = format!("{}/{}", config.app().identifier(), activity);
+
+        let activity = Device::resolve_activity_name(
+            config.app().identifier().to_string(),
+            application_id_suffix,
+            activity,
+        );
         let activity_ = activity.clone();
         let cmd = self
             .adb(env)
@@ -517,5 +554,73 @@ impl<'a> Device<'a> {
             println!("  -- no stacktrace --");
         }
         Ok(())
+    }
+
+    /**
+     * The activity name is the fully qualified class name of the activity to launch.
+     * Here are the expected formats for the activity name: of the release and debug variants
+     *
+     * Even though the actual logic of this method is very simple, it is kept
+     * separate for clarity and for unit testing.
+     *
+     * Release variants have 2 acceptable formats:
+     * * `com.example.app/.MainActivity`
+     * * `com.example.app/com.example.app.MainActivity`
+     *
+     * Debug variants have 1 acceptable format:
+     * * `com.example.app.debug/com.example.app.MainActivity`
+     */
+    fn resolve_activity_name(
+        app_identifier: String,
+        application_id_suffix: Option<String>,
+        activity: String,
+    ) -> String {
+        return format!(
+            "{app_identifier}{}/{activity}",
+            application_id_suffix.unwrap_or_default()
+        );
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use rstest::rstest;
+    #[rstest(
+        app_identifier,
+        application_id_suffix,
+        activity,
+        expected,
+        case(
+            "com.example.app",
+            Some(".debug"),
+            "com.example.app.MainActivity",
+            "com.example.app.debug/com.example.app.MainActivity"
+        ),
+        case(
+            "com.example.app",
+            None,
+            ".MainActivity",
+            "com.example.app/.MainActivity"
+        ),
+        case(
+            "com.example.app",
+            None,
+            "com.example.app.MainActivity",
+            "com.example.app/com.example.app.MainActivity"
+        )
+    )]
+    fn test_resolve_activity_name(
+        app_identifier: String,
+        application_id_suffix: Option<&str>,
+        activity: String,
+        expected: String,
+    ) {
+        let activity = Device::resolve_activity_name(
+            app_identifier,
+            application_id_suffix.map(|s| s.to_string()),
+            activity,
+        );
+        assert_eq!(activity, expected);
     }
 }
