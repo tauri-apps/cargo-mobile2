@@ -1,5 +1,10 @@
 # Changelog
 
+## \[0.22.3]
+
+- [`b725fe8`](https://github.com/tauri-apps/cargo-mobile2/commit/b725fe848bfac28ca84e4a2f891b8db441f863a9) ([#505](https://github.com/tauri-apps/cargo-mobile2/pull/505)) Added `Device::run_with_application_id_suffix` to support running different build variants. This relates to the `applicationIdSuffix` as defined in Android development,
+  described [in these docs](https://developer.android.com/build/build-variants#build-types).
+
 ## \[0.22.2]
 
 - [`a47ecb9`](https://github.com/tauri-apps/cargo-mobile2/commit/a47ecb963f0ecd78105dcd12ce1ae3e59dfb1943) ([#500](https://github.com/tauri-apps/cargo-mobile2/pull/500) by [@sftse](https://github.com/tauri-apps/cargo-mobile2/../../sftse)) Remove unnecessary once-cell-regex dependency.
