@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.22.4]
+
+- [`74138d4`](https://github.com/tauri-apps/cargo-mobile2/commit/74138d48435492d49d40831e56544abeb56398bd) ([#509](https://github.com/tauri-apps/cargo-mobile2/pull/509) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fixed Android logcat process detection when running an app with `--application-id-suffix`.
+
 ## \[0.22.3]
 
 - [`b725fe8`](https://github.com/tauri-apps/cargo-mobile2/commit/b725fe848bfac28ca84e4a2f891b8db441f863a9) ([#505](https://github.com/tauri-apps/cargo-mobile2/pull/505)) Added `Device::run_with_application_id_suffix` to support running different build variants. This relates to the `applicationIdSuffix` as defined in Android development,
