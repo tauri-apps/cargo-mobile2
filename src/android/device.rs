@@ -435,11 +435,11 @@ impl<'a> Device<'a> {
                 .map_err(RunError::ApkInstallFailed)?;
         }
 
-        let activity = Device::resolve_activity_name(
-            config.app().identifier().to_string(),
-            application_id_suffix,
-            activity,
+        let app_identifier = Device::resolve_application_id(
+            config.app().identifier(),
+            application_id_suffix.as_deref(),
         );
+        let activity = Device::resolve_activity_name(app_identifier.clone(), activity);
         let activity_ = activity.clone();
         let cmd = self
             .adb(env)
@@ -476,7 +476,7 @@ impl<'a> Device<'a> {
         let stdout = loop {
             let cmd = duct::cmd(
                 env.platform_tools_path().join("adb"),
-                ["shell", "pidof", "-s", config.app().identifier()],
+                ["shell", "pidof", "-s", app_identifier.as_str()],
             )
             .vars(env.explicit_env())
             .stderr_capture()
@@ -557,6 +557,16 @@ impl<'a> Device<'a> {
     }
 
     /**
+     * The application ID is the package name of the variant to launch.
+     */
+    fn resolve_application_id(app_identifier: &str, application_id_suffix: Option<&str>) -> String {
+        format!(
+            "{app_identifier}{}",
+            application_id_suffix.unwrap_or_default()
+        )
+    }
+
+    /**
      * The activity name is the fully qualified class name of the activity to launch.
      * Here are the expected formats for the activity name: of the release and debug variants
      *
@@ -570,15 +580,8 @@ impl<'a> Device<'a> {
      * Debug variants have 1 acceptable format:
      * * `com.example.app.debug/com.example.app.MainActivity`
      */
-    fn resolve_activity_name(
-        app_identifier: String,
-        application_id_suffix: Option<String>,
-        activity: String,
-    ) -> String {
-        return format!(
-            "{app_identifier}{}/{activity}",
-            application_id_suffix.unwrap_or_default()
-        );
+    fn resolve_activity_name(app_identifier: String, activity: String) -> String {
+        format!("{app_identifier}/{activity}")
     }
 }
 
@@ -616,11 +619,8 @@ mod test {
         activity: String,
         expected: String,
     ) {
-        let activity = Device::resolve_activity_name(
-            app_identifier,
-            application_id_suffix.map(|s| s.to_string()),
-            activity,
-        );
+        let app_identifier = Device::resolve_application_id(&app_identifier, application_id_suffix);
+        let activity = Device::resolve_activity_name(app_identifier, activity);
         assert_eq!(activity, expected);
     }
 }
