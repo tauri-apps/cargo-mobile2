@@ -124,6 +124,11 @@ impl ExplicitEnv for Env {
             "NDK_HOME".into(),
             self.ndk.home().as_os_str().to_os_string(),
         );
+        #[cfg(all(feature = "termux", target_os = "android"))]
+        envs.insert(
+            "GRADLE_OPTS".into(),
+            "-Dorg.gradle.native=false -Djansi.passthrough=true".into(),
+        );
         envs
     }
 }

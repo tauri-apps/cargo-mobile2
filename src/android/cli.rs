@@ -231,9 +231,15 @@ impl Exec for Input {
             }
         }
 
+        #[cfg(not(all(feature = "termux", target_os = "android")))]
         fn open_in_android_studio(config: &Config, env: &Env) -> Result<(), Error> {
             os::open_file_with("Android Studio", config.project_dir(), &env.base)
                 .map_err(Error::OpenFailed)
+        }
+
+        #[cfg(all(feature = "termux", target_os = "android"))]
+        fn open_in_android_studio(_config: &Config, _env: &Env) -> Result<(), Error> {
+            Err(Error::Unsupported)
         }
 
         fn get_targets_or_all<'a>(targets: Vec<String>) -> Result<Vec<&'a Target<'a>>, Error> {

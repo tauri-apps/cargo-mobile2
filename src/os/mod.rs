@@ -18,7 +18,18 @@ mod windows;
 #[cfg(windows)]
 pub use self::windows::*;
 
-#[cfg(not(any(target_os = "macos", target_os = "linux", windows)))]
+#[cfg(all(feature = "termux", target_os = "android"))]
+mod termux;
+
+#[cfg(all(feature = "termux", target_os = "android"))]
+pub use self::termux::*;
+
+#[cfg(not(any(
+    target_os = "macos",
+    target_os = "linux",
+    windows,
+    all(feature = "termux", target_os = "android")
+)))]
 compile_error!("Host platform not yet supported by cargo-mobile2! We'd love if you made a PR to add support for this platform ❤️");
 
 // TODO: we should probably expose common functionality throughout `os` in a

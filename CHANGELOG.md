@@ -1,5 +1,11 @@
 # Changelog
 
+## \[0.23.0]
+
+- Added support to build cargo-mobile2 on Android for use within
+  termux using the termux feature and updated the android-studio
+  template to enable use of gradle 9.
+
 ## \[0.22.3]
 
 - [`b725fe8`](https://github.com/tauri-apps/cargo-mobile2/commit/b725fe848bfac28ca84e4a2f891b8db441f863a9) ([#505](https://github.com/tauri-apps/cargo-mobile2/pull/505)) Added `Device::run_with_application_id_suffix` to support running different build variants. This relates to the `applicationIdSuffix` as defined in Android development,
