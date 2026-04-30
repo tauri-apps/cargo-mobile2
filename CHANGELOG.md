@@ -5,6 +5,9 @@
 - Added support to build cargo-mobile2 on Android for use within
   termux using the termux feature and updated the android-studio
   template to enable use of gradle 9.
+## \[0.22.4]
+
+- [`74138d4`](https://github.com/tauri-apps/cargo-mobile2/commit/74138d48435492d49d40831e56544abeb56398bd) ([#509](https://github.com/tauri-apps/cargo-mobile2/pull/509) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fixed Android logcat process detection when running an app with `--application-id-suffix`.
 
 ## \[0.22.3]
 
