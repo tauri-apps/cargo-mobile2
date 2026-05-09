@@ -12,15 +12,14 @@ name = "{{app.name}}-desktop"
 path = "gen/bin/desktop.rs"
 
 [dependencies]
-futures = "0.3.8"
-mobile-entry-point = "0.1.0"
-wgpu = "0.6.0"
-winit = "0.23.0"
+log = "0.4.29"
+pollster = "0.4.0"
+wgpu = { version = "29.0.3", features = ["spirv"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
-android_logger = "0.9.0"
-log = "0.4.11"
-ndk-glue = "0.2.1"
+winit = { version = "0.30.13", features = ["android-native-activity"] }
+android_logger = "0.15.1"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-wgpu-subscriber = "0.1.0"
+winit = "0.30.13"
+simple_logger = "5.2.0"

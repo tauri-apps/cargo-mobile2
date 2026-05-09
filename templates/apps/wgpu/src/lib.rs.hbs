@@ -1,178 +1,246 @@
-use mobile_entry_point::mobile_entry_point;
+use std::sync::Arc;
+
 use winit::{
-    event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
-    window::{Window, WindowBuilder},
+    application::ApplicationHandler,
+    event::WindowEvent,
+    event_loop::{ActiveEventLoop, EventLoop, OwnedDisplayHandle},
+    window::{Window, WindowId},
 };
 
-// TODO: how can we detect supported formats dynamically?
-#[cfg(target_os = "android")]
-const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrgb;
-#[cfg(not(target_os = "android"))]
-const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
+struct State {
+    instance: wgpu::Instance,
+    window: Arc<Window>,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    size: winit::dpi::PhysicalSize<u32>,
+    surface: wgpu::Surface<'static>,
+    surface_format: wgpu::TextureFormat,
+    render_pipeline: wgpu::RenderPipeline,
+}
 
-async fn run(event_loop: EventLoop<()>, window: Window, swapchain_format: wgpu::TextureFormat) {
-    let size = window.inner_size();
-    let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
-    let surface = unsafe { instance.create_surface(&window) };
-    let adapter = instance
-        .request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::Default,
-            // Request an adapter which can render to our surface
-            compatible_surface: Some(&surface),
-        })
-        .await
-        .expect("Failed to find an appropiate adapter");
+impl State {
+    async fn new(display: OwnedDisplayHandle, window: Arc<Window>) -> State {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_with_display_handle(
+            Box::new(display),
+        ));
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions::default())
+            .await
+            .expect("Failed to find an appropiate adapter");
+        // FIXME(iOS): change to `wgpu::DeviceDescriptor::default()` when https://github.com/gfx-rs/wgpu/issues/9386 is fixed
+        let (device, queue) = adapter
+            .request_device(&wgpu::DeviceDescriptor {
+                required_limits: wgpu::Limits {
+                    max_inter_stage_shader_variables: 15,
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .await
+            .expect("Failed to create device");
 
-    // Create the logical device and command queue
-    let (device, queue) = adapter
-        .request_device(
-            &wgpu::DeviceDescriptor {
-                features: wgpu::Features::empty(),
-                limits: wgpu::Limits::default(),
-                shader_validation: true,
+        let size = window.inner_size();
+
+        let surface = instance.create_surface(window.clone()).unwrap();
+        let cap = surface.get_capabilities(&adapter);
+        let surface_format = cap.formats[0];
+
+        // renderer
+        let vs_module = device.create_shader_module(wgpu::include_spirv!("shader.vert.spv"));
+        let fs_module = device.create_shader_module(wgpu::include_spirv!("shader.frag.spv"));
+
+        let pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor::default());
+
+        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: None,
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &vs_module,
+                entry_point: Some("main"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                buffers: &[],
             },
-            None,
-        )
-        .await
-        .expect("Failed to create device");
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &fs_module,
+                entry_point: Some("main"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: surface_format,
+                    blend: None,
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            multiview_mask: None,
+            cache: None,
+        });
 
-    // Load the shaders from disk
-    let vs_module = device.create_shader_module(wgpu::include_spirv!("shader.vert.spv"));
-    let fs_module = device.create_shader_module(wgpu::include_spirv!("shader.frag.spv"));
-
-    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: None,
-        bind_group_layouts: &[],
-        push_constant_ranges: &[],
-    });
-
-    let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: None,
-        layout: Some(&pipeline_layout),
-        vertex_stage: wgpu::ProgrammableStageDescriptor {
-            module: &vs_module,
-            entry_point: "main",
-        },
-        fragment_stage: Some(wgpu::ProgrammableStageDescriptor {
-            module: &fs_module,
-            entry_point: "main",
-        }),
-        // Use the default rasterizer state: no culling, no depth bias
-        rasterization_state: None,
-        primitive_topology: wgpu::PrimitiveTopology::TriangleList,
-        color_states: &[swapchain_format.into()],
-        depth_stencil_state: None,
-        vertex_state: wgpu::VertexStateDescriptor {
-            index_format: wgpu::IndexFormat::Uint16,
-            vertex_buffers: &[],
-        },
-        sample_count: 1,
-        sample_mask: !0,
-        alpha_to_coverage_enabled: false,
-    });
-
-    let mut sc_desc = wgpu::SwapChainDescriptor {
-        usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-        format: swapchain_format,
-        width: size.width,
-        height: size.height,
-        present_mode: wgpu::PresentMode::Mailbox,
-    };
-
-    let mut swap_chain = device.create_swap_chain(&surface, &sc_desc);
-
-    event_loop.run(move |event, _, control_flow| {
-        // Have the closure take ownership of the resources.
-        // `event_loop.run` never returns, therefore we must do this to ensure
-        // the resources are properly cleaned up.
-        let _ = (
-            &instance,
-            &adapter,
-            &vs_module,
-            &fs_module,
-            &pipeline_layout,
-        );
-
-        let mut render = || {
-            let frame = swap_chain
-                .get_current_frame()
-                .expect("Failed to acquire next swap chain texture")
-                .output;
-            let mut encoder =
-                device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-            {
-                let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                        attachment: &frame.view,
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
-                            store: true,
-                        },
-                    }],
-                    depth_stencil_attachment: None,
-                });
-                rpass.set_pipeline(&render_pipeline);
-                rpass.draw(0..3, 0..1);
-            }
-
-            queue.submit(Some(encoder.finish()));
+        let state = State {
+            instance,
+            window,
+            device,
+            queue,
+            size,
+            surface,
+            surface_format,
+            render_pipeline,
         };
 
-        *control_flow = ControlFlow::Poll;
-        match event {
-            Event::WindowEvent {
-                event: WindowEvent::Resized(size),
-                ..
-            } => {
-                // Recreate the swap chain with the new size
-                sc_desc.width = size.width;
-                sc_desc.height = size.height;
-                swap_chain = device.create_swap_chain(&surface, &sc_desc);
+        state.configure_surface();
+
+        state
+    }
+
+    fn get_window(&self) -> &Window {
+        &self.window
+    }
+
+    fn configure_surface(&self) {
+        let surface_config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format: self.surface_format,
+            view_formats: vec![self.surface_format.add_srgb_suffix()],
+            alpha_mode: wgpu::CompositeAlphaMode::Auto,
+            width: self.size.width,
+            height: self.size.height,
+            desired_maximum_frame_latency: 2,
+            present_mode: wgpu::PresentMode::AutoVsync,
+        };
+        self.surface.configure(&self.device, &surface_config);
+    }
+
+    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+        self.size = new_size;
+
+        self.configure_surface();
+    }
+
+    fn render(&mut self) {
+        let surface_texture = match self.surface.get_current_texture() {
+            wgpu::CurrentSurfaceTexture::Success(texture) => texture,
+            wgpu::CurrentSurfaceTexture::Occluded | wgpu::CurrentSurfaceTexture::Timeout => return,
+            wgpu::CurrentSurfaceTexture::Suboptimal(texture) => {
+                drop(texture);
+                self.configure_surface();
+                return;
             }
-            Event::MainEventsCleared => {
-                if cfg!(target_os = "android") {
-                    // TODO: `request_redraw` isn't impld in winit's Android backend
-                    // https://github.com/rust-windowing/winit/issues/1723
-                    render();
-                }
+            wgpu::CurrentSurfaceTexture::Outdated => {
+                self.configure_surface();
+                return;
             }
-            Event::RedrawRequested(_) => render(),
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                ..
-            } => *control_flow = ControlFlow::Exit,
-            _ => {}
+            wgpu::CurrentSurfaceTexture::Validation => {
+                unreachable!("No error scope registered, so validation errors will panic")
+            }
+            wgpu::CurrentSurfaceTexture::Lost => {
+                self.surface = self.instance.create_surface(self.window.clone()).unwrap();
+                self.configure_surface();
+                return;
+            }
+        };
+
+        let texture_view = surface_texture
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor {
+                format: Some(self.surface_format.add_srgb_suffix()),
+                ..Default::default()
+            });
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+        {
+            let mut renderpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &texture_view,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+                multiview_mask: None,
+            });
+            renderpass.set_pipeline(&self.render_pipeline);
+            renderpass.draw(0..3, 0..1);
         }
-    });
+
+        self.queue.submit([encoder.finish()]);
+        self.window.pre_present_notify();
+
+        surface_texture.present();
+        
+    }
 }
 
-#[cfg(target_os = "android")]
-fn init_logging() {
-    android_logger::init_once(
-        android_logger::Config::default()
-            .with_min_level(log::Level::Info)
-            .with_tag("{{app.name}}"),
-    );
+#[derive(Default)]
+struct App {
+    state: Option<State>,
+}
+
+impl ApplicationHandler for App {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        let attributes = Window::default_attributes().with_title("{{app.stylized-name}}");
+
+        #[cfg(not(any(target_os = "android", target_os = "ios")))]
+        let attributes = attributes.with_inner_size(winit::dpi::LogicalSize::new(1280, 720));
+        let window = Arc::new(event_loop.create_window(attributes).unwrap());
+
+        let state = pollster::block_on(State::new(
+            event_loop.owned_display_handle(),
+            window.clone(),
+        ));
+        self.state = Some(state);
+
+        window.request_redraw();
+    }
+
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
+        let state = self.state.as_mut().unwrap();
+        match event {
+            WindowEvent::CloseRequested => {
+                event_loop.exit();
+            }
+            WindowEvent::RedrawRequested => {
+                state.render();
+                state.get_window().request_redraw();
+            }
+            WindowEvent::Resized(size) => {
+                state.resize(size);
+            }
+            _ => (),
+        }
+    }
 }
 
 #[cfg(not(target_os = "android"))]
-fn init_logging() {
-    wgpu_subscriber::initialize_default_subscriber(None);
+#[unsafe(no_mangle)]
+#[inline(never)]
+pub extern "C" fn start_app() {
+    simple_logger::SimpleLogger::new().init().unwrap();
+
+    let event_loop = EventLoop::new().unwrap();
+    event_loop.run_app(&mut App::default()).unwrap();
 }
 
-#[mobile_entry_point]
-fn main() {
-    init_logging();
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new()
-        .with_title("{{app.stylized-name}}")
-        .build(&event_loop)
-        .unwrap();
-    // TODO: actually handle this correctly
-    // https://github.com/rust-windowing/winit/issues/1588
-    #[cfg(target_os = "android")]
-    std::thread::sleep_ms(2000);
-    futures::executor::block_on(run(event_loop, window, FORMAT));
+#[cfg(target_os = "android")]
+#[unsafe(no_mangle)]
+fn android_main(app: winit::platform::android::activity::AndroidApp) {
+    android_logger::init_once(
+        android_logger::Config::default()
+            .with_max_level(log::LevelFilter::Trace)
+            .with_tag("{{app.name}}"),
+    );
+
+    use winit::platform::android::EventLoopBuilderExtAndroid;
+
+    let event_loop = EventLoop::builder().with_android_app(app).build().unwrap();
+    event_loop.run_app(&mut App::default()).unwrap();
 }
