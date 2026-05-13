@@ -725,7 +725,7 @@ pub fn hvigorw(
                 .map(PathBuf::from)
                 .unwrap_or_else(|_| PathBuf::from("C:\\Program Files\\Huawei\\DevEco Studio"));
             (
-                dev_eco_studio_install_path.join("tools/node/bin/node.exe"),
+                dev_eco_studio_install_path.join("tools/node/node.exe"),
                 dev_eco_studio_install_path.join("tools/hvigor/bin/hvigorw.js"),
                 dev_eco_studio_install_path.join("sdk"),
             )
