@@ -29,6 +29,12 @@ pub fn host_tag() -> &'static str {
     "linux-x86_64"
 }
 
+// FreeBSD runs Android NDK tooling via Linux binary compatibility (Linuxulator)
+#[cfg(target_os = "freebsd")]
+pub fn host_tag() -> &'static str {
+    "linux-x86_64"
+}
+
 #[cfg(all(windows, target_pointer_width = "32"))]
 pub fn host_tag() -> &'static str {
     "windows"
