@@ -2,7 +2,7 @@ use crate::{
     android::env::Env,
     util::cli::{Report, Reportable},
 };
-use std::str;
+use std::{str, time::Duration};
 use thiserror::Error;
 
 use super::adb;
@@ -14,15 +14,18 @@ pub enum Error {
         prop: String,
         source: super::RunCheckedError,
     },
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
+    #[error("Failed to run {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
 }
 
 impl Error {
     fn prop(&self) -> &str {
         match self {
             Self::LookupFailed { prop, .. } => prop,
-            Self::Io(_) => unreachable!(),
+            Self::CommandFailed { .. } => unreachable!(),
         }
     }
 }
@@ -32,24 +35,37 @@ impl Reportable for Error {
         let msg = format!("Failed to run `adb shell getprop {}`", self.prop());
         match self {
             Self::LookupFailed { source, .. } => source.report(&msg),
-            Self::Io(err) => Report::error("IO error", err),
+            Self::CommandFailed { command, error } => {
+                Report::error(format!("Failed to run {command}"), error)
+            }
         }
     }
 }
 
 pub fn get_prop(env: &Env, serial_no: &str, prop: &str) -> Result<String, Error> {
-    let prop_ = prop.to_string();
-    let handle = adb(env, ["-s", serial_no])
-        .before_spawn(move |cmd| {
-            cmd.args(["shell", "getprop", &prop_]);
-            Ok(())
-        })
+    let cmd = adb(env, ["-s", serial_no, "shell", "getprop", prop]);
+    let handle = cmd
         .stdin_file(os_pipe::dup_stdin().unwrap())
         .stdout_capture()
         .stderr_capture()
-        .start()?;
+        .start()
+        .map_err(|error| Error::CommandFailed {
+            command: format!("{cmd:?}"),
+            error,
+        })?;
 
-    let output = handle.wait()?;
+    let output = handle
+        .wait_timeout(Duration::from_secs(3))
+        .and_then(|output| {
+            output.ok_or(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                "`adb shell getprop` timed out",
+            ))
+        })
+        .map_err(|error| Error::CommandFailed {
+            command: format!("{cmd:?}"),
+            error,
+        })?;
     super::check_authorized(output).map_err(|source| Error::LookupFailed {
         prop: prop.to_owned(),
         source,

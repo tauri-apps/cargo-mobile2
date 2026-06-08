@@ -73,7 +73,7 @@ pub struct App {
     template_pack: Pack,
     #[serde(skip)]
     #[allow(clippy::type_complexity)]
-    target_dir_resolver: Option<Arc<Box<dyn Fn(&str, Profile) -> PathBuf>>>,
+    target_dir_resolver: Option<Arc<dyn Fn(&str, Profile) -> PathBuf>>,
 }
 
 impl Debug for App {
@@ -164,8 +164,7 @@ impl App {
         mut self,
         resolver: F,
     ) -> Self {
-        self.target_dir_resolver
-            .replace(Arc::new(Box::new(resolver)));
+        self.target_dir_resolver.replace(Arc::new(resolver));
         self
     }
 

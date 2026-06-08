@@ -14,21 +14,18 @@ impl<'a> Git<'a> {
         Self { root }
     }
 
-    pub fn root(&'a self) -> &'a Path {
+    pub fn root(&self) -> &Path {
         self.root
     }
 
     pub fn command(&self) -> duct::Expression {
-        duct::cmd(
-            "git",
-            ["-C", self.root.as_os_str().to_str().unwrap_or_default()],
-        )
+        duct::cmd("git", ["-C".as_ref(), self.root.as_os_str()])
     }
 
     pub fn command_parse(&self, arg_str: impl AsRef<str>) -> duct::Expression {
-        let mut args = vec!["-C", self.root.as_os_str().to_str().unwrap_or_default()];
+        let mut args = vec!["-C".as_ref(), self.root.as_os_str()];
         for arg in arg_str.as_ref().split(' ') {
-            args.push(arg)
+            args.push(arg.as_ref())
         }
         duct::cmd("git", args)
     }

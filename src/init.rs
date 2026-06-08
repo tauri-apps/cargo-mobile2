@@ -53,7 +53,6 @@ pub enum Error {
     CodeCommandPresentFailed(std::io::Error),
     LldbExtensionInstallFailed(std::io::Error),
     DotCargoLoadFailed(dot_cargo::LoadError),
-    HostTargetTripleDetectionFailed(util::HostTargetTripleError),
     MetadataFailed(metadata::Error),
     #[cfg(target_os = "macos")]
     AppleInitFailed(apple::project::Error),
@@ -80,7 +79,6 @@ impl Reportable for Error {
             Self::CodeCommandPresentFailed(err) => Report::error("Failed to check for presence of `code` command", err),
             Self::LldbExtensionInstallFailed(err) => Report::error("Failed to install CodeLLDB extension", err),
             Self::DotCargoLoadFailed(err) => err.report(),
-            Self::HostTargetTripleDetectionFailed(err) => err.report(),
             Self::MetadataFailed(err) => err.report(),
             Self::AndroidEnvFailed(err) => err.report(),
             Self::AndroidInitFailed(err) => err.report(),

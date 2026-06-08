@@ -2,7 +2,7 @@ use super::{
     util::{self, CaptureGroupError},
     GemCache, PACKAGES,
 };
-use once_cell_regex::regex;
+use crate::regex;
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -16,8 +16,11 @@ pub enum RegexError {
 
 #[derive(Debug, Error)]
 pub enum OutdatedError {
-    #[error("Failed to check for outdated packages: {0}")]
-    CommandFailed(#[from] std::io::Error),
+    #[error("Failed to check for outdated packages with {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
     #[error("Failed to parse outdated package list: {0}")]
     ParseFailed(#[from] serde_json::Error),
     #[error(transparent)]
@@ -97,11 +100,14 @@ impl Outdated {
             formulae: Vec<Formula>,
         }
 
-        duct::cmd("brew", ["outdated", "--json=v2"])
+        let cmd = duct::cmd("brew", ["outdated", "--json=v2"])
             .stderr_capture()
-            .stdout_capture()
-            .run()
-            .map_err(OutdatedError::CommandFailed)
+            .stdout_capture();
+        cmd.run()
+            .map_err(|err| OutdatedError::CommandFailed {
+                command: format!("{cmd:?}"),
+                error: err,
+            })
             .and_then(|output| serde_json::from_slice(&output.stdout).map_err(Into::into))
             .map(|Raw { formulae }| {
                 formulae
@@ -112,10 +118,11 @@ impl Outdated {
     }
 
     pub fn load(gem_cache: &mut GemCache) -> Result<Self, OutdatedError> {
-        let outdated_strings = duct::cmd("gem", ["outdated"])
-            .stderr_capture()
-            .read()
-            .map_err(OutdatedError::CommandFailed)?;
+        let cmd = duct::cmd("gem", ["outdated"]).stderr_capture();
+        let outdated_strings = cmd.read().map_err(|err| OutdatedError::CommandFailed {
+            command: format!("{cmd:?}"),
+            error: err,
+        })?;
         let packages = Self::outdated_brew_deps()?
             .chain(Self::outdated_gem_deps(&outdated_strings, gem_cache)?)
             .collect::<Result<_, _>>()?;

@@ -13,8 +13,11 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum DeviceListError {
-    #[error("Failed to request device list from `ios-deploy`: {0}")]
-    DetectionFailed(#[from] std::io::Error),
+    #[error("Failed to request device list from `{command}`: {error}")]
+    DetectionFailed {
+        command: String,
+        error: std::io::Error,
+    },
     #[error("{0:?} isn't a valid target arch.")]
     ArchInvalid(String),
 }
@@ -56,15 +59,14 @@ fn parse_device_list<'a>(
 }
 
 pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListError> {
-    let result = duct::cmd(
+    let cmd = duct::cmd(
         "ios-deploy",
         ["--detect", "--timeout", "1", "--json", "--no-wifi"],
     )
     .stdout_capture()
     .stderr_capture()
-    .vars(env.explicit_env())
-    .run();
-    match result {
+    .vars(env.explicit_env());
+    match cmd.run() {
         Ok(output) => {
             if output.stdout.is_empty() && output.stderr.is_empty() {
                 log::info!("device detection returned a non-zero exit code, but stdout and stderr are both empty; interpreting as a successful run with no devices connected");
@@ -73,6 +75,9 @@ pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListErro
                 parse_device_list(&output)
             }
         }
-        Err(err) => Err(DeviceListError::DetectionFailed(err)),
+        Err(err) => Err(DeviceListError::DetectionFailed {
+            command: format!("{cmd:?}"),
+            error: err,
+        }),
     }
 }

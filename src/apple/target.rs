@@ -6,6 +6,7 @@ use super::{
     AuthCredentials,
 };
 use crate::{
+    apple::project::list_destinations,
     env::{Env, ExplicitEnv as _},
     opts::{self, NoiseLevel, Profile},
     target::TargetTrait,
@@ -16,7 +17,7 @@ use crate::{
     },
     DuctExpressionExt,
 };
-use once_cell_regex::exports::once_cell::sync::OnceCell;
+use once_cell::sync::OnceCell;
 use serde::Deserialize;
 use std::{
     collections::{BTreeMap, HashMap},
@@ -109,8 +110,11 @@ pub enum SdkError {
     ParseSdkSettings(plist::Error),
     #[error("SDKSettings.plist missing Version")]
     MissingSdkVersion,
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
+    #[error("{context}: {error}")]
+    Io {
+        context: &'static str,
+        error: std::io::Error,
+    },
     #[error("failed to parse installed runtimes: {0}")]
     ParseRuntimes(serde_json::Error),
     #[error("Xcode Simulator SDK {version} is not installed, please open Xcode")]
@@ -125,8 +129,11 @@ impl Reportable for SdkError {
 
 #[derive(Debug, Error)]
 pub enum BuildError {
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
+    #[error("{context}: {error}")]
+    Io {
+        context: &'static str,
+        error: std::io::Error,
+    },
     #[error(transparent)]
     Sdk(#[from] SdkError),
 }
@@ -141,8 +148,8 @@ impl Reportable for BuildError {
 pub enum ArchiveError {
     #[error("Failed to set app version number: {0}")]
     SetVersionFailed(WithWorkingDirError<std::io::Error>),
-    #[error("Failed to archive via `xcodebuild`: {0}")]
-    ArchiveFailed(#[from] std::io::Error),
+    #[error("Failed to archive via `xcodebuild`: {error}")]
+    ArchiveFailed { error: std::io::Error },
     #[error(transparent)]
     Sdk(#[from] SdkError),
 }
@@ -151,7 +158,9 @@ impl Reportable for ArchiveError {
     fn report(&self) -> Report {
         match self {
             Self::SetVersionFailed(err) => Report::error("Failed to set app version number", err),
-            Self::ArchiveFailed(err) => Report::error("Failed to archive via `xcodebuild`", err),
+            Self::ArchiveFailed { error } => {
+                Report::error("Failed to archive via `xcodebuild`", error)
+            }
             Self::Sdk(err) => Report::error("SDK validation failed", err.to_string()),
         }
     }
@@ -476,7 +485,14 @@ impl<'a> Target<'a> {
                 duct::cmd("xcrun", ["simctl", "list", "runtimes", "--json"])
                     .stdout_capture()
                     .stderr_capture()
-                    .run()?;
+                    .run()
+                    .map_err(|error| {
+                        SdkError::Io {
+                context:
+                    "failed to list installed runtimes with `xcrun simctl list runtimes --json`",
+                error,
+            }
+                    })?;
             let available_runtimes = serde_json::from_reader::<_, SimctlRuntimeList>(Cursor::new(
                 available_runtimes_output.stdout,
             ))
@@ -528,10 +544,19 @@ impl<'a> Target<'a> {
             .map(|device| format!("id={}", device.id()))
             .or_else(|| {
                 if cfg!(target_arch = "x86_64") && self.sdk == "iphonesimulator" {
-                    // on Intel we must force the destination when targeting the simulator
+                    let destinations = list_destinations(&workspace_path, &scheme).unwrap();
+                    let destination = destinations
+                        .iter()
+                        .filter(|d| d.platform == Some("iOS Simulator".to_string()))
+                        .max_by_key(|d| d.os.as_deref().unwrap_or(""));
+                    // on Intel we must force the ARCHS and destination when targeting the simulator
                     // otherwise xcodebuild tries to build arm64
-                    // iPhone 13 seems like a good default target, old enough for every Xcode out there to have it?
-                    Some("platform=iOS Simulator,name=iPhone 13".to_string())
+                    Some(format!(
+                        "platform=iOS Simulator,name={}",
+                        destination
+                            .and_then(|d| d.name.as_deref())
+                            .unwrap_or("iPhone 13")
+                    ))
                 } else {
                     None
                 }
@@ -567,8 +592,16 @@ impl<'a> Target<'a> {
                 Ok(())
             })
             .dup_stdio()
-            .start()?
-            .wait()?;
+            .start()
+            .map_err(|error| BuildError::Io {
+                context: "failed to execute xcodebuild",
+                error,
+            })?
+            .wait()
+            .map_err(|error| BuildError::Io {
+                context: "failed to build with xcodebuild",
+                error,
+            })?;
         Ok(())
     }
 
@@ -620,11 +653,23 @@ impl<'a> Target<'a> {
                 }
 
                 if cfg!(target_arch = "x86_64") && sdk == "iphonesimulator" {
+                    let destinations = list_destinations(&workspace_path, &scheme).unwrap();
+                    let destination = destinations
+                        .iter()
+                        .filter(|d| d.platform == Some("iOS Simulator".to_string()))
+                        .max_by_key(|d| d.os.as_deref().unwrap_or(""));
                     // on Intel we must force the ARCHS and destination when targeting the simulator
                     // otherwise xcodebuild tries to build arm64
-                    // iPhone 13 seems like a good default target, old enough for every Xcode out there to have it?
-                    cmd.args(["-destination", "platform=iOS Simulator,name=iPhone 13"])
-                        .arg("ARCHS=x86_64");
+                    cmd.args([
+                        "-destination",
+                        &format!(
+                            "platform=iOS Simulator,name={}",
+                            destination
+                                .and_then(|d| d.name.as_deref())
+                                .unwrap_or("iPhone 13")
+                        ),
+                    ])
+                    .arg("ARCHS=x86_64");
                 }
 
                 cmd.args(["-scheme", &scheme])
@@ -639,8 +684,10 @@ impl<'a> Target<'a> {
                 Ok(())
             })
             .dup_stdio()
-            .start()?
-            .wait()?;
+            .start()
+            .map_err(|error| ArchiveError::ArchiveFailed { error })?
+            .wait()
+            .map_err(|error| ArchiveError::ArchiveFailed { error })?;
 
         Ok(())
     }

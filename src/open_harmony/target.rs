@@ -9,7 +9,7 @@ use crate::{
     util::cli::{Report, Reportable},
     DuctExpressionExt,
 };
-use once_cell_regex::exports::once_cell::sync::OnceCell;
+use once_cell::sync::OnceCell;
 use serde::Serialize;
 use std::{collections::BTreeMap, fmt, io, path::PathBuf, str};
 use thiserror::Error;

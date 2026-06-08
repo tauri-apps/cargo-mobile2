@@ -165,7 +165,6 @@ pub enum Error {
     RunFailed(RunError),
     ListFailed(String),
     NoHomeDir(util::NoHomeDir),
-    CargoEnvFailed(std::io::Error),
     SdkRootInvalid { sdk_root: PathBuf },
     IncludeDirInvalid { include_dir: PathBuf },
     MacosSdkRootInvalid { macos_sdk_root: PathBuf },
@@ -198,7 +197,6 @@ impl Reportable for Error {
             Self::RunFailed(err) => err.report(),
             Self::ListFailed(err) => Report::error("Failed to list devices", err),
             Self::NoHomeDir(err) => Report::error("Failed to load cargo env profile", err),
-            Self::CargoEnvFailed(err) => Report::error("Failed to load cargo env profile", err),
             Self::SdkRootInvalid { sdk_root } => Report::error(
                 "SDK root provided by Xcode was invalid",
                 format!("{sdk_root:?} doesn't exist or isn't a directory"),

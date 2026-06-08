@@ -1,10 +1,15 @@
 use super::{device_name, get_prop};
+use crate::regex_multi_line;
 use crate::{
-    android::{device::Device, env::Env, target::Target},
+    android::{
+        device::{ConnectionStatus, Device},
+        env::Env,
+        target::Target,
+    },
     env::ExplicitEnv as _,
+    target::TargetTrait,
     util::cli::{Report, Reportable},
 };
-use once_cell_regex::regex_multi_line;
 use std::{collections::BTreeSet, process::Command};
 use thiserror::Error;
 
@@ -12,16 +17,23 @@ use thiserror::Error;
 pub enum Error {
     #[error("Failed to run `adb devices`: {0}")]
     DevicesFailed(#[from] super::RunCheckedError),
-    #[error(transparent)]
-    NameFailed(#[from] device_name::Error),
-    #[error(transparent)]
-    ModelFailed(get_prop::Error),
-    #[error(transparent)]
-    AbiFailed(get_prop::Error),
+    #[error("Failed to run `adb -s {serial_no} shell getprop ro.product.model`: {error}")]
+    ModelFailed {
+        serial_no: String,
+        error: get_prop::Error,
+    },
+    #[error("Failed to run `adb -s {serial_no} shell getprop ro.product.cpu.abi`: {error}")]
+    AbiFailed {
+        serial_no: String,
+        error: get_prop::Error,
+    },
     #[error("{0:?} isn't a valid target ABI.")]
     AbiInvalid(String),
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
+    #[error("Failed to run {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
 }
 
 impl Reportable for Error {
@@ -29,39 +41,79 @@ impl Reportable for Error {
         let msg = "Failed to detect connected Android devices";
         match self {
             Self::DevicesFailed(err) => err.report("Failed to run `adb devices`"),
-            Self::NameFailed(err) => err.report(),
-            Self::ModelFailed(err) | Self::AbiFailed(err) => err.report(),
+            Self::ModelFailed { serial_no, error } | Self::AbiFailed { serial_no, error } => {
+                Report::error(
+                    format!("Failed to run `adb -s {serial_no} shell getprop`"),
+                    error,
+                )
+            }
             Self::AbiInvalid(_) => Report::error(msg, self),
-            Self::Io(err) => Report::error(msg, err),
+            Self::CommandFailed { command, error } => {
+                Report::error(format!("Failed to run {command}"), error)
+            }
         }
     }
 }
 
-const ADB_DEVICE_REGEX: &str = r"^([\S]{6,100})	device\b";
+const ADB_DEVICE_REGEX: &str = r"^([\S]{6,100})	([\S]{6,100})\b";
 
 pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, Error> {
     let mut cmd = Command::new(env.platform_tools_path().join("adb"));
     cmd.arg("devices").envs(env.explicit_env());
 
-    super::check_authorized(&cmd.output()?)
-        .map(|raw_list| {
-            regex_multi_line!(ADB_DEVICE_REGEX)
-                .captures_iter(&raw_list)
-                .map(|caps| {
-                    assert_eq!(caps.len(), 2);
-                    let serial_no = caps.get(1).unwrap().as_str().to_owned();
-                    let model = get_prop(env, &serial_no, "ro.product.model")
-                        .map_err(Error::ModelFailed)?;
+    super::check_authorized(&cmd.output().map_err(|error| Error::CommandFailed {
+        command: format!("{} devices", cmd.get_program().to_string_lossy()),
+        error,
+    })?)
+    .map(|raw_list| {
+        regex_multi_line!(ADB_DEVICE_REGEX)
+            .captures_iter(&raw_list)
+            .map(|caps| {
+                assert_eq!(caps.len(), 3);
+                let serial_no = caps.get(1).unwrap().as_str().to_owned();
+                let status = caps.get(2).unwrap().as_str();
+                let status = match status {
+                    "device" => ConnectionStatus::Connected,
+                    "unauthorized" => ConnectionStatus::Unauthorized,
+                    "offline" => ConnectionStatus::Offline,
+                    "authorizing" => ConnectionStatus::Authorizing,
+                    _ => {
+                        log::warn!("Unknown device status {status}");
+                        ConnectionStatus::Offline
+                    }
+                };
+
+                if status == ConnectionStatus::Connected {
+                    let model = get_prop(env, &serial_no, "ro.product.model").map_err(|error| {
+                        Error::ModelFailed {
+                            serial_no: serial_no.clone(),
+                            error,
+                        }
+                    })?;
                     let name = device_name(env, &serial_no).unwrap_or_else(|_| model.clone());
-                    let abi = get_prop(env, &serial_no, "ro.product.cpu.abi")
-                        .map_err(Error::AbiFailed)?;
+                    let abi = get_prop(env, &serial_no, "ro.product.cpu.abi").map_err(|error| {
+                        Error::AbiFailed {
+                            serial_no: serial_no.clone(),
+                            error,
+                        }
+                    })?;
                     let target =
                         Target::for_abi(&abi).ok_or_else(|| Error::AbiInvalid(abi.clone()))?;
-                    Ok(Device::new(serial_no, name, model, target))
-                })
-                .collect()
-        })
-        .map_err(Error::DevicesFailed)?
+                    Ok(Device::new(serial_no, name, model, target, status))
+                } else {
+                    let name = device_name(env, &serial_no).unwrap_or_else(|_| "unknown".into());
+                    Ok(Device::new(
+                        serial_no,
+                        name,
+                        "unknown".into(),
+                        Target::all().values().next().unwrap(),
+                        status,
+                    ))
+                }
+            })
+            .collect()
+    })
+    .map_err(Error::DevicesFailed)?
 }
 
 #[cfg(test)]

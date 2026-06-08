@@ -10,6 +10,7 @@ pub mod doctor;
 pub mod dot_cargo;
 pub mod env;
 pub mod init;
+mod once_cell_regex;
 pub mod open_harmony;
 pub mod opts;
 pub mod os;
@@ -27,7 +28,7 @@ pub static NAME: &str = "mobile";
 
 trait DuctExpressionExt {
     fn vars(self, vars: impl IntoIterator<Item = (impl AsRef<OsStr>, impl AsRef<OsStr>)>) -> Self;
-    fn run_and_detach(self) -> Result<(), std::io::Error>;
+    fn run_and_detach(&self) -> Result<(), std::io::Error>;
     // Sets the stdin, stdout and stderr to properly
     // show the command output in a Node.js wrapper (napi-rs).
     fn dup_stdio(&self) -> Self;
@@ -44,7 +45,7 @@ impl DuctExpressionExt for duct::Expression {
         self
     }
 
-    fn run_and_detach(self) -> Result<(), std::io::Error> {
+    fn run_and_detach(&self) -> Result<(), std::io::Error> {
         self.before_spawn(|cmd| {
             // This is pretty much lifted from the implementation in Alacritty:
             // https://github.com/alacritty/alacritty/blob/8bd2c13490f8cb6ad6b0c1104f9586b3554efea2/alacritty/src/daemon.rs

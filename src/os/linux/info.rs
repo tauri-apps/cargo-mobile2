@@ -1,5 +1,5 @@
 use crate::os::Info;
-use once_cell_regex::regex;
+use crate::regex;
 use std::path::PathBuf;
 use thiserror::Error;
 

@@ -2,7 +2,7 @@ use crate::{
     android::{
         aab, adb, apk,
         config::{Config, Metadata},
-        device::{Device, RunError, StacktraceError},
+        device::{ConnectionStatus, Device, RunError, StacktraceError},
         env::{Env, Error as EnvError},
         target::{BuildError, CompileLibError, Target},
         DEFAULT_ACTIVITY, NAME,
@@ -76,6 +76,11 @@ pub enum Command {
             help = "Specifies which activtiy to launch"
         )]
         activity: Option<String>,
+        #[structopt(
+            long = "application-id-suffix",
+            help = "Optional suffix for the application ID (e.g. \".debug\")"
+        )]
+        application_id_suffix: Option<String>,
     },
     #[structopt(name = "st", about = "Displays a detailed stacktrace for a device")]
     Stacktrace,
@@ -301,12 +306,13 @@ impl Exec for Input {
                 filter: cli::Filter { filter },
                 reinstall_deps: cli::ReinstallDeps { reinstall_deps },
                 activity,
+                application_id_suffix,
             } => with_config(non_interactive, wrapper, |config, metadata, env| {
                 let build_app_bundle = metadata.asset_packs().is_some();
                 ensure_init(config)?;
                 device_prompt(env)
                     .map_err(Error::DevicePromptFailed)?
-                    .run(
+                    .run_with_application_id_suffix(
                         config,
                         env,
                         noise_level,
@@ -320,8 +326,14 @@ impl Exec for Input {
                                 .unwrap_or(DEFAULT_ACTIVITY)
                                 .to_string()
                         }),
+                        application_id_suffix,
                     )
-                    .and_then(|h| h.wait().map(|_| ()).map_err(Into::into))
+                    .and_then(|h| {
+                        h.wait().map(|_| ()).map_err(|err| RunError::CommandFailed {
+                            command: format!("{h:?}"),
+                            error: err,
+                        })
+                    })
                     .map_err(Error::RunFailed)
             }),
             Command::Stacktrace => with_config(non_interactive, wrapper, |config, _, env| {
@@ -335,7 +347,12 @@ impl Exec for Input {
                 adb::device_list(env)
                     .map_err(Error::ListFailed)
                     .map(|device_list| {
-                        prompt::list_display_only(device_list.iter(), device_list.len());
+                        prompt::list_display_only(
+                            device_list
+                                .iter()
+                                .filter(|d| d.status() == ConnectionStatus::Connected),
+                            device_list.len(),
+                        );
                     })
             }),
             Command::Apk { cmd } => match cmd {

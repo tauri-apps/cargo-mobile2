@@ -32,8 +32,11 @@ pub enum DetectEditorError {
 
 #[derive(Debug, Error)]
 pub enum OpenFileError {
-    #[error("Launch failed: {0}")]
-    LaunchFailed(std::io::Error),
+    #[error("Failed to run {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
     #[error("Command parsing failed")]
     CommandParsingFailed,
 }
@@ -71,13 +74,13 @@ impl Application {
                                     // We absolutely want the Exec value
                                     exec_command: parsed_entry
                                         .section("Desktop Entry")
-                                        .attr("Exec")
+                                        .and_then(|s| s.attr("Exec").first())
                                         .ok_or(DetectEditorError::ExecFieldMissing)?
                                         .into(),
                                     // The icon is optional, we try getting it because the Exec value may need it
                                     icon: parsed_entry
                                         .section("Desktop Entry")
-                                        .attr("Icon")
+                                        .and_then(|s| s.attr("Icon").first())
                                         .map(Into::into),
                                     xdg_entry_path: entry_filepath,
                                 })
@@ -105,9 +108,12 @@ impl Application {
             // If command_parts has at least one element this works. If it has a single
             // element, &command_parts[1..] should be an empty slice (&[]) and duct
             // does not add any argument on that case
-            duct::cmd(&command_parts[0], &command_parts[1..])
-                .run_and_detach()
-                .map_err(OpenFileError::LaunchFailed)
+            let cmd = duct::cmd(&command_parts[0], &command_parts[1..]);
+            cmd.run_and_detach()
+                .map_err(|error| OpenFileError::CommandFailed {
+                    command: format!("{cmd:?}"),
+                    error,
+                })
         } else {
             Err(OpenFileError::CommandParsingFailed)
         }
@@ -130,15 +136,14 @@ pub fn open_file_with(
 
             let command_parts = entry
                 .section("Desktop Entry")
-                .attr("Exec")
+                .and_then(|s| s.attr("Exec").first())
                 .map(|str_entry| {
-                    let osstring_entry: OsString = str_entry.into();
                     xdg::parse_command(
-                        &osstring_entry,
+                        str_entry.as_ref(),
                         path_str,
                         entry
                             .section("Desktop Entry")
-                            .attr("Icon")
+                            .and_then(|s| s.attr("Icon").first())
                             .map(|s| s.as_ref()),
                         Some(&entry_path),
                     )
@@ -154,10 +159,12 @@ pub fn open_file_with(
         .unwrap_or_else(|| vec![app_str.to_os_string()]);
 
     // If command_parts has at least one element, this won't panic from Out of Bounds
-    duct::cmd(&command_parts[0], &command_parts[1..])
-        .vars(env.explicit_env())
-        .run_and_detach()
-        .map_err(OpenFileError::LaunchFailed)
+    let cmd = duct::cmd(&command_parts[0], &command_parts[1..]).vars(env.explicit_env());
+    cmd.run_and_detach()
+        .map_err(|error| OpenFileError::CommandFailed {
+            command: format!("{cmd:?}"),
+            error,
+        })
 }
 
 // We use "sh" in order to access "command -v", as that is a bultin command on sh.

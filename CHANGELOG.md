@@ -1,5 +1,42 @@
 # Changelog
 
+## \[0.22.4]
+
+- [`74138d4`](https://github.com/tauri-apps/cargo-mobile2/commit/74138d48435492d49d40831e56544abeb56398bd) ([#509](https://github.com/tauri-apps/cargo-mobile2/pull/509) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fixed Android logcat process detection when running an app with `--application-id-suffix`.
+
+## \[0.22.3]
+
+- [`b725fe8`](https://github.com/tauri-apps/cargo-mobile2/commit/b725fe848bfac28ca84e4a2f891b8db441f863a9) ([#505](https://github.com/tauri-apps/cargo-mobile2/pull/505)) Added `Device::run_with_application_id_suffix` to support running different build variants. This relates to the `applicationIdSuffix` as defined in Android development,
+  described [in these docs](https://developer.android.com/build/build-variants#build-types).
+
+## \[0.22.2]
+
+- [`a47ecb9`](https://github.com/tauri-apps/cargo-mobile2/commit/a47ecb963f0ecd78105dcd12ce1ae3e59dfb1943) ([#500](https://github.com/tauri-apps/cargo-mobile2/pull/500) by [@sftse](https://github.com/tauri-apps/cargo-mobile2/../../sftse)) Remove unnecessary once-cell-regex dependency.
+
+## \[0.22.1]
+
+- [`3a85ff8`](https://github.com/tauri-apps/cargo-mobile2/commit/3a85ff806271ca1cf8eceae931fb7f426c7b3aae) Added `android::device::ConnectionStatus::Authorizing` and made the enum non_exhaustive.
+- [`c2e2f6c`](https://github.com/tauri-apps/cargo-mobile2/commit/c2e2f6c62f6f2c8af825f34d573d4ec4487a1906) Add missing timeout on `adb shell` usage.
+
+## \[0.22.0]
+
+- [`bac9260`](https://github.com/tauri-apps/cargo-mobile2/commit/bac9260debb964aa0c31bcdc0f999077984b70e9) ([#495](https://github.com/tauri-apps/cargo-mobile2/pull/495) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added `android::adb::device_list::Error` variants now include the serial number of the device that caused the error.
+- [`bac9260`](https://github.com/tauri-apps/cargo-mobile2/commit/bac9260debb964aa0c31bcdc0f999077984b70e9) ([#495](https://github.com/tauri-apps/cargo-mobile2/pull/495) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added `android::adb::device_list` now returns disconnected devices. Check with `android::Device::status`.
+- [`bac9260`](https://github.com/tauri-apps/cargo-mobile2/commit/bac9260debb964aa0c31bcdc0f999077984b70e9) ([#495](https://github.com/tauri-apps/cargo-mobile2/pull/495) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Added `android::Device::start_detached_with_options`.
+
+## \[0.21.2]
+
+- [`eba8283`](https://github.com/tauri-apps/cargo-mobile2/commit/eba82833d1d01772b64839a4605676a69dd961c3) ([#493](https://github.com/tauri-apps/cargo-mobile2/pull/493) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Prevent adb device list from getting stuck if any of the available devices are not properly connected.
+
+## \[0.21.1]
+
+- [`1f95eba`](https://github.com/tauri-apps/cargo-mobile2/commit/1f95eba0978f142b8971a12ab54f034af52f6d98) ([#491](https://github.com/tauri-apps/cargo-mobile2/pull/491) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fix build with iOS 26 SDK on macOS with Intel chip.
+
+## \[0.21.0]
+
+- [`3b23d9c`](https://github.com/tauri-apps/cargo-mobile2/commit/3b23d9c653bee97b4d1ac3896c3738a940fbbc4f) ([#485](https://github.com/tauri-apps/cargo-mobile2/pull/485) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Add more context to IO errors.
+- [`3c49271`](https://github.com/tauri-apps/cargo-mobile2/commit/3c49271d737aec02f159d3b641d5dd91b5f777e5) ([#489](https://github.com/tauri-apps/cargo-mobile2/pull/489) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Enhance opening Xcode by querying the selected Xcode path with `xcode-select -p`.
+
 ## \[0.20.7]
 
 - [`68771b0`](https://github.com/tauri-apps/cargo-mobile2/commit/68771b035524d3f61e7cbf9f6d6950e9fdd3805e) ([#483](https://github.com/tauri-apps/cargo-mobile2/pull/483) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Ignore errors when checking outdated dependencies with `gem` and `brew`.

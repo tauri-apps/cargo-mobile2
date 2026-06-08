@@ -8,13 +8,14 @@ pub mod prompt;
 pub use self::{cargo::*, git::*, path::*};
 
 use self::cli::{Report, Reportable};
+use crate::regex;
 use crate::{
     env::ExplicitEnv,
     os::{self, command_path},
     DuctExpressionExt,
 };
-use once_cell_regex::{exports::regex::Captures, exports::regex::Regex, regex};
 use path_abs::PathOps;
+use regex::{Captures, Regex};
 use serde::{ser::Serializer, Deserialize, Serialize};
 use std::{
     error::Error as StdError,
@@ -28,10 +29,10 @@ use std::{
 use thiserror::Error;
 
 pub fn list_display(list: &[impl Display]) -> String {
-    if list.len() == 1 {
-        list[0].to_string()
-    } else if list.len() == 2 {
-        format!("{} and {}", list[0], list[1])
+    if let [x0] = list {
+        x0.to_string()
+    } else if let [x0, x1] = list {
+        format!("{x0} and {x1}")
     } else {
         let mut display = String::new();
         for (idx, item) in list.iter().enumerate() {
@@ -472,31 +473,13 @@ pub fn command_present(name: &str) -> Result<bool, std::io::Error> {
     command_path(name).map(|_path| true).or(Ok(false))
 }
 
-#[derive(Debug)]
-pub enum PipeError {
-    TxCommandFailed(std::io::Error),
-    RxCommandFailed(std::io::Error),
-    PipeFailed(io::Error),
-    WaitFailed(std::io::Error),
-}
-
-impl Display for PipeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::TxCommandFailed(err) => write!(f, "Failed to run sending command: {err}"),
-            Self::RxCommandFailed(err) => write!(f, "Failed to run receiving command: {err}"),
-            Self::PipeFailed(err) => write!(f, "Failed to pipe output: {err}"),
-            Self::WaitFailed(err) => {
-                write!(f, "Failed to wait for receiving command to exit: {err}")
-            }
-        }
-    }
-}
-
 #[derive(Debug, Error)]
 pub enum RunAndSearchError {
-    #[error(transparent)]
-    CommandFailed(#[from] std::io::Error),
+    #[error("failed to run command {command}: {error}")]
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
     #[error("{command:?} output failed to match regex: {output:?}")]
     SearchFailed { command: String, output: String },
 }
@@ -512,12 +495,15 @@ pub fn run_and_search<T>(
         .map(|output| {
             re.captures(&output)
                 .ok_or_else(|| RunAndSearchError::SearchFailed {
-                    command: command_string,
+                    command: command_string.clone(),
                     output: output.to_owned(),
                 })
                 .map(|caps| f(&output, caps))
         })
-        .map_err(RunAndSearchError::from)?
+        .map_err(|error| RunAndSearchError::CommandFailed {
+            command: command_string,
+            error,
+        })?
 }
 
 #[derive(Debug, Error)]

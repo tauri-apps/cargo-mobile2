@@ -3,6 +3,7 @@ use super::{
     deps, rust_version_check,
     target::Target,
 };
+use crate::regex;
 use crate::{
     bicycle,
     target::TargetTrait as _,
@@ -20,6 +21,10 @@ pub static TEMPLATE_PACK: &str = "xcode";
 
 #[derive(Debug)]
 pub enum Error {
+    CommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
     RustupFailed(std::io::Error),
     RustVersionCheckFailed(util::RustVersionError),
     DepsInstallFailed(deps::Error),
@@ -37,7 +42,12 @@ pub enum Error {
 impl Reportable for Error {
     fn report(&self) -> Report {
         match self {
-            Self::RustupFailed(err) => Report::error("Failed to `rustup` Apple toolchains", err),
+            Self::CommandFailed { command, error } => {
+                Report::error(format!("Failed to run {command}"), error)
+            }
+            Self::RustupFailed(err) => {
+                Report::error("Failed to install Apple toolchains with rustup", err)
+            }
             Self::RustVersionCheckFailed(err) => err.report(),
             Self::DepsInstallFailed(err) => {
                 Report::error("Failed to install Apple dependencies", err)
@@ -216,4 +226,67 @@ pub fn gen(
         .map_err(Error::PodInstallFailed)?;
     }
     Ok(())
+}
+
+#[derive(Debug)]
+pub struct Destination {
+    pub name: Option<String>,
+    pub platform: Option<String>,
+    pub arch: Option<String>,
+    pub id: Option<String>,
+    pub os: Option<String>,
+}
+
+pub fn list_destinations(workspace_path: &Path, scheme: &str) -> Result<Vec<Destination>, Error> {
+    let kv_re = regex!(r"(\w+):([^,}]+)");
+
+    let workspace_path = workspace_path.to_path_buf();
+
+    let output = duct::cmd("xcodebuild", ["-scheme", scheme, "-showdestinations"])
+        .before_spawn(move |cmd| {
+            cmd.arg("-workspace");
+            cmd.arg(&workspace_path);
+            Ok(())
+        })
+        .stdout_capture()
+        .run()
+        .map_err(|error| Error::CommandFailed {
+            command: "xcodebuild -showdestinations".to_string(),
+            error,
+        })?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let mut destinations = Vec::new();
+
+    for line in stdout.lines() {
+        let line = line.trim();
+        if !line.starts_with("{") {
+            continue;
+        }
+
+        let mut dest = Destination {
+            platform: None,
+            arch: None,
+            id: None,
+            name: None,
+            os: None,
+        };
+
+        for kv in kv_re.captures_iter(line) {
+            let key = kv.get(1).unwrap().as_str();
+            let value = kv.get(2).unwrap().as_str();
+            match key {
+                "platform" => dest.platform = Some(value.trim().to_string()),
+                "arch" => dest.arch = Some(value.trim().to_string()),
+                "id" => dest.id = Some(value.trim().to_string()),
+                "name" => dest.name = Some(value.trim().to_string()),
+                "OS" => dest.os = Some(value.trim().to_string()),
+                _ => {}
+            }
+        }
+
+        destinations.push(dest);
+    }
+
+    Ok(destinations)
 }

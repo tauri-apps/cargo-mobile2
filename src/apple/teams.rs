@@ -1,31 +1,33 @@
-use once_cell_regex::regex;
+use crate::regex;
 
 use std::collections::BTreeSet;
 use thiserror::Error;
 use x509_certificate::{certificate::X509Certificate, X509CertificateError};
 
-pub fn get_pem_list(name_substr: &str) -> std::io::Result<std::process::Output> {
+pub fn get_pem_list(name_substr: &str) -> duct::Expression {
     duct::cmd(
         "security",
         ["find-certificate", "-p", "-a", "-c", name_substr],
     )
     .stderr_capture()
     .stdout_capture()
-    .run()
 }
 
-pub fn get_pem_list_old_name_scheme() -> std::io::Result<std::process::Output> {
+pub fn get_pem_list_old_name_scheme() -> duct::Expression {
     get_pem_list("Developer:")
 }
 
-pub fn get_pem_list_new_name_scheme() -> std::io::Result<std::process::Output> {
+pub fn get_pem_list_new_name_scheme() -> duct::Expression {
     get_pem_list("Development:")
 }
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("Failed to call `security` command: {0}")]
-    SecurityCommandFailed(#[from] std::io::Error),
+    #[error("Failed to run `security` command: {command}: {error}")]
+    SecurityCommandFailed {
+        command: String,
+        error: std::io::Error,
+    },
     #[error("Failed to parse X509 cert: {0}")]
     X509ParseFailed(#[source] X509CertificateError),
 }
@@ -117,10 +119,22 @@ impl Team {
 
 pub fn find_development_teams() -> Result<Vec<Team>, Error> {
     let certs = {
-        let new = get_pem_list_new_name_scheme().map_err(Error::SecurityCommandFailed)?;
+        let new_name_scheme_cmd = get_pem_list_new_name_scheme();
+        let new = new_name_scheme_cmd
+            .run()
+            .map_err(|error| Error::SecurityCommandFailed {
+                command: format!("{new_name_scheme_cmd:?}"),
+                error,
+            })?;
         let mut certs =
             X509Certificate::from_pem_multiple(new.stdout).map_err(Error::X509ParseFailed)?;
-        let old = get_pem_list_old_name_scheme().map_err(Error::SecurityCommandFailed)?;
+        let old_name_scheme_cmd = get_pem_list_old_name_scheme();
+        let old = old_name_scheme_cmd
+            .run()
+            .map_err(|error| Error::SecurityCommandFailed {
+                command: format!("{old_name_scheme_cmd:?}"),
+                error,
+            })?;
         certs.append(
             &mut X509Certificate::from_pem_multiple(old.stdout).map_err(Error::X509ParseFailed)?,
         );
