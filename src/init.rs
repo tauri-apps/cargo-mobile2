@@ -15,6 +15,7 @@ use crate::{
         cli::{Report, Reportable, TextWrapper},
     },
 };
+
 use std::{
     fs, io,
     path::{Path, PathBuf},
@@ -93,7 +94,7 @@ impl Reportable for Error {
 pub fn exec(
     wrapper: &TextWrapper,
     non_interactive: bool,
-    skip_dev_tools: bool,
+    #[allow(unused)] skip_dev_tools: bool, // not used in termux
     skip_targets_install: bool,
     #[cfg_attr(not(target_os = "macos"), allow(unused))] reinstall_deps: bool,
     open_in_editor: bool,
@@ -133,6 +134,10 @@ pub fn exec(
         fs::create_dir_all(&asset_dir)
             .map_err(|cause| Error::AssetDirCreationFailed { asset_dir, cause })?;
     }
+
+    #[cfg(all(feature = "termux", target_os = "android"))]
+    let skip_dev_tools = false;
+
     if !skip_dev_tools && util::command_present("code").map_err(Error::CodeCommandPresentFailed)? {
         code_command()
             .before_spawn(move |cmd| {

@@ -9,12 +9,23 @@ use crate::{env::ExplicitEnv as _, util::cli::Report, DuctExpressionExt};
 use std::{ffi::OsString, str, string::FromUtf8Error};
 use thiserror::Error;
 
+#[cfg(not(all(feature = "termux", target_os = "android")))]
 pub fn adb<U>(env: &Env, args: U) -> duct::Expression
 where
     U: IntoIterator,
     U::Item: Into<OsString>,
 {
     duct::cmd(env.platform_tools_path().join("adb"), args).vars(env.explicit_env())
+}
+
+#[cfg(all(feature = "termux", target_os = "android"))]
+pub fn adb<U>(env: &Env, args: U) -> duct::Expression
+where
+    U: IntoIterator,
+    U::Item: Into<OsString>,
+{
+    let prefix = crate::os::prefix().expect("Not running on termux");
+    duct::cmd(prefix.join("bin/adb"), args).vars(env.explicit_env())
 }
 
 #[derive(Debug, Error)]

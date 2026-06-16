@@ -55,6 +55,7 @@ brainium = []
 rustls = ["ureq/rustls"]
 native-tls = ["ureq/native-tls"]
 default = ["cli", "native-tls"]
+termux = []
 
 [dependencies]
 handlebars = "6"

@@ -39,6 +39,26 @@ pub fn host_tag() -> &'static str {
     "windows-x86_64"
 }
 
+#[cfg(all(feature = "termux", target_os = "android", target_arch = "aarch64"))]
+pub fn host_tag() -> &'static str {
+    "linux-aarch64"
+}
+
+#[cfg(all(feature = "termux", target_os = "android", target_arch = "x86_64"))]
+pub fn host_tag() -> &'static str {
+    "linux-x86_64"
+}
+
+#[cfg(all(feature = "termux", target_os = "android", target_arch = "x86"))]
+pub fn host_tag() -> &'static str {
+    "linux-x86"
+}
+
+#[cfg(all(feature = "termux", target_os = "android", target_arch = "arm"))]
+pub fn host_tag() -> &'static str {
+    "linux-arm"
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum Compiler {
     Clang,

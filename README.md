@@ -76,3 +76,21 @@ For fine-grained control of logging, use the `--filter` (or `-f`) option, which 
 the default device logging level set by `-v` or `-vv`.
 
 If using the `android_logger` crate to handle Rust log messages, `trace` logs from Rust are mapped to `verbose` logs in Android.
+
+## Build and use on Android with termux
+
+Cargo-mobile2 can be build for use within termux on Android to
+build Android packages. To compile cargo-mobile2 for termux enable
+the termux feature.
+
+Before using cargo-mobile2 you need to:
+
+* install rust packages including the android targets (rust-std-aarch64-linux-android,
+  rust-std-armv7-linux-androideabi, rust-std-i686-linux-android, rust-std-x86-64-linux-android)
+* install java & tools like gradle, aapt2 and android-tools packages
+* install termux version of android-sdk and android-ndk
+
+Make sure you set the environment variables `JAVA_HOME`
+(eg `$PREFIX/lib/jvm/java-21-openjdk`), `ANDROID_HOME` (location
+android sdk: `$PREFIX/opt/android-sdk`) and `NDK_HOME` (location
+android ndk: `$PREFIX/opt/android-ndk`).

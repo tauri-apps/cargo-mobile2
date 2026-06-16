@@ -38,6 +38,25 @@ android {
             )
         }
     }
+    flavorDimensions += "abi"
+    productFlavors {
+        create("universal") {
+            dimension = "abi"
+            ndk { abiFilters += listOf({{~#each abi-list}}"{{this}}"{{#unless @last}},{{/unless}}{{/each}}) }
+          }
+          {{#each arch-list}}create("{{this}}") { dimension = "abi"; ndk { abiFilters.add("{{lookup ../abi-list @index}}") } }
+          {{/each}}
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+    buildFeatures {
+        buildConfig = true
+    }
 }
 
 rust {

@@ -52,8 +52,28 @@ pub fn reverse_domain(domain: &str) -> String {
     domain.split('.').rev().collect::<Vec<_>>().join(".")
 }
 
+#[cfg(not(target_os = "android"))]
 pub fn rustup_add(triple: &str) -> Result<ExitStatus, std::io::Error> {
     duct::cmd("rustup", ["target", "add", triple])
+        .dup_stdio()
+        .run()
+        .map(|o| o.status)
+}
+
+#[cfg(target_os = "android")]
+pub fn rustup_add(triple: &str) -> Result<ExitStatus, std::io::Error> {
+    let pkg = match triple {
+        "aarch64-linux-android" => "rust-std-aarch64-linux-android",
+        "armv7-linux-androideabi" => "rust-std-armv7-linux-androideabi",
+        "i686-linux-android" => "rust-std-i686-linux-android",
+        "wasm32-unknown-unknown" => "rust-std-wasm32-unknown-unknown",
+        "x86-64-linux-android" => "rust-std-x86-64-linux-android",
+        _ => {
+            eprintln!("{triple} is not available for rust on termux");
+            return Ok(ExitStatus::default());
+        }
+    };
+    duct::cmd("apt", ["install", pkg])
         .dup_stdio()
         .run()
         .map(|o| o.status)
@@ -655,25 +675,52 @@ pub fn gradlew(
 
     let project_dir = dunce::simplified(&project_dir);
     let gradlew_p = project_dir.join(gradlew);
-    if gradlew_p.exists() {
-        duct::cmd(
-            gradlew_p,
-            [OsStr::new("--project-dir"), project_dir.as_ref()],
-        )
-        .vars(env.explicit_env())
-        .dup_stdio()
+
+    let mut args: Vec<&OsStr> = vec![OsStr::new("--project-dir"), project_dir.as_ref()];
+    #[cfg(feature = "termux")]
+    {
+        args.push(OsStr::new("--no-daemon"));
+        // args.push(OsStr::new("-Dorg.gradle.native=false"));
+        // args.push(OsStr::new("-Djansi.passthrough=true"));
+        // args.push(OsStr::new("-g"));
+        // args.push(OsStr::new("/data/data/com.termux/files/home"));
+    }
+    // In Termux, skip the gradlew wrapper script entirely — it tries to download
+    // a Gradle distribution which fails. Use the system gradle directly instead.
+    #[cfg(feature = "termux")]
+    let use_gradlew_script = false;
+    #[cfg(not(feature = "termux"))]
+    let use_gradlew_script = gradlew_p.exists();
+
+    // TOTERMUX
+    if use_gradlew_script {
+        duct::cmd(gradlew_p, &args)
+            .vars(env.explicit_env())
+            // .env(
+            //     "GRADLE_OPTS",
+            //     "-Dorg.gradle.native=false -Djansi.passthrough=true",
+            // )
+            .dup_stdio()
     } else if duct::cmd(gradlew, ["-v"])
         .dup_stdio()
         .run()
         .map(|o| o.status.success())
         .unwrap_or(false)
     {
-        duct::cmd(gradlew, [OsStr::new("--project-dir"), project_dir.as_ref()])
+        duct::cmd(gradlew, &args)
             .vars(env.explicit_env())
+            // .env(
+            //     "GRADLE_OPTS",
+            //     "-Dorg.gradle.native=false -Djansi.passthrough=true",
+            // )
             .dup_stdio()
     } else {
-        duct::cmd(gradle, [OsStr::new("--project-dir"), project_dir.as_ref()])
+        duct::cmd(gradle, &args)
             .vars(env.explicit_env())
+            // .env(
+            //     "GRADLE_OPTS",
+            //     "-Dorg.gradle.native=false -Djansi.passthrough=true",
+            // )
             .dup_stdio()
     }
 }

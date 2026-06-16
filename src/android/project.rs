@@ -180,6 +180,12 @@ pub fn gen(
             map.insert("has-asset-packs", !asset_packs.is_empty());
             map.insert("asset-packs", asset_packs);
             map.insert("windows", cfg!(windows));
+            map.insert(
+                "termux",
+                cfg!(all(feature = "termux", target_os = "android")),
+            );
+            #[cfg(all(feature = "termux", target_os = "android"))]
+            map.insert("termux_prefix", crate::os::prefix().unwrap_or_default());
         },
         filter.fun(),
     )
