@@ -44,7 +44,7 @@ pub extern "C" fn start_app() {
         tao::android_binding!(
             {{snake-case (ident-no-last-part app.identifier)}},
             {{snake-case (ident-last-part app.name)}},
-            WryActivity,
+            Rust,
             wry::android_setup, // pass the wry::android_setup function to tao which will invoke when the event loop is created
             _start_app
         );
@@ -83,7 +83,7 @@ fn build_webview(event_loop: &EventLoopWindowTarget<()>) -> anyhow::Result<WebVi
     let window = WindowBuilder::new()
         .with_title("A fantastic window!")
         .build(&event_loop)?;
-    
+
     let builder = WebViewBuilder::new()
         .with_url("https://tauri.app")
         // If you want to use custom protocol, set url like this and add files like index.html to assets directory.
