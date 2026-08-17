@@ -7,11 +7,11 @@ plugins {
 android {
     namespace="{{app.identifier}}"{{#if has-asset-packs}}
     assetPacks += mutableSetOf({{quote-and-join-colon-prefix asset-packs}}){{/if}}
-    compileSdk = 34
+    compileSdk = 37
     defaultConfig {
         applicationId = "{{app.identifier}}"
         minSdk = {{android.min-sdk-version}}
-        targetSdk = 34
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
     }{{#if android-vulkan-validation}}
