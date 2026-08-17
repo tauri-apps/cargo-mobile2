@@ -68,7 +68,29 @@ impl Device {
         &self.os_version
     }
 
-    fn command(&self, env: &Env) -> duct::Expression {
+    // Xcode 27 removed Simulator.app in favor of Device Hub
+    fn simulator_app_available(env: &Env) -> bool {
+        duct::cmd("open", ["-Ra", "Simulator"])
+            .vars(env.explicit_env())
+            .stdout_null()
+            .stderr_null()
+            .unchecked()
+            .run()
+            .map(|output| output.status.success())
+            .unwrap_or(false)
+    }
+
+    // Device Hub does not boot a device on launch like Simulator.app does with
+    // -CurrentDeviceUDID, so we must boot it via simctl and wait for it to finish
+    fn boot(&self, env: &Env) -> std::io::Result<()> {
+        duct::cmd("xcrun", ["simctl", "bootstatus", &self.udid, "-b"])
+            .vars(env.explicit_env())
+            .dup_stdio()
+            .run()
+            .map(|_| ())
+    }
+
+    fn open_simulator_command(&self, env: &Env) -> duct::Expression {
         duct::cmd(
             "open",
             [
@@ -83,10 +105,31 @@ impl Device {
         .dup_stdio()
     }
 
+    fn open_device_hub_command(&self, env: &Env) -> duct::Expression {
+        // deep link handled by DeviceKit's DeviceURLActionProvider, focusing this
+        // device in Device Hub (launching the app first if needed)
+        duct::cmd(
+            "open",
+            [format!("devices://device/open?id={}", self.udid)],
+        )
+        .vars(env.explicit_env())
+        .dup_stdio()
+    }
+
     pub fn start(&self, env: &Env) -> std::io::Result<duct::Handle> {
-        self.command(env).start()
+        if Self::simulator_app_available(env) {
+            self.open_simulator_command(env).start()
+        } else {
+            self.boot(env)?;
+            self.open_device_hub_command(env).start()
+        }
     }
     pub fn start_detached(&self, env: &Env) -> std::io::Result<()> {
-        self.command(env).run_and_detach()
+        if Self::simulator_app_available(env) {
+            self.open_simulator_command(env).run_and_detach()
+        } else {
+            self.boot(env)?;
+            self.open_device_hub_command(env).run_and_detach()
+        }
     }
 }
