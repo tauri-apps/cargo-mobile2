@@ -179,7 +179,10 @@ impl MaybeDeviceListDevice {
         let platform = self
             .legacy_hardware()
             .map(|hardware| hardware.platform.clone())
-            .or_else(|| self.hardware().and_then(|hardware| hardware.platform.clone()))?;
+            .or_else(|| {
+                self.hardware()
+                    .and_then(|hardware| hardware.platform.clone())
+            })?;
         let product_type = self
             .legacy_hardware()
             .map(|hardware| hardware.product_type.clone())

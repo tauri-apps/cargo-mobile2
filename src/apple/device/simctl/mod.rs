@@ -108,12 +108,9 @@ impl Device {
     fn open_device_hub_command(&self, env: &Env) -> duct::Expression {
         // deep link handled by DeviceKit's DeviceURLActionProvider, focusing this
         // device in Device Hub (launching the app first if needed)
-        duct::cmd(
-            "open",
-            [format!("devices://device/open?id={}", self.udid)],
-        )
-        .vars(env.explicit_env())
-        .dup_stdio()
+        duct::cmd("open", [format!("devices://device/open?id={}", self.udid)])
+            .vars(env.explicit_env())
+            .dup_stdio()
     }
 
     pub fn start(&self, env: &Env) -> std::io::Result<duct::Handle> {
