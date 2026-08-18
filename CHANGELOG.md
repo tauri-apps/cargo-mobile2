@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.5]
+
+- [`ee65fb1`](https://github.com/tauri-apps/cargo-mobile2/commit/ee65fb149a5b6e71e9d9bba80ef64dad393a2ef7) Fixed iOS simulators being listed as connected physical devices on Xcode 27, which added them to the `xcrun devicectl list devices` output. Simulators are still listed separately via `simctl`.
+- [`ee65fb1`](https://github.com/tauri-apps/cargo-mobile2/commit/ee65fb149a5b6e71e9d9bba80ef64dad393a2ef7) Added support for the `properties` dictionary returned by `xcrun devicectl list devices` on Xcode 27, which deprecates the `hardwareProperties`, `deviceProperties` and `connectionProperties` fields. The deprecated fields are still read when available, so older Xcode versions keep working.
+- [`e6f74c1`](https://github.com/tauri-apps/cargo-mobile2/commit/e6f74c146680705f826999e907412c5917dd035f) ([#516](https://github.com/tauri-apps/cargo-mobile2/pull/516)) Mark `embed-resource` dependency as optional when used as a lib
+- [`ee65fb1`](https://github.com/tauri-apps/cargo-mobile2/commit/ee65fb149a5b6e71e9d9bba80ef64dad393a2ef7) Fixed starting an iOS simulator on Xcode 27, which replaced `Simulator.app` with Device Hub. When `Simulator.app` is not available, the simulator is now booted with `xcrun simctl bootstatus` and then focused in Device Hub via its `devices://device/open?id=<udid>` deep link.
+
 ## \[0.22.4]
 
 - [`74138d4`](https://github.com/tauri-apps/cargo-mobile2/commit/74138d48435492d49d40831e56544abeb56398bd) ([#509](https://github.com/tauri-apps/cargo-mobile2/pull/509) by [@lucasfernog](https://github.com/tauri-apps/cargo-mobile2/../../lucasfernog)) Fixed Android logcat process detection when running an app with `--application-id-suffix`.
