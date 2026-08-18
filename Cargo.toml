@@ -15,6 +15,7 @@ keywords = ["cargo", "mobile", "ios", "android", "tauri"]
 categories = ["development-tools::cargo-plugins"]
 license = "Apache-2.0 OR MIT"
 rust-version = "1.76"
+resolver = "3"
 
 [package.metadata.docs.rs]
 no-default-features = true
@@ -47,7 +48,7 @@ cli = [
   "serde",
   "serde_json",
   "thiserror",
-  "structopt",
+  "clap",
   "env_logger",
   "embed-resource",
 ]
@@ -73,7 +74,7 @@ once_cell = "1.21"
 regex = "1.11"
 path_abs = "0.5"
 serde = { version = "1.0", features = ["derive"] }
-structopt = { version = "0.3", optional = true }
+clap = { version = "4", features = ["derive"], optional = true }
 textwrap = { version = "0.16", features = ["terminal_size"] }
 thiserror = "2.0"
 toml = { version = "1.0", features = ["preserve_order"] }

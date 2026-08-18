@@ -141,21 +141,10 @@ mod interface {
     use std::fmt::Debug;
 
     use crate::{opts, util};
+    use clap::{self, Args, Parser};
     use once_cell::sync::Lazy;
-    use structopt::{
-        clap::{self, AppSettings},
-        StructOpt,
-    };
 
     use super::*;
-
-    pub static GLOBAL_SETTINGS: &[AppSettings] = &[
-        AppSettings::ColoredHelp,
-        AppSettings::DeriveDisplayOrder,
-        AppSettings::VersionlessSubcommands,
-    ];
-
-    pub static SETTINGS: &[AppSettings] = &[AppSettings::SubcommandRequiredElseHelp];
 
     pub fn bin_name(name: &str) -> String {
         format!("cargo {name}")
@@ -170,19 +159,18 @@ mod interface {
         }
     });
 
-    #[derive(Clone, Copy, Debug, StructOpt)]
+    #[derive(Args, Clone, Copy, Debug)]
     pub struct GlobalFlags {
-        #[structopt(
-        short = "v",
+        #[arg(
+        short = 'v',
         long = "verbose",
         help = "Vomit out extensive logging (-vv for more)",
         global = true,
-        multiple = true,
-        parse(from_occurrences = opts::NoiseLevel::from_occurrences),
+        action = clap::ArgAction::Count,
     )]
-        pub noise_level: opts::NoiseLevel,
-        #[structopt(
-            short = "y",
+        pub noise_level: u8,
+        #[arg(
+            short = 'y',
             long = "non-interactive",
             help = "Never prompt for input",
             global = true
@@ -190,53 +178,65 @@ mod interface {
         pub non_interactive: bool,
     }
 
-    #[derive(Clone, Copy, Debug, StructOpt)]
+    impl GlobalFlags {
+        pub fn noise_level(&self) -> opts::NoiseLevel {
+            opts::NoiseLevel::from_occurrences(self.noise_level.into())
+        }
+    }
+
+    #[derive(Args, Clone, Copy, Debug)]
     pub struct SkipDevTools {
-        #[structopt(
+        #[arg(
             long = "skip-dev-tools",
             help = "Skip optional tools that help when writing code"
         )]
         pub skip_dev_tools: bool,
     }
 
-    #[derive(Clone, Copy, Debug, StructOpt)]
+    #[derive(Args, Clone, Copy, Debug)]
     pub struct SkipTargetsInstall {
-        #[structopt(
+        #[arg(
             long = "skip-targets-install",
             help = "Skip installing android/ios targets for rust through rustup "
         )]
         pub skip_targets_install: bool,
     }
 
-    #[derive(Clone, Copy, Debug, StructOpt)]
+    #[derive(Args, Clone, Copy, Debug)]
     pub struct ReinstallDeps {
-        #[structopt(long = "reinstall-deps", help = "Reinstall dependencies")]
+        #[arg(long = "reinstall-deps", help = "Reinstall dependencies")]
         pub reinstall_deps: bool,
     }
 
-    #[derive(Clone, Copy, Debug, StructOpt)]
+    #[derive(Args, Clone, Copy, Debug)]
     pub struct Profile {
-        #[structopt(
+        #[arg(
         long = "release",
         help = "Build with release optimizations",
-        parse(from_flag = opts::Profile::from_flag),
+        action = clap::ArgAction::SetTrue,
     )]
-        pub profile: opts::Profile,
+        pub release: bool,
     }
 
-    #[derive(Clone, Copy, Debug, StructOpt)]
+    impl Profile {
+        pub fn profile(&self) -> opts::Profile {
+            opts::Profile::from_flag(self.release)
+        }
+    }
+
+    #[derive(Args, Clone, Copy, Debug)]
     pub struct Filter {
-        #[structopt(
-        short = "f",
-        long = "filter",
-        help = "Filter logs by level",
-        possible_values = &opts::FilterLevel::variants(),
-        case_insensitive = true,
-    )]
+        #[arg(
+            short = 'f',
+            long = "filter",
+            help = "Filter logs by level",
+            value_enum,
+            ignore_case = true
+        )]
         pub filter: Option<opts::FilterLevel>,
     }
 
-    pub trait Exec: Debug + StructOpt {
+    pub trait Exec: Debug + Parser {
         type Report: Reportable;
 
         fn global_flags(&self) -> GlobalFlags;
@@ -302,8 +302,8 @@ mod interface {
     pub fn exec<E: Exec>(name: &str) {
         Exit::main(|wrapper| {
             let args = get_args(name);
-            let input = E::from_iter_safe(&args).map_err(Exit::Clap)?;
-            init_logging(input.global_flags().noise_level);
+            let input = E::try_parse_from(&args).map_err(Exit::Clap)?;
+            init_logging(input.global_flags().noise_level());
             log::debug!("raw args: {:#?}", args);
             input.exec(wrapper).map_err(Exit::report)
         })
