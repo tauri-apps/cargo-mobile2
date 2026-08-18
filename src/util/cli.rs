@@ -107,7 +107,7 @@ impl Report {
                 self.msg.color(self.label.color())
             ))
         } else {
-            wrapper.fill(&format!("{}: {}", self.label.as_str(), &self.msg))
+            wrapper.fill(&format!("{}: {}", self.label.as_str(), self.msg))
         };
         let wrapper = TextWrapper(
             wrapper
