@@ -15,7 +15,6 @@ keywords = ["cargo", "mobile", "ios", "android", "tauri"]
 categories = ["development-tools::cargo-plugins"]
 license = "Apache-2.0 OR MIT"
 rust-version = "1.76"
-resolver = "3"
 
 [package.metadata.docs.rs]
 no-default-features = true
