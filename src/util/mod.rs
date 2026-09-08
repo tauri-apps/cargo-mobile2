@@ -677,3 +677,49 @@ pub fn gradlew(
             .dup_stdio()
     }
 }
+
+pub fn hvigorw(
+    config: &crate::open_harmony::config::Config,
+    env: &crate::open_harmony::env::Env,
+) -> duct::Expression {
+    let project_dir = config.project_dir();
+    #[cfg(windows)]
+    let hvigorw = "hvigorw.bat";
+    #[cfg(not(windows))]
+    let hvigorw = "hvigorw";
+
+    let hvigorw_exists = which::which(hvigorw).is_ok();
+
+    let project_dir = dunce::simplified(&project_dir);
+    // note: DevEco Studio is not supported on Linux yet, so we rely on hvigorw
+    if hvigorw_exists || cfg!(target_os = "linux") {
+        duct::cmd::<&str, [String; 0]>(hvigorw, [])
+            .dir(project_dir)
+            .vars(env.explicit_env())
+            .dup_stdio()
+    } else {
+        let (node_path, hvigorw_script_path, deveco_sdk_home) = if cfg!(target_os = "macos") {
+            (
+                PathBuf::from("/Applications/DevEco-Studio.app/Contents/tools/node/bin/node"),
+                PathBuf::from(
+                    "/Applications/DevEco-Studio.app/Contents/tools/hvigor/bin/hvigorw.js",
+                ),
+                PathBuf::from("/Applications/DevEco-Studio.app/Contents/sdk"),
+            )
+        } else {
+            let dev_eco_studio_install_path = std::env::var("DEV_ECO_STUDIO_INSTALL_PATH")
+                .map(PathBuf::from)
+                .unwrap_or_else(|_| PathBuf::from("C:\\Program Files\\Huawei\\DevEco Studio"));
+            (
+                dev_eco_studio_install_path.join("tools/node/node.exe"),
+                dev_eco_studio_install_path.join("tools/hvigor/bin/hvigorw.js"),
+                dev_eco_studio_install_path.join("sdk"),
+            )
+        };
+        duct::cmd(node_path, [hvigorw_script_path])
+            .dir(project_dir)
+            .vars(env.explicit_env())
+            .env("DEVECO_SDK_HOME", deveco_sdk_home)
+            .dup_stdio()
+    }
+}
