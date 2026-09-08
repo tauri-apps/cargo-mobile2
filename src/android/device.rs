@@ -388,7 +388,7 @@ impl<'a> Device<'a> {
         reinstall_deps: bool,
         activity: String,
     ) -> Result<duct::Handle, RunError> {
-        return self.run_with_application_id_suffix(
+        self.run_with_application_id_suffix(
             config,
             env,
             noise_level,
@@ -398,7 +398,7 @@ impl<'a> Device<'a> {
             reinstall_deps,
             activity,
             None,
-        );
+        )
     }
 
     #[allow(clippy::too_many_arguments)]

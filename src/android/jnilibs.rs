@@ -64,7 +64,7 @@ impl Reportable for SymlinkLibError {
 pub fn path(config: &Config, target: Target<'_>) -> PathBuf {
     prefix_path(
         config.project_dir(),
-        format!("app/src/main/jniLibs/{}", &target.abi),
+        format!("app/src/main/jniLibs/{}", target.abi),
     )
 }
 

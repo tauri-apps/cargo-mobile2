@@ -13,7 +13,7 @@ use crate::{
     },
     define_device_prompt,
     device::PromptError,
-    os,
+    opts, os,
     target::{call_for_targets_with_fallback, TargetInvalid, TargetTrait as _},
     util::{
         cli::{
@@ -22,21 +22,21 @@ use crate::{
         prompt,
     },
 };
+use clap::{Parser, Subcommand};
 use std::{ffi::OsString, path::PathBuf};
-use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
-#[structopt(
+#[derive(Debug, Parser)]
+#[clap(
     bin_name = cli::bin_name(NAME),
     version = VERSION_SHORT,
     long_version = VERSION_LONG.as_str(),
-    global_settings = cli::GLOBAL_SETTINGS,
-    settings = cli::SETTINGS,
+    subcommand_required = true,
+    arg_required_else_help = true,
 )]
 pub struct Input {
-    #[structopt(flatten)]
+    #[clap(flatten)]
     flags: GlobalFlags,
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     command: Command,
 }
 
@@ -46,81 +46,81 @@ impl Input {
     }
 }
 
-#[derive(Clone, Debug, StructOpt)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum Command {
-    #[structopt(name = "open", about = "Open project in Android Studio")]
+    #[clap(name = "open", about = "Open project in Android Studio")]
     Open,
-    #[structopt(name = "check", about = "Checks if code compiles for target(s)")]
+    #[clap(name = "check", about = "Checks if code compiles for target(s)")]
     Check {
-        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = &Target::name_list())]
+        #[clap(name = "targets", default_value = Target::DEFAULT_KEY, value_parser = Target::name_list())]
         targets: Vec<String>,
     },
-    #[structopt(name = "build", about = "Builds dynamic libraries for target(s)")]
+    #[clap(name = "build", about = "Builds dynamic libraries for target(s)")]
     Build {
-        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = &Target::name_list())]
+        #[clap(name = "targets", default_value = Target::DEFAULT_KEY, value_parser = Target::name_list())]
         targets: Vec<String>,
-        #[structopt(flatten)]
+        #[clap(flatten)]
         profile: cli::Profile,
     },
-    #[structopt(name = "run", about = "Deploys APK to connected device")]
+    #[clap(name = "run", about = "Deploys APK to connected device")]
     Run {
-        #[structopt(flatten)]
+        #[clap(flatten)]
         profile: cli::Profile,
-        #[structopt(flatten)]
+        #[clap(flatten)]
         filter: cli::Filter,
-        #[structopt(flatten)]
+        #[clap(flatten)]
         reinstall_deps: cli::ReinstallDeps,
-        #[structopt(
-            short = "a",
+        #[clap(
+            short = 'a',
             long = "activity",
             help = "Specifies which activtiy to launch"
         )]
         activity: Option<String>,
-        #[structopt(
+        #[clap(
             long = "application-id-suffix",
             help = "Optional suffix for the application ID (e.g. \".debug\")"
         )]
         application_id_suffix: Option<String>,
     },
-    #[structopt(name = "st", about = "Displays a detailed stacktrace for a device")]
+    #[clap(name = "st", about = "Displays a detailed stacktrace for a device")]
     Stacktrace,
-    #[structopt(name = "list", about = "Lists connected devices")]
+    #[clap(name = "list", about = "Lists connected devices")]
     List,
-    #[structopt(name = "apk", about = "Manage and build APKs")]
+    #[clap(name = "apk", about = "Manage and build APKs")]
     Apk {
-        #[structopt(subcommand)]
+        #[clap(subcommand)]
         cmd: ApkSubcommand,
     },
-    #[structopt(name = "aab", about = "Manage and build AABs")]
+    #[clap(name = "aab", about = "Manage and build AABs")]
     Aab {
-        #[structopt(subcommand)]
+        #[clap(subcommand)]
         cmd: AabSubcommand,
     },
 }
 
-#[derive(StructOpt, Clone, Debug)]
+#[derive(Subcommand, Clone, Debug)]
 pub enum ApkSubcommand {
-    #[structopt(about = "build APKs (Android Package Kit)")]
+    #[clap(about = "build APKs (Android Package Kit)")]
     Build {
-        #[structopt(name = "targets", possible_values = &Target::name_list())]
+        #[clap(name = "targets", value_parser = Target::name_list())]
         /// Which targets to build (all by default).
         targets: Vec<String>,
-        #[structopt(flatten)]
+        #[clap(flatten)]
         profile: cli::Profile,
-        #[structopt(long = "split-per-abi", help = "Whether to split the APKs per ABIs.")]
+        #[clap(long = "split-per-abi", help = "Whether to split the APKs per ABIs.")]
         split_per_abi: bool,
     },
 }
-#[derive(StructOpt, Clone, Debug)]
+#[derive(Subcommand, Clone, Debug)]
 pub enum AabSubcommand {
-    #[structopt(about = "build AABs (Android App Bundle)")]
+    #[clap(about = "build AABs (Android App Bundle)")]
     Build {
-        #[structopt(name = "targets", possible_values = &Target::name_list())]
+        #[clap(name = "targets", value_parser = Target::name_list())]
         /// Which targets to build (all by default).
         targets: Vec<String>,
-        #[structopt(flatten)]
+        #[clap(flatten)]
         profile: cli::Profile,
-        #[structopt(long = "split-per-abi", help = "Whether to split the AABs per ABIs.")]
+        #[clap(long = "split-per-abi", help = "Whether to split the AABs per ABIs.")]
         split_per_abi: bool,
     },
 }
@@ -257,11 +257,12 @@ impl Exec for Input {
         let Self {
             flags:
                 GlobalFlags {
-                    noise_level,
+                    noise_level: noise_level_count,
                     non_interactive,
                 },
             command,
         } = self;
+        let noise_level = opts::NoiseLevel::from_occurrences(noise_level_count.into());
         match command {
             Command::Open => with_config(non_interactive, wrapper, |config, _, env| {
                 ensure_init(config)?;
@@ -283,31 +284,32 @@ impl Exec for Input {
                     .map_err(Error::TargetInvalid)?
                 })
             }
-            Command::Build {
-                targets,
-                profile: cli::Profile { profile },
-            } => with_config(non_interactive, wrapper, |config, metadata, env| {
-                ensure_init(config)?;
-                let force_color = true;
-                call_for_targets_with_fallback(
-                    targets.iter(),
-                    &detect_target_ok,
-                    env,
-                    |target: &Target| {
-                        target
-                            .build(config, metadata, env, noise_level, force_color, profile)
-                            .map_err(Error::BuildFailed)
-                    },
-                )
-                .map_err(Error::TargetInvalid)?
-            }),
+            Command::Build { targets, profile } => {
+                with_config(non_interactive, wrapper, |config, metadata, env| {
+                    let profile = profile.profile();
+                    ensure_init(config)?;
+                    let force_color = true;
+                    call_for_targets_with_fallback(
+                        targets.iter(),
+                        &detect_target_ok,
+                        env,
+                        |target: &Target| {
+                            target
+                                .build(config, metadata, env, noise_level, force_color, profile)
+                                .map_err(Error::BuildFailed)
+                        },
+                    )
+                    .map_err(Error::TargetInvalid)?
+                })
+            }
             Command::Run {
-                profile: cli::Profile { profile },
+                profile,
                 filter: cli::Filter { filter },
                 reinstall_deps: cli::ReinstallDeps { reinstall_deps },
                 activity,
                 application_id_suffix,
             } => with_config(non_interactive, wrapper, |config, metadata, env| {
+                let profile = profile.profile();
                 let build_app_bundle = metadata.asset_packs().is_some();
                 ensure_init(config)?;
                 device_prompt(env)
@@ -358,9 +360,10 @@ impl Exec for Input {
             Command::Apk { cmd } => match cmd {
                 ApkSubcommand::Build {
                     targets,
-                    profile: cli::Profile { profile },
+                    profile,
                     split_per_abi,
                 } => with_config(non_interactive, wrapper, |config, _, env| {
+                    let profile = profile.profile();
                     ensure_init(config)?;
 
                     apk::cli::build(
@@ -377,9 +380,10 @@ impl Exec for Input {
             Command::Aab { cmd } => match cmd {
                 AabSubcommand::Build {
                     targets,
-                    profile: cli::Profile { profile },
+                    profile,
                     split_per_abi,
                 } => with_config(non_interactive, wrapper, |config, _, env| {
+                    let profile = profile.profile();
                     ensure_init(config)?;
                     aab::cli::build(
                         config,

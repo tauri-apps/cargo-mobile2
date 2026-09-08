@@ -68,7 +68,7 @@ impl Application {
     pub fn open_file(&self, path: impl AsRef<Path>) -> Result<(), OpenFileError> {
         let args = self.argv[1..]
             .iter()
-            .map(|arg| Self::replace_command_arg(arg, &path.as_ref().as_os_str()))
+            .map(|arg| Self::replace_command_arg(arg, path.as_ref().as_os_str()))
             .collect::<Vec<_>>();
         duct::cmd(&self.argv[0], args)
             .run_and_detach()
