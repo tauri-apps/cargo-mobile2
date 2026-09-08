@@ -1,3 +1,12 @@
 package {{escape-kotlin-keyword app.identifier}}
 
-class MainActivity : WryActivity()
+import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
+
+class MainActivity : WryActivity() {
+  override fun onCreate(savedInstanceState: Bundle?) {
+    enableEdgeToEdge()
+    super.onCreate(savedInstanceState)
+  }
+}
+
