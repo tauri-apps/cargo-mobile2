@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.0]
+
+- [`de1abe7`](https://github.com/tauri-apps/cargo-mobile2/commit/de1abe7c60f9b4d8ffa8fac2bad8d76345be366a) ([#473](https://github.com/tauri-apps/cargo-mobile2/pull/473) by [@renovate](https://github.com/tauri-apps/cargo-mobile2/../../renovate)) Enable edge to edge in Android template for dioxus and wry
+- [`de1abe7`](https://github.com/tauri-apps/cargo-mobile2/commit/de1abe7c60f9b4d8ffa8fac2bad8d76345be366a) ([#473](https://github.com/tauri-apps/cargo-mobile2/pull/473) by [@renovate](https://github.com/tauri-apps/cargo-mobile2/../../renovate)) Updated Gradle to 9.7 and AGP to 9.3.1. This also removed the kotlin plugin in favor of the built-in kotlin from Gradle 9
+- [`d00fc95`](https://github.com/tauri-apps/cargo-mobile2/commit/d00fc95619611eff47a956e9b434936317e9258f) ([#526](https://github.com/tauri-apps/cargo-mobile2/pull/526) by [@Legend-Master](https://github.com/tauri-apps/cargo-mobile2/../../Legend-Master)) Relax `windows` crate version ranges to 0.61 or 0.62
+- [`de1abe7`](https://github.com/tauri-apps/cargo-mobile2/commit/de1abe7c60f9b4d8ffa8fac2bad8d76345be366a) ([#473](https://github.com/tauri-apps/cargo-mobile2/pull/473) by [@renovate](https://github.com/tauri-apps/cargo-mobile2/../../renovate)) Updated tao to 0.37 and wry 0.57 in the `wry` template
+- [`de1abe7`](https://github.com/tauri-apps/cargo-mobile2/commit/de1abe7c60f9b4d8ffa8fac2bad8d76345be366a) ([#473](https://github.com/tauri-apps/cargo-mobile2/pull/473) by [@renovate](https://github.com/tauri-apps/cargo-mobile2/../../renovate)) Updated `targetSdk` to 37 (Android 17)
+
 ## [0.22.5]
 
 - [`ee65fb1`](https://github.com/tauri-apps/cargo-mobile2/commit/ee65fb149a5b6e71e9d9bba80ef64dad393a2ef7) Fixed iOS simulators being listed as connected physical devices on Xcode 27, which added them to the `xcrun devicectl list devices` output. Simulators are still listed separately via `simctl`.
