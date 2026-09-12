@@ -57,17 +57,55 @@ pub fn force_symlink(
         remove_dir_all(&target).map_err(|err| error(ErrorCause::IOError(err)))?;
     }
     let result = if is_directory {
-        std::os::windows::fs::symlink_dir(source, target)
+        std::os::windows::fs::symlink_dir(source, &target)
     } else {
-        std::os::windows::fs::symlink_file(source, target)
+        std::os::windows::fs::symlink_file(source, &target)
     };
-    result.map_err(|err| {
-        if err.raw_os_error() == Some(ERROR_PRIVILEGE_NOT_HELD.0 as i32) {
-            error(ErrorCause::SymlinkNotAllowed)
-        } else {
-            error(ErrorCause::IOError(err))
+    let result = match result {
+        Err(err) if err.raw_os_error() == Some(ERROR_PRIVILEGE_NOT_HELD.0 as i32) => {
+            // Creating symlinks on Windows requires Developer Mode or the
+            // SeCreateSymbolicLinkPrivilege policy. Fall back to a copy: the
+            // symlink here is a convenience for a build artifact (the copy is
+            // what Gradle packages either way), and failing the whole build
+            // over a missing privilege makes Windows-hosted cross builds
+            // impossible without a machine-wide setting.
+            log::warn!("symlink creation was denied by the OS; falling back to a copy");
+            let copy_result = if is_directory {
+                copy_dir_all(source, &target)
+            } else {
+                std::fs::copy(source, &target).map(|_| ())
+            };
+            copy_result.map_err(|err| {
+                error(ErrorCause::IOError(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    err,
+                )))
+            })
         }
-    })?;
+        // The fallback copy arm above returns `Result<_, std::io::Error>`;
+        // this arm returns `Result<(), util::ln::Error>`.
+        r => r.map_err(|err: std::io::Error| {
+            error(ErrorCause::IOError(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                err,
+            )))
+        }),
+    }?;
+    Ok(())
+}
+
+fn copy_dir_all(source: &Path, target: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(target)?;
+    for entry in std::fs::read_dir(source)? {
+        let entry = entry?;
+        let entry_type = entry.file_type()?;
+        let dest = target.join(entry.file_name());
+        if entry_type.is_dir() {
+            copy_dir_all(&entry.path(), &dest)?;
+        } else {
+            std::fs::copy(entry.path(), &dest)?;
+        }
+    }
     Ok(())
 }
 
