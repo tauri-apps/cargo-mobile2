@@ -92,6 +92,24 @@ pub fn force_symlink(
 
 fn copy_dir_all(source: &Path, target: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(target)?;
+    // Cycle guard: `metadata()` follows symlinks, so a self-referential or
+    // ancestor-pointing link would recurse forever and abort the whole
+    // fallback with a path-length error — the exact failure this fallback was
+    // added to avoid.
+    let mut visited = std::collections::HashSet::new();
+    copy_dir_all_inner(source, target, &mut visited)
+}
+
+fn copy_dir_all_inner(
+    source: &Path,
+    target: &Path,
+    visited: &mut std::collections::HashSet<std::path::PathBuf>,
+) -> std::io::Result<()> {
+    let canonical = source.canonicalize()?;
+    if !visited.insert(canonical.clone()) {
+        log::warn!("skipping already-copied directory {:?}", source);
+        return Ok(());
+    }
     for entry in std::fs::read_dir(source)? {
         let entry = entry?;
         let dest = target.join(entry.file_name());
@@ -107,19 +125,8 @@ fn copy_dir_all(source: &Path, target: &Path) -> std::io::Result<()> {
                 continue;
             }
         };
-        let is_dir = entry_type.is_dir()
-            || (entry
-                .path()
-                .symlink_metadata()
-                .map(|m| {
-                    m.file_type().is_symlink()
-                        && std::fs::metadata(entry.path())
-                            .map(|m| m.is_dir())
-                            .unwrap_or(false)
-                })
-                .unwrap_or(false));
-        if is_dir {
-            copy_dir_all(&entry.path(), &dest)?;
+        if entry_type.is_dir() {
+            copy_dir_all_inner(&entry.path(), &dest, visited)?;
         } else {
             std::fs::copy(entry.path(), &dest)?;
         }
