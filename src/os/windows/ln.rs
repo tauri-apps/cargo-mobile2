@@ -94,12 +94,31 @@ fn copy_dir_all(source: &Path, target: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(target)?;
     for entry in std::fs::read_dir(source)? {
         let entry = entry?;
-        // metadata() (not file_type()) follows symlinks: a symlinked
-        // subdirectory inside the source tree must recurse as a directory,
-        // not fail in the copy branch below.
-        let entry_type = entry.metadata()?.file_type();
         let dest = target.join(entry.file_name());
-        if entry_type.is_dir() {
+        // metadata() follows symlinks: a symlinked subdirectory inside the
+        // source tree must recurse as a directory, not fail in the copy
+        // branch below. A broken link (dangling, or a self-referential loop)
+        // is skipped with a warning rather than failing the whole fallback —
+        // the symlink being replaced here was best-effort to begin with.
+        let entry_type = match entry.metadata() {
+            Ok(metadata) => metadata.file_type(),
+            Err(err) => {
+                log::warn!("skipping {:?} while copying: {err}", entry.path());
+                continue;
+            }
+        };
+        let is_dir = entry_type.is_dir()
+            || (entry
+                .path()
+                .symlink_metadata()
+                .map(|m| {
+                    m.file_type().is_symlink()
+                        && std::fs::metadata(entry.path())
+                            .map(|m| m.is_dir())
+                            .unwrap_or(false)
+                })
+                .unwrap_or(false));
+        if is_dir {
             copy_dir_all(&entry.path(), &dest)?;
         } else {
             std::fs::copy(entry.path(), &dest)?;
