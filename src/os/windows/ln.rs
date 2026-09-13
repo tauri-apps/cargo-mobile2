@@ -126,12 +126,12 @@ fn copy_dir_all_entries(
     for entry in std::fs::read_dir(source)? {
         let entry = entry?;
         let dest = target.join(entry.file_name());
-        // metadata() follows symlinks: a symlinked subdirectory inside the
-        // source tree must recurse as a directory, not fail in the copy
-        // branch below. A broken link (dangling, or a self-referential loop)
+        // std::fs::metadata follows symlinks: a symlinked subdirectory
+        // inside the source tree must recurse as a directory. A broken link
+        // (dangling, or a self-referential loop) resolves with an error and
         // is skipped with a warning rather than failing the whole fallback —
         // the symlink being replaced here was best-effort to begin with.
-        let entry_type = match entry.metadata() {
+        let entry_type = match std::fs::metadata(entry.path()) {
             Ok(metadata) => metadata.file_type(),
             Err(err) => {
                 log::warn!("skipping {:?} while copying: {err}", entry.path());
