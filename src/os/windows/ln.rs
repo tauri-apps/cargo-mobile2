@@ -56,12 +56,12 @@ pub fn force_symlink(
     } else if target.is_dir() {
         remove_dir_all(&target).map_err(|err| error(ErrorCause::IOError(err)))?;
     }
-    let _result = if is_directory {
+    let symlink_result = if is_directory {
         std::os::windows::fs::symlink_dir(source, &target)
     } else {
         std::os::windows::fs::symlink_file(source, &target)
     };
-    let result = match _result {
+    let result = match symlink_result {
         Err(err) if err.raw_os_error() == Some(ERROR_PRIVILEGE_NOT_HELD.0 as i32) => {
             // Creating symlinks on Windows requires Developer Mode or the
             // SeCreateSymbolicLinkPrivilege policy. Fall back to a copy: the
@@ -94,7 +94,10 @@ fn copy_dir_all(source: &Path, target: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(target)?;
     for entry in std::fs::read_dir(source)? {
         let entry = entry?;
-        let entry_type = entry.file_type()?;
+        // metadata() (not file_type()) follows symlinks: a symlinked
+        // subdirectory inside the source tree must recurse as a directory,
+        // not fail in the copy branch below.
+        let entry_type = entry.metadata()?.file_type();
         let dest = target.join(entry.file_name());
         if entry_type.is_dir() {
             copy_dir_all(&entry.path(), &dest)?;
