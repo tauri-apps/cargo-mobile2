@@ -1,0 +1,30 @@
+pub mod util;
+pub mod wgpu_renderer;
+
+use wgpu_renderer::App;
+use winit::event_loop::EventLoop;
+
+#[cfg(not(target_os = "android"))]
+#[unsafe(no_mangle)]
+#[inline(never)]
+pub extern "C" fn start_app() {
+    env_logger::init();
+
+    let event_loop = EventLoop::new().unwrap();
+    event_loop.run_app(&mut App::default()).unwrap();
+}
+
+#[cfg(target_os = "android")]
+#[unsafe(no_mangle)]
+fn android_main(app: winit::platform::android::activity::AndroidApp) {
+    android_logger::init_once(
+        android_logger::Config::default()
+            .with_max_level(log::LevelFilter::Trace)
+            .with_tag("{{app.name}}"),
+    );
+
+    use winit::platform::android::EventLoopBuilderExtAndroid;
+
+    let event_loop = EventLoop::builder().with_android_app(app).build().unwrap();
+    event_loop.run_app(&mut App::default()).unwrap();
+}
