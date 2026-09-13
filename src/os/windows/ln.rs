@@ -56,12 +56,12 @@ pub fn force_symlink(
     } else if target.is_dir() {
         remove_dir_all(&target).map_err(|err| error(ErrorCause::IOError(err)))?;
     }
-    let result = if is_directory {
+    let _result = if is_directory {
         std::os::windows::fs::symlink_dir(source, &target)
     } else {
         std::os::windows::fs::symlink_file(source, &target)
     };
-    let result = match result {
+    let result = match _result {
         Err(err) if err.raw_os_error() == Some(ERROR_PRIVILEGE_NOT_HELD.0 as i32) => {
             // Creating symlinks on Windows requires Developer Mode or the
             // SeCreateSymbolicLinkPrivilege policy. Fall back to a copy: the
@@ -70,26 +70,22 @@ pub fn force_symlink(
             // over a missing privilege makes Windows-hosted cross builds
             // impossible without a machine-wide setting.
             log::warn!("symlink creation was denied by the OS; falling back to a copy");
+            // A relative source (force_symlink_relative passes one) resolves
+            // against the link's directory, not the process CWD — resolve it
+            // the same way is_directory does before copying.
+            let resolved_source = target
+                .parent()
+                .map(|parent| prefix_path(parent, source))
+                .unwrap_or_else(|| source.to_owned());
             let copy_result = if is_directory {
-                copy_dir_all(source, &target)
+                copy_dir_all(&resolved_source, &target)
             } else {
-                std::fs::copy(source, &target).map(|_| ())
+                std::fs::copy(&resolved_source, &target).map(|_| ())
             };
-            copy_result.map_err(|err| {
-                error(ErrorCause::IOError(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    err,
-                )))
-            })
+            copy_result.map_err(|err| error(ErrorCause::IOError(err)))
         }
-        // The fallback copy arm above returns `Result<_, std::io::Error>`;
-        // this arm returns `Result<(), util::ln::Error>`.
-        r => r.map_err(|err: std::io::Error| {
-            error(ErrorCause::IOError(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                err,
-            )))
-        }),
+        // Other symlink errors map as before.
+        r => r.map_err(|err| error(ErrorCause::IOError(err))),
     }?;
     Ok(())
 }
