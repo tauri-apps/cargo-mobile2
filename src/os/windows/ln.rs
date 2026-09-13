@@ -61,7 +61,7 @@ pub fn force_symlink(
     } else {
         std::os::windows::fs::symlink_file(source, &target)
     };
-    let result = match symlink_result {
+    match symlink_result {
         Err(err) if err.raw_os_error() == Some(ERROR_PRIVILEGE_NOT_HELD.0 as i32) => {
             // Creating symlinks on Windows requires Developer Mode or the
             // SeCreateSymbolicLinkPrivilege policy. Fall back to a copy: the
