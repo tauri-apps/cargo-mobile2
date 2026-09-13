@@ -91,7 +91,6 @@ pub fn force_symlink(
 }
 
 fn copy_dir_all(source: &Path, target: &Path) -> std::io::Result<()> {
-    std::fs::create_dir_all(target)?;
     // Cycle guard: `metadata()` follows symlinks, so a self-referential or
     // ancestor-pointing link would recurse forever and abort the whole
     // fallback with a path-length error — the exact failure this fallback was
@@ -107,7 +106,7 @@ fn copy_dir_all_inner(
 ) -> std::io::Result<()> {
     let canonical = source.canonicalize()?;
     if !visited.insert(canonical.clone()) {
-        log::warn!("skipping already-copied directory {:?}", source);
+        log::warn!("skipping {:?}: ancestor cycle in symlinked tree", source);
         return Ok(());
     }
     std::fs::create_dir_all(target)?;
