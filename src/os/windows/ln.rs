@@ -111,6 +111,19 @@ fn copy_dir_all_inner(
         return Ok(());
     }
     std::fs::create_dir_all(target)?;
+    let result = copy_dir_all_entries(source, target, visited);
+    // Pop on the way out: a directory that is merely *reachable twice* (two
+    // entries in the tree pointing at it) must still be copied at each
+    // location — only true ancestor cycles are meant to be cut here.
+    visited.remove(&canonical);
+    result
+}
+
+fn copy_dir_all_entries(
+    source: &Path,
+    target: &Path,
+    visited: &mut std::collections::HashSet<std::path::PathBuf>,
+) -> std::io::Result<()> {
     for entry in std::fs::read_dir(source)? {
         let entry = entry?;
         let dest = target.join(entry.file_name());
