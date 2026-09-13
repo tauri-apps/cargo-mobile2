@@ -110,6 +110,7 @@ fn copy_dir_all_inner(
         log::warn!("skipping already-copied directory {:?}", source);
         return Ok(());
     }
+    std::fs::create_dir_all(target)?;
     for entry in std::fs::read_dir(source)? {
         let entry = entry?;
         let dest = target.join(entry.file_name());
