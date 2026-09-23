@@ -1,7 +1,7 @@
 use tao::{
     event::{Event, StartCause, WindowEvent},
     event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
-    window::WindowBuilder,
+    window::{Window, WindowBuilder},
 };
 use wry::{http, WebView, WebViewBuilder};
 
@@ -60,18 +60,22 @@ pub fn main() {
     let event_loop = EventLoop::new();
 
     let mut webview = None;
+    let mut window = None;
     event_loop.run(move |event, event_loop, control_flow| {
         *control_flow = ControlFlow::Wait;
 
         match event {
             Event::NewEvents(StartCause::Init) => {
-                webview = Some(build_webview(event_loop).unwrap());
+                let win = build_window(event_loop).unwrap();
+                webview.replace(build_webview(&win).unwrap());
+                window.replace(win);
             }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested { .. },
                 ..
             } => {
                 webview.take();
+                window.take();
                 *control_flow = ControlFlow::Exit;
             }
             _ => (),
@@ -79,11 +83,14 @@ pub fn main() {
     });
 }
 
-fn build_webview(event_loop: &EventLoopWindowTarget<()>) -> anyhow::Result<WebView> {
+fn build_window(event_loop: &EventLoopWindowTarget<()>) -> anyhow::Result<Window> {
     let window = WindowBuilder::new()
         .with_title("A fantastic window!")
         .build(&event_loop)?;
+    Ok(window)
+}
 
+fn build_webview(window: &Window) -> anyhow::Result<WebView> {
     let builder = WebViewBuilder::new()
         .with_url("https://tauri.app")
         // If you want to use custom protocol, set url like this and add files like index.html to assets directory.
