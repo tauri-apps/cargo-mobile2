@@ -17,6 +17,8 @@ pub enum Error {
     // TODO: we should be nice and provide a platform-specific suggestion
     #[error("Have you installed the OpenHarmony SDK? The `OHOS_HOME` environment variable is set, but doesn't point to an existing directory.")]
     OhosHomeNotADir,
+    #[error("Cannot infer DEVECO_SDK_HOME from OHOS_HOME; set DEVECO_SDK_HOME explicitly")]
+    DeVeCoSdkHomeUnknown,
 }
 
 impl Reportable for Error {
@@ -38,6 +40,7 @@ impl Error {
 pub struct Env {
     pub base: CoreEnv,
     ohos_home: PathBuf,
+    deveco_sdk_home: PathBuf,
 }
 
 impl Env {
@@ -66,7 +69,13 @@ impl Env {
             });
 
         if ohos_home.is_dir() {
-            Ok(Self { base, ohos_home })
+            let deveco_sdk_home = sdk_home(&ohos_home, std::env::var_os("DEVECO_SDK_HOME"))
+                .ok_or(Error::DeVeCoSdkHomeUnknown)?;
+            Ok(Self {
+                base,
+                ohos_home,
+                deveco_sdk_home,
+            })
         } else {
             Err(Error::OhosHomeNotADir)
         }
@@ -100,20 +109,53 @@ impl ExplicitEnv for Env {
             "OHOS_BASE_SDK_HOME".into(),
             self.ohos_home.as_os_str().to_os_string(),
         );
-        // seems like only Linux requires this, but let's see
-        // OHOS_HOME is /path/to/sdk/default/openharmony/18, we want /path/to/sdk for DEVECO_SDK_HOME
         envs.insert(
             "DEVECO_SDK_HOME".into(),
-            self.ohos_home
-                .parent()
-                .unwrap()
-                .parent()
-                .unwrap()
-                .parent()
-                .unwrap()
-                .as_os_str()
-                .to_os_string(),
+            self.deveco_sdk_home.as_os_str().to_os_string(),
         );
         envs
+    }
+}
+
+// DevEco packages use sdk/default/openharmony, while standalone SDKs may add an API directory.
+fn sdk_home(ohos_home: &Path, explicit: Option<OsString>) -> Option<PathBuf> {
+    if let Some(explicit) = explicit {
+        return Some(PathBuf::from(explicit));
+    }
+    let openharmony = if ohos_home.file_name()? == "openharmony" {
+        ohos_home
+    } else {
+        ohos_home.parent()?
+    };
+    Some(openharmony.parent()?.parent()?.to_path_buf())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sdk_home_supports_both_sdk_layouts() {
+        let root = PathBuf::from("tools").join("sdk");
+        let ohos = root.join("default").join("openharmony");
+        assert_eq!(sdk_home(&ohos, None), Some(root.clone()));
+        assert_eq!(sdk_home(&ohos.join("18"), None), Some(root));
+    }
+
+    #[test]
+    fn explicit_sdk_home_takes_precedence() {
+        let explicit = PathBuf::from("custom-sdk");
+        assert_eq!(
+            sdk_home(
+                Path::new("openharmony"),
+                Some(explicit.clone().into_os_string())
+            ),
+            Some(explicit),
+        );
+    }
+
+    #[test]
+    fn shallow_sdk_path_requires_explicit_home() {
+        assert_eq!(sdk_home(Path::new("openharmony"), None), None);
     }
 }
