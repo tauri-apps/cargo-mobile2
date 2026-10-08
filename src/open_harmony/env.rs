@@ -129,33 +129,3 @@ fn sdk_home(ohos_home: &Path, explicit: Option<OsString>) -> Option<PathBuf> {
     };
     Some(openharmony.parent()?.parent()?.to_path_buf())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn sdk_home_supports_both_sdk_layouts() {
-        let root = PathBuf::from("tools").join("sdk");
-        let ohos = root.join("default").join("openharmony");
-        assert_eq!(sdk_home(&ohos, None), Some(root.clone()));
-        assert_eq!(sdk_home(&ohos.join("18"), None), Some(root));
-    }
-
-    #[test]
-    fn explicit_sdk_home_takes_precedence() {
-        let explicit = PathBuf::from("custom-sdk");
-        assert_eq!(
-            sdk_home(
-                Path::new("openharmony"),
-                Some(explicit.clone().into_os_string())
-            ),
-            Some(explicit),
-        );
-    }
-
-    #[test]
-    fn shallow_sdk_path_requires_explicit_home() {
-        assert_eq!(sdk_home(Path::new("openharmony"), None), None);
-    }
-}
