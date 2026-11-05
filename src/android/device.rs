@@ -126,6 +126,9 @@ pub enum ConnectionStatus {
     Authorizing,
 }
 
+/// How many times to poll for the app's PID (about 2 s apart) before starting logcat without it.
+const PID_POLL_ATTEMPTS: u32 = 30;
+
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Device<'a> {
     serial_no: String,
@@ -474,34 +477,57 @@ impl<'a> Device<'a> {
                 .logcat()
         );
 
-        let stdout = loop {
+        // Wait for the app's process so logcat can be filtered by its PID. Give up after a while
+        // (e.g. the app crashed on launch) and fall back to logcat without the PID filter.
+        let mut pid = String::new();
+        for _ in 0..PID_POLL_ATTEMPTS {
+            let app_identifier_ = app_identifier.clone();
             // Under Node.js (napi) the inherited stdin is close-on-exec, so adb would start with fd 0
             // closed and fail to reach its server; give it /dev/null instead.
-            let cmd = duct::cmd(
-                env.platform_tools_path().join("adb"),
-                ["shell", "pidof", "-s", app_identifier.as_str()],
-            )
-            .vars(env.explicit_env())
-            .stdin_null()
-            .stderr_capture()
-            .stdout_capture();
+            let cmd = self
+                .adb(env)
+                .stdin_null()
+                .stderr_capture()
+                .stdout_capture()
+                .unchecked()
+                .before_spawn(move |cmd| {
+                    cmd.args(["shell", "pidof", "-s", &app_identifier_]);
+                    Ok(())
+                });
             let handle = cmd.start().map_err(|err| RunError::CommandFailed {
                 command: format!("{cmd:?}"),
                 error: err,
             })?;
             if let Ok(out) = handle.wait() {
                 if out.status.success() {
-                    break String::from_utf8_lossy(&out.stdout).into_owned();
+                    pid = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                    break;
                 }
+                log::debug!(
+                    "`adb shell pidof -s {}` failed: {}",
+                    app_identifier,
+                    String::from_utf8_lossy(&out.stderr).trim()
+                );
             }
             sleep(Duration::from_secs(2));
-        };
-        let pid = stdout.trim().to_string();
-        let mut logcat = duct::cmd(
-            env.platform_tools_path().join("adb"),
-            ["logcat", "-v", "color", "-s", &filter],
+        }
+        if pid.is_empty() {
+            log::warn!(
+                "Could not find the process of {app_identifier}; showing logcat without a PID filter"
+            );
+        }
+        let mut logcat = adb::adb(
+            env,
+            [
+                "-s",
+                &self.serial_no,
+                "logcat",
+                "-v",
+                "color",
+                "-s",
+                &filter,
+            ],
         )
-        .vars(env.explicit_env())
         .dup_stdio();
 
         let logcat_filter_specs = config.logcat_filter_specs().to_vec();
