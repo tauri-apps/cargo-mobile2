@@ -210,6 +210,7 @@ impl<'a> Device<'a> {
         loop {
             let cmd = self
                 .adb(env)
+                .stdin_null()
                 .stderr_capture()
                 .stdout_capture()
                 .before_spawn(move |cmd| {
@@ -474,11 +475,14 @@ impl<'a> Device<'a> {
         );
 
         let stdout = loop {
+            // Under Node.js (napi) the inherited stdin is close-on-exec, so adb would start with fd 0
+            // closed and fail to reach its server; give it /dev/null instead.
             let cmd = duct::cmd(
                 env.platform_tools_path().join("adb"),
                 ["shell", "pidof", "-s", app_identifier.as_str()],
             )
             .vars(env.explicit_env())
+            .stdin_null()
             .stderr_capture()
             .stdout_capture();
             let handle = cmd.start().map_err(|err| RunError::CommandFailed {
