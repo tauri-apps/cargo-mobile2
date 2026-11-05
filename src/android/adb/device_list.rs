@@ -55,7 +55,7 @@ impl Reportable for Error {
     }
 }
 
-const ADB_DEVICE_REGEX: &str = r"^([\S]{6,100})	([\S]{6,100})\b";
+const ADB_DEVICE_REGEX: &str = r"^([^\t\n]{6,100})\t([\S]{6,100})\b";
 
 pub fn device_list(env: &Env) -> Result<BTreeSet<Device<'static>>, Error> {
     let mut cmd = Command::new(env.platform_tools_path().join("adb"));
@@ -137,6 +137,10 @@ mod test {
             emulator-5554	device product:sdk_google_phone_x86 model:Android_SDK_built_for_x86 device:generic_x86\n\
             0a388e93	device usb:1-1 product:razor model:Nexus_7 device:flo\n\
             ", vec!["emulator-5556", "emulator-5554", "0a388e93"]
+        ),
+        case("List of devices attached\n\
+            adb-7492209-mcwnUB (2)._adb-tls-connect._tcp\tdevice\n\
+            ", vec!["adb-7492209-mcwnUB (2)._adb-tls-connect._tcp"]
         ),
 
     )]
