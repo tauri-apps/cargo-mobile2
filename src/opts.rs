@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 #[cfg(feature = "cli")]
-use structopt::clap::arg_enum;
+use clap::ValueEnum;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum NoiseLevel {
@@ -89,16 +89,14 @@ pub enum FilterLevel {
 }
 
 #[cfg(feature = "cli")]
-arg_enum! {
-    /// Android device logging filter level, used as an argument for run
-    #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-    pub enum FilterLevel {
-        Error,
-        Warn,
-        Info,
-        Debug,
-        Verbose,
-    }
+/// Android device logging filter level, used as an argument for run
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, ValueEnum)]
+pub enum FilterLevel {
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Verbose,
 }
 
 impl FilterLevel {
