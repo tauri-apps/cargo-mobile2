@@ -127,7 +127,7 @@ pub enum ConnectionStatus {
 }
 
 /// How many times to poll for the app's PID (about 2 s apart) before starting logcat without it.
-const PID_POLL_ATTEMPTS: u32 = 30;
+const PID_POLL_ATTEMPTS: u32 = 5;
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Device<'a> {
