@@ -22,8 +22,10 @@ use thiserror::Error;
 pub type CustomEscapeFn = &'static (dyn Fn(&str) -> String + 'static + Send + Sync);
 
 /// Specifies how to escape template variables prior to rendering.
+#[derive(Default)]
 pub enum EscapeFn {
     /// The default setting. Doesn't change the variables at all.
+    #[default]
     None,
     /// Escape anything that looks like HTML. This is recommended when rendering HTML templates with user-provided data.
     Html,
@@ -38,12 +40,6 @@ impl Debug for EscapeFn {
             Self::Html => "Html",
             Self::Custom(_) => "Custom(..)",
         })
-    }
-}
-
-impl Default for EscapeFn {
-    fn default() -> Self {
-        Self::None
     }
 }
 

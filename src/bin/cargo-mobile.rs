@@ -11,55 +11,55 @@ use cargo_mobile2::{
     },
     NAME,
 };
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
-use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
-#[structopt(
+#[derive(Debug, Parser)]
+#[command(
     bin_name = cli::bin_name(NAME),
     version = VERSION_SHORT,
     long_version = VERSION_LONG.as_str(),
-    global_settings = cli::GLOBAL_SETTINGS,
-    settings = cli::SETTINGS,
+    subcommand_required = true,
+    arg_required_else_help = true,
 )]
 pub struct Input {
-    #[structopt(flatten)]
+    #[command(flatten)]
     flags: GlobalFlags,
-    #[structopt(subcommand)]
+    #[command(subcommand)]
     command: Command,
 }
 
-#[derive(Clone, Debug, StructOpt)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum Command {
-    #[structopt(
+    #[command(
         name = "init",
         about = "Creates a new project in the current working directory"
     )]
     Init {
-        #[structopt(flatten)]
+        #[command(flatten)]
         skip_dev_tools: cli::SkipDevTools,
-        #[structopt(flatten)]
+        #[command(flatten)]
         skip_targets_install: cli::SkipTargetsInstall,
-        #[structopt(flatten)]
+        #[command(flatten)]
         reinstall_deps: cli::ReinstallDeps,
-        #[structopt(long = "open", help = "Open in default code editor")]
+        #[arg(long = "open", help = "Open in default code editor")]
         open_in_editor: bool,
-        #[structopt(long = "submodule-commit", help = "Template pack commit to checkout")]
+        #[arg(long = "submodule-commit", help = "Template pack commit to checkout")]
         submodule_commit: Option<String>,
     },
-    #[structopt(name = "new", about = "Creates a new project in a new directory")]
+    #[command(name = "new", about = "Creates a new project in a new directory")]
     New {
-        #[structopt(flatten)]
+        #[command(flatten)]
         skip_dev_tools: cli::SkipDevTools,
-        #[structopt(flatten)]
+        #[command(flatten)]
         skip_targets_install: cli::SkipTargetsInstall,
-        #[structopt(flatten)]
+        #[command(flatten)]
         reinstall_deps: cli::ReinstallDeps,
-        #[structopt(long = "open", help = "Open in default code editor")]
+        #[arg(long = "open", help = "Open in default code editor")]
         open_in_editor: bool,
-        #[structopt(long = "submodule-commit", help = "Template pack commit to checkout")]
+        #[arg(long = "submodule-commit", help = "Template pack commit to checkout")]
         submodule_commit: Option<String>,
-        #[structopt(
+        #[arg(
             name = "DIRECTORY",
             help = "New directory to create project in",
             index = 1,
@@ -67,28 +67,34 @@ pub enum Command {
         )]
         directory: PathBuf,
     },
-    #[structopt(name = "open", about = "Open project in default code editor")]
+    #[command(name = "open", about = "Open project in default code editor")]
     Open,
-    #[structopt(name = "update", about = "Update `cargo-mobile2`")]
+    #[command(name = "update", about = "Update `cargo-mobile2`")]
     Update {
-        #[structopt(long = "init", help = "Regenerate project if update succeeds")]
+        #[arg(long = "init", help = "Regenerate project if update succeeds")]
         init: bool,
     },
     #[cfg_attr(
         target_os = "macos",
-        structopt(
+        command(
             name = "apple",
             about = "iOS commands (tip: type less by running `cargo apple` instead!)"
         )
     )]
     #[cfg(target_os = "macos")]
-    Apple(cargo_mobile2::apple::cli::Command),
-    #[structopt(
+    Apple {
+        #[command(subcommand)]
+        command: cargo_mobile2::apple::cli::Command,
+    },
+    #[command(
         name = "android",
         about = "Android commands (tip: type less by running `cargo android` instead!)"
     )]
-    Android(cargo_mobile2::android::cli::Command),
-    #[structopt(
+    Android {
+        #[command(subcommand)]
+        command: cargo_mobile2::android::cli::Command,
+    },
+    #[command(
         name = "doctor",
         about = "Perform a check-up on your installation and environment"
     )]
@@ -222,10 +228,10 @@ impl Exec for Input {
                 Ok(())
             }
             #[cfg(target_os = "macos")]
-            Command::Apple(command) => cargo_mobile2::apple::cli::Input::new(flags, command)
+            Command::Apple { command } => cargo_mobile2::apple::cli::Input::new(flags, command)
                 .exec(wrapper)
                 .map_err(Error::AppleFailed),
-            Command::Android(command) => cargo_mobile2::android::cli::Input::new(flags, command)
+            Command::Android { command } => cargo_mobile2::android::cli::Input::new(flags, command)
                 .exec(wrapper)
                 .map_err(Error::AndroidFailed),
             Command::Doctor => doctor::exec(wrapper).map_err(Error::DoctorFailed),

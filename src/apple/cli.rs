@@ -26,21 +26,21 @@ use crate::{
         prompt,
     },
 };
+use clap::{Parser, Subcommand};
 use std::{collections::HashMap, ffi::OsStr, path::PathBuf};
-use structopt::{clap::AppSettings, StructOpt};
 
-#[derive(Debug, StructOpt)]
-#[structopt(
+#[derive(Debug, Parser)]
+#[clap(
     bin_name = cli::bin_name(NAME),
     version = VERSION_SHORT,
     long_version = VERSION_LONG.as_str(),
-    global_settings = cli::GLOBAL_SETTINGS,
-    settings = cli::SETTINGS,
+    subcommand_required = true,
+    arg_required_else_help = true,
 )]
 pub struct Input {
-    #[structopt(flatten)]
+    #[clap(flatten)]
     flags: GlobalFlags,
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     command: Command,
 }
 
@@ -54,49 +54,51 @@ fn macos_from_platform(platform: &str) -> bool {
     platform == "macOS"
 }
 
-fn profile_from_configuration(configuration: &str) -> opts::Profile {
-    if configuration == "release" {
+fn profile_from_configuration(
+    configuration: &str,
+) -> Result<opts::Profile, std::convert::Infallible> {
+    Ok(if configuration == "release" {
         opts::Profile::Release
     } else {
         opts::Profile::Debug
-    }
+    })
 }
 
-#[derive(Clone, Debug, StructOpt)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum Command {
-    #[structopt(name = "open", about = "Open project in Xcode")]
+    #[clap(name = "open", about = "Open project in Xcode")]
     Open,
-    #[structopt(name = "check", about = "Checks if code compiles for target(s)")]
+    #[clap(name = "check", about = "Checks if code compiles for target(s)")]
     Check {
-        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = &Target::name_list())]
+        #[clap(name = "targets", default_value = Target::DEFAULT_KEY, value_parser = Target::name_list())]
         targets: Vec<String>,
     },
-    #[structopt(name = "build", about = "Builds static libraries for target(s)")]
+    #[clap(name = "build", about = "Builds static libraries for target(s)")]
     Build {
-        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = &Target::name_list())]
+        #[clap(name = "targets", default_value = Target::DEFAULT_KEY, value_parser = Target::name_list())]
         targets: Vec<String>,
-        #[structopt(flatten)]
+        #[clap(flatten)]
         profile: cli::Profile,
     },
-    #[structopt(name = "archive", about = "Builds and archives for targets(s)")]
+    #[clap(name = "archive", about = "Builds and archives for targets(s)")]
     Archive {
-        #[structopt(long = "build-number")]
+        #[clap(long = "build-number")]
         build_number: Option<u32>,
-        #[structopt(name = "targets", default_value = Target::DEFAULT_KEY, possible_values = &Target::name_list())]
+        #[clap(name = "targets", default_value = Target::DEFAULT_KEY, value_parser = Target::name_list())]
         targets: Vec<String>,
-        #[structopt(flatten)]
+        #[clap(flatten)]
         profile: cli::Profile,
     },
-    #[structopt(name = "run", about = "Deploys IPA to connected device")]
+    #[clap(name = "run", about = "Deploys IPA to connected device")]
     Run {
-        #[structopt(flatten)]
+        #[clap(flatten)]
         profile: cli::Profile,
     },
-    #[structopt(name = "list", about = "Lists connected devices")]
+    #[clap(name = "list", about = "Lists connected devices")]
     List,
-    #[structopt(name = "pod", about = "Runs `pod <args>`")]
+    #[clap(name = "pod", about = "Runs `pod <args>`")]
     Pod {
-        #[structopt(
+        #[clap(
             name = "arguments",
             help = "arguments passed down to the `pod <args>` command",
             index = 1,
@@ -104,40 +106,40 @@ pub enum Command {
         )]
         arguments: Vec<String>,
     },
-    #[structopt(
+    #[clap(
         name = "xcode-script",
         about = "Compiles static lib (should only be called by Xcode!)",
-        setting = AppSettings::Hidden
+        hide = true
     )]
     XcodeScript {
-        #[structopt(long = "platform", help = "Value of `PLATFORM_DISPLAY_NAME` env var")]
+        #[clap(long = "platform", help = "Value of `PLATFORM_DISPLAY_NAME` env var")]
         platform: String,
-        #[structopt(long = "sdk-root", help = "Value of `SDKROOT` env var")]
+        #[clap(long = "sdk-root", help = "Value of `SDKROOT` env var")]
         sdk_root: PathBuf,
-        #[structopt(
+        #[clap(
             long = "framework-search-paths",
             help = "Value of `FRAMEWORK_SEARCH_PATHS` env var"
         )]
         framework_search_paths: String,
-        #[structopt(
+        #[clap(
             long = "gcc-preprocessor-definitions",
             help = "Value of `GCC_PREPROCESSOR_DEFINITIONS` env var"
         )]
         gcc_preprocessor_definitions: String,
-        #[structopt(
+        #[clap(
             long = "header-search-paths",
             help = "Value of `HEADER_SEARCH_PATHS` env var"
         )]
         header_search_paths: String,
-        #[structopt(
+        #[clap(
             long = "configuration",
             help = "Value of `CONFIGURATION` env var",
-            parse(from_str = profile_from_configuration),
+            value_parser = profile_from_configuration,
         )]
         profile: opts::Profile,
-        #[structopt(long = "force-color", help = "Value of `FORCE_COLOR` env var")]
+        #[clap(long = "force-color", help = "Value of `FORCE_COLOR` env var")]
         force_color: bool,
-        #[structopt(
+        #[clap(
             name = "ARCHS",
             help = "Value of `ARCHS` env var",
             index = 1,
@@ -269,11 +271,12 @@ impl Exec for Input {
         let Self {
             flags:
                 GlobalFlags {
-                    noise_level,
+                    noise_level: noise_level_count,
                     non_interactive,
                 },
             command,
         } = self;
+        let noise_level = opts::NoiseLevel::from_occurrences(noise_level_count.into());
         let env = Env::new().map_err(Error::EnvInitFailed)?;
         match command {
             Command::Open => {
@@ -299,36 +302,37 @@ impl Exec for Input {
                     .map_err(Error::TargetInvalid)?
                 })
             }
-            Command::Build {
-                targets,
-                profile: cli::Profile { profile },
-            } => with_config(non_interactive, wrapper, |config, _| {
-                version_check()?;
-                ensure_init(config)?;
-                call_for_targets_with_fallback(
-                    targets.iter(),
-                    &detect_target_ok,
-                    &env,
-                    |target: &Target| {
-                        target
-                            .build(
-                                None,
-                                config,
-                                &env,
-                                noise_level,
-                                profile,
-                                BuildConfig::default().allow_provisioning_updates(),
-                            )
-                            .map_err(Error::BuildFailed)
-                    },
-                )
-                .map_err(Error::TargetInvalid)?
-            }),
+            Command::Build { targets, profile } => {
+                with_config(non_interactive, wrapper, |config, _| {
+                    let profile = profile.profile();
+                    version_check()?;
+                    ensure_init(config)?;
+                    call_for_targets_with_fallback(
+                        targets.iter(),
+                        &detect_target_ok,
+                        &env,
+                        |target: &Target| {
+                            target
+                                .build(
+                                    None,
+                                    config,
+                                    &env,
+                                    noise_level,
+                                    profile,
+                                    BuildConfig::default().allow_provisioning_updates(),
+                                )
+                                .map_err(Error::BuildFailed)
+                        },
+                    )
+                    .map_err(Error::TargetInvalid)?
+                })
+            }
             Command::Archive {
                 targets,
                 build_number,
-                profile: cli::Profile { profile },
+                profile,
             } => with_config(non_interactive, wrapper, |config, _| {
+                let profile = profile.profile();
                 version_check()?;
                 ensure_init(config)?;
                 call_for_targets_with_fallback(
@@ -366,9 +370,8 @@ impl Exec for Input {
                 )
                 .map_err(Error::TargetInvalid)?
             }),
-            Command::Run {
-                profile: cli::Profile { profile },
-            } => with_config(non_interactive, wrapper, |config, _| {
+            Command::Run { profile } => with_config(non_interactive, wrapper, |config, _| {
+                let profile = profile.profile();
                 version_check()?;
                 ensure_init(config)?;
                 device_prompt(&env)
