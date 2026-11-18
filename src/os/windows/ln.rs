@@ -56,18 +56,94 @@ pub fn force_symlink(
     } else if target.is_dir() {
         remove_dir_all(&target).map_err(|err| error(ErrorCause::IOError(err)))?;
     }
-    let result = if is_directory {
-        std::os::windows::fs::symlink_dir(source, target)
+    let symlink_result = if is_directory {
+        std::os::windows::fs::symlink_dir(source, &target)
     } else {
-        std::os::windows::fs::symlink_file(source, target)
+        std::os::windows::fs::symlink_file(source, &target)
     };
-    result.map_err(|err| {
-        if err.raw_os_error() == Some(ERROR_PRIVILEGE_NOT_HELD.0 as i32) {
-            error(ErrorCause::SymlinkNotAllowed)
-        } else {
-            error(ErrorCause::IOError(err))
+    match symlink_result {
+        Err(err) if err.raw_os_error() == Some(ERROR_PRIVILEGE_NOT_HELD.0 as i32) => {
+            // Creating symlinks on Windows requires Developer Mode or the
+            // SeCreateSymbolicLinkPrivilege policy. Fall back to a copy: the
+            // symlink here is a convenience for a build artifact (the copy is
+            // what Gradle packages either way), and failing the whole build
+            // over a missing privilege makes Windows-hosted cross builds
+            // impossible without a machine-wide setting.
+            log::warn!("symlink creation was denied by the OS; falling back to a copy");
+            // A relative source (force_symlink_relative passes one) resolves
+            // against the link's directory, not the process CWD — resolve it
+            // the same way is_directory does before copying.
+            let resolved_source = target
+                .parent()
+                .map(|parent| prefix_path(parent, source))
+                .unwrap_or_else(|| source.to_owned());
+            let copy_result = if is_directory {
+                copy_dir_all(&resolved_source, &target)
+            } else {
+                std::fs::copy(&resolved_source, &target).map(|_| ())
+            };
+            copy_result.map_err(|err| error(ErrorCause::IOError(err)))
         }
-    })?;
+        // Other symlink errors map as before.
+        r => r.map_err(|err| error(ErrorCause::IOError(err))),
+    }?;
+    Ok(())
+}
+
+fn copy_dir_all(source: &Path, target: &Path) -> std::io::Result<()> {
+    // Cycle guard: `metadata()` follows symlinks, so a self-referential or
+    // ancestor-pointing link would recurse forever and abort the whole
+    // fallback with a path-length error — the exact failure this fallback was
+    // added to avoid.
+    let mut visited = std::collections::HashSet::new();
+    copy_dir_all_inner(source, target, &mut visited)
+}
+
+fn copy_dir_all_inner(
+    source: &Path,
+    target: &Path,
+    visited: &mut std::collections::HashSet<std::path::PathBuf>,
+) -> std::io::Result<()> {
+    let canonical = source.canonicalize()?;
+    if !visited.insert(canonical.clone()) {
+        log::warn!("skipping {:?}: ancestor cycle in symlinked tree", source);
+        return Ok(());
+    }
+    std::fs::create_dir_all(target)?;
+    let result = copy_dir_all_entries(source, target, visited);
+    // Pop on the way out: a directory that is merely *reachable twice* (two
+    // entries in the tree pointing at it) must still be copied at each
+    // location — only true ancestor cycles are meant to be cut here.
+    visited.remove(&canonical);
+    result
+}
+
+fn copy_dir_all_entries(
+    source: &Path,
+    target: &Path,
+    visited: &mut std::collections::HashSet<std::path::PathBuf>,
+) -> std::io::Result<()> {
+    for entry in std::fs::read_dir(source)? {
+        let entry = entry?;
+        let dest = target.join(entry.file_name());
+        // std::fs::metadata follows symlinks: a symlinked subdirectory
+        // inside the source tree must recurse as a directory. A broken link
+        // (dangling, or a self-referential loop) resolves with an error and
+        // is skipped with a warning rather than failing the whole fallback —
+        // the symlink being replaced here was best-effort to begin with.
+        let entry_type = match std::fs::metadata(entry.path()) {
+            Ok(metadata) => metadata.file_type(),
+            Err(err) => {
+                log::warn!("skipping {:?} while copying: {err}", entry.path());
+                continue;
+            }
+        };
+        if entry_type.is_dir() {
+            copy_dir_all_inner(&entry.path(), &dest, visited)?;
+        } else {
+            std::fs::copy(entry.path(), &dest)?;
+        }
+    }
     Ok(())
 }
 
