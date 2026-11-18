@@ -292,7 +292,7 @@ pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListErro
         .vars(env.explicit_env());
 
     cmd.run().map_err(|err| DeviceListError::DetectionFailed {
-        command: format!("{cmd:?}"),
+        command: cmd.display_cmd(),
         error: err,
     })?;
 

@@ -3,6 +3,7 @@ use super::{
     GemCache, PACKAGES,
 };
 use crate::regex;
+use crate::DuctExpressionExt as _;
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -105,7 +106,7 @@ impl Outdated {
             .stdout_capture();
         cmd.run()
             .map_err(|err| OutdatedError::CommandFailed {
-                command: format!("{cmd:?}"),
+                command: cmd.display_cmd(),
                 error: err,
             })
             .and_then(|output| serde_json::from_slice(&output.stdout).map_err(Into::into))
@@ -120,7 +121,7 @@ impl Outdated {
     pub fn load(gem_cache: &mut GemCache) -> Result<Self, OutdatedError> {
         let cmd = duct::cmd("gem", ["outdated"]).stderr_capture();
         let outdated_strings = cmd.read().map_err(|err| OutdatedError::CommandFailed {
-            command: format!("{cmd:?}"),
+            command: cmd.display_cmd(),
             error: err,
         })?;
         let packages = Self::outdated_brew_deps()?

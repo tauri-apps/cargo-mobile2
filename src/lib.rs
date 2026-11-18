@@ -31,6 +31,53 @@ trait DuctExpressionExt {
     // Sets the stdin, stdout and stderr to properly
     // show the command output in a Node.js wrapper (napi-rs).
     fn dup_stdio(&self) -> Self;
+    // Renders the program and arguments for error messages. The `Debug` impl
+    // also dumps every env var and redirection wrapping the command.
+    fn display_cmd(&self) -> String;
+}
+
+// Extracts each `Cmd([...])` node from a duct expression's `Debug` output
+// and joins its arguments, so pipes render as `a | b`.
+fn display_expression_debug(debug: &str) -> String {
+    let mut commands = Vec::new();
+    let mut rest = debug;
+    while let Some(start) = rest.find("Cmd([") {
+        rest = &rest[start + "Cmd([".len()..];
+        let mut args = Vec::new();
+        let mut chars = rest.char_indices();
+        let mut end = rest.len();
+        while let Some((i, c)) = chars.next() {
+            match c {
+                '"' => {
+                    let mut arg = String::new();
+                    while let Some((_, c)) = chars.next() {
+                        match c {
+                            '\\' => {
+                                if let Some((_, escaped)) = chars.next() {
+                                    arg.push(escaped);
+                                }
+                            }
+                            '"' => break,
+                            c => arg.push(c),
+                        }
+                    }
+                    if arg.is_empty() || arg.contains(char::is_whitespace) {
+                        args.push(format!("{arg:?}"));
+                    } else {
+                        args.push(arg);
+                    }
+                }
+                ']' => {
+                    end = i;
+                    break;
+                }
+                _ => {}
+            }
+        }
+        rest = &rest[end..];
+        commands.push(args.join(" "));
+    }
+    commands.join(" | ")
 }
 
 impl DuctExpressionExt for duct::Expression {
@@ -93,5 +140,34 @@ impl DuctExpressionExt for duct::Expression {
         self.stdin_file(os_pipe::dup_stdin().unwrap())
             .stdout_file(os_pipe::dup_stdout().unwrap())
             .stderr_file(os_pipe::dup_stderr().unwrap())
+    }
+
+    fn display_cmd(&self) -> String {
+        display_expression_debug(&format!("{self:?}"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::DuctExpressionExt as _;
+
+    #[test]
+    fn display_cmd_omits_env_and_redirections() {
+        let cmd = duct::cmd("adb", ["-s", "emulator-5554", "path with space"])
+            .env("SECRET", "value")
+            .stdout_null()
+            .before_spawn(|_| Ok(()));
+        assert_eq!(
+            cmd.display_cmd(),
+            r#"adb -s emulator-5554 "path with space""#
+        );
+    }
+
+    #[test]
+    fn display_cmd_renders_pipes() {
+        let cmd = duct::cmd!("adb", "logcat")
+            .env("A", "B")
+            .pipe(duct::cmd!("ndk-stack"));
+        assert_eq!(cmd.display_cmd(), "adb logcat | ndk-stack");
     }
 }

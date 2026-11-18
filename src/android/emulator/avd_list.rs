@@ -33,7 +33,7 @@ pub fn avd_list(env: &Env) -> Result<BTreeSet<Emulator>, Error> {
                 .collect::<BTreeSet<Emulator>>()
         })
         .map_err(|error| Error::CommandFailed {
-            command: format!("{cmd:?}"),
+            command: cmd.display_cmd(),
             error,
         })
 }

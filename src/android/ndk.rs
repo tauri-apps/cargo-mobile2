@@ -3,6 +3,7 @@ use super::{
     target::Target,
 };
 use crate::regex_multi_line;
+use crate::DuctExpressionExt as _;
 use crate::{
     os::consts,
     util::{
@@ -300,7 +301,7 @@ impl Env {
             .captures_iter(
                 cmd.read()
                     .map_err(|err| RequiredLibsError::CommandFailed {
-                        command: format!("{cmd:?}"),
+                        command: cmd.display_cmd(),
                         error: err,
                     })?
                     .as_str(),

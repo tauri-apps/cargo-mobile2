@@ -260,8 +260,9 @@ impl<'a> Device<'a> {
             .reduce(last_modified)
             .unwrap();
 
-        let cmd = self
-            .adb(env)
+        let adb = self.adb(env);
+        let cmd_str = format!("{} install -r {}", adb.display_cmd(), apk_path.display());
+        let cmd = adb
             .before_spawn(move |cmd| {
                 cmd.args(["install", "-r"]);
                 cmd.arg(&apk_path);
@@ -270,12 +271,12 @@ impl<'a> Device<'a> {
             .dup_stdio();
         cmd.start()
             .map_err(|err| ApkInstallError::InstallFailed {
-                command: format!("{cmd:?}"),
+                command: cmd_str.clone(),
                 error: err,
             })?
             .wait()
             .map_err(|err| ApkInstallError::InstallFailed {
-                command: format!("{cmd:?}"),
+                command: cmd_str,
                 error: err,
             })?;
 
@@ -337,7 +338,8 @@ impl<'a> Device<'a> {
             .unwrap();
         let cmd = bundletool::command();
         let cmd_str = format!(
-            "{cmd:?} install-apks --apks={}",
+            "{} install-apks --apks={}",
+            cmd.display_cmd(),
             apks_path.to_str().unwrap()
         );
         let cmd = cmd.before_spawn(move |cmd| {
@@ -452,14 +454,15 @@ impl<'a> Device<'a> {
                 Ok(())
             })
             .dup_stdio();
+        let cmd_str = format!("{} shell am start -n {activity}", cmd.display_cmd());
         cmd.start()
             .map_err(|err| RunError::CommandFailed {
-                command: format!("{cmd:?} shell am start -n {activity}"),
+                command: cmd_str.clone(),
                 error: err,
             })?
             .wait()
             .map_err(|err| RunError::CommandFailed {
-                command: format!("{cmd:?} shell am start -n {activity}"),
+                command: cmd_str,
                 error: err,
             })?;
 
@@ -495,7 +498,7 @@ impl<'a> Device<'a> {
                     Ok(())
                 });
             let handle = cmd.start().map_err(|err| RunError::CommandFailed {
-                command: format!("{cmd:?}"),
+                command: cmd.display_cmd(),
                 error: err,
             })?;
             if let Ok(out) = handle.wait() {
@@ -539,7 +542,7 @@ impl<'a> Device<'a> {
             Ok(())
         });
         logcat.start().map_err(|err| RunError::CommandFailed {
-            command: format!("{logcat:?}"),
+            command: logcat.display_cmd(),
             error: err,
         })
     }
@@ -575,7 +578,11 @@ impl<'a> Device<'a> {
             .pipe(&stack_command)
             .start()
             .map_err(|err| StacktraceError::CommandFailed {
-                command: format!("{logcat_command:?} | {stack_command:?}"),
+                command: format!(
+                    "{} | {}",
+                    logcat_command.display_cmd(),
+                    stack_command.display_cmd()
+                ),
                 error: err,
             })?
             .wait()
