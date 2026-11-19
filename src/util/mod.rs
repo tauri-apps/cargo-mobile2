@@ -480,7 +480,7 @@ pub enum RunAndSearchError {
         command: String,
         error: std::io::Error,
     },
-    #[error("{command:?} output failed to match regex: {output:?}")]
+    #[error("{command} output failed to match regex: {output:?}")]
     SearchFailed { command: String, output: String },
 }
 
@@ -489,7 +489,7 @@ pub fn run_and_search<T>(
     re: &Regex,
     f: impl FnOnce(&str, Captures<'_>) -> T,
 ) -> Result<T, RunAndSearchError> {
-    let command_string = format!("{command:?}");
+    let command_string = command.display_cmd();
     command
         .read()
         .map(|output| {

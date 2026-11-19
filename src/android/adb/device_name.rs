@@ -6,6 +6,7 @@ use std::{
 
 use super::adb;
 use crate::regex;
+use crate::DuctExpressionExt as _;
 use crate::{
     android::env::Env,
     util::cli::{Report, Reportable},
@@ -57,7 +58,7 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
         let name = super::check_authorized(
             cmd.start()
                 .map_err(|error| Error::CommandFailed {
-                    command: format!("{cmd:?}"),
+                    command: cmd.display_cmd(),
                     error,
                 })?
                 .wait_timeout(Duration::from_secs(3))
@@ -68,7 +69,7 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
                     ))
                 })
                 .map_err(|error| Error::CommandFailed {
-                    command: format!("{cmd:?}"),
+                    command: cmd.display_cmd(),
                     error,
                 })?,
         )
@@ -99,7 +100,7 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
         super::check_authorized(
             cmd.start()
                 .map_err(|error| Error::CommandFailed {
-                    command: format!("{cmd:?}"),
+                    command: cmd.display_cmd(),
                     error,
                 })?
                 .wait_timeout(Duration::from_secs(3))
@@ -110,7 +111,7 @@ pub fn device_name(env: &Env, serial_no: &str) -> Result<String, Error> {
                     ))
                 })
                 .map_err(|error| Error::CommandFailed {
-                    command: format!("{cmd:?}"),
+                    command: cmd.display_cmd(),
                     error,
                 })?,
         )

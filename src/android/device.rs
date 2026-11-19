@@ -12,6 +12,7 @@ use crate::{
     DuctExpressionExt,
 };
 use std::{
+    ffi::OsStr,
     fmt::{self, Display},
     path::PathBuf,
     thread::sleep,
@@ -260,6 +261,16 @@ impl<'a> Device<'a> {
             .reduce(last_modified)
             .unwrap();
 
+        let display_cmd = {
+            let apk_path = apk_path.clone();
+            move |cmd: &duct::Expression| {
+                cmd.display_cmd_with([
+                    OsStr::new("install"),
+                    OsStr::new("-r"),
+                    apk_path.as_os_str(),
+                ])
+            }
+        };
         let cmd = self
             .adb(env)
             .before_spawn(move |cmd| {
@@ -270,12 +281,12 @@ impl<'a> Device<'a> {
             .dup_stdio();
         cmd.start()
             .map_err(|err| ApkInstallError::InstallFailed {
-                command: format!("{cmd:?}"),
+                command: display_cmd(&cmd),
                 error: err,
             })?
             .wait()
             .map_err(|err| ApkInstallError::InstallFailed {
-                command: format!("{cmd:?}"),
+                command: display_cmd(&cmd),
                 error: err,
             })?;
 
@@ -335,22 +346,17 @@ impl<'a> Device<'a> {
             .into_iter()
             .reduce(last_modified)
             .unwrap();
-        let cmd = bundletool::command();
-        let cmd_str = format!(
-            "{cmd:?} install-apks --apks={}",
-            apks_path.to_str().unwrap()
-        );
-        let cmd = cmd.before_spawn(move |cmd| {
-            cmd.args([
-                "install-apks",
-                &format!("--apks={}", apks_path.to_str().unwrap()),
-            ]);
-
-            Ok(())
+        let apks_arg = format!("--apks={}", apks_path.to_str().unwrap());
+        let cmd = bundletool::command().before_spawn({
+            let apks_arg = apks_arg.clone();
+            move |cmd| {
+                cmd.args(["install-apks", &apks_arg]);
+                Ok(())
+            }
         });
         cmd.run()
             .map_err(|err| ApkInstallError::InstallFromAabFailed {
-                command: cmd_str,
+                command: cmd.display_cmd_with(["install-apks", apks_arg.as_str()]),
                 error: err,
             })?;
         Ok(())
@@ -452,14 +458,17 @@ impl<'a> Device<'a> {
                 Ok(())
             })
             .dup_stdio();
+        let display_cmd = |cmd: &duct::Expression| {
+            cmd.display_cmd_with(["shell", "am", "start", "-n", activity.as_str()])
+        };
         cmd.start()
             .map_err(|err| RunError::CommandFailed {
-                command: format!("{cmd:?} shell am start -n {activity}"),
+                command: display_cmd(&cmd),
                 error: err,
             })?
             .wait()
             .map_err(|err| RunError::CommandFailed {
-                command: format!("{cmd:?} shell am start -n {activity}"),
+                command: display_cmd(&cmd),
                 error: err,
             })?;
 
@@ -495,7 +504,7 @@ impl<'a> Device<'a> {
                     Ok(())
                 });
             let handle = cmd.start().map_err(|err| RunError::CommandFailed {
-                command: format!("{cmd:?}"),
+                command: cmd.display_cmd(),
                 error: err,
             })?;
             if let Ok(out) = handle.wait() {
@@ -539,7 +548,7 @@ impl<'a> Device<'a> {
             Ok(())
         });
         logcat.start().map_err(|err| RunError::CommandFailed {
-            command: format!("{logcat:?}"),
+            command: logcat.display_cmd(),
             error: err,
         })
     }
@@ -571,11 +580,11 @@ impl<'a> Device<'a> {
                 )
                 .dup_stdio();
 
-        if logcat_command
-            .pipe(&stack_command)
+        let pipeline = logcat_command.pipe(stack_command);
+        if pipeline
             .start()
             .map_err(|err| StacktraceError::CommandFailed {
-                command: format!("{logcat_command:?} | {stack_command:?}"),
+                command: pipeline.display_cmd(),
                 error: err,
             })?
             .wait()

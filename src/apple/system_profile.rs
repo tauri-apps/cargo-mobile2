@@ -1,5 +1,6 @@
 use crate::regex;
 use crate::util;
+use crate::DuctExpressionExt as _;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -32,7 +33,7 @@ impl DeveloperTools {
         // there don't seem to be any high quality plist crates, and parsing
         // XML sucks, we'll be lazy for now.
         let command = duct::cmd("system_profiler", ["SPDeveloperToolsDataType"]).stderr_capture();
-        let command_string = format!("{command:?}");
+        let command_string = command.display_cmd();
         let output = command
             .read()
             .map_err(|error| util::RunAndSearchError::CommandFailed {

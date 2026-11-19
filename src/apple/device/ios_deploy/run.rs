@@ -63,19 +63,19 @@ pub fn run_and_debug(
         Ok(deploy_cmd
             .start()
             .map_err(|error| RunAndDebugError::CommandFailed {
-                command: format!("{deploy_cmd:?}"),
+                command: deploy_cmd.display_cmd(),
                 error,
             })?)
     } else {
         deploy_cmd
             .start()
             .map_err(|error| RunAndDebugError::CommandFailed {
-                command: format!("{deploy_cmd:?}"),
+                command: deploy_cmd.display_cmd(),
                 error,
             })?
             .wait()
             .map_err(|error| RunAndDebugError::CommandFailed {
-                command: format!("{deploy_cmd:?}"),
+                command: deploy_cmd.display_cmd(),
                 error,
             })?;
 
@@ -101,7 +101,7 @@ pub fn run_and_debug(
             .dup_stdio();
         cmd.start()
             .map_err(|error| RunAndDebugError::CommandFailed {
-                command: format!("{cmd:?}"),
+                command: cmd.display_cmd(),
                 error,
             })
     }
