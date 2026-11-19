@@ -12,6 +12,7 @@ use crate::{
     DuctExpressionExt,
 };
 use std::{
+    ffi::OsStr,
     fmt::{self, Display},
     path::PathBuf,
     thread::sleep,
@@ -260,9 +261,18 @@ impl<'a> Device<'a> {
             .reduce(last_modified)
             .unwrap();
 
-        let adb = self.adb(env);
-        let cmd_str = format!("{} install -r {}", adb.display_cmd(), apk_path.display());
-        let cmd = adb
+        let display_cmd = {
+            let apk_path = apk_path.clone();
+            move |cmd: &duct::Expression| {
+                cmd.display_cmd_with([
+                    OsStr::new("install"),
+                    OsStr::new("-r"),
+                    apk_path.as_os_str(),
+                ])
+            }
+        };
+        let cmd = self
+            .adb(env)
             .before_spawn(move |cmd| {
                 cmd.args(["install", "-r"]);
                 cmd.arg(&apk_path);
@@ -271,12 +281,12 @@ impl<'a> Device<'a> {
             .dup_stdio();
         cmd.start()
             .map_err(|err| ApkInstallError::InstallFailed {
-                command: cmd_str.clone(),
+                command: display_cmd(&cmd),
                 error: err,
             })?
             .wait()
             .map_err(|err| ApkInstallError::InstallFailed {
-                command: cmd_str,
+                command: display_cmd(&cmd),
                 error: err,
             })?;
 
@@ -336,23 +346,17 @@ impl<'a> Device<'a> {
             .into_iter()
             .reduce(last_modified)
             .unwrap();
-        let cmd = bundletool::command();
-        let cmd_str = format!(
-            "{} install-apks --apks={}",
-            cmd.display_cmd(),
-            apks_path.to_str().unwrap()
-        );
-        let cmd = cmd.before_spawn(move |cmd| {
-            cmd.args([
-                "install-apks",
-                &format!("--apks={}", apks_path.to_str().unwrap()),
-            ]);
-
-            Ok(())
+        let apks_arg = format!("--apks={}", apks_path.to_str().unwrap());
+        let cmd = bundletool::command().before_spawn({
+            let apks_arg = apks_arg.clone();
+            move |cmd| {
+                cmd.args(["install-apks", &apks_arg]);
+                Ok(())
+            }
         });
         cmd.run()
             .map_err(|err| ApkInstallError::InstallFromAabFailed {
-                command: cmd_str,
+                command: cmd.display_cmd_with(["install-apks", apks_arg.as_str()]),
                 error: err,
             })?;
         Ok(())
@@ -454,15 +458,17 @@ impl<'a> Device<'a> {
                 Ok(())
             })
             .dup_stdio();
-        let cmd_str = format!("{} shell am start -n {activity}", cmd.display_cmd());
+        let display_cmd = |cmd: &duct::Expression| {
+            cmd.display_cmd_with(["shell", "am", "start", "-n", activity.as_str()])
+        };
         cmd.start()
             .map_err(|err| RunError::CommandFailed {
-                command: cmd_str.clone(),
+                command: display_cmd(&cmd),
                 error: err,
             })?
             .wait()
             .map_err(|err| RunError::CommandFailed {
-                command: cmd_str,
+                command: display_cmd(&cmd),
                 error: err,
             })?;
 
@@ -574,15 +580,11 @@ impl<'a> Device<'a> {
                 )
                 .dup_stdio();
 
-        if logcat_command
-            .pipe(&stack_command)
+        let pipeline = logcat_command.pipe(stack_command);
+        if pipeline
             .start()
             .map_err(|err| StacktraceError::CommandFailed {
-                command: format!(
-                    "{} | {}",
-                    logcat_command.display_cmd(),
-                    stack_command.display_cmd()
-                ),
+                command: pipeline.display_cmd(),
                 error: err,
             })?
             .wait()

@@ -160,19 +160,19 @@ pub fn run(
         launcher_cmd
             .start()
             .map_err(|error| RunError::CommandFailed {
-                command: cmd.display_cmd(),
+                command: launcher_cmd.display_cmd(),
                 error,
             })
     } else {
         launcher_cmd
             .start()
             .map_err(|error| RunError::CommandFailed {
-                command: cmd.display_cmd(),
+                command: launcher_cmd.display_cmd(),
                 error,
             })?
             .wait()
             .map_err(|error| RunError::CommandFailed {
-                command: cmd.display_cmd(),
+                command: launcher_cmd.display_cmd(),
                 error,
             })?;
 

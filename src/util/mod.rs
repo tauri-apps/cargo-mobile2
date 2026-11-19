@@ -480,7 +480,7 @@ pub enum RunAndSearchError {
         command: String,
         error: std::io::Error,
     },
-    #[error("{command:?} output failed to match regex: {output:?}")]
+    #[error("{command} output failed to match regex: {output:?}")]
     SearchFailed { command: String, output: String },
 }
 
