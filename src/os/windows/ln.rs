@@ -9,14 +9,12 @@ use std::{
     path::Path,
 };
 use windows::{
-    core::{self, PCWSTR},
     Win32::{
-        Foundation::{CloseHandle, ERROR_PRIVILEGE_NOT_HELD, GENERIC_READ},
-        Storage::FileSystem::{
+        Foundation::{CloseHandle, ERROR_PRIVILEGE_NOT_HELD, GENERIC_READ, GetLastError}, Storage::FileSystem::{
             CreateFileW, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_DELETE_ON_CLOSE,
             FILE_FLAG_OPEN_REPARSE_POINT, FILE_SHARE_READ, OPEN_EXISTING,
         },
-    },
+    }, core::{self, PCWSTR},
 };
 
 pub fn force_symlink(
@@ -193,7 +191,7 @@ fn delete_symlink(filename: &Path) -> Result<(), core::Error> {
         unsafe { CloseHandle(handle)? };
         Ok(())
     } else {
-        Err(core::Error::from_win32())
+        Err(unsafe { GetLastError().into() })
     }
 }
 
