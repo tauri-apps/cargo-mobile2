@@ -1,6 +1,6 @@
-use crate::android;
 #[cfg(target_os = "macos")]
 use crate::apple;
+use crate::{android, open_harmony};
 use crate::{
     config::{
         self,
@@ -64,6 +64,8 @@ pub enum Error {
         cause: io::Error,
     },
     OpenInEditorFailed(util::OpenInEditorError),
+    OpenHarmonyEnvFailed(open_harmony::env::Error),
+    OpenHarmonyInitFailed(open_harmony::project::Error),
 }
 
 impl Reportable for Error {
@@ -85,6 +87,8 @@ impl Reportable for Error {
             Self::DotCargoWriteFailed(err) => err.report(),
             Self::DotFirstInitDeleteFailed { path, cause } => Report::action_request(format!("Failed to delete first init dot file {path:?}; the project generated successfully, but `cargo mobile init` will have unexpected results unless you manually delete this file!"), cause),
             Self::OpenInEditorFailed(err) => Report::error("Failed to open project in editor (your project generated successfully though, so no worries!)", err),
+            Self::OpenHarmonyEnvFailed(err) => err.report(),
+            Self::OpenHarmonyInitFailed(err) => err.report(),
         }
     }
 }
@@ -199,6 +203,37 @@ pub fn exec(
     } else {
         println!(
             "Skipping Android init, since it's marked as unsupported in your Cargo.toml metadata"
+        );
+    }
+
+    // Generate DevEco Studio project
+    if metadata.open_harmony().supported() {
+        match open_harmony::env::Env::new() {
+            Ok(env) => open_harmony::project::gen(
+                config.open_harmony(),
+                metadata.open_harmony(),
+                &env,
+                &bike,
+                wrapper,
+                &filter,
+                skip_targets_install,
+            )
+            .map_err(Error::OpenHarmonyInitFailed)?,
+            Err(err) => {
+                if err.sdk_issue() {
+                    Report::action_request(
+                        "Failed to initialize OpenHarmony environment; OpenHarmony support won't be usable until you fix the issue below and re-run `cargo mobile init`!",
+                        err,
+                    )
+                    .print(wrapper);
+                } else {
+                    Err(Error::OpenHarmonyEnvFailed(err))?;
+                }
+            }
+        }
+    } else {
+        println!(
+                "Skipping OpenHarmony init, since it's marked as unsupported in your Cargo.toml metadata"
         );
     }
 
