@@ -1,0 +1,160 @@
+use crate::wgpu_renderer::renderer::MyRenderer;
+use crate::wgpu_renderer::swapchain::MySwapchainManager;
+use anyhow::Context;
+use pollster::block_on;
+use shaders::ShaderConstants;
+use std::sync::Arc;
+use std::time::Instant;
+use winit::{
+    application::ApplicationHandler,
+    event::{ElementState, KeyEvent, WindowEvent},
+    event_loop::ActiveEventLoop,
+    keyboard::{Key, NamedKey},
+    window::{Window, WindowId},
+};
+
+mod render_pipeline;
+mod renderer;
+mod swapchain;
+
+#[derive(Default)]
+pub struct App(Option<State>);
+
+impl ApplicationHandler for App {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        if self.0.is_none() {
+            self.0 = Some(block_on(State::new(event_loop)).unwrap());
+        }
+    }
+
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
+        let state = self.0.as_mut().unwrap();
+        state.window_event(event_loop, id, event).unwrap();
+    }
+
+    // FIX(iOS): https://github.com/rust-windowing/winit/issues/3406
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        event_loop.set_control_flow(winit::event_loop::ControlFlow::Wait);
+
+        #[cfg(target_os = "ios")]
+        {
+            if let Some(state) = self.0.as_mut() {
+                if state.ios_request_redraw {
+                    state.window.request_redraw();
+                }
+
+                state.ios_request_redraw = false;
+            }
+        }
+    }
+}
+
+struct State {
+    start: Instant,
+    window: Arc<Window>,
+    renderer: MyRenderer,
+    swapchain: MySwapchainManager<'static>,
+    // FIX(iOS): https://github.com/rust-windowing/winit/issues/3406
+    #[cfg(target_os = "ios")]
+    ios_request_redraw: bool,
+}
+
+impl State {
+    async fn new(event_loop: &ActiveEventLoop) -> anyhow::Result<Self> {
+        let attributes = Window::default_attributes().with_title("{{app.stylized-name}}");
+
+        #[cfg(not(any(target_os = "android", target_os = "ios")))]
+        let attributes = attributes.with_inner_size(winit::dpi::LogicalSize::new(1280, 720));
+        let window = Arc::new(event_loop.create_window(attributes).unwrap());
+
+        let instance =
+            wgpu::Instance::new(wgpu::InstanceDescriptor::new_with_display_handle_from_env(
+                Box::new(event_loop.owned_display_handle()),
+            ));
+        let surface = instance.create_surface(window.clone())?;
+        let adapter =
+            wgpu::util::initialize_adapter_from_env_or_default(&instance, Some(&surface)).await?;
+
+        let required_features = wgpu::Features::IMMEDIATES;
+        let required_limits = wgpu::Limits {
+            max_immediate_size: 128,
+            max_inter_stage_shader_variables: 15,
+            ..Default::default()
+        };
+        let (device, queue) = adapter
+            .request_device(&wgpu::DeviceDescriptor {
+                label: None,
+                required_features,
+                required_limits,
+                experimental_features: wgpu::ExperimentalFeatures::disabled(),
+                memory_hints: wgpu::MemoryHints::Performance,
+                trace: Default::default(),
+            })
+            .await
+            .context("Failed to create device")?;
+
+        let swapchain = MySwapchainManager::new(
+            instance.clone(),
+            adapter.clone(),
+            device.clone(),
+            window.clone(),
+            surface,
+        );
+        let renderer = MyRenderer::new(device, queue, swapchain.format())?;
+        Ok(Self {
+            start: Instant::now(),
+            window,
+            swapchain,
+            renderer,
+            // FIX(iOS): https://github.com/rust-windowing/winit/issues/3406
+            #[cfg(target_os = "ios")]
+            ios_request_redraw: false,
+        })
+    }
+
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _id: WindowId,
+        event: WindowEvent,
+    ) -> anyhow::Result<()> {
+        match event {
+            WindowEvent::RedrawRequested => {
+                let time = self.start.elapsed().as_secs_f32();
+                let renderer = &self.renderer;
+                self.swapchain.render(|render_target| {
+                    renderer.render(
+                        &ShaderConstants {
+                            time,
+                            width: render_target.texture().width(),
+                            height: render_target.texture().height(),
+                        },
+                        render_target,
+                    )
+                })?;
+
+                // FIX(iOS): https://github.com/rust-windowing/winit/issues/3406
+                #[cfg(not(target_os = "ios"))]
+                self.window.request_redraw();
+
+                #[cfg(target_os = "ios")]
+                {
+                    self.ios_request_redraw = true;
+                }
+            }
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        logical_key: Key::Named(NamedKey::Escape),
+                        state: ElementState::Pressed,
+                        ..
+                    },
+                ..
+            }
+            | WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::Resized(_) => self.swapchain.should_recreate(),
+            _ => (),
+        }
+        Ok(())
+    }
+}
