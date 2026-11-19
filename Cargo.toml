@@ -14,7 +14,7 @@ readme = "README.md"
 keywords = ["cargo", "mobile", "ios", "android", "tauri"]
 categories = ["development-tools::cargo-plugins"]
 license = "Apache-2.0 OR MIT"
-rust-version = "1.76"
+rust-version = "1.90"
 
 [package.metadata.docs.rs]
 no-default-features = true
