@@ -78,7 +78,6 @@ textwrap = { version = "0.16", features = ["terminal_size"] }
 thiserror = "2.0"
 toml = { version = "1.0", features = ["preserve_order"] }
 duct = "1.1"
-which = "8"
 os_pipe = "1"
 
 [dev-dependencies]
@@ -86,7 +85,7 @@ rstest = "0.28"
 
 [target."cfg(target_os = \"macos\")".dependencies]
 core-foundation = "0.10"
-x509-certificate = "0.24"
+x509-certificate = "0.25"
 os_info = "3"
 plist = "1"
 
@@ -114,6 +113,9 @@ features = [
   "Win32_System_SystemServices",
   "Win32_UI_Shell",
 ]
+
+[target."cfg(windows)".dependencies]
+which = "8"
 
 [target."cfg(windows)".build-dependencies]
 embed-resource = { version = "3", optional = true }
