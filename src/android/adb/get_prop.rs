@@ -1,3 +1,4 @@
+use crate::DuctExpressionExt as _;
 use crate::{
     android::env::Env,
     util::cli::{Report, Reportable},
@@ -50,7 +51,7 @@ pub fn get_prop(env: &Env, serial_no: &str, prop: &str) -> Result<String, Error>
         .stderr_capture()
         .start()
         .map_err(|error| Error::CommandFailed {
-            command: format!("{cmd:?}"),
+            command: cmd.display_cmd(),
             error,
         })?;
 
@@ -63,7 +64,7 @@ pub fn get_prop(env: &Env, serial_no: &str, prop: &str) -> Result<String, Error>
             ))
         })
         .map_err(|error| Error::CommandFailed {
-            command: format!("{cmd:?}"),
+            command: cmd.display_cmd(),
             error,
         })?;
     super::check_authorized(output).map_err(|source| Error::LookupFailed {

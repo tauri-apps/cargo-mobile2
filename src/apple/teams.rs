@@ -1,4 +1,5 @@
 use crate::regex;
+use crate::DuctExpressionExt as _;
 
 use std::collections::BTreeSet;
 use thiserror::Error;
@@ -123,7 +124,7 @@ pub fn find_development_teams() -> Result<Vec<Team>, Error> {
         let new = new_name_scheme_cmd
             .run()
             .map_err(|error| Error::SecurityCommandFailed {
-                command: format!("{new_name_scheme_cmd:?}"),
+                command: new_name_scheme_cmd.display_cmd(),
                 error,
             })?;
         let mut certs =
@@ -132,7 +133,7 @@ pub fn find_development_teams() -> Result<Vec<Team>, Error> {
         let old = old_name_scheme_cmd
             .run()
             .map_err(|error| Error::SecurityCommandFailed {
-                command: format!("{old_name_scheme_cmd:?}"),
+                command: old_name_scheme_cmd.display_cmd(),
                 error,
             })?;
         certs.append(

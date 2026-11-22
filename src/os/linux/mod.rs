@@ -111,7 +111,7 @@ impl Application {
             let cmd = duct::cmd(&command_parts[0], &command_parts[1..]);
             cmd.run_and_detach()
                 .map_err(|error| OpenFileError::CommandFailed {
-                    command: format!("{cmd:?}"),
+                    command: cmd.display_cmd(),
                     error,
                 })
         } else {
@@ -162,7 +162,7 @@ pub fn open_file_with(
     let cmd = duct::cmd(&command_parts[0], &command_parts[1..]).vars(env.explicit_env());
     cmd.run_and_detach()
         .map_err(|error| OpenFileError::CommandFailed {
-            command: format!("{cmd:?}"),
+            command: cmd.display_cmd(),
             error,
         })
 }

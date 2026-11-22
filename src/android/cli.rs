@@ -332,7 +332,7 @@ impl Exec for Input {
                     )
                     .and_then(|h| {
                         h.wait().map(|_| ()).map_err(|err| RunError::CommandFailed {
-                            command: format!("{h:?}"),
+                            command: "adb logcat".to_string(),
                             error: err,
                         })
                     })

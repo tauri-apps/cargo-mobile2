@@ -220,7 +220,7 @@ impl Context {
             cmd.read()
                 .map(|s| s.trim().to_owned())
                 .map_err(|error| Error::UuidLookupFailed {
-                    command: format!("{cmd:?}"),
+                    command: cmd.display_cmd(),
                     error,
                 })?;
         let plist_path = self

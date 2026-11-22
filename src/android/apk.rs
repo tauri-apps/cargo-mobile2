@@ -5,6 +5,7 @@ use heck::ToUpperCamelCase;
 use thiserror::Error;
 
 use super::{config::Config, env::Env, jnilibs, target::Target};
+use crate::DuctExpressionExt as _;
 use crate::{
     android::jnilibs::JniLibs,
     opts::{NoiseLevel, Profile},
@@ -117,12 +118,12 @@ pub fn build(
             }
         })
         .map_err(|err| ApkError::AssembleFailed {
-            command: format!("{cmd:?}"),
+            command: cmd.display_cmd(),
             error: err,
         })?
         .wait()
         .map_err(|err| ApkError::AssembleFailed {
-            command: format!("{cmd:?}"),
+            command: cmd.display_cmd(),
             error: err,
         })?;
 

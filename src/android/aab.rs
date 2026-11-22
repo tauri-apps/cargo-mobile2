@@ -5,6 +5,7 @@ use heck::ToUpperCamelCase;
 use thiserror::Error;
 
 use super::{config::Config, env::Env, target::Target};
+use crate::DuctExpressionExt as _;
 use crate::{
     opts::{NoiseLevel, Profile},
     util::{
@@ -90,12 +91,12 @@ pub fn build(
             }
         })
         .map_err(|error| AabError::CommandFailed {
-            command: format!("{cmd:?}"),
+            command: cmd.display_cmd(),
             error,
         })?
         .wait()
         .map_err(|error| AabError::CommandFailed {
-            command: format!("{cmd:?}"),
+            command: cmd.display_cmd(),
             error,
         })?;
 

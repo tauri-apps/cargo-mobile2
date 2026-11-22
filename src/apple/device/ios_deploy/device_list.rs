@@ -76,7 +76,7 @@ pub fn device_list<'a>(env: &Env) -> Result<BTreeSet<Device<'a>>, DeviceListErro
             }
         }
         Err(err) => Err(DeviceListError::DetectionFailed {
-            command: format!("{cmd:?}"),
+            command: cmd.display_cmd(),
             error: err,
         }),
     }

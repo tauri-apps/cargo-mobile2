@@ -49,12 +49,12 @@ pub fn run(
         .dup_stdio();
 
     let handle = cmd.start().map_err(|error| RunError::CommandFailed {
-        command: format!("{cmd:?}"),
+        command: cmd.display_cmd(),
         error,
     })?;
 
     handle.wait().map_err(|error| RunError::CommandFailed {
-        command: format!("{cmd:?}"),
+        command: cmd.display_cmd(),
         error,
     })?;
 
@@ -73,19 +73,19 @@ pub fn run(
         launcher_cmd
             .start()
             .map_err(|error| RunError::CommandFailed {
-                command: format!("{launcher_cmd:?}"),
+                command: launcher_cmd.display_cmd(),
                 error,
             })
     } else {
         launcher_cmd
             .start()
             .map_err(|error| RunError::CommandFailed {
-                command: format!("{launcher_cmd:?}"),
+                command: launcher_cmd.display_cmd(),
                 error,
             })?
             .wait()
             .map_err(|error| RunError::CommandFailed {
-                command: format!("{launcher_cmd:?}"),
+                command: launcher_cmd.display_cmd(),
                 error,
             })?;
 
@@ -110,7 +110,7 @@ pub fn run(
         .vars(env.explicit_env())
         .dup_stdio();
         cmd.start().map_err(|error| RunError::CommandFailed {
-            command: format!("{cmd:?}"),
+            command: cmd.display_cmd(),
             error,
         })
     }
