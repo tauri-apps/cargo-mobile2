@@ -154,6 +154,7 @@ pub fn open_file_with(
     // In windows, there is no standerd way to find application by name.
     match application.as_ref().to_str() {
         Some("Android Studio") => open_file_with_android_studio(path, env),
+        Some("DevEco-Studio") => open_file_with_deveco_studio(path, env),
         _ => {
             unimplemented!()
         }
@@ -164,9 +165,14 @@ const ANDROID_STUDIO_UNINSTALL_KEY_PATH: PCWSTR =
     w!("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Android Studio");
 const ANDROID_STUDIO_UNINSTALLER_VALUE: PCWSTR = w!("UninstallString");
 #[cfg(target_pointer_width = "64")]
-const STUDIO_EXE_PATH: &str = "bin/studio64.exe";
+const ANDROID_STUDIO_EXE_PATH: &str = "bin/studio64.exe";
 #[cfg(target_pointer_width = "32")]
-const STUDIO_EXE_PATH: &str = "bin/studio.exe";
+const ANDROID_STUDIO_EXE_PATH: &str = "bin/studio.exe";
+
+// DevEco is 64-bit only but registers itself in WOW6432Node for some reason.
+const DEVECO_STUDIO_UNINSTALL_KEY_PATH: PCWSTR =
+    w!("SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\DevEco Studio");
+const DEVECO_STUDIO_DISPLAYICON_VALUE: PCWSTR = w!("DisplayIcon");
 
 fn open_file_with_android_studio(path: impl AsRef<OsStr>, env: &Env) -> Result<(), OpenFileError> {
     let mut application_path = which("studio.cmd").unwrap_or_default();
@@ -188,7 +194,39 @@ fn open_file_with_android_studio(path: impl AsRef<OsStr>, env: &Env) -> Result<(
         application_path = Path::new(&uninstaller_path)
             .parent()
             .expect("Failed to get Android Studio uninstaller's parent path")
-            .join(STUDIO_EXE_PATH);
+            .join(ANDROID_STUDIO_EXE_PATH);
+    }
+    duct::cmd(
+        application_path,
+        [
+            dunce::canonicalize(Path::new(path.as_ref()))
+                .expect("Failed to canonicalize file path"),
+        ],
+    )
+    .vars(env.explicit_env())
+    .run_and_detach()
+    .map_err(OpenFileError::LaunchFailed)?;
+    Ok(())
+}
+
+fn open_file_with_deveco_studio(path: impl AsRef<OsStr>, env: &Env) -> Result<(), OpenFileError> {
+    let mut application_path = which("devecostudio.bat").unwrap_or_default();
+    if !application_path.is_file() {
+        let mut buffer = [0; MAX_PATH as usize];
+        unsafe {
+            SHRegGetPathW(
+                HKEY_LOCAL_MACHINE,
+                PCWSTR::from_raw(DEVECO_STUDIO_UNINSTALL_KEY_PATH.as_ptr()),
+                PCWSTR::from_raw(DEVECO_STUDIO_DISPLAYICON_VALUE.as_ptr()),
+                &mut buffer,
+                0,
+            )
+            .ok()
+            .map_err(|e| OpenFileError::IOError(e.into()))?
+        };
+        let len = NullTerminatedWTF16Iterator(buffer.as_ptr()).count();
+        let displayicon_path = OsString::from_wide(&buffer[..len]);
+        application_path = std::path::PathBuf::from(&displayicon_path);
     }
     duct::cmd(
         application_path,

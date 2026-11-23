@@ -30,6 +30,8 @@ pub struct Metadata {
     pub apple: crate::apple::config::Metadata,
     #[serde(default, rename = "cargo-android")]
     pub android: crate::android::config::Metadata,
+    #[serde(default, rename = "cargo-open-harmony")]
+    pub open_harmony: crate::open_harmony::config::Metadata,
 }
 
 impl Metadata {
@@ -62,5 +64,9 @@ impl Metadata {
 
     pub fn android(&self) -> &crate::android::config::Metadata {
         &self.android
+    }
+
+    pub fn open_harmony(&self) -> &crate::open_harmony::config::Metadata {
+        &self.open_harmony
     }
 }
