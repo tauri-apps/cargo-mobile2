@@ -1,48 +1,62 @@
-use mobile_entry_point::mobile_entry_point;
 use winit::{
-    event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
+    application::ApplicationHandler,
+    event::WindowEvent,
+    event_loop::{ActiveEventLoop, EventLoop},
+    window::{Window, WindowId},
 };
 
-#[cfg(target_os = "android")]
-fn init_logging() {
-    android_logger::init_once(
-        android_logger::Config::default()
-            .with_min_level(log::Level::Trace)
-            .with_tag("{{app.name}}"),
-    );
+#[derive(Default)]
+pub struct App(Option<Window>);
+
+impl ApplicationHandler for App {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        if self.0.is_none() {
+            let window = event_loop
+                .create_window(
+                    Window::default_attributes()
+                        .with_title("{{app.name}}")
+                        .with_inner_size(winit::dpi::LogicalSize::new(1280.0, 720.0)),
+                )
+                .unwrap();
+            self.0 = Some(window);
+        }
+    }
+
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _window_id: WindowId,
+        event: WindowEvent,
+    ) {
+        log::debug!("{event:?}");
+
+        if event == WindowEvent::CloseRequested {
+            event_loop.exit();
+        }
+    }
 }
 
 #[cfg(not(target_os = "android"))]
-fn init_logging() {
+#[unsafe(no_mangle)]
+#[inline(never)]
+pub extern "C" fn start_app() {
     simple_logger::SimpleLogger::new().init().unwrap();
+
+    let event_loop = EventLoop::new().unwrap();
+    event_loop.run_app(&mut App::default()).unwrap();
 }
 
-#[mobile_entry_point]
-fn main() {
-    init_logging();
-    let event_loop = EventLoop::new();
+#[cfg(target_os = "android")]
+#[unsafe(no_mangle)]
+fn android_main(app: winit::platform::android::activity::AndroidApp) {
+    android_logger::init_once(
+        android_logger::Config::default()
+            .with_max_level(log::LevelFilter::Trace)
+            .with_tag("{{app.name}}"),
+    );
 
-    let window = WindowBuilder::new()
-        .with_title("A fantastic window!")
-        .with_inner_size(winit::dpi::LogicalSize::new(128.0, 128.0))
-        .build(&event_loop)
-        .unwrap();
+    use winit::platform::android::EventLoopBuilderExtAndroid;
 
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
-        println!("{:?}", event);
-
-        match event {
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                window_id,
-            } if window_id == window.id() => *control_flow = ControlFlow::Exit,
-            Event::MainEventsCleared => {
-                window.request_redraw();
-            }
-            _ => (),
-        }
-    });
+    let event_loop = EventLoop::builder().with_android_app(app).build().unwrap();
+    event_loop.run_app(&mut App::default()).unwrap();
 }
